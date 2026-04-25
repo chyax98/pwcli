@@ -23,6 +23,122 @@ function normalizeRef(ref: string) {
   return ref.startsWith("@") ? ref.slice(1) : ref;
 }
 
+async function managedEnsureDiagnosticsHooks(options?: { sessionName?: string }) {
+  const result = await managedRunCode({
+    sessionName: options?.sessionName,
+    source: `async page => {
+      const context = page.context();
+      const state = context[${JSON.stringify(DIAGNOSTICS_STATE_KEY)}] ||= {};
+      state.consoleRecords = Array.isArray(state.consoleRecords) ? state.consoleRecords : [];
+      state.networkRecords = Array.isArray(state.networkRecords) ? state.networkRecords : [];
+      state.pageErrorRecords = Array.isArray(state.pageErrorRecords) ? state.pageErrorRecords : [];
+      state.nextPageSeq = Number.isInteger(state.nextPageSeq) ? state.nextPageSeq : 1;
+      state.nextRequestSeq = Number.isInteger(state.nextRequestSeq) ? state.nextRequestSeq : 1;
+
+      const now = () => new Date().toISOString();
+      const keep = (list, entry, max = 200) => {
+        list.push(entry);
+        if (list.length > max)
+          list.splice(0, list.length - max);
+      };
+      const ensurePageId = (p) => {
+        if (!p.__pwcliPageId)
+          p.__pwcliPageId = 'p' + state.nextPageSeq++;
+        return p.__pwcliPageId;
+      };
+      const installPage = (p) => {
+        ensurePageId(p);
+        if (p.__pwcliDiagnosticsInstalled)
+          return;
+        p.__pwcliDiagnosticsInstalled = true;
+        p.on('console', msg => {
+          keep(state.consoleRecords, {
+            timestamp: now(),
+            pageId: ensurePageId(p),
+            level: msg.type(),
+            text: msg.text(),
+          });
+        });
+        p.on('request', req => {
+          const requestId = req.__pwcliRequestId || ('req-' + state.nextRequestSeq++);
+          req.__pwcliRequestId = requestId;
+          keep(state.networkRecords, {
+            timestamp: now(),
+            event: 'request',
+            requestId,
+            pageId: ensurePageId(p),
+            url: req.url(),
+            method: req.method(),
+            resourceType: req.resourceType(),
+          });
+        });
+        p.on('response', res => {
+          const req = res.request();
+          const requestId = req.__pwcliRequestId || ('req-' + state.nextRequestSeq++);
+          req.__pwcliRequestId = requestId;
+          keep(state.networkRecords, {
+            timestamp: now(),
+            event: 'response',
+            requestId,
+            pageId: ensurePageId(p),
+            url: req.url(),
+            method: req.method(),
+            status: res.status(),
+            resourceType: req.resourceType(),
+          });
+        });
+        p.on('requestfailed', req => {
+          const requestId = req.__pwcliRequestId || ('req-' + state.nextRequestSeq++);
+          req.__pwcliRequestId = requestId;
+          keep(state.networkRecords, {
+            timestamp: now(),
+            event: 'requestfailed',
+            requestId,
+            pageId: ensurePageId(p),
+            url: req.url(),
+            method: req.method(),
+            resourceType: req.resourceType(),
+            failureText: req.failure()?.errorText || '',
+          });
+        });
+        p.on('pageerror', err => {
+          keep(state.pageErrorRecords, {
+            timestamp: now(),
+            pageId: ensurePageId(p),
+            text: err?.message || String(err),
+            stack: typeof err?.stack === 'string' ? err.stack : '',
+          });
+        });
+        p.on('dialog', dialog => {
+          state.dialog = {
+            open: true,
+            pageId: ensurePageId(p),
+            type: dialog.type(),
+            message: dialog.message(),
+            timestamp: now(),
+          };
+        });
+      };
+
+      for (const current of context.pages())
+        installPage(current);
+
+      if (!context.__pwcliContextDiagnosticsInstalled) {
+        context.__pwcliContextDiagnosticsInstalled = true;
+        context.on('page', newPage => installPage(newPage));
+      }
+
+      return JSON.stringify({
+        installed: true,
+        pageIds: context.pages().map(current => ensurePageId(current)),
+        consoleCount: state.consoleRecords.length,
+        networkCount: state.networkRecords.length,
+      });
+    }`,
+  });
+  return result.data.result;
+}
+
 export async function managedOpen(
   url: string,
   options?: {
@@ -50,6 +166,7 @@ export async function managedOpen(
   );
 
   const page = parsePageSummary(result.text);
+  await managedEnsureDiagnosticsHooks({ sessionName: options?.sessionName }).catch(() => {});
   return {
     session: {
       scope: "managed",
@@ -1110,51 +1227,60 @@ export async function managedPageFrames(options?: { sessionName?: string }) {
 }
 
 export async function managedConsole(level?: string, options?: { sessionName?: string }) {
-  const args = ["console"];
-  if (level) {
-    args.push(level);
-  }
-  const result = await runManagedSessionCommand(
-    {
-      _: args,
-    },
-    {
-      sessionName: options?.sessionName,
-    },
-  );
+  await managedEnsureDiagnosticsHooks({ sessionName: options?.sessionName });
+  const result = await managedRunCode({
+    sessionName: options?.sessionName,
+    source: `async page => {
+      const context = page.context();
+      const state = context[${JSON.stringify(DIAGNOSTICS_STATE_KEY)}] || {};
+      const records = Array.isArray(state.consoleRecords) ? state.consoleRecords : [];
+      const order = { error: 3, warning: 2, warn: 2, info: 1, log: 1, debug: 0 };
+      const threshold = ${JSON.stringify(level ?? "info")};
+      const thresholdRank = order[threshold] ?? 1;
+      const filtered = records.filter(record => (order[record.level] ?? 1) >= thresholdRank);
+      return JSON.stringify({
+        total: filtered.length,
+        errors: filtered.filter(record => record.level === 'error').length,
+        warnings: filtered.filter(record => record.level === 'warning' || record.level === 'warn').length,
+        sample: filtered.slice(-20),
+      });
+    }`,
+  });
+  const parsed =
+    typeof result.data.result === "object" && result.data.result ? result.data.result : {};
   return {
-    session: {
-      scope: "managed",
-      name: result.sessionName,
-      default: result.sessionName === "default",
-    },
-    page: parsePageSummary(result.text),
+    session: result.session,
+    page: result.page,
     data: {
-      summary: parseConsoleSummary(result.text),
-      ...maybeRawOutput(result.text),
+      summary: parsed,
+      ...maybeRawOutput(result.rawText ?? ""),
     },
   };
 }
 
 export async function managedNetwork(options?: { sessionName?: string }) {
-  const result = await runManagedSessionCommand(
-    {
-      _: ["network"],
-    },
-    {
-      sessionName: options?.sessionName,
-    },
-  );
+  await managedEnsureDiagnosticsHooks({ sessionName: options?.sessionName });
+  const result = await managedRunCode({
+    sessionName: options?.sessionName,
+    source: `async page => {
+      const context = page.context();
+      const state = context[${JSON.stringify(DIAGNOSTICS_STATE_KEY)}] || {};
+      const records = Array.isArray(state.networkRecords) ? state.networkRecords : [];
+      const sample = records.slice(-20);
+      return JSON.stringify({
+        total: records.length,
+        sample,
+      });
+    }`,
+  });
+  const parsed =
+    typeof result.data.result === "object" && result.data.result ? result.data.result : {};
   return {
-    session: {
-      scope: "managed",
-      name: result.sessionName,
-      default: result.sessionName === "default",
-    },
-    page: parsePageSummary(result.text),
+    session: result.session,
+    page: result.page,
     data: {
-      summary: parseNetworkSummary(result.text),
-      ...maybeRawOutput(result.text),
+      summary: parsed,
+      ...maybeRawOutput(result.rawText ?? ""),
     },
   };
 }
@@ -1164,12 +1290,37 @@ export async function managedWait(options: {
   text?: string;
   selector?: string;
   networkidle?: boolean;
+  request?: string;
+  response?: string;
+  method?: string;
+  status?: string;
   sessionName?: string;
 }) {
   let source = "";
 
   if (options.target && /^\d+$/.test(options.target)) {
     source = `async page => { await page.waitForTimeout(${Number(options.target)}); return 'delay'; }`;
+  } else if (options.request) {
+    source = `async page => {
+      const request = await page.waitForRequest(request => {
+        if (!request.url().includes(${JSON.stringify(options.request)}))
+          return false;
+        ${options.method ? `if (request.method() !== ${JSON.stringify(options.method.toUpperCase())}) return false;` : ""}
+        return true;
+      });
+      return JSON.stringify({ kind: 'request', url: request.url(), method: request.method() });
+    }`;
+  } else if (options.response) {
+    source = `async page => {
+      const response = await page.waitForResponse(response => {
+        if (!response.url().includes(${JSON.stringify(options.response)}))
+          return false;
+        ${options.method ? `if (response.request().method() !== ${JSON.stringify(options.method.toUpperCase())}) return false;` : ""}
+        ${options.status ? `if (String(response.status()) !== ${JSON.stringify(options.status)}) return false;` : ""}
+        return true;
+      });
+      return JSON.stringify({ kind: 'response', url: response.url(), method: response.request().method(), status: response.status() });
+    }`;
   } else if (options.networkidle) {
     source = `async page => { await page.waitForLoadState('networkidle'); return 'networkidle'; }`;
   } else if (options.selector) {
@@ -1193,7 +1344,9 @@ export async function managedWait(options: {
       condition:
         typeof result.data.result === "string"
           ? stripQuotes(result.data.result)
-          : String(result.data.result ?? ""),
+          : typeof result.data.result === "object" && result.data.result
+            ? result.data.result
+            : String(result.data.result ?? ""),
       matched: true,
       ...maybeRawOutput(result.data.output ?? ""),
     },

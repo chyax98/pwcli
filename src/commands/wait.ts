@@ -29,6 +29,10 @@ export function registerWaitCommand(program: Command): void {
           target: target === "networkIdle" || target === "networkidle" ? undefined : target,
           text: typeof options.text === "string" ? options.text : undefined,
           selector: typeof options.selector === "string" ? options.selector : undefined,
+          request: typeof options.request === "string" ? options.request : undefined,
+          response: typeof options.response === "string" ? options.response : undefined,
+          method: typeof options.method === "string" ? options.method : undefined,
+          status: typeof options.status === "string" ? options.status : undefined,
           networkidle:
             Boolean(options.networkidle) || target === "networkIdle" || target === "networkidle",
         }),
