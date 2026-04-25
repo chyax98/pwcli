@@ -13,6 +13,10 @@
 pw auth [plugin]
 pw auth --plugin <name-or-path>
 pw auth --arg key=value
+pw auth --profile <path>
+pw auth --state <file>
+pw auth --open <url>
+pw auth --save-state <file>
 ```
 
 `plugin` 可以是：
@@ -81,18 +85,20 @@ async page => {
 
 ## 5. 与 profile / state 的关系
 
-当前 auth 只负责“执行插件”。
+当前 auth 的主体仍然是“执行插件”，但现在可以顺手复用已有登录上下文，或把本轮登录态固化下来。
 
-它不会自动：
+当前支持：
 
-- 保存 `storageState`
-- 绑定 profile
+- `--profile <path>`：先在 persistent profile 里启动 default managed browser
+- `--state <file>`：在跑插件前先加载 storage state
+- `--open <url>`：插件执行完后直接导航到目标页
+- `--save-state <file>`：把 auth 后的 storage state 立即保存到文件
+
+当前仍然不会自动：
+
 - 生成独立 session 名
-
-要把登录态固化下来，仍然要显式走：
-
-- `pw state save <file>`
-- `pw profile open <dir> <url>`
+- 建立 plugin hook 生命周期
+- 把 plugin 扩成通用动作 runtime
 
 ## 6. 当前推荐用法
 
@@ -105,11 +111,19 @@ pw snapshot
 pw click / fill / type ...
 ```
 
-如果要复用登录态，继续显式保存：
+如果要直接到达真实已登录目标页：
 
 ```text
-pw auth ...
-pw state save ./auth.json
+pw auth dc-login --profile ~/.pwcli/profiles/dc2 --open https://dc2.example/
+pw snapshot
+pw click / fill / type ...
+```
+
+如果要复用动态登录结果：
+
+```text
+pw auth dc-login --open https://dc2.example/ --save-state ./auth.json
+pw open --state ./auth.json https://dc2.example/
 ```
 
 ## 7. 当前不做的事

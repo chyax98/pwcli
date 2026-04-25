@@ -66,6 +66,7 @@ node dist/cli.js state load ./.tmp-state.json
 node dist/cli.js plugin list
 node dist/cli.js plugin path example-auth
 node dist/cli.js auth --plugin example-auth --arg url=https://example.com
+node dist/cli.js auth example-auth --open https://example.com --save-state ./.tmp-auth-state-2.json
 node dist/cli.js skill path
 node dist/cli.js skill install "$(mktemp -d)"
 ```
@@ -74,6 +75,8 @@ node dist/cli.js skill install "$(mktemp -d)"
 
 - `plugin list` 当前会返回 `count`
 - `auth` 当前返回 `args`、`pageState`、`result`、`resultText`
+- `auth --open` 已验证会在插件执行后把页面落到目标 URL
+- `auth --save-state` 已验证会真实生成 state 文件
 - `skill install` 已验证可以把 packaged skill 复制到目标目录
 
 ### profile
@@ -87,6 +90,21 @@ node dist/cli.js profile open "$(mktemp -d)" about:blank
 
 - `profile inspect` 当前返回 rich path inspection，不只是 `exists`
 - `profile open` 会回传 profile 可用性信息并走 persistent open
+
+### state / open 复用
+
+```bash
+node dist/cli.js open https://example.com
+node dist/cli.js state save ./.tmp-auth-state.json
+node dist/cli.js session close
+node dist/cli.js open --state ./.tmp-auth-state.json https://example.com
+node dist/cli.js page current
+```
+
+结论：
+
+- `open --state <file> <url>` 已验证会先加载 storage state，再落到目标 URL
+- 这条链就是当前“复用已登录页再直接探索”的主入口之一
 
 ### 动作面
 

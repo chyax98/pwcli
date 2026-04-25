@@ -52,6 +52,14 @@ pw read-text
 
 `pw code` 是一级能力，当前既可作为页面推进入口，也可作为手工 smoke 页面注入入口。
 
+到达真实已登录页面的顺手入口现在有三条：
+
+```bash
+pw open --profile ~/.pwcli/profiles/dc2 https://dc2.example/
+pw open --state ./auth.json https://dc2.example/
+pw auth dc-login --profile ~/.pwcli/profiles/dc2 --open https://dc2.example/
+```
+
 ## 当前值得记住的事实
 
 - `click` 当前支持三类目标：
@@ -60,6 +68,9 @@ pw read-text
   - semantic locator：`--role` / `--text` / `--label` / `--placeholder` / `--testid`
 - `fill` 支持 ref 或 `--selector`
 - `type` 支持 focused element、ref、`--selector`
+- `open` 支持：
+  - `--profile <path>`
+  - `--state <file>`
 - `connect` 当前支持：
   - 位置参数 endpoint
   - `--ws-endpoint`
@@ -68,6 +79,9 @@ pw read-text
 - `auth` 支持：
   - `pw auth example-auth`
   - `pw auth --plugin ./plugins/example-auth.js`
+  - `--profile <path>` / `--state <file>`：先复用已登录上下文
+  - `--open <url>`：登录完成后直接落到目标页
+  - `--save-state <file>`：把本轮登录态直接固化出来
 - `plugin list` 会返回 `count`
 - `console` / `network` 当前返回结构化摘要，不是完整诊断系统
 - `download` 支持：

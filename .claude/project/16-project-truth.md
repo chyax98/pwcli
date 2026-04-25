@@ -36,6 +36,12 @@ pw read-text
 - 这条链和当前源码一致
 - 这条链在本轮手工 smoke 里也确实跑通
 
+到达真实已登录页面的当前正路有三条：
+
+1. `pw open --profile <dir> <url>`
+2. `pw open --state <file> <url>`
+3. `pw auth <plugin> --profile/--state ... --open <url>`
+
 ## 当前默认浏览器真相
 
 - 默认只有一条 `default managed session`
