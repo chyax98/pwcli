@@ -38,9 +38,17 @@ pw read-text
 
 到达真实已登录页面的当前正路有三条：
 
-1. `pw open --profile <dir> <url>`
-2. `pw open --state <file> <url>`
-3. `pw auth <plugin> --profile/--state ... --open <url>`
+1. `pw open http://127.0.0.1:4110/forge`
+2. `pw open --profile <dir> <url>`
+3. `pw open --state <file> <url>`
+4. `pw auth <plugin> --profile/--state ... --open <url>`
+
+对 DC 2.0，这台机器上当前最稳的真实入口是：
+
+```text
+pw open http://127.0.0.1:4110/forge
+pw open --profile ~/.forge-browser/profiles/acceptance-login http://127.0.0.1:4110/forge
+```
 
 ## 当前默认浏览器真相
 

@@ -60,11 +60,31 @@ node dist/cli.js state load ./.tmp-state.json
 - `batch` 当前只适合跑已接入的少量子命令
 - `trace` 和 `state` 已可用，但没有项目级 artifact 目录 contract
 
+### DC 2.0 真实页面入口
+
+```bash
+node dist/cli.js session close
+node dist/cli.js open http://127.0.0.1:4110/forge
+node dist/cli.js page current
+node dist/cli.js snapshot
+
+node dist/cli.js session close
+node dist/cli.js open --profile ~/.forge-browser/profiles/acceptance-login http://127.0.0.1:4110/forge
+node dist/cli.js snapshot
+```
+
+结论：
+
+- `http://127.0.0.1:4110/forge` 当前已验证能稳定打开，标题是 `TapTap 开发者服务`
+- 挂 `~/.forge-browser/profiles/acceptance-login` 也能直接进入同一真实页面
+- 当前机器上，这条路比 `tap.dev` 域名更稳，适合作为后续 Agent 探索 DC 2.0 的主入口
+
 ### plugin / auth / skill
 
 ```bash
 node dist/cli.js plugin list
 node dist/cli.js plugin path example-auth
+node dist/cli.js plugin path dc-login
 node dist/cli.js auth --plugin example-auth --arg url=https://example.com
 node dist/cli.js auth example-auth --open https://example.com --save-state ./.tmp-auth-state-2.json
 node dist/cli.js skill path
@@ -74,6 +94,7 @@ node dist/cli.js skill install "$(mktemp -d)"
 结论：
 
 - `plugin list` 当前会返回 `count`
+- `dc-login` 已出现在插件列表里
 - `auth` 当前返回 `args`、`pageState`、`result`、`resultText`
 - `auth --open` 已验证会在插件执行后把页面落到目标 URL
 - `auth --save-state` 已验证会真实生成 state 文件
@@ -211,5 +232,6 @@ node dist/cli.js session status
 - `wait --request/--response/--method/--status`
 - 更复杂的多 tab / frame / dialog 工作流
 - `download` 在 `file://` 打开的本地下载页上仍不写成稳定 contract
+- `dc-login` 在当前环境里的完整动态登录链路；当前只验证了插件接入和参数解析，未把它写成稳定主路
 
 这些都不能写成“已人工验证通过”。

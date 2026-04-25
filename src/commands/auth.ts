@@ -5,6 +5,7 @@ import {
   managedStateLoad,
   managedStateSave,
 } from "../core/managed.js";
+import { resolveDcLoginArgs } from "../plugins/dc-login-config.js";
 import { loadPluginSource, parseKeyValueArgs, resolvePluginPath } from "../plugins/resolve.js";
 import { printCommandError, printCommandResult } from "../utils/output.js";
 
@@ -63,7 +64,8 @@ export function registerAuthCommand(program: Command): void {
           }
 
           const pluginSource = loadPluginSource(path);
-          const args = parseKeyValueArgs(options.arg);
+          const rawArgs = parseKeyValueArgs(options.arg);
+          const args = pluginName === "dc-login" ? await resolveDcLoginArgs(rawArgs) : rawArgs;
           const persistent = options.persistent || Boolean(options.profile);
 
           if (options.profile || options.persistent || options.state || options.headed) {

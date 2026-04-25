@@ -94,6 +94,13 @@ async page => {
 - `--open <url>`：插件执行完后直接导航到目标页
 - `--save-state <file>`：把 auth 后的 storage state 立即保存到文件
 
+对 `dc-login`，当前要分两条路看：
+
+- 复用型入口：优先 `pw open --profile ... http://127.0.0.1:4110/forge` 或 `pw open --state ...`
+- 动态登录入口：`pw auth dc-login ...`
+
+当前机器上，前者更稳。
+
 当前仍然不会自动：
 
 - 生成独立 session 名

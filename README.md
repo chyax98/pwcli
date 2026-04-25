@@ -55,9 +55,18 @@ pw read-text
 到达真实已登录页面的顺手入口现在有三条：
 
 ```bash
+pw open http://127.0.0.1:4110/forge
+pw open --profile ~/.forge-browser/profiles/acceptance-login http://127.0.0.1:4110/forge
 pw open --profile ~/.pwcli/profiles/dc2 https://dc2.example/
 pw open --state ./auth.json https://dc2.example/
 pw auth dc-login --profile ~/.pwcli/profiles/dc2 --open https://dc2.example/
+```
+
+当前这台机器上已经真实验证通过的 DC 2.0 入口是：
+
+```bash
+pw open http://127.0.0.1:4110/forge
+pw open --profile ~/.forge-browser/profiles/acceptance-login http://127.0.0.1:4110/forge
 ```
 
 ## 当前值得记住的事实
@@ -78,6 +87,7 @@ pw auth dc-login --profile ~/.pwcli/profiles/dc2 --open https://dc2.example/
   - `--cdp`
 - `auth` 支持：
   - `pw auth example-auth`
+  - `pw auth dc-login`
   - `pw auth --plugin ./plugins/example-auth.js`
   - `--profile <path>` / `--state <file>`：先复用已登录上下文
   - `--open <url>`：登录完成后直接落到目标页
@@ -103,6 +113,7 @@ pw auth dc-login --profile ~/.pwcli/profiles/dc2 --open https://dc2.example/
 - `wait --request/--response/--method/--status` 已出现在参数面，但当前实现还没接上
 - `session status` 只能当 best-effort 视图
 - `download` 当前人工验证是基于已存在下载元素的 managed page，不把 `file://` 打开本地下载页写成稳定 contract
+- `dc-login` 当前已接入，但动态登录仍依赖目标环境返回预期的 login URL；当前最稳的 DC 2.0 探索入口仍然是直接 `open` 本地 `4110/forge`
 
 ## 手工验证
 
