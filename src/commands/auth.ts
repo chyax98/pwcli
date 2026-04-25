@@ -66,6 +66,9 @@ export function registerAuthCommand(program: Command): void {
           const pluginSource = loadPluginSource(path);
           const rawArgs = parseKeyValueArgs(options.arg);
           const args = pluginName === "dc-login" ? await resolveDcLoginArgs(rawArgs) : rawArgs;
+          if (pluginName === "dc-login" && options.open && !args.targetUrl) {
+            args.targetUrl = options.open;
+          }
           const persistent = options.persistent || Boolean(options.profile);
 
           if (options.profile || options.persistent || options.state || options.headed) {

@@ -94,6 +94,14 @@ async page => {
 - `--open <url>`：插件执行完后直接导航到目标页
 - `--save-state <file>`：把 auth 后的 storage state 立即保存到文件
 
+对 `dc-login`，`--open <url>` 现在还会默认同步成插件的 `targetUrl`。也就是：
+
+```bash
+pw auth dc-login --open 'https://developer-192-168-5-18.tap.dev/forge/89347/all-app'
+```
+
+会优先把这条 deep link 当作认证后的目标页，而不是回落到泛化的 `/forge`。
+
 对 `dc-login`，当前要分两条路看：
 
 - 复用型入口：优先 `pw open --profile ... http://127.0.0.1:4110/forge` 或 `pw open --state ...`

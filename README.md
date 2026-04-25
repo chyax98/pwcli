@@ -69,6 +69,13 @@ pw open http://127.0.0.1:4110/forge
 pw open --profile ~/.forge-browser/profiles/acceptance-login http://127.0.0.1:4110/forge
 ```
 
+你如果要直接打具体业务页，应该传完整 deep link，例如：
+
+```bash
+pw open 'https://developer-192-168-5-18.tap.dev/forge/89347/all-app'
+pw auth dc-login --open 'https://developer-192-168-5-18.tap.dev/forge/89347/all-app'
+```
+
 ## 当前值得记住的事实
 
 - `click` 当前支持三类目标：
