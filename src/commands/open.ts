@@ -53,6 +53,7 @@ export function registerOpenCommand(program: Command): void {
               headed: options.headed,
               profile: options.profile,
               persistent,
+              reset: Boolean(options.headed || options.profile || persistent),
             });
 
         printCommandResult("open", {

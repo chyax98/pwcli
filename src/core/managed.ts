@@ -17,6 +17,8 @@ function maybeRawOutput(text: string) {
   return process.env.PWCLI_RAW_OUTPUT === "1" ? { output: text } : {};
 }
 
+const DIAGNOSTICS_STATE_KEY = "__pwcliDiagnostics";
+
 function normalizeRef(ref: string) {
   return ref.startsWith("@") ? ref.slice(1) : ref;
 }
@@ -465,6 +467,22 @@ export async function managedTrace(action: "start" | "stop", options?: { session
       sessionName: options?.sessionName,
     },
   );
+  const traceState = await managedRunCode({
+    sessionName: options?.sessionName,
+    source: `async page => {
+      const context = page.context();
+      const state = context[${JSON.stringify(DIAGNOSTICS_STATE_KEY)}] ||= {};
+      state.trace = {
+        active: ${action === "start" ? "true" : "false"},
+        supported: true,
+        lastAction: ${JSON.stringify(action)},
+        updatedAt: new Date().toISOString(),
+      };
+      return JSON.stringify(state.trace);
+    }`,
+  })
+    .then((traceResult) => traceResult.data.result)
+    .catch(() => undefined);
 
   return {
     session: {
@@ -477,7 +495,326 @@ export async function managedTrace(action: "start" | "stop", options?: { session
       action,
       started: action === "start" ? true : undefined,
       stopped: action === "stop" ? true : undefined,
+      ...(traceState ? { trace: traceState } : {}),
       ...maybeRawOutput(result.text),
+    },
+  };
+}
+
+export async function managedErrors(
+  action: "recent" | "clear",
+  options?: { sessionName?: string },
+) {
+  const result = await managedRunCode({
+    sessionName: options?.sessionName,
+    source: `async page => {
+      const allErrors = await page.pageErrors({ filter: 'all' }).catch(async () => {
+        return await page.pageErrors().catch(() => []);
+      });
+      const clearedCount = Number(page.__pwcliErrorsClearedCount || 0);
+      if (${JSON.stringify(action)} === 'clear') {
+        page.__pwcliErrorsClearedCount = allErrors.length;
+        return JSON.stringify({
+          action: 'clear',
+          cleared: true,
+          totalErrors: allErrors.length,
+          clearedCount: allErrors.length,
+          visibleCount: 0,
+          errors: [],
+        });
+      }
+      const errors = allErrors.slice(clearedCount).map((error, index) => ({
+        index: clearedCount + index + 1,
+        name: error?.name || 'Error',
+        message: error?.message || String(error),
+        stack: typeof error?.stack === 'string' ? error.stack : '',
+      }));
+      return JSON.stringify({
+        action: 'recent',
+        clearedCount,
+        totalErrors: allErrors.length,
+        visibleCount: errors.length,
+        errors,
+      });
+    }`,
+  });
+  const parsed =
+    typeof result.data.result === "object" && result.data.result ? result.data.result : {};
+
+  return {
+    session: result.session,
+    page: result.page,
+    data: {
+      action,
+      summary: {
+        total: Number(parsed.totalErrors ?? 0),
+        visible: Number(parsed.visibleCount ?? 0),
+        clearedCount: Number(parsed.clearedCount ?? 0),
+      },
+      errors: Array.isArray(parsed.errors) ? parsed.errors : [],
+    },
+  };
+}
+
+export async function managedRoute(
+  action: "add" | "remove",
+  options: {
+    pattern?: string;
+    abort?: boolean;
+    body?: string;
+    status?: number;
+    contentType?: string;
+    sessionName?: string;
+  },
+) {
+  if (action === "add" && !options.pattern) {
+    throw new Error("route add requires a pattern");
+  }
+
+  const config = {
+    abort: Boolean(options.abort),
+    body: options.body,
+    status: options.status,
+    contentType: options.contentType,
+  };
+  const result = await managedRunCode({
+    sessionName: options.sessionName,
+    source:
+      action === "add"
+        ? `async page => {
+      const context = page.context();
+      const state = context[${JSON.stringify(DIAGNOSTICS_STATE_KEY)}] ||= {};
+      state.routes = Array.isArray(state.routes) ? state.routes : [];
+      const pattern = ${JSON.stringify(options.pattern)};
+      const config = ${JSON.stringify(config)};
+      await context.route(pattern, async route => {
+        if (config.abort) {
+          await route.abort();
+          return;
+        }
+        if (config.body !== undefined || config.status !== undefined || config.contentType !== undefined) {
+          const fulfillOptions = {
+            status: config.status ?? 200,
+            body: config.body ?? '',
+          };
+          if (config.contentType)
+            fulfillOptions.contentType = config.contentType;
+          await route.fulfill(fulfillOptions);
+          return;
+        }
+        await route.continue();
+      });
+      const routeRecord = {
+        pattern,
+        mode: config.abort ? 'abort' : (config.body !== undefined || config.status !== undefined || config.contentType !== undefined) ? 'fulfill' : 'continue',
+        addedAt: new Date().toISOString(),
+      };
+      if (config.status !== undefined)
+        routeRecord.status = config.status;
+      if (config.contentType)
+        routeRecord.contentType = config.contentType;
+      if (config.body !== undefined) {
+        routeRecord.hasBody = true;
+        routeRecord.bodyPreview = config.body.length > 120 ? config.body.slice(0, 120) + '...' : config.body;
+      }
+      state.routes.push(routeRecord);
+      return JSON.stringify({
+        action: 'add',
+        added: true,
+        route: routeRecord,
+        routeCount: state.routes.length,
+      });
+    }`
+        : `async page => {
+      const context = page.context();
+      const state = context[${JSON.stringify(DIAGNOSTICS_STATE_KEY)}] ||= {};
+      const pattern = ${JSON.stringify(options.pattern ?? null)};
+      const existing = Array.isArray(state.routes) ? state.routes : [];
+      if (pattern) {
+        await context.unroute(pattern);
+        state.routes = existing.filter(route => route.pattern !== pattern);
+      } else {
+        await context.unrouteAll({ behavior: 'ignoreErrors' });
+        state.routes = [];
+      }
+      return JSON.stringify({
+        action: 'remove',
+        removedPattern: pattern,
+        removedCount: pattern ? existing.length - state.routes.length : existing.length,
+        routeCount: state.routes.length,
+        routes: state.routes,
+      });
+    }`,
+  });
+  const parsed =
+    typeof result.data.result === "object" && result.data.result ? result.data.result : {};
+
+  return {
+    session: result.session,
+    page: result.page,
+    data: {
+      action,
+      ...(action === "add" ? { added: true } : { removed: true }),
+      ...(parsed.route ? { route: parsed.route } : {}),
+      ...(parsed.removedPattern !== undefined ? { pattern: parsed.removedPattern } : {}),
+      ...(parsed.removedCount !== undefined ? { removedCount: parsed.removedCount } : {}),
+      routeCount: Number(parsed.routeCount ?? 0),
+      ...(Array.isArray(parsed.routes) ? { routes: parsed.routes } : {}),
+    },
+  };
+}
+
+export async function managedHar(
+  action: "start" | "stop",
+  options?: { path?: string; sessionName?: string },
+) {
+  const limitation =
+    "Current managed sessions do not expose HAR start/stop on an existing BrowserContext. Recreate the session with HAR recording once the substrate exists.";
+  const result = await managedRunCode({
+    sessionName: options?.sessionName,
+    source: `async page => {
+      const context = page.context();
+      const state = context[${JSON.stringify(DIAGNOSTICS_STATE_KEY)}] ||= {};
+      state.har = {
+        supported: false,
+        active: false,
+        lastAction: ${JSON.stringify(action)},
+        limitation: ${JSON.stringify(limitation)},
+        updatedAt: new Date().toISOString(),
+      };
+      if (${JSON.stringify(options?.path ?? null)})
+        state.har.requestedPath = ${JSON.stringify(options?.path ?? null)};
+      return JSON.stringify(state.har);
+    }`,
+  });
+  const parsed =
+    typeof result.data.result === "object" && result.data.result ? result.data.result : {};
+
+  return {
+    session: result.session,
+    page: result.page,
+    data: {
+      action,
+      supported: false,
+      limitation,
+      ...(options?.path ? { requestedPath: resolve(options.path) } : {}),
+      har: parsed,
+    },
+  };
+}
+
+export async function managedObserveStatus(options?: { sessionName?: string }) {
+  const result = await managedRunCode({
+    sessionName: options?.sessionName,
+    source: `async page => {
+      const context = page.context();
+      const state = context[${JSON.stringify(DIAGNOSTICS_STATE_KEY)}] ||= {};
+      const pages = context.pages();
+      const allErrors = await page.pageErrors({ filter: 'all' }).catch(async () => {
+        return await page.pageErrors().catch(() => []);
+      });
+      const clearedCount = Number(page.__pwcliErrorsClearedCount || 0);
+      const visibleCount = Math.max(0, allErrors.length - clearedCount);
+      const routes = Array.isArray(state.routes) ? state.routes : [];
+      const trace = state.trace || { supported: true, active: false };
+      const har = state.har || {
+        supported: false,
+        active: false,
+        limitation: 'Current managed sessions do not expose HAR start/stop on an existing BrowserContext.',
+      };
+      return JSON.stringify({
+        page: {
+          url: page.url(),
+          title: await page.title().catch(() => ''),
+        },
+        workspace: {
+          pageCount: pages.length,
+          pageUrls: pages.map(item => item.url()),
+        },
+        routes: {
+          count: routes.length,
+          items: routes,
+        },
+        pageErrors: {
+          total: allErrors.length,
+          clearedCount,
+          visibleCount,
+        },
+        trace,
+        har,
+        stream: {
+          supported: false,
+          active: false,
+          limitation: 'observe stream is not wired yet on the managed session substrate',
+        },
+      });
+    }`,
+  });
+  const parsed =
+    typeof result.data.result === "object" && result.data.result ? result.data.result : {};
+
+  return {
+    session: result.session,
+    page: result.page,
+    data: {
+      status: parsed,
+      routes: parsed.routes,
+      pageErrors: parsed.pageErrors,
+      trace: parsed.trace,
+      har: parsed.har,
+      stream: parsed.stream,
+    },
+  };
+}
+
+export async function managedBootstrapApply(options: {
+  sessionName?: string;
+  initScripts?: string[];
+  headersFile?: string;
+}) {
+  const initScripts = options.initScripts?.map((file) => resolve(file)) ?? [];
+  let headers: Record<string, string> | undefined;
+  let headersFile: string | undefined;
+
+  if (options.headersFile) {
+    headersFile = resolve(options.headersFile);
+    const parsed = JSON.parse(await readFile(headersFile, "utf8")) as Record<string, unknown>;
+    headers = Object.fromEntries(
+      Object.entries(parsed).map(([key, value]) => [key, String(value)]),
+    );
+  }
+
+  const scriptContents = await Promise.all(initScripts.map((file) => readFile(file, "utf8")));
+  const source = `async page => {
+    const context = page.context();
+    ${headers ? `await context.setExtraHTTPHeaders(${JSON.stringify(headers)});` : ""}
+    ${scriptContents
+      .map((content) => `await context.addInitScript({ content: ${JSON.stringify(content)} });`)
+      .join("\n    ")}
+    return JSON.stringify({
+      applied: true,
+      initScriptCount: ${initScripts.length},
+      ${headers ? `headersApplied: true,` : `headersApplied: false,`}
+    });
+  }`;
+
+  const result = await managedRunCode({
+    sessionName: options.sessionName,
+    source,
+  });
+  const parsed =
+    typeof result.data.result === "object" && result.data.result ? result.data.result : {};
+
+  return {
+    session: result.session,
+    page: result.page,
+    data: {
+      applied: true,
+      initScriptCount: initScripts.length,
+      initScripts,
+      ...(headersFile ? { headersFile } : {}),
+      ...(headers ? { headersApplied: true } : {}),
+      ...parsed,
     },
   };
 }
