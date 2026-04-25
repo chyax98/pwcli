@@ -1,94 +1,59 @@
 # Playwright Capability Mapping
 
 更新时间：2026-04-25
-状态：draft
+状态：active
 
-目标：
-- 把每个 `pwcli` 功能映射到 Playwright Core 公共 API。
-- 禁止在没有充分理由时重写上游原语。
+这份文档只描述当前 `pwcli` 已落地的映射。真相源是当前 `src/`，不是旧 forge-browser 文档，也不是想象中的未来产品面。
 
-## 映射原则
+## 总原则
 
-- 默认只使用 Playwright Core 公共 API。
-- 先证明公共 API 不够，再讨论项目私有层。
-- 先证明 `pw code` 不够，再讨论更高层命令。
+- 浏览器生命周期优先复用 Playwright CLI 内部 `cli-client/session.js` + `registry.js`。
+- 页面动作、等待、截图、下载优先走 Playwright 公共 API。
+- `pwcli` 自己只保留命令语义、输出整形、少量解析和本地插件装配。
+- 没有必要时不碰 `playwright-core/lib/...` 其他产品层。
 
-## 页面探索
+## 当前命令到能力映射
 
-| 能力 | Playwright Core 公共 API | 项目层职责 |
-|------|--------------------------|------------|
-| open | `browserType.launch*` / `context.newPage()` / `page.goto()` | session 选择、输出 contract、artifact run 目录 |
-| page current/list | `context.pages()` / `page.url()` / `page.title()` | current page truth、结构化返回 |
-| frames | `page.frames()` | 信息整形 |
-| dialogs | `page.on('dialog')` | 缓存、查询输出 |
-| read-text | `locator.textContent()` / `locator.innerText()` / `page.evaluate()` | CLI 参数与错误包装 |
-| snapshot | `page.ariaSnapshot({ mode: "ai" })` | agent-friendly 视图整形、输出裁剪 |
+| 命令 | 当前实现 | 上游能力 |
+| --- | --- | --- |
+| `open <url>` | `managedOpen()` -> `runManagedSessionCommand({ _: ['goto', url] })` | Playwright CLI managed session + `page.goto()` |
+| `connect [endpoint]` | reset default session 后直接发 `snapshot` 探测连接是否可用 | Playwright CLI endpoint attach |
+| `snapshot` | `runManagedSessionCommand({ _: ['snapshot'] })`，再解析 `### Snapshot` yaml | `page.ariaSnapshot({ mode: 'ai' })` 经 CLI 输出 |
+| `code [source]` | `runManagedSessionCommand({ _: ['run-code', source], filename? })`；`--file` 先本地读文件，再把源码内联过去 | Playwright CLI run-code |
+| `page current/list/frames` | 通过 `pw code` 取 `page/context.frames()` | `page.url()` `page.title()` `context.pages()` `page.frames()` |
+| `read-text` | selector 模式走 `locator.innerText()`；默认读 `document.body.innerText` | `locator.innerText()` `page.evaluate()` |
+| `click [ref]` | ref 走 CLI `click`；selector/semantic locator 走 `pw code` | `aria-ref` click / `locator.click()` / `getByRole|getByText|...` |
+| `fill` | ref 走 CLI `fill`；selector 走 `pw code` | `aria-ref` fill / `locator.fill()` |
+| `type` | 无 ref/selector 时走 CLI `type`；有目标时走 `pw code` | `page.keyboard.type()` / `locator.type()` |
+| `press` | CLI `press` | `page.keyboard.press()` |
+| `scroll` | `pw code` 内调用 `page.mouse.wheel()` | `page.mouse.wheel()` |
+| `wait` | `pw code` 内支持 delay/ref/text/selector/networkidle | `waitForTimeout` `locator.waitFor` `getByText().waitFor` `waitForLoadState('networkidle')` |
+| `screenshot` | `pw code` 调 `page.screenshot()` 或 `locator.screenshot()` | `page.screenshot()` `locator.screenshot()` |
+| `trace start/stop` | CLI `tracing-start` / `tracing-stop` | `context.tracing` |
+| `state save/load` | CLI `state-save` / `state-load` | `context.storageState()` |
+| `upload` | `pw code` 调 `locator.setInputFiles()` | `locator.setInputFiles()` |
+| `drag` | `pw code` 调 `locator.dragTo()` | `locator.dragTo()` |
+| `download` | `pw code` 触发点击；项目层解析 backend `Events` 里的下载日志，再按 `--path/--dir` 复制到目标路径 | Playwright backend download handling + `locator.click()` |
+| `console` | CLI `console` 输出，项目层只解析摘要 | Playwright CLI diagnostics |
+| `network` | CLI `network` 输出，项目层只解析摘要 | Playwright CLI diagnostics |
+| `profile inspect/open` | inspect 是本地路径检查；open 最终还是 `managedOpen(..., { profile, persistent: true })` | persistent context |
+| `plugin list/path` | 本地文件系统发现与路径解析 | 无 Playwright 依赖 |
+| `auth` | 读取本地插件源码，包装成 `async page => plugin(page, args)` 后交给 `pw code` | `page` + `pw code` |
+| `skill path/install` | 本地文件系统复制 packaged skill | 无 Playwright 依赖 |
+| `session status/close` | 直接调 `Registry.load()` / `Session(entry)` | `cli-client/session.js` + `registry.js` |
 
-## 动作执行
+## 当前明确存在的边界
 
-| 能力 | Playwright Core 公共 API | 项目层职责 |
-|------|--------------------------|------------|
-| click | `page.locator('aria-ref=...').click()` / semantic locator | 参数解析、动作后 diagnostics |
-| fill | `page.locator('aria-ref=...').fill()` / `selectOption()` / semantic locator | 参数解析、错误收口 |
-| type | `page.locator('aria-ref=...').type()` / `page.keyboard.type()` / semantic locator | 参数解析、错误收口 |
-| press | `page.keyboard.press()` | 参数解析 |
-| scroll | `locator.evaluate()` / `mouse.wheel()` / `page.evaluate()` | 统一命令面 |
-| drag | `locator.dragTo()` | 参数解析 |
-| upload | `locator.setInputFiles()` / filechooser | 参数解析 |
-| download | `page.waitForEvent('download')` | artifact 落盘 |
-| wait | `locator.waitFor()` / `page.waitForLoadState()` / `page.waitForURL()` / `page.waitForFunction()` | 统一命令面 |
+- `wait --request/--response/--method/--status` 已出现在 CLI 帮助里，当前 `managedWait()` 还没有实现这几条路径。文档不能把它写成已稳定支持。
+- `console` / `network` 现在只有结构化摘要：
+  - `console.summary = { total, errors, warnings, sample[] }`
+  - `network.summary = { total, sample[] }`
+- `screenshot`、`download`、`state save` 都是显式路径驱动。当前没有默认 artifact run 目录。
+- `code --file` 当前实现是本地读文件内容后内联给 `run-code`，不是把文件路径交给另一套自定义执行器。
 
-## 直接执行代码
+## 当前允许借用的内部层
 
-| 能力 | Playwright Core 公共 API | 项目层职责 |
-|------|--------------------------|------------|
-| `pw code` | `page` / `context` / `browser` 全量暴露 | 命令入口、日志、结果包装、artifact 关联 |
+- `playwright-core/lib/tools/cli-client/session.js`
+- `playwright-core/lib/tools/cli-client/registry.js`
 
-## 诊断与证据
-
-| 能力 | Playwright Core 公共 API | 项目层职责 |
-|------|--------------------------|------------|
-| console | `page.on('console')` | recent cache、error/warning 过滤、动作后默认回传 |
-| network | `page.on('request')` / `response` / `requestfailed` | recent cache、4xx/5xx 过滤、动作后默认回传 |
-| trace | `context.tracing` | 启停、路径管理、run 关联 |
-| screenshot | `page.screenshot()` / `locator.screenshot()` | 路径管理、artifact 记录 |
-| har | Playwright `recordHar` 能力 | 路径管理、命令面组织 |
-| video/screencast | Playwright video / screenshot primitives | 仅在公共 API 明确可用时接入 |
-| perf | 仅在 Playwright 公共能力不够时再评估 | 先不默认自研 |
-
-## session / profile / state / connect
-
-| 能力 | Playwright Core 公共 API | 项目层职责 |
-|------|--------------------------|------------|
-| session | `lib/tools/cli-client/session.js` + `registry.js` + browser/context/page 生命周期 | route truth、state truth、artifact truth |
-| profile | persistent context / userDataDir | profile 命名与复用策略 |
-| state | `context.storageState()` | 存取路径、命令 contract |
-| connect | `chromium.connectOverCDP()` / browser endpoint | current page 选择、truth 收口 |
-
-## 插件登录
-
-| 能力 | Playwright Core 公共 API | 项目层职责 |
-|------|--------------------------|------------|
-| auth plugin | `page` / `context` / `storageState` | 插件发现、执行、state/profile 复用 |
-
-## 允许的极少数自研点
-
-- artifact index / search
-- diagnostics summary
-- session/page/artifact truth
-- skill distribution
-- 登录插件接入
-
-## 默认禁止
-
-- 自定义元素定位系统
-- 自定义动作执行 substrate
-- 默认依赖 `backendDOMNodeId`
-- 大面积依赖 `playwright-core/lib/...`
-
-## 当前明确采用
-
-- AI snapshot ref：`page.ariaSnapshot({ mode: "ai" })`
-- ref action：`page.locator('aria-ref=...')`
-- managed session substrate：`playwright-core/lib/tools/cli-client/session.js`
-- managed session registry：`playwright-core/lib/tools/cli-client/registry.js`
+除此之外，当前实现没有把 Playwright CLI 的完整命令层搬进来。

@@ -1,103 +1,119 @@
 # Runtime State Model
 
 更新时间：2026-04-25
-状态：draft
+状态：active
 
-需要定义清楚：
-- current session truth
-- current page truth
-- profile / state / session 的边界
-- connect 后的 truth
-- artifact run 目录
-- diagnostics cache 生命周期
-
-## 基本实体
-
-### session
-
-含义：
-- 一个可复用的浏览器工作上下文。
-
-当前承接方式：
-- managed session 复用 `cli-client/session.js` 与 `registry.js`
-- 项目层不再自写一套主 session/daemon 协议
-
-最小字段：
-- `name`
-- `kind`: `ephemeral | named | connected`
-- `browserMode`
-- `profileId?`
-- `statePath?`
-- `artifactRunDir`
-
-### current page
-
-含义：
-- 当前 session 下默认接收命令的 page。
-
-最小字段：
-- `pageId`
-- `url`
-- `title`
-- `selectedAt`
-
-### profile
-
-含义：
-- 一个可长期复用的浏览器身份或用户数据目录。
-
-### state
-
-含义：
-- 一个显式的 `storageState` 文件。
-
-## truth 原则
-
-- 每个时刻只有一个 current session truth。
-- 每个 session 只有一个 current page truth。
-- `profile` 不是 `session`。
-- `state` 不是 `session`。
-- `connect` 不是另一套 runtime，它只是 session acquisition 的一种。
-
-## session substrate 原则
-
-- managed session：优先建立在 Playwright CLI 内部 session/registry substrate 上
-- ephemeral 单次命令：直接使用 Playwright runtime
-- `batch`：默认共享同一单进程 runtime session
-- daemon：采用官方 CLI 的 detached + socket + registry 模式
-
-## 路由原则
-
-- 不允许隐式粘滞路由。
-- 命令如果命中 named session，要在结果里显式返回 session truth。
-- 需要 current page 变化时，结果里必须返回 page truth。
-
-## artifact run 目录
-
-建议形态：
+当前 `pwcli` 没有自建一套复杂 runtime state。现状更接近：
 
 ```text
-.pwcli/artifacts/<runId>/
+default managed session
+  -> current page summary
+  -> 当前命令返回的 data
 ```
 
-包含：
-- `session-log.jsonl`
-- `trace.zip`
-- `screenshot-*.png`
-- 其他 artifact
+## 1. Session truth
 
-## diagnostics cache
+当前只有一条默认 managed session 线：
 
-最小缓存：
-- recent console messages
-- recent network events
+- session 名固定走 `default`
+- session substrate 直接复用 `playwright-core/lib/tools/cli-client/session.js`
+- registry truth 直接复用 `playwright-core/lib/tools/cli-client/registry.js`
+- 用户可见 session 面只有：
+  - `pw session status`
+  - `pw session close`
 
-作用：
-- 动作后 diagnostics summary
-- 命令级查询
-- 搜索与关联
+当前没有：
 
-禁止：
-- 隐式粘滞路由
-- 多套 page truth
-- process.env 充当长期公共 API
+- 多 session 命令路由
+- 显式 session create/switch/list
+- 自定义 daemon 协议
+- 项目层 session store
+
+## 2. 命令如何拿到 session
+
+- `open` / `connect` / `profile open`：显式 `reset: true`
+- 其他命令：按需 `ensureManagedSession()`，默认继续使用 `default`
+- `batch`：串行调用当前 managed helpers，仍然只打向 `default`
+
+当前推荐入口仍然是：
+
+```text
+open -> wait/snapshot/read-text -> action
+```
+
+原因很实际：这条链在这轮手工 smoke 里最稳定。
+
+## 3. Page truth
+
+当前没有项目层持久 page registry。page truth 来自每次命令执行后的即时结果：
+
+- `parsePageSummary(result.text)` 解析 CLI 输出里的 `### Page`
+- `page current/list/frames` 用 `pw code` 现查现返
+- `page current/list` 里的 `p1`、`activePageId` 是当前命令构造的结构化别名，不是全局 page id 系统
+
+这意味着：
+
+- page truth 是命令级快照
+- 不存在跨命令稳定 page identity contract
+
+## 4. Profile / state / auth 的边界
+
+- `profile`：本地 profile 目录检查与 persistent open 入口
+- `state`：显式 `storageState` 文件 save/load
+- `auth`：在当前 page 上执行本地插件函数
+
+它们都不是另一套 runtime。
+
+## 5. Connect 的真实语义
+
+`connect` 当前只是 session acquisition 的另一种来源：
+
+- `connect [endpoint]`
+- `connect --ws-endpoint <url>`
+- `connect --browser-url <url>`
+- `connect --cdp <port>`
+
+实现上：
+
+- reset `default` managed session
+- 通过 endpoint 附着
+- 立刻跑一次 `snapshot` 探测当前页是否可读
+
+## 6. 当前输出模型
+
+大多数命令输出统一为：
+
+```json
+{
+  "ok": true,
+  "command": "xxx",
+  "session": { "...": "..." },
+  "page": { "...": "..." },
+  "data": { "...": "..." }
+}
+```
+
+但不是每个字段都必有：
+
+- `session` 可省略
+- `page` 可省略
+- `diagnostics` 当前几乎不用
+
+## 7. 当前观察到的限制
+
+这轮手工 smoke 里已观察到：
+
+- `session status` 经常返回 `{ active: false }`，即使前一个 `open` 刚刚成功
+- 某些 `pw code` / selector 动作链后续会遇到 `Target page, context or browser has been closed`
+
+所以当前 `session status` 只能当 best-effort registry 视图，不能当强一致 liveness truth。
+
+## 8. 当前没有的 state
+
+以下内容现在都不存在，文档不要写成已经有：
+
+- artifact run dir truth
+- session log index
+- console/network 项目层持久缓存
+- 自建 page ref 协议
+- profile/state/session 三者之间的高级绑定关系

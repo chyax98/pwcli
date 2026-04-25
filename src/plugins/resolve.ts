@@ -1,18 +1,36 @@
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
-import { homedir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { join, resolve } from "node:path";
 
-const FILE_CANDIDATES = ['.js', '.mjs', '.cjs', '.ts'];
+const FILE_CANDIDATES = [".js", ".mjs", ".cjs", ".ts"];
 
 function pluginDirs() {
   return [
-    resolve(process.cwd(), 'plugins'),
-    resolve(process.cwd(), '.pwcli', 'plugins'),
-    join(homedir(), '.pwcli', 'plugins'),
+    resolve(process.cwd(), "plugins"),
+    resolve(process.cwd(), ".pwcli", "plugins"),
+    join(homedir(), ".pwcli", "plugins"),
   ];
 }
 
+function resolveExplicitPluginPath(name: string) {
+  if (existsSync(name)) {
+    return resolve(name);
+  }
+  for (const ext of FILE_CANDIDATES) {
+    const candidate = `${name}${ext}`;
+    if (existsSync(candidate)) {
+      return resolve(candidate);
+    }
+  }
+  return null;
+}
+
 export function resolvePluginPath(name: string) {
+  const explicitPath = resolveExplicitPluginPath(name);
+  if (explicitPath) {
+    return explicitPath;
+  }
+
   for (const dir of pluginDirs()) {
     for (const ext of FILE_CANDIDATES) {
       const candidate = join(dir, `${name}${ext}`);
@@ -32,7 +50,7 @@ export function listPluginNames() {
     }
     for (const file of readdirSync(dir)) {
       for (const ext of FILE_CANDIDATES) {
-        if (file.endsWith(ext)) {
+        if (file.endsWith(ext) && file.length > ext.length) {
           names.add(file.slice(0, -ext.length));
         }
       }
@@ -42,13 +60,13 @@ export function listPluginNames() {
 }
 
 export function loadPluginSource(path: string) {
-  return readFileSync(path, 'utf8');
+  return readFileSync(path, "utf8");
 }
 
 export function parseKeyValueArgs(values?: string[]) {
-  const args = {};
+  const args: Record<string, string> = {};
   for (const item of values ?? []) {
-    const index = item.indexOf('=');
+    const index = item.indexOf("=");
     if (index <= 0) {
       throw new Error(`expected key=value, got '${item}'`);
     }

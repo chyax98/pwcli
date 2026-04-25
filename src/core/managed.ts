@@ -1,19 +1,24 @@
+import { copyFile, mkdir, readFile } from "node:fs/promises";
+import { dirname, join, resolve } from "node:path";
+import { runManagedSessionCommand } from "../session/cli-client.js";
 import {
+  parseConsoleSummary,
+  parseDownloadEvent,
+  parseErrorText,
   parseJsonStringLiteral,
+  parseNetworkSummary,
   parsePageSummary,
   parseResultText,
   parseSnapshotYaml,
   stripQuotes,
-} from '../session/output-parsers.js';
-import { runManagedSessionCommand } from '../session/cli-client.js';
-import { resolve } from 'node:path';
+} from "../session/output-parsers.js";
 
 function maybeRawOutput(text: string) {
-  return process.env.PWCLI_RAW_OUTPUT === '1' ? { output: text } : {};
+  return process.env.PWCLI_RAW_OUTPUT === "1" ? { output: text } : {};
 }
 
 function normalizeRef(ref: string) {
-  return ref.startsWith('@') ? ref.slice(1) : ref;
+  return ref.startsWith("@") ? ref.slice(1) : ref;
 }
 
 export async function managedOpen(
@@ -28,7 +33,7 @@ export async function managedOpen(
 ) {
   const result = await runManagedSessionCommand(
     {
-      _: ['goto', url],
+      _: ["goto", url],
     },
     {
       headed: options?.headed,
@@ -42,9 +47,9 @@ export async function managedOpen(
   const page = parsePageSummary(result.text);
   return {
     session: {
-      scope: 'managed',
+      scope: "managed",
       name: result.sessionName,
-      default: result.sessionName === 'default',
+      default: result.sessionName === "default",
     },
     page,
     data: {
@@ -58,7 +63,7 @@ export async function managedOpen(
 }
 
 export async function managedSnapshot(options?: { depth?: number }) {
-  const args = ['snapshot'];
+  const args = ["snapshot"];
   if (options?.depth) {
     args.push(`--depth=${options.depth}`);
   }
@@ -67,13 +72,13 @@ export async function managedSnapshot(options?: { depth?: number }) {
   });
   return {
     session: {
-      scope: 'managed',
+      scope: "managed",
       name: result.sessionName,
-      default: result.sessionName === 'default',
+      default: result.sessionName === "default",
     },
     page: parsePageSummary(result.text),
     data: {
-      mode: 'ai',
+      mode: "ai",
       snapshot: parseSnapshotYaml(result.text),
       ...maybeRawOutput(result.text),
     },
@@ -81,24 +86,33 @@ export async function managedSnapshot(options?: { depth?: number }) {
 }
 
 export async function managedRunCode(options: { source?: string; file?: string }) {
-  const args = ['run-code'];
+  const args = ["run-code"];
+  let source = options.source;
+  let filename: string | undefined;
   if (options.file) {
-    args.push(`--filename=${options.file}`);
+    filename = resolve(options.file);
+    source = await readFile(filename, "utf8");
   }
-  if (options.source) {
-    args.push(options.source);
+  if (source) {
+    args.push(source);
   }
   const result = await runManagedSessionCommand({
     _: args,
+    ...(filename ? { filename } : {}),
   });
+  const errorText = parseErrorText(result.text);
+  if (errorText) {
+    throw new Error(errorText);
+  }
   const resultText = parseResultText(result.text);
   return {
     session: {
-      scope: 'managed',
+      scope: "managed",
       name: result.sessionName,
-      default: result.sessionName === 'default',
+      default: result.sessionName === "default",
     },
     page: parsePageSummary(result.text),
+    rawText: result.text,
     data: {
       resultText,
       result: parseJsonStringLiteral(resultText),
@@ -107,17 +121,33 @@ export async function managedRunCode(options: { source?: string; file?: string }
   };
 }
 
-export async function managedClick(options: {
-  ref?: string;
-  selector?: string;
-  button?: string;
-}) {
-  const target = options.ref ? normalizeRef(options.ref) : options.selector;
-  if (!target) {
-    throw new Error('click requires a ref or selector');
+export async function managedClick(options: { ref?: string; selector?: string; button?: string }) {
+  if (!options.ref && !options.selector) {
+    throw new Error("click requires a ref or selector");
   }
 
-  const args = ['click', target];
+  if (options.selector) {
+    const button = options.button ? JSON.stringify({ button: options.button }) : "undefined";
+    const result = await managedRunCode({
+      source: `async page => {
+        await page.locator(${JSON.stringify(options.selector)}).click(${button});
+        return 'clicked';
+      }`,
+    });
+
+    return {
+      session: result.session,
+      page: result.page,
+      data: {
+        selector: options.selector,
+        ...(options.button ? { button: options.button } : {}),
+        acted: true,
+      },
+    };
+  }
+
+  const ref = normalizeRef(options.ref ?? "");
+  const args = ["click", ref];
   if (options.button) {
     args.push(options.button);
   }
@@ -128,9 +158,9 @@ export async function managedClick(options: {
 
   return {
     session: {
-      scope: 'managed',
+      scope: "managed",
       name: result.sessionName,
-      default: result.sessionName === 'default',
+      default: result.sessionName === "default",
     },
     page: parsePageSummary(result.text),
     data: {
@@ -141,25 +171,39 @@ export async function managedClick(options: {
   };
 }
 
-export async function managedFill(options: {
-  ref?: string;
-  selector?: string;
-  value: string;
-}) {
-  const target = options.ref ? normalizeRef(options.ref) : options.selector;
-  if (!target) {
-    throw new Error('fill requires a ref or selector');
+export async function managedFill(options: { ref?: string; selector?: string; value: string }) {
+  if (!options.ref && !options.selector) {
+    throw new Error("fill requires a ref or selector");
+  }
+
+  if (options.selector) {
+    const result = await managedRunCode({
+      source: `async page => {
+        await page.locator(${JSON.stringify(options.selector)}).fill(${JSON.stringify(options.value)});
+        return 'filled';
+      }`,
+    });
+
+    return {
+      session: result.session,
+      page: result.page,
+      data: {
+        selector: options.selector,
+        value: options.value,
+        filled: true,
+      },
+    };
   }
 
   const result = await runManagedSessionCommand({
-    _: ['fill', target, options.value],
+    _: ["fill", normalizeRef(options.ref ?? ""), options.value],
   });
 
   return {
     session: {
-      scope: 'managed',
+      scope: "managed",
       name: result.sessionName,
-      default: result.sessionName === 'default',
+      default: result.sessionName === "default",
     },
     page: parsePageSummary(result.text),
     data: {
@@ -171,20 +215,16 @@ export async function managedFill(options: {
   };
 }
 
-export async function managedType(options: {
-  ref?: string;
-  selector?: string;
-  value: string;
-}) {
+export async function managedType(options: { ref?: string; selector?: string; value: string }) {
   if (!options.ref && !options.selector) {
     const result = await runManagedSessionCommand({
-      _: ['type', options.value],
+      _: ["type", options.value],
     });
     return {
       session: {
-        scope: 'managed',
+        scope: "managed",
         name: result.sessionName,
-        default: result.sessionName === 'default',
+        default: result.sessionName === "default",
       },
       page: parsePageSummary(result.text),
       data: {
@@ -208,21 +248,21 @@ export async function managedType(options: {
       ...(options.ref ? { ref: normalizeRef(options.ref) } : { selector: options.selector }),
       value: options.value,
       typed: true,
-      ...maybeRawOutput(result.data.output ?? ''),
+      ...maybeRawOutput(result.data.output ?? ""),
     },
   };
 }
 
 export async function managedPress(key: string) {
   const result = await runManagedSessionCommand({
-    _: ['press', key],
+    _: ["press", key],
   });
 
   return {
     session: {
-      scope: 'managed',
+      scope: "managed",
       name: result.sessionName,
-      default: result.sessionName === 'default',
+      default: result.sessionName === "default",
     },
     page: parsePageSummary(result.text),
     data: {
@@ -234,7 +274,7 @@ export async function managedPress(key: string) {
 }
 
 export async function managedScroll(options: {
-  direction: 'up' | 'down' | 'left' | 'right';
+  direction: "up" | "down" | "left" | "right";
   distance?: number;
 }) {
   const distance = options.distance ?? 500;
@@ -259,13 +299,13 @@ export async function managedScroll(options: {
       direction: options.direction,
       distance,
       scrolled: true,
-      ...maybeRawOutput(result.data.output ?? ''),
+      ...maybeRawOutput(result.data.output ?? ""),
     },
   };
 }
 
 export async function managedStateSave(file?: string) {
-  const args = ['state-save'];
+  const args = ["state-save"];
   if (file) {
     args.push(file);
   }
@@ -274,9 +314,9 @@ export async function managedStateSave(file?: string) {
   });
   return {
     session: {
-      scope: 'managed',
+      scope: "managed",
       name: result.sessionName,
-      default: result.sessionName === 'default',
+      default: result.sessionName === "default",
     },
     page: parsePageSummary(result.text),
     data: {
@@ -289,13 +329,13 @@ export async function managedStateSave(file?: string) {
 
 export async function managedStateLoad(file: string) {
   const result = await runManagedSessionCommand({
-    _: ['state-load', file],
+    _: ["state-load", file],
   });
   return {
     session: {
-      scope: 'managed',
+      scope: "managed",
       name: result.sessionName,
-      default: result.sessionName === 'default',
+      default: result.sessionName === "default",
     },
     page: parsePageSummary(result.text),
     data: {
@@ -316,8 +356,8 @@ export async function managedScreenshot(options?: {
     ? `page.locator(${JSON.stringify(`aria-ref=${normalizeRef(options.ref)}`)})`
     : options?.selector
       ? `page.locator(${JSON.stringify(options.selector)})`
-      : 'page';
-  const method = options?.ref || options?.selector ? 'screenshot' : 'screenshot';
+      : "page";
+  const method = options?.ref || options?.selector ? "screenshot" : "screenshot";
   const source = `async page => {
     const target = ${target};
     await target.${method}(${JSON.stringify({
@@ -325,10 +365,10 @@ export async function managedScreenshot(options?: {
       ...(options?.fullPage && !options?.ref && !options?.selector ? { fullPage: true } : {}),
     })});
     return JSON.stringify({
-      path: ${JSON.stringify(options?.path ?? '')},
-      ${options?.ref ? `ref: ${JSON.stringify(normalizeRef(options.ref))},` : ''}
-      ${options?.selector ? `selector: ${JSON.stringify(options.selector)},` : ''}
-      ${options?.fullPage ? 'fullPage: true,' : ''}
+      path: ${JSON.stringify(options?.path ?? "")},
+      ${options?.ref ? `ref: ${JSON.stringify(normalizeRef(options.ref))},` : ""}
+      ${options?.selector ? `selector: ${JSON.stringify(options.selector)},` : ""}
+      ${options?.fullPage ? "fullPage: true," : ""}
     });
   }`;
 
@@ -336,7 +376,7 @@ export async function managedScreenshot(options?: {
     source,
   });
   const parsed =
-    typeof result.data.result === 'object' && result.data.result ? result.data.result : {};
+    typeof result.data.result === "object" && result.data.result ? result.data.result : {};
   return {
     session: result.session,
     page: result.page,
@@ -347,39 +387,35 @@ export async function managedScreenshot(options?: {
   };
 }
 
-export async function managedTrace(action: 'start' | 'stop') {
-  const command = action === 'start' ? 'tracing-start' : 'tracing-stop';
+export async function managedTrace(action: "start" | "stop") {
+  const command = action === "start" ? "tracing-start" : "tracing-stop";
   const result = await runManagedSessionCommand({
     _: [command],
   });
 
   return {
     session: {
-      scope: 'managed',
+      scope: "managed",
       name: result.sessionName,
-      default: result.sessionName === 'default',
+      default: result.sessionName === "default",
     },
     page: parsePageSummary(result.text),
     data: {
       action,
-      started: action === 'start' ? true : undefined,
-      stopped: action === 'stop' ? true : undefined,
+      started: action === "start" ? true : undefined,
+      stopped: action === "stop" ? true : undefined,
       ...maybeRawOutput(result.text),
     },
   };
 }
 
-export async function managedUpload(options: {
-  ref?: string;
-  selector?: string;
-  files: string[];
-}) {
-  const files = options.files.map((file) => JSON.stringify(resolve(file))).join(', ');
+export async function managedUpload(options: { ref?: string; selector?: string; files: string[] }) {
+  const files = options.files.map((file) => JSON.stringify(resolve(file))).join(", ");
   const target = options.ref
     ? `page.locator(${JSON.stringify(`aria-ref=${normalizeRef(options.ref)}`)})`
     : `page.locator(${JSON.stringify(options.selector)})`;
   if (!options.ref && !options.selector) {
-    throw new Error('upload requires a ref or selector');
+    throw new Error("upload requires a ref or selector");
   }
 
   const result = await managedRunCode({
@@ -413,7 +449,7 @@ export async function managedDrag(options: {
     : `page.locator(${JSON.stringify(options.toSelector)})`;
 
   if ((!options.fromRef && !options.fromSelector) || (!options.toRef && !options.toSelector)) {
-    throw new Error('drag requires source and target');
+    throw new Error("drag requires source and target");
   }
 
   const result = await managedRunCode({
@@ -427,8 +463,12 @@ export async function managedDrag(options: {
     session: result.session,
     page: result.page,
     data: {
-      ...(options.fromRef ? { fromRef: normalizeRef(options.fromRef) } : { fromSelector: options.fromSelector }),
-      ...(options.toRef ? { toRef: normalizeRef(options.toRef) } : { toSelector: options.toSelector }),
+      ...(options.fromRef
+        ? { fromRef: normalizeRef(options.fromRef) }
+        : { fromSelector: options.fromSelector }),
+      ...(options.toRef
+        ? { toRef: normalizeRef(options.toRef) }
+        : { toSelector: options.toSelector }),
       dragged: true,
     },
   };
@@ -438,33 +478,50 @@ export async function managedDownload(options: {
   ref?: string;
   selector?: string;
   path?: string;
+  dir?: string;
 }) {
   if (!options.ref && !options.selector) {
-    throw new Error('download requires a ref or selector');
+    throw new Error("download requires a ref or selector");
   }
   const target = options.ref
     ? `page.locator(${JSON.stringify(`aria-ref=${normalizeRef(options.ref)}`)})`
     : `page.locator(${JSON.stringify(options.selector)})`;
+
+  const dir = options.dir ? resolve(options.dir) : undefined;
+  const exactPath = options.path ? resolve(options.path) : undefined;
+  if (dir) {
+    await mkdir(dir, { recursive: true });
+  }
+  if (exactPath) {
+    await mkdir(dirname(exactPath), { recursive: true });
+  }
+
   const result = await managedRunCode({
     source: `async page => {
-      const downloadPromise = page.waitForEvent('download');
       await ${target}.click();
-      const download = await downloadPromise;
-      ${options.path ? `await download.saveAs(${JSON.stringify(options.path)});` : ''}
-      return JSON.stringify({
-        suggestedFilename: download.suggestedFilename(),
-        path: ${JSON.stringify(options.path ?? '')},
-        url: download.url(),
-      });
+      return 'clicked';
     }`,
   });
+  const downloadEvent = parseDownloadEvent(result.rawText ?? "");
+  if (!downloadEvent) {
+    throw new Error("No download event captured");
+  }
+  const sourcePath = resolve(downloadEvent.outputPath);
+  const savedAs = dir ? join(dir, downloadEvent.suggestedFilename) : exactPath;
+  if (savedAs) {
+    await copyFile(sourcePath, savedAs);
+  }
 
   return {
     session: result.session,
     page: result.page,
     data: {
       ...(options.ref ? { ref: normalizeRef(options.ref) } : { selector: options.selector }),
-      ...(typeof result.data.result === 'object' ? result.data.result : {}),
+      ...(dir ? { dir } : {}),
+      ...(exactPath ? { requestedPath: exactPath } : {}),
+      suggestedFilename: downloadEvent.suggestedFilename,
+      sourcePath,
+      ...(savedAs ? { savedAs } : {}),
       downloaded: true,
     },
   };
@@ -483,7 +540,7 @@ export async function managedReadText(options?: { selector?: string; maxChars?: 
 
   const result = await managedRunCode({ source });
   const parsed = result.data.result || {};
-  const rawText = parsed.text ?? '';
+  const rawText = parsed.text ?? "";
   const text =
     options?.maxChars !== undefined && rawText.length > options.maxChars
       ? rawText.slice(0, options.maxChars)
@@ -496,7 +553,7 @@ export async function managedReadText(options?: { selector?: string; maxChars?: 
       ...parsed,
       text,
       truncated: text.length !== rawText.length,
-      ...maybeRawOutput(result.data.output ?? ''),
+      ...maybeRawOutput(result.data.output ?? ""),
     },
   };
 }
@@ -515,23 +572,23 @@ export async function managedPageCurrent() {
   return {
     session: result.session,
     page: {
-      id: 'p1',
-      url: parsed.url ?? '',
-      title: parsed.title ?? '',
+      id: "p1",
+      url: parsed.url ?? "",
+      title: parsed.title ?? "",
       current: true,
     },
     data: {
-      activePageId: 'p1',
+      activePageId: "p1",
       pageCount: parsed.pageCount ?? 1,
       pages: [
         {
-          id: 'p1',
-          url: parsed.url ?? '',
-          title: parsed.title ?? '',
+          id: "p1",
+          url: parsed.url ?? "",
+          title: parsed.title ?? "",
           current: true,
         },
       ],
-      ...maybeRawOutput(result.data.output ?? ''),
+      ...maybeRawOutput(result.data.output ?? ""),
     },
   };
 }
@@ -558,10 +615,10 @@ export async function managedPageList() {
     session: result.session,
     page: current,
     data: {
-      activePageId: current?.id ?? 'p1',
+      activePageId: current?.id ?? "p1",
       pageCount: parsed.pages?.length ?? 0,
       pages: parsed.pages ?? [],
-      ...maybeRawOutput(result.data.output ?? ''),
+      ...maybeRawOutput(result.data.output ?? ""),
     },
   };
 }
@@ -583,16 +640,16 @@ export async function managedPageFrames() {
     session: result.session,
     page: result.page,
     data: {
-      activePageId: 'p1',
+      activePageId: "p1",
       frameCount: parsed.frames?.length ?? 0,
       frames: parsed.frames ?? [],
-      ...maybeRawOutput(result.data.output ?? ''),
+      ...maybeRawOutput(result.data.output ?? ""),
     },
   };
 }
 
 export async function managedConsole(level?: string) {
-  const args = ['console'];
+  const args = ["console"];
   if (level) {
     args.push(level);
   }
@@ -601,13 +658,13 @@ export async function managedConsole(level?: string) {
   });
   return {
     session: {
-      scope: 'managed',
+      scope: "managed",
       name: result.sessionName,
-      default: result.sessionName === 'default',
+      default: result.sessionName === "default",
     },
     page: parsePageSummary(result.text),
     data: {
-      summary: parseResultText(result.text) || '',
+      summary: parseConsoleSummary(result.text),
       ...maybeRawOutput(result.text),
     },
   };
@@ -615,17 +672,17 @@ export async function managedConsole(level?: string) {
 
 export async function managedNetwork() {
   const result = await runManagedSessionCommand({
-    _: ['network'],
+    _: ["network"],
   });
   return {
     session: {
-      scope: 'managed',
+      scope: "managed",
       name: result.sessionName,
-      default: result.sessionName === 'default',
+      default: result.sessionName === "default",
     },
     page: parsePageSummary(result.text),
     data: {
-      summary: parseResultText(result.text) || '',
+      summary: parseNetworkSummary(result.text),
       ...maybeRawOutput(result.text),
     },
   };
@@ -637,7 +694,7 @@ export async function managedWait(options: {
   selector?: string;
   networkidle?: boolean;
 }) {
-  let source = '';
+  let source = "";
 
   if (options.target && /^\d+$/.test(options.target)) {
     source = `async page => { await page.waitForTimeout(${Number(options.target)}); return 'delay'; }`;
@@ -650,7 +707,7 @@ export async function managedWait(options: {
   } else if (options.target) {
     source = `async page => { await page.locator(${JSON.stringify(`aria-ref=${normalizeRef(options.target)}`)}).waitFor(); return 'ref'; }`;
   } else {
-    throw new Error('wait requires a condition');
+    throw new Error("wait requires a condition");
   }
 
   const result = await managedRunCode({ source });
@@ -660,11 +717,11 @@ export async function managedWait(options: {
     page: await managedPageCurrent().then((pageResult) => pageResult.page),
     data: {
       condition:
-        typeof result.data.result === 'string'
+        typeof result.data.result === "string"
           ? stripQuotes(result.data.result)
-          : String(result.data.result ?? ''),
+          : String(result.data.result ?? ""),
       matched: true,
-      ...maybeRawOutput(result.data.output ?? ''),
+      ...maybeRawOutput(result.data.output ?? ""),
     },
   };
 }

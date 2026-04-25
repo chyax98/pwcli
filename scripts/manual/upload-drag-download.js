@@ -1,4 +1,4 @@
-async page => {
+async (page) => {
   await page.setContent(`
     <input id="f" type="file">
     <div id="name"></div>
@@ -9,20 +9,21 @@ async page => {
     </script>
 
     <div id="src" draggable="true">drag me</div>
-    <div id="dst">drop here</div>
+    <div id="dst" data-dropped="0">drop here</div>
     <script>
-      const src = document.getElementById('src');
-      const dst = document.getElementById('dst');
-      src.addEventListener('dragstart', e => e.dataTransfer.setData('text/plain', 'dragged'));
-      dst.addEventListener('dragover', e => e.preventDefault());
-      dst.addEventListener('drop', e => {
+      const dragSourceEl = document.getElementById('src');
+      const dropTargetEl = document.getElementById('dst');
+      dragSourceEl.addEventListener('dragstart', e => e.dataTransfer.setData('text/plain', 'dragged'));
+      dropTargetEl.addEventListener('dragover', e => e.preventDefault());
+      dropTargetEl.addEventListener('drop', e => {
         e.preventDefault();
-        dst.textContent = e.dataTransfer.getData('text/plain');
+        dropTargetEl.dataset.dropped = '1';
+        dropTargetEl.textContent = e.dataTransfer.getData('text/plain') || 'dropped';
       });
     </script>
 
     <a id="dl" download="sample.txt" href="data:text/plain,hello">Download</a>
   `);
 
-  return 'ready';
-}
+  return "ready";
+};

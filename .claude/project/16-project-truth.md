@@ -3,128 +3,116 @@
 更新时间：2026-04-25
 状态：active
 
-## 我们到底在构建什么
+## 我们现在到底在做什么
 
-`pwcli` 是给 Agent 长眼睛、长手、长记忆的内部浏览器工具。
+`pwcli` 当前是一个面向 Agent 的 Playwright 命令壳。
 
-它不是通用浏览器平台。
-它不是 DevTools 替代品。
-它不是测试框架。
+核心目标只有三件事：
 
-它是一个面向 Agent 的、围绕真实页面工作流构建的 Playwright 编排壳。
+1. 给 Agent 一条默认可用的 managed browser 主链
+2. 把 Playwright 能力压成低心智 CLI 命令
+3. 用最薄的项目层补上 plugin / skill / 输出整形
 
-## 最核心的使用场景
+它当前不是：
 
-### 1. 先进入目标状态
+- 通用浏览器自动化平台
+- Playwright CLI 的完整替代品
+- 旧 forge-browser 的 runtime 复刻
 
-入口可以是：
-- `open`
-- `open --profile`
-- `state load`
-- `auth <plugin>`
-- `code ...`
+## 当前真实主链
 
-目标：
-- 打开页面
-- 或登录
-- 或恢复 profile/state
-- 或执行一段 Playwright code 把页面推进到目标状态
-
-### 2. 进入 Agent 闭环
-
-默认闭环：
+当前最可信的工作流是：
 
 ```text
-wait -> snapshot -> decide -> action -> wait -> snapshot -> decide
-```
-
-也可以是：
-
-```text
-read-text -> decide -> action -> wait -> read-text
-```
-
-### 3. 记录整个生命周期
-
-Agent 在执行过程中，需要持续拿到：
-- 当前页面
-- 快照
-- 文本
-- console
-- network
-- state/profile 复用点
-- artifact
-
-这些信息主要给 Agent 看，不是给人看。
-
-## 默认 workflow
-
-当前真相：
-- 默认只要求稳定支持一套 `default managed browser`
-- session 能力存在，但默认对 Agent 下沉
-- Agent 不需要先理解复杂 session 概念
-
-默认体验应该是：
-
-```text
-pw open ...
+pw open <url>
 pw wait ...
 pw snapshot
-pw click ...
-pw wait ...
+pw click / fill / type ...
 pw read-text
 ```
 
-## 登录模型
+理由很简单：
 
-登录不是单一命令，而是一组入口：
+- 这条链和当前源码一致
+- 这条链在本轮手工 smoke 里也确实跑通
 
-1. profile / state 复用
-2. plugin auth
-3. auth 后再跑 code
+## 当前默认浏览器真相
 
-目标是：
-- 登录后直接进入目标页面
-- 然后立刻进入 `wait -> snapshot -> action` 闭环
+- 默认只有一条 `default managed session`
+- session substrate 下沉到 Playwright CLI `session.js + registry.js`
+- Agent 不需要先理解复杂 session 概念
+- `session` 命令面只保留观察和关闭
 
-## 设计原则
+## 当前真实命令集
 
-### 原则 1：默认复用 Playwright
+```text
+open
+connect
+code
+auth
+batch
+page current|list|frames
+snapshot
+screenshot
+read-text
+fill
+type
+press
+scroll
+upload
+download
+drag
+console
+network
+click
+wait
+trace
+state
+profile inspect|open
+session status|close
+plugin list|path
+skill path|install
+```
 
-只要 Playwright Core 或 Playwright CLI 内部能力能覆盖，就直接用。
+这就是当前文档应该描述的面。不要扩产品面，不要掺入未落地子命令。
 
-### 原则 2：项目层只做拼装
+## 当前项目层真正负责什么
 
-项目层的价值在于：
-- 语义化命令
-- 生命周期管理
-- diagnostics 收口
-- artifact 落盘
-- skill 分发
-- 登录插件
+- 语义化 CLI 命令
+- managed session 接线
+- 返回 JSON 结构
+- AI snapshot / page summary / result summary 解析
+- 本地 auth plugin 发现与执行
+- packaged skill 分发
 
-### 原则 3：不要给 Agent 增加心智负担
+## 当前项目层不负责什么
 
-如果一个能力让 Agent 需要先理解复杂状态机，这个设计就是失败的。
+- 自建浏览器后端
+- 自建 daemon 协议
+- 自建页面 ref 协议
+- 自建 artifact 平台
+- 自建 diagnostics cache 系统
+- 自建复杂 session/profile/state 绑定模型
 
-### 原则 4：不要浪费 token
+## 当前对 Playwright 的依赖策略
 
-默认输出必须克制：
-- 只返回当前命令真正有用的结果
-- 不需要的长原文不要默认返回
+- 页面动作与等待优先公共 API
+- session 生命周期优先借 `cli-client/session.js` 和 `registry.js`
+- `pw code` 是一级能力
+- `pwcli` 不吞 Playwright CLI 的完整产品面
 
-## 当前明确采用
+## 当前已知现实限制
 
-- AI snapshot ref：`page.ariaSnapshot({ mode: "ai" })`
-- ref action：`aria-ref=...`
-- managed session substrate：Playwright CLI 内部 session/registry
-- default managed browser 优先
-- profile/state/plugin 作为登录与复用入口
+- `wait` 的 request/response 参数面已露出，但当前实现还没接上
+- `session status` 不是强一致 liveness truth
+- `download` 的稳定验证当前建立在 managed page 内已有下载元素，不把 `file://` 打开本地下载页写成项目 truth
+- 当前没有默认 artifact run 目录
 
-## 当前明确不做
+## 文档口径要求
 
-- 自建 ref 协议
-- 自建动作 substrate
-- 自建复杂 session 协议
-- 自动化 E2E case
-- 为“以后可能有问题”做重抽象
+后续所有文档必须遵守：
+
+- 只写当前命令和当前行为
+- 只写已验证或已在源码中落地的 contract
+- 不借旧 forge-browser 心智补空白
+- 不把未来想法写成现在的 truth

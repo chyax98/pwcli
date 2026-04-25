@@ -1,79 +1,106 @@
 # pwcli
 
-`pwcli` 是一个面向内部自用的、agent-first 的 Playwright 编排 CLI，默认命令名是 `pw`。
+`pwcli` 是一个面向内部 Agent 的 Playwright 命令壳，默认命令名是 `pw`。
 
-当前仓库已经具备 default managed browser workflow 的基础主链。
+当前真相很收敛：
 
-## 当前已提供
+- 默认工作流围绕一条 `default managed browser`
+- session 能力下沉到 Playwright CLI `session.js + registry.js`
+- 页面动作优先复用 Playwright 公共 API
+- 本地项目层只保留命令语义、输出整形、auth plugin、skill 分发
 
-- `pw --help`
-- `pw session status|close`
-- `pw connect`
-- `pw code`
-- `pw open`
-- `pw batch`
-- `pw profile inspect|open`
-- `pw page current|list|frames`
-- `pw snapshot`
-- `pw read-text`
-- `pw click`
-- `pw fill`
-- `pw type`
-- `pw press`
-- `pw scroll`
-- `pw wait`
-- `pw state save|load`
-- `pw screenshot`
-- `pw trace start|stop`
-- `pw upload`
-- `pw drag`
-- `pw download`
-- `pw plugin list|path`
-- `pw auth <plugin>`
-- `pw skill path`
-- `pw skill install <dir>`
+## 当前命令集
 
-当前主流程：
-- `pw open <url>`：启动或重置 default managed browser，并导航到目标页面
-- `pw snapshot`：返回 AI snapshot，直接使用 Playwright `ariaSnapshot({ mode: "ai" })`
-- `pw click e6`：直接通过 `aria-ref` 目标执行动作
-- `pw wait networkIdle`
-- `pw read-text`
-- `pw batch "snapshot" "click e6" "wait networkIdle" "read-text"`
+```text
+pw open <url>
+pw connect [endpoint]
+pw code [source]
+pw auth [plugin]
+pw batch <steps...>
+pw page current|list|frames
+pw snapshot
+pw screenshot [ref]
+pw read-text
+pw fill [parts...]
+pw type [parts...]
+pw press <key>
+pw scroll <direction> [distance]
+pw upload [parts...]
+pw download [ref]
+pw drag [parts...]
+pw console
+pw network
+pw click [ref]
+pw wait [target]
+pw trace <action>
+pw state <action> [file]
+pw profile inspect|open
+pw session status|close
+pw plugin list|path
+pw skill path|install
+```
 
-当前命令默认复用一套 default managed session，不要求你显式先理解 session 概念。
+## 当前推荐主链
 
-当前重点特点：
-- 默认只有一套 `default managed browser`
-- session 能力下沉，Agent 不需要先理解复杂 session
-- 优先复用 Playwright 公共 API 和官方 CLI session substrate
-- 默认输出尽量克制，减少无意义 token 消耗
+```bash
+pw open https://example.com
+pw wait networkIdle
+pw snapshot
+pw click e6
+pw read-text
+```
 
-插件示例：
-- `plugins/example-auth.js`
-- 运行：`pw auth example-auth --arg url=https://example.com`
+`pw code` 是一级能力，当前既可作为页面推进入口，也可作为手工 smoke 页面注入入口。
+
+## 当前值得记住的事实
+
+- `click` 当前支持三类目标：
+  - `aria-ref`
+  - `--selector`
+  - semantic locator：`--role` / `--text` / `--label` / `--placeholder` / `--testid`
+- `fill` 支持 ref 或 `--selector`
+- `type` 支持 focused element、ref、`--selector`
+- `connect` 当前支持：
+  - 位置参数 endpoint
+  - `--ws-endpoint`
+  - `--browser-url`
+  - `--cdp`
+- `auth` 支持：
+  - `pw auth example-auth`
+  - `pw auth --plugin ./plugins/example-auth.js`
+- `plugin list` 会返回 `count`
+- `console` / `network` 当前返回结构化摘要，不是完整诊断系统
+- `download` 支持：
+  - `--path <file>`：明确文件路径
+  - `--dir <dir>`：保留浏览器建议文件名
+
+## 当前没有的东西
+
+不要把这些当成已经存在：
+
+- 默认 artifact run 目录
+- HAR / perf / video / screencast 管理
+- 项目层 session log / diagnostics cache
+- 完整 request/response wait 语义
+- 多 session 用户面
+
+## 当前已知限制
+
+- `wait --request/--response/--method/--status` 已出现在参数面，但当前实现还没接上
+- `session status` 只能当 best-effort 视图
+- `download` 当前人工验证是基于已存在下载元素的 managed page，不把 `file://` 打开本地下载页写成稳定 contract
+
+## 手工验证
+
+本轮已真实执行并通过的最小集合见：
+
+- [.claude/project/08-manual-verification.md](./.claude/project/08-manual-verification.md)
 
 ## 文档入口
 
-- 项目章程：[.claude/project/00-project-charter.md](./.claude/project/00-project-charter.md)
-- use case / 能力清单：[.claude/project/01-use-cases-and-capabilities.md](./.claude/project/01-use-cases-and-capabilities.md)
-- 私有层审查门槛：[.claude/project/02-private-layer-review.md](./.claude/project/02-private-layer-review.md)
+- 项目真相：[.claude/project/16-project-truth.md](./.claude/project/16-project-truth.md)
 - Playwright 能力映射：[.claude/project/03-playwright-capability-mapping.md](./.claude/project/03-playwright-capability-mapping.md)
-- 借用规则：[.claude/project/17-borrowing-rules.md](./.claude/project/17-borrowing-rules.md)
-- 分层规则：[.claude/project/12-layering-rules.md](./.claude/project/12-layering-rules.md)
-- Playwright Core 说明：[.claude/project/13-playwright-core-notes.md](./.claude/project/13-playwright-core-notes.md)
-- 命令语义要求：[.claude/project/14-command-semantics.md](./.claude/project/14-command-semantics.md)
-- batch / daemon 设计：[.claude/project/15-batch-and-daemon.md](./.claude/project/15-batch-and-daemon.md)
-- 项目 Truth：[.claude/project/16-project-truth.md](./.claude/project/16-project-truth.md)
-- 构建栈：[.claude/project/09-build-stack.md](./.claude/project/09-build-stack.md)
-- 模块布局：[.claude/project/10-module-layout.md](./.claude/project/10-module-layout.md)
-
-## 开发
-
-```bash
-pnpm install
-pnpm build
-node dist/cli.js --help
-node dist/cli.js open https://example.com
-node dist/cli.js snapshot
-```
+- runtime state：[.claude/project/05-runtime-state-model.md](./.claude/project/05-runtime-state-model.md)
+- plugin / auth：[.claude/project/06-plugin-auth-model.md](./.claude/project/06-plugin-auth-model.md)
+- artifact / diagnostics：[.claude/project/07-artifacts-diagnostics.md](./.claude/project/07-artifacts-diagnostics.md)
+- borrowing rules：[.claude/project/17-borrowing-rules.md](./.claude/project/17-borrowing-rules.md)
