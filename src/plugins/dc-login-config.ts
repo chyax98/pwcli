@@ -20,14 +20,6 @@ interface DcLoginAccountEntry {
   instance?: number;
 }
 
-interface ResolvedDcLoginArgs {
-  phone: string;
-  smsCode: string;
-  baseURL: string;
-  account?: string;
-  instance?: string;
-}
-
 export async function resolveDcLoginArgs(
   pluginArgs: Record<string, string>,
   options?: {
@@ -54,6 +46,18 @@ export async function resolveDcLoginArgs(
     throw new Error(
       `dc-login requires a phone number. Add --arg phone=<number> or configure ${accountsPath}`,
     );
+  }
+
+  const explicitTargetUrl = pickFirst(pluginArgs.targetUrl);
+  if (explicitTargetUrl) {
+    return {
+      ...pluginArgs,
+      phone,
+      smsCode,
+      targetUrl: explicitTargetUrl,
+      baseURL: normalizeBaseURL(explicitTargetUrl),
+      ...(accountName ? { account: accountName } : {}),
+    };
   }
 
   const explicitBaseURL = pickFirst(pluginArgs.baseURL, env.FORGE_E2E_BASE_URL, account?.baseURL);

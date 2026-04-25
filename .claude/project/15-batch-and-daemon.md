@@ -24,7 +24,7 @@
 - 默认 fail-fast
 - 可选继续执行
 - 结果按 step 返回
-- 共享同一个 runtime session
+- 共享同一个显式 `--session`
 
 ## 为什么要有 daemon
 
@@ -51,16 +51,11 @@ daemon 不是为了炫技。
 
 ## 当前实现策略
 
-先做：
-- 单进程 runtime session
-- `batch`
+当前已经明确：
 
-再做：
-- daemon / named session
-
-原因：
-- `batch` 依赖最小 runtime 抽象
-- daemon 必须建立在清楚的 session/page truth 之上
+- `batch` 必须显式带 `--session <name>`
+- 不再自动回落到隐式 default session
+- `batch` 是 named session 的短链路编排面
 
 ## daemon substrate 决策
 

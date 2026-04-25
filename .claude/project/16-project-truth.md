@@ -9,7 +9,7 @@
 
 核心目标只有三件事：
 
-1. 给 Agent 一条默认可用的 managed browser 主链
+1. 给 Agent 一条严格可控的浏览器生命周期主链
 2. 把 Playwright 能力压成低心智 CLI 命令
 3. 用最薄的项目层补上 plugin / skill / 输出整形
 
@@ -24,76 +24,69 @@
 当前最可信的工作流是：
 
 ```text
-pw open <url>
-pw wait ...
-pw snapshot
-pw click / fill / type ...
-pw read-text
+pw session create bug-123 --open <url>
+pw snapshot --session bug-123
+pw click / fill / type ... --session bug-123
+pw read-text --session bug-123
+pw session close bug-123
 ```
 
 理由很简单：
 
 - 这条链和当前源码一致
 - 这条链在本轮手工 smoke 里也确实跑通
+- 它不会让多个 Agent 共享一个隐式 `default`
 
-到达真实已登录页面的当前正路有三条：
+## 当前 session 真相
 
-1. `pw open http://127.0.0.1:4110/forge`
-2. `pw open --profile <dir> <url>`
-3. `pw open --state <file> <url>`
-4. `pw auth <plugin> --profile/--state ... --open <url>`
+- 多个 managed sessions 可以并存
+- 主路径必须显式带 `--session <name>`
+- CLI 不再自动挑唯一 live session
+- 裸命令统一报 `SESSION_REQUIRED`
 
-对 DC 2.0，这台机器上当前最稳的真实入口是：
+当前唯一推荐入口：
 
 ```text
-pw open http://127.0.0.1:4110/forge
-pw open --profile ~/.forge-browser/profiles/acceptance-login http://127.0.0.1:4110/forge
+pw session create <name> --open <url>
 ```
-
-## 当前默认浏览器真相
-
-- 默认只有一条 `default managed session`
-- session substrate 下沉到 Playwright CLI `session.js + registry.js`
-- Agent 不需要先理解复杂 session 概念
-- `session` 命令面只保留观察和关闭
 
 ## 当前真实命令集
 
 ```text
-open
-connect
-code
-auth
-batch
-page current|list|frames
-snapshot
-screenshot
-read-text
-fill
-type
-press
-scroll
-upload
-download
-drag
-console
-network
-click
-wait
-trace
-state
+session create|list|status|close
+open --session
+connect --session
+code --session
+auth --session
+batch --session
+page current|list|frames --session
+snapshot --session
+screenshot --session
+read-text --session
+fill --session
+type --session
+press --session
+scroll --session
+upload --session
+download --session
+drag --session
+console --session
+network --session
+click --session
+wait --session
+trace --session
+state --session
 profile inspect|open
-session status|close
 plugin list|path
 skill path|install
 ```
 
-这就是当前文档应该描述的面。不要扩产品面，不要掺入未落地子命令。
+这就是当前文档应该描述的面。不要扩产品面，不要再掺入旧的 `default session` 心智。
 
 ## 当前项目层真正负责什么
 
 - 语义化 CLI 命令
-- managed session 接线
+- named session 路由
 - 返回 JSON 结构
 - AI snapshot / page summary / result summary 解析
 - 本地 auth plugin 发现与执行
@@ -107,6 +100,7 @@ skill path|install
 - 自建 artifact 平台
 - 自建 diagnostics cache 系统
 - 自建复杂 session/profile/state 绑定模型
+- 自动 session fallback
 
 ## 当前对 Playwright 的依赖策略
 
@@ -114,6 +108,27 @@ skill path|install
 - session 生命周期优先借 `cli-client/session.js` 和 `registry.js`
 - `pw code` 是一级能力
 - `pwcli` 不吞 Playwright CLI 的完整产品面
+
+## 当前 DC 2.0 入口
+
+当前机器上更稳的路径：
+
+```text
+pw session create dc-main --open http://127.0.0.1:4110/forge
+pw session create dc-main --open http://127.0.0.1:4110/forge --profile ~/.forge-browser/profiles/acceptance-login
+```
+
+如果用户给了精确 deep link：
+
+```text
+pw session create dc-main --open 'https://developer-192-168-5-18.tap.dev/forge/89347/all-app'
+```
+
+如果需要动态登录：
+
+```text
+pw auth dc-login --session dc-main --open 'https://developer-192-168-5-18.tap.dev/forge/89347/all-app'
+```
 
 ## 当前已知现实限制
 

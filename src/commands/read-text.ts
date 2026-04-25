@@ -1,29 +1,37 @@
-import type { Command } from 'commander';
-import { managedReadText } from '../core/managed.js';
-import { printCommandError, printCommandResult } from '../utils/output.js';
+import type { Command } from "commander";
+import { managedReadText } from "../core/managed.js";
+import { printCommandResult } from "../utils/output.js";
+import {
+  addSessionOption,
+  printSessionAwareCommandError,
+  requireSessionName,
+} from "./session-options.js";
 
 export function registerReadTextCommand(program: Command): void {
-  program
-    .command('read-text')
-    .description('Read visible text from the current page or a selector')
-    .option('--selector <selector>', 'Read text from a specific selector')
-    .option('--max-chars <count>', 'Limit output length')
-    .action(async (options: { selector?: string; maxChars?: string }) => {
-      try {
-        printCommandResult(
-          'read-text',
-          await managedReadText({
+  addSessionOption(
+    program
+      .command("read-text")
+      .description("Read visible text from the current page or a selector")
+      .option("--selector <selector>", "Read text from a specific selector")
+      .option("--max-chars <count>", "Limit output length"),
+  ).action(async (options: { session?: string; selector?: string; maxChars?: string }) => {
+    try {
+      const sessionName = requireSessionName(options);
+      printCommandResult(
+        "read-text",
+        await managedReadText({
+          sessionName,
           selector: options.selector,
           maxChars: options.maxChars ? Number(options.maxChars) : undefined,
-          }),
-        );
-      } catch (error) {
-        printCommandError('read-text', {
-          code: 'READ_TEXT_FAILED',
-          message: error instanceof Error ? error.message : 'read-text failed',
-          suggestions: ['Run `pw open <url>` before reading page text'],
-        });
-        process.exitCode = 1;
-      }
-    });
+        }),
+      );
+    } catch (error) {
+      printSessionAwareCommandError("read-text", error, {
+        code: "READ_TEXT_FAILED",
+        message: "read-text failed",
+        suggestions: ["Run `pw session create <name> --open <url>` first"],
+      });
+      process.exitCode = 1;
+    }
+  });
 }

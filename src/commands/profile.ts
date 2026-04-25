@@ -3,7 +3,8 @@ import { homedir } from "node:os";
 import { basename, resolve } from "node:path";
 import type { Command } from "commander";
 import { managedOpen } from "../core/managed.js";
-import { printCommandError, printCommandResult } from "../utils/output.js";
+import { printCommandResult } from "../utils/output.js";
+import { printSessionAwareCommandError, requireSessionName } from "./session-options.js";
 
 function expandPath(input: string) {
   if (input === "~") {
@@ -59,8 +60,10 @@ export function registerProfileCommand(program: Command): void {
   profile
     .command("open <path> <url>")
     .description("Open a URL with a persistent browser profile")
-    .action(async (path: string, url: string) => {
+    .option("-s, --session <name>", "Target managed session")
+    .action(async (path: string, url: string, options: { session?: string }) => {
       try {
+        const sessionName = requireSessionName(options);
         const profile = inspectProfilePath(path);
         if (profile.type === "file") {
           throw new Error(`profile path '${profile.resolvedPath}' points to a file`);
@@ -70,6 +73,7 @@ export function registerProfileCommand(program: Command): void {
         }
 
         const result = await managedOpen(url, {
+          sessionName,
           profile: profile.resolvedPath,
           persistent: true,
           reset: true,
@@ -86,9 +90,9 @@ export function registerProfileCommand(program: Command): void {
           },
         });
       } catch (error) {
-        printCommandError("profile open", {
+        printSessionAwareCommandError("profile open", error, {
           code: "PROFILE_OPEN_FAILED",
-          message: error instanceof Error ? error.message : "profile open failed",
+          message: "profile open failed",
           suggestions: ["Pass an existing writable browser profile path"],
         });
         process.exitCode = 1;

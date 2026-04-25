@@ -10,13 +10,13 @@
 命令面：
 
 ```bash
-pw auth [plugin]
-pw auth --plugin <name-or-path>
-pw auth --arg key=value
-pw auth --profile <path>
-pw auth --state <file>
-pw auth --open <url>
-pw auth --save-state <file>
+pw auth [plugin] --session <name>
+pw auth --plugin <name-or-path> --session <name>
+pw auth --arg key=value --session <name>
+pw auth --profile <path> --session <name>
+pw auth --state <file> --session <name>
+pw auth --open <url> --session <name>
+pw auth --save-state <file> --session <name>
 ```
 
 `plugin` 可以是：
@@ -89,7 +89,7 @@ async page => {
 
 当前支持：
 
-- `--profile <path>`：先在 persistent profile 里启动 default managed browser
+- `--profile <path>`：先在 persistent profile 里启动指定 session 的浏览器
 - `--state <file>`：在跑插件前先加载 storage state
 - `--open <url>`：插件执行完后直接导航到目标页
 - `--save-state <file>`：把 auth 后的 storage state 立即保存到文件
@@ -97,10 +97,15 @@ async page => {
 对 `dc-login`，`--open <url>` 现在还会默认同步成插件的 `targetUrl`。也就是：
 
 ```bash
-pw auth dc-login --open 'https://developer-192-168-5-18.tap.dev/forge/89347/all-app'
+pw auth dc-login --session dc-main --open 'https://developer-192-168-5-18.tap.dev/forge/89347/all-app'
 ```
 
 会优先把这条 deep link 当作认证后的目标页，而不是回落到泛化的 `/forge`。
+
+并且当前实现里，只要给了完整 `targetUrl`，插件就会直接从这条 URL 提取 `baseURL`。这意味着：
+
+- 用户给 rnd / 预发 / 临时代理域名时，优先尊重用户给的 host
+- 用户没给完整链接时，才回落到 `accounts.json` / instance / 本地端口探测
 
 对 `dc-login`，当前要分两条路看：
 
@@ -120,25 +125,29 @@ pw auth dc-login --open 'https://developer-192-168-5-18.tap.dev/forge/89347/all-
 最小闭环：
 
 ```text
-pw auth example-auth --arg url=https://example.com
-pw wait ...
-pw snapshot
-pw click / fill / type ...
+pw session create auth-a --open about:blank
+pw auth example-auth --session auth-a --arg url=https://example.com
+pw wait --session auth-a ...
+pw snapshot --session auth-a
+pw click / fill / type ... --session auth-a
 ```
 
 如果要直接到达真实已登录目标页：
 
 ```text
-pw auth dc-login --profile ~/.pwcli/profiles/dc2 --open https://dc2.example/
-pw snapshot
-pw click / fill / type ...
+pw session create dc-main --open about:blank
+pw auth dc-login --session dc-main --profile ~/.pwcli/profiles/dc2 --open https://dc2.example/
+pw snapshot --session dc-main
+pw click / fill / type ... --session dc-main
 ```
 
 如果要复用动态登录结果：
 
 ```text
-pw auth dc-login --open https://dc2.example/ --save-state ./auth.json
-pw open --state ./auth.json https://dc2.example/
+pw session create dc-main --open about:blank
+pw auth dc-login --session dc-main --open https://dc2.example/ --save-state ./auth.json
+pw session create dc-next --open https://dc2.example/
+pw state load ./auth.json --session dc-next
 ```
 
 ## 7. 当前不做的事

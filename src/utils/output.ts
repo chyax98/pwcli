@@ -19,6 +19,17 @@ export function printCommandResult(
     data: Record<string, unknown>;
   },
 ) {
+  const data =
+    result.session &&
+    typeof result.session === "object" &&
+    "name" in result.session &&
+    typeof result.session.name === "string" &&
+    !("resolvedSession" in result.data)
+      ? {
+          ...result.data,
+          resolvedSession: result.session.name,
+        }
+      : result.data;
   printJson({
     ok: true,
     command,
@@ -27,7 +38,7 @@ export function printCommandResult(
     ...(result.diagnostics && result.diagnostics.length > 0
       ? { diagnostics: result.diagnostics }
       : {}),
-    data: result.data,
+    data,
   });
 }
 
@@ -36,7 +47,7 @@ export function printNotImplemented(command: string, suggestions: string[]): voi
     ok: false,
     command,
     error: {
-      code: 'NOT_IMPLEMENTED',
+      code: "NOT_IMPLEMENTED",
       message: `Command '${command}' is not implemented yet`,
       retryable: false,
       suggestions,

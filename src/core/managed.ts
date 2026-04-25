@@ -24,6 +24,7 @@ function normalizeRef(ref: string) {
 export async function managedOpen(
   url: string,
   options?: {
+    sessionName?: string;
     headed?: boolean;
     reset?: boolean;
     profile?: string;
@@ -36,11 +37,13 @@ export async function managedOpen(
       _: ["goto", url],
     },
     {
+      sessionName: options?.sessionName,
       headed: options?.headed,
       reset: options?.reset ?? true,
       profile: options?.profile,
       persistent: options?.persistent,
       endpoint: options?.endpoint,
+      createIfMissing: true,
     },
   );
 
@@ -62,14 +65,19 @@ export async function managedOpen(
   };
 }
 
-export async function managedSnapshot(options?: { depth?: number }) {
+export async function managedSnapshot(options?: { depth?: number; sessionName?: string }) {
   const args = ["snapshot"];
   if (options?.depth) {
     args.push(`--depth=${options.depth}`);
   }
-  const result = await runManagedSessionCommand({
-    _: args,
-  });
+  const result = await runManagedSessionCommand(
+    {
+      _: args,
+    },
+    {
+      sessionName: options?.sessionName,
+    },
+  );
   return {
     session: {
       scope: "managed",
@@ -85,7 +93,11 @@ export async function managedSnapshot(options?: { depth?: number }) {
   };
 }
 
-export async function managedRunCode(options: { source?: string; file?: string }) {
+export async function managedRunCode(options: {
+  source?: string;
+  file?: string;
+  sessionName?: string;
+}) {
   const args = ["run-code"];
   let source = options.source;
   let filename: string | undefined;
@@ -96,10 +108,15 @@ export async function managedRunCode(options: { source?: string; file?: string }
   if (source) {
     args.push(source);
   }
-  const result = await runManagedSessionCommand({
-    _: args,
-    ...(filename ? { filename } : {}),
-  });
+  const result = await runManagedSessionCommand(
+    {
+      _: args,
+      ...(filename ? { filename } : {}),
+    },
+    {
+      sessionName: options.sessionName,
+    },
+  );
   const errorText = parseErrorText(result.text);
   if (errorText) {
     throw new Error(errorText);
@@ -121,7 +138,12 @@ export async function managedRunCode(options: { source?: string; file?: string }
   };
 }
 
-export async function managedClick(options: { ref?: string; selector?: string; button?: string }) {
+export async function managedClick(options: {
+  ref?: string;
+  selector?: string;
+  button?: string;
+  sessionName?: string;
+}) {
   if (!options.ref && !options.selector) {
     throw new Error("click requires a ref or selector");
   }
@@ -129,6 +151,7 @@ export async function managedClick(options: { ref?: string; selector?: string; b
   if (options.selector) {
     const button = options.button ? JSON.stringify({ button: options.button }) : "undefined";
     const result = await managedRunCode({
+      sessionName: options.sessionName,
       source: `async page => {
         await page.locator(${JSON.stringify(options.selector)}).click(${button});
         return 'clicked';
@@ -152,9 +175,14 @@ export async function managedClick(options: { ref?: string; selector?: string; b
     args.push(options.button);
   }
 
-  const result = await runManagedSessionCommand({
-    _: args,
-  });
+  const result = await runManagedSessionCommand(
+    {
+      _: args,
+    },
+    {
+      sessionName: options.sessionName,
+    },
+  );
 
   return {
     session: {
@@ -171,13 +199,19 @@ export async function managedClick(options: { ref?: string; selector?: string; b
   };
 }
 
-export async function managedFill(options: { ref?: string; selector?: string; value: string }) {
+export async function managedFill(options: {
+  ref?: string;
+  selector?: string;
+  value: string;
+  sessionName?: string;
+}) {
   if (!options.ref && !options.selector) {
     throw new Error("fill requires a ref or selector");
   }
 
   if (options.selector) {
     const result = await managedRunCode({
+      sessionName: options.sessionName,
       source: `async page => {
         await page.locator(${JSON.stringify(options.selector)}).fill(${JSON.stringify(options.value)});
         return 'filled';
@@ -195,9 +229,14 @@ export async function managedFill(options: { ref?: string; selector?: string; va
     };
   }
 
-  const result = await runManagedSessionCommand({
-    _: ["fill", normalizeRef(options.ref ?? ""), options.value],
-  });
+  const result = await runManagedSessionCommand(
+    {
+      _: ["fill", normalizeRef(options.ref ?? ""), options.value],
+    },
+    {
+      sessionName: options.sessionName,
+    },
+  );
 
   return {
     session: {
@@ -215,11 +254,21 @@ export async function managedFill(options: { ref?: string; selector?: string; va
   };
 }
 
-export async function managedType(options: { ref?: string; selector?: string; value: string }) {
+export async function managedType(options: {
+  ref?: string;
+  selector?: string;
+  value: string;
+  sessionName?: string;
+}) {
   if (!options.ref && !options.selector) {
-    const result = await runManagedSessionCommand({
-      _: ["type", options.value],
-    });
+    const result = await runManagedSessionCommand(
+      {
+        _: ["type", options.value],
+      },
+      {
+        sessionName: options.sessionName,
+      },
+    );
     return {
       session: {
         scope: "managed",
@@ -240,7 +289,7 @@ export async function managedType(options: { ref?: string; selector?: string; va
     ? `async page => { await page.locator(${JSON.stringify(`aria-ref=${target}`)}).type(${JSON.stringify(options.value)}); return 'typed'; }`
     : `async page => { await page.locator(${JSON.stringify(options.selector)}).type(${JSON.stringify(options.value)}); return 'typed'; }`;
 
-  const result = await managedRunCode({ source });
+  const result = await managedRunCode({ source, sessionName: options.sessionName });
   return {
     session: result.session,
     page: result.page,
@@ -253,10 +302,15 @@ export async function managedType(options: { ref?: string; selector?: string; va
   };
 }
 
-export async function managedPress(key: string) {
-  const result = await runManagedSessionCommand({
-    _: ["press", key],
-  });
+export async function managedPress(key: string, options?: { sessionName?: string }) {
+  const result = await runManagedSessionCommand(
+    {
+      _: ["press", key],
+    },
+    {
+      sessionName: options?.sessionName,
+    },
+  );
 
   return {
     session: {
@@ -276,6 +330,7 @@ export async function managedPress(key: string) {
 export async function managedScroll(options: {
   direction: "up" | "down" | "left" | "right";
   distance?: number;
+  sessionName?: string;
 }) {
   const distance = options.distance ?? 500;
   const delta = {
@@ -286,6 +341,7 @@ export async function managedScroll(options: {
   }[options.direction];
 
   const result = await managedRunCode({
+    sessionName: options.sessionName,
     source: `async page => {
       await page.mouse.wheel(${delta[0]}, ${delta[1]});
       return JSON.stringify({ direction: ${JSON.stringify(options.direction)}, distance: ${distance} });
@@ -304,14 +360,19 @@ export async function managedScroll(options: {
   };
 }
 
-export async function managedStateSave(file?: string) {
+export async function managedStateSave(file?: string, options?: { sessionName?: string }) {
   const args = ["state-save"];
   if (file) {
     args.push(file);
   }
-  const result = await runManagedSessionCommand({
-    _: args,
-  });
+  const result = await runManagedSessionCommand(
+    {
+      _: args,
+    },
+    {
+      sessionName: options?.sessionName,
+    },
+  );
   return {
     session: {
       scope: "managed",
@@ -327,10 +388,15 @@ export async function managedStateSave(file?: string) {
   };
 }
 
-export async function managedStateLoad(file: string) {
-  const result = await runManagedSessionCommand({
-    _: ["state-load", file],
-  });
+export async function managedStateLoad(file: string, options?: { sessionName?: string }) {
+  const result = await runManagedSessionCommand(
+    {
+      _: ["state-load", file],
+    },
+    {
+      sessionName: options?.sessionName,
+    },
+  );
   return {
     session: {
       scope: "managed",
@@ -351,6 +417,7 @@ export async function managedScreenshot(options?: {
   selector?: string;
   path?: string;
   fullPage?: boolean;
+  sessionName?: string;
 }) {
   const target = options?.ref
     ? `page.locator(${JSON.stringify(`aria-ref=${normalizeRef(options.ref)}`)})`
@@ -373,6 +440,7 @@ export async function managedScreenshot(options?: {
   }`;
 
   const result = await managedRunCode({
+    sessionName: options?.sessionName,
     source,
   });
   const parsed =
@@ -387,11 +455,16 @@ export async function managedScreenshot(options?: {
   };
 }
 
-export async function managedTrace(action: "start" | "stop") {
+export async function managedTrace(action: "start" | "stop", options?: { sessionName?: string }) {
   const command = action === "start" ? "tracing-start" : "tracing-stop";
-  const result = await runManagedSessionCommand({
-    _: [command],
-  });
+  const result = await runManagedSessionCommand(
+    {
+      _: [command],
+    },
+    {
+      sessionName: options?.sessionName,
+    },
+  );
 
   return {
     session: {
@@ -409,7 +482,12 @@ export async function managedTrace(action: "start" | "stop") {
   };
 }
 
-export async function managedUpload(options: { ref?: string; selector?: string; files: string[] }) {
+export async function managedUpload(options: {
+  ref?: string;
+  selector?: string;
+  files: string[];
+  sessionName?: string;
+}) {
   const files = options.files.map((file) => JSON.stringify(resolve(file))).join(", ");
   const target = options.ref
     ? `page.locator(${JSON.stringify(`aria-ref=${normalizeRef(options.ref)}`)})`
@@ -419,6 +497,7 @@ export async function managedUpload(options: { ref?: string; selector?: string; 
   }
 
   const result = await managedRunCode({
+    sessionName: options.sessionName,
     source: `async page => {
       await ${target}.setInputFiles([${files}]);
       return JSON.stringify({ uploaded: true });
@@ -440,6 +519,7 @@ export async function managedDrag(options: {
   toRef?: string;
   fromSelector?: string;
   toSelector?: string;
+  sessionName?: string;
 }) {
   const source = options.fromRef
     ? `page.locator(${JSON.stringify(`aria-ref=${normalizeRef(options.fromRef)}`)})`
@@ -453,6 +533,7 @@ export async function managedDrag(options: {
   }
 
   const result = await managedRunCode({
+    sessionName: options.sessionName,
     source: `async page => {
       await ${source}.dragTo(${target});
       return JSON.stringify({ dragged: true });
@@ -479,6 +560,7 @@ export async function managedDownload(options: {
   selector?: string;
   path?: string;
   dir?: string;
+  sessionName?: string;
 }) {
   if (!options.ref && !options.selector) {
     throw new Error("download requires a ref or selector");
@@ -497,6 +579,7 @@ export async function managedDownload(options: {
   }
 
   const result = await managedRunCode({
+    sessionName: options.sessionName,
     source: `async page => {
       await ${target}.click();
       return 'clicked';
@@ -527,7 +610,11 @@ export async function managedDownload(options: {
   };
 }
 
-export async function managedReadText(options?: { selector?: string; maxChars?: number }) {
+export async function managedReadText(options?: {
+  selector?: string;
+  maxChars?: number;
+  sessionName?: string;
+}) {
   const source = options?.selector
     ? `async page => {
       const text = await page.locator(${JSON.stringify(options.selector)}).innerText().catch(() => '');
@@ -538,7 +625,7 @@ export async function managedReadText(options?: { selector?: string; maxChars?: 
       return JSON.stringify({ source: 'body-visible', text });
     }`;
 
-  const result = await managedRunCode({ source });
+  const result = await managedRunCode({ source, sessionName: options?.sessionName });
   const parsed = result.data.result || {};
   const rawText = parsed.text ?? "";
   const text =
@@ -558,8 +645,9 @@ export async function managedReadText(options?: { selector?: string; maxChars?: 
   };
 }
 
-export async function managedPageCurrent() {
+export async function managedPageCurrent(options?: { sessionName?: string }) {
   const result = await managedRunCode({
+    sessionName: options?.sessionName,
     source: `async page => {
       return JSON.stringify({
         url: page.url(),
@@ -593,8 +681,9 @@ export async function managedPageCurrent() {
   };
 }
 
-export async function managedPageList() {
+export async function managedPageList(options?: { sessionName?: string }) {
   const result = await managedRunCode({
+    sessionName: options?.sessionName,
     source: `async page => {
       const pages = page.context().pages();
       const current = page;
@@ -623,8 +712,9 @@ export async function managedPageList() {
   };
 }
 
-export async function managedPageFrames() {
+export async function managedPageFrames(options?: { sessionName?: string }) {
   const result = await managedRunCode({
+    sessionName: options?.sessionName,
     source: `async page => {
       const frames = page.frames().map((frame, index) => ({
         index,
@@ -648,14 +738,19 @@ export async function managedPageFrames() {
   };
 }
 
-export async function managedConsole(level?: string) {
+export async function managedConsole(level?: string, options?: { sessionName?: string }) {
   const args = ["console"];
   if (level) {
     args.push(level);
   }
-  const result = await runManagedSessionCommand({
-    _: args,
-  });
+  const result = await runManagedSessionCommand(
+    {
+      _: args,
+    },
+    {
+      sessionName: options?.sessionName,
+    },
+  );
   return {
     session: {
       scope: "managed",
@@ -670,10 +765,15 @@ export async function managedConsole(level?: string) {
   };
 }
 
-export async function managedNetwork() {
-  const result = await runManagedSessionCommand({
-    _: ["network"],
-  });
+export async function managedNetwork(options?: { sessionName?: string }) {
+  const result = await runManagedSessionCommand(
+    {
+      _: ["network"],
+    },
+    {
+      sessionName: options?.sessionName,
+    },
+  );
   return {
     session: {
       scope: "managed",
@@ -693,6 +793,7 @@ export async function managedWait(options: {
   text?: string;
   selector?: string;
   networkidle?: boolean;
+  sessionName?: string;
 }) {
   let source = "";
 
@@ -710,11 +811,13 @@ export async function managedWait(options: {
     throw new Error("wait requires a condition");
   }
 
-  const result = await managedRunCode({ source });
+  const result = await managedRunCode({ source, sessionName: options.sessionName });
 
   return {
     session: result.session,
-    page: await managedPageCurrent().then((pageResult) => pageResult.page),
+    page: await managedPageCurrent({ sessionName: options.sessionName }).then(
+      (pageResult) => pageResult.page,
+    ),
     data: {
       condition:
         typeof result.data.result === "string"

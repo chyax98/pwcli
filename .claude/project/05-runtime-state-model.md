@@ -3,83 +3,93 @@
 更新时间：2026-04-25
 状态：active
 
-当前 `pwcli` 没有自建一套复杂 runtime state。现状更接近：
-
-```text
-default managed session
-  -> current page summary
-  -> 当前命令返回的 data
-```
+当前 `pwcli` 的 runtime truth 已经切成 **strict session-first**。
 
 ## 1. Session truth
 
-当前只有一条默认 managed session 线：
+- 多个 managed sessions 可以并存
+- 主路径必须显式带 `--session <name>`
+- CLI 不再自动落到唯一 live session
+- 裸命令统一报 `SESSION_REQUIRED`
 
-- session 名固定走 `default`
-- session substrate 直接复用 `playwright-core/lib/tools/cli-client/session.js`
-- registry truth 直接复用 `playwright-core/lib/tools/cli-client/registry.js`
-- 用户可见 session 面只有：
-  - `pw session status`
-  - `pw session close`
+当前用户可见 session 面：
+
+- `pw session create <name> ...`
+- `pw session list`
+- `pw session status <name>`
+- `pw session close <name>`
 
 当前没有：
 
-- 多 session 命令路由
-- 显式 session create/switch/list
-- 自定义 daemon 协议
-- 项目层 session store
+- `session use`
+- 隐式当前绑定态
+- 自动 single-session fallback
 
 ## 2. 命令如何拿到 session
 
-- `open` / `connect` / `profile open`：显式 `reset: true`
-- 其他命令：按需 `ensureManagedSession()`，默认继续使用 `default`
-- `batch`：串行调用当前 managed helpers，仍然只打向 `default`
+所有浏览器相关命令都按这个规则：
 
-当前推荐入口仍然是：
+1. 解析 `--session <name>` 或 `-s <name>`
+2. 没有就直接报 `SESSION_REQUIRED`
+3. usage 命令命中不存在的 session 报 `SESSION_NOT_FOUND`
+4. 只有 `session create` 负责建立新的 session
+
+## 3. Acquisition truth
+
+当前 acquisition 命令：
+
+- `session create <name> --open <url>`
+- `session create <name> --connect <endpoint>`
+- `open <url> --session <name>`
+- `connect ... --session <name>`
+- `auth ... --session <name>`
+- `profile open ... --session <name>`
+
+项目叙事上，唯一推荐入口是：
 
 ```text
-open -> wait/snapshot/read-text -> action
+session create <name> --open <url>
 ```
 
-原因很实际：这条链在这轮手工 smoke 里最稳定。
+其他 acquisition 命令仍然存在，但都要求显式 `--session`。
 
-## 3. Page truth
+## 4. Page truth
 
-当前没有项目层持久 page registry。page truth 来自每次命令执行后的即时结果：
+当前没有项目层持久 page registry。page truth 仍然来自命令级即时结果：
 
 - `parsePageSummary(result.text)` 解析 CLI 输出里的 `### Page`
 - `page current/list/frames` 用 `pw code` 现查现返
-- `page current/list` 里的 `p1`、`activePageId` 是当前命令构造的结构化别名，不是全局 page id 系统
+- `p1`、`activePageId` 仍然是命令级结构化别名，不是全局 page id 系统
 
 这意味着：
 
-- page truth 是命令级快照
-- 不存在跨命令稳定 page identity contract
+- page truth 是 session 内的命令级快照
+- 还没有跨命令稳定 page identity contract
 
-## 4. Profile / state / auth 的边界
+## 5. Profile / state / auth 的边界
 
-- `profile`：本地 profile 目录检查与 persistent open 入口
+- `profile`：本地 profile 检查与 persistent open 入口
 - `state`：显式 `storageState` 文件 save/load
-- `auth`：在当前 page 上执行本地插件函数
+- `auth`：在指定 session 的 page 上执行本地插件函数
 
 它们都不是另一套 runtime。
 
-## 5. Connect 的真实语义
+## 6. Connect 的真实语义
 
 `connect` 当前只是 session acquisition 的另一种来源：
 
-- `connect [endpoint]`
-- `connect --ws-endpoint <url>`
-- `connect --browser-url <url>`
-- `connect --cdp <port>`
+- `connect [endpoint] --session <name>`
+- `connect --ws-endpoint <url> --session <name>`
+- `connect --browser-url <url> --session <name>`
+- `connect --cdp <port> --session <name>`
 
 实现上：
 
-- reset `default` managed session
+- 命中显式 session 名
 - 通过 endpoint 附着
 - 立刻跑一次 `snapshot` 探测当前页是否可读
 
-## 6. 当前输出模型
+## 7. 当前输出模型
 
 大多数命令输出统一为：
 
@@ -89,31 +99,27 @@ open -> wait/snapshot/read-text -> action
   "command": "xxx",
   "session": { "...": "..." },
   "page": { "...": "..." },
-  "data": { "...": "..." }
+  "data": {
+    "...": "...",
+    "resolvedSession": "bug-a"
+  }
 }
 ```
 
-但不是每个字段都必有：
+`resolvedSession` 是这轮新增的关键字段，用来把最终命中的 session 明确写回输出。
 
-- `session` 可省略
-- `page` 可省略
-- `diagnostics` 当前几乎不用
+## 8. 当前观察到的限制
 
-## 7. 当前观察到的限制
+- `session status` 仍然是 best-effort liveness 视图，不是强一致 truth
+- `wait --request/--response/--method/--status` 还没实现
+- 项目层仍然没有 artifact run dir truth / session log index / diagnostics cache
 
-这轮手工 smoke 里已观察到：
-
-- `session status` 经常返回 `{ active: false }`，即使前一个 `open` 刚刚成功
-- 某些 `pw code` / selector 动作链后续会遇到 `Target page, context or browser has been closed`
-
-所以当前 `session status` 只能当 best-effort registry 视图，不能当强一致 liveness truth。
-
-## 8. 当前没有的 state
+## 9. 当前没有的 state
 
 以下内容现在都不存在，文档不要写成已经有：
 
-- artifact run dir truth
-- session log index
-- console/network 项目层持久缓存
+- 自动路由到唯一 live session
+- `session use`
 - 自建 page ref 协议
 - profile/state/session 三者之间的高级绑定关系
+- 多 session 的自动上下文切换

@@ -1,16 +1,16 @@
-import { createRequire } from 'node:module';
-import { dirname, join } from 'node:path';
+import { createRequire } from "node:module";
+import { dirname, join } from "node:path";
 
 const require = createRequire(import.meta.url);
-const playwrightCoreRoot = dirname(require.resolve('playwright-core/package.json'));
+const playwrightCoreRoot = dirname(require.resolve("playwright-core/package.json"));
 
-const sessionModule = require(join(playwrightCoreRoot, 'lib/tools/cli-client/session.js'));
-const registryModule = require(join(playwrightCoreRoot, 'lib/tools/cli-client/registry.js'));
+const sessionModule = require(join(playwrightCoreRoot, "lib/tools/cli-client/session.js"));
+const registryModule = require(join(playwrightCoreRoot, "lib/tools/cli-client/registry.js"));
 
 const { Session } = sessionModule;
 const { Registry, createClientInfo, resolveSessionName } = registryModule;
 
-export const DEFAULT_SESSION_NAME = 'default';
+export const DEFAULT_SESSION_NAME = "default";
 
 function normalizeSessionName(name?: string) {
   return resolveSessionName(name ?? DEFAULT_SESSION_NAME);
@@ -20,7 +20,7 @@ async function loadRegistry() {
   return await Registry.load();
 }
 
-async function withSuppressedConsole(fn: () => Promise<any>) {
+async function withSuppressedConsole<T>(fn: () => Promise<T>) {
   const originalLog = console.log;
   const originalError = console.error;
   console.log = () => {};
@@ -44,6 +44,24 @@ async function getSessionEntry(sessionName?: string) {
     sessionName: resolvedSessionName,
     entry,
   };
+}
+
+export async function listManagedSessions() {
+  const clientInfo = createClientInfo();
+  const registry = await loadRegistry();
+  const entries = registry.entries(clientInfo);
+  return await Promise.all(
+    entries.map(async (entry) => {
+      const session = new Session(entry);
+      return {
+        name: entry.config.name,
+        socketPath: entry.config.socketPath,
+        version: entry.config.version,
+        workspaceDir: entry.config.workspaceDir,
+        alive: await session.canConnect(),
+      };
+    }),
+  );
 }
 
 export async function getManagedSessionStatus(sessionName?: string) {
@@ -71,6 +89,7 @@ export async function ensureManagedSession(options?: {
   profile?: string;
   persistent?: boolean;
   endpoint?: string;
+  createIfMissing?: boolean;
 }) {
   const { clientInfo, registry, sessionName, entry } = await getSessionEntry(options?.sessionName);
 
@@ -78,12 +97,16 @@ export async function ensureManagedSession(options?: {
     await new Session(entry).stop(true);
   }
 
+  if (!entry && !options?.createIfMissing && !options?.reset) {
+    throw new Error(`SESSION_NOT_FOUND:${sessionName}`);
+  }
+
   const nextEntry =
     options?.reset || !entry
-      ? (await (async () => {
+      ? await (async () => {
           await withSuppressedConsole(() =>
             Session.startDaemon(clientInfo, {
-              _: ['open'],
+              _: ["open"],
               headed: Boolean(options?.headed),
               session: sessionName,
               ...(options?.profile ? { profile: options.profile } : {}),
@@ -92,7 +115,7 @@ export async function ensureManagedSession(options?: {
             }),
           );
           return await registry.loadEntry(clientInfo, sessionName);
-        })())
+        })()
       : entry;
 
   return {
@@ -111,6 +134,7 @@ export async function runManagedSessionCommand(
     profile?: string;
     persistent?: boolean;
     endpoint?: string;
+    createIfMissing?: boolean;
   },
 ) {
   const { clientInfo, sessionName, session } = await ensureManagedSession(options);

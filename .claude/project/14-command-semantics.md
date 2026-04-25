@@ -62,9 +62,9 @@ pw <noun> <subcommand> [options]
 如果一个 Agent 在没有文档的情况下也大概率能猜到命令含义，这个命令就是合格的。
 
 例如：
-- `pw open https://example.com`
-- `pw code "async (page) => { ... }"`
-- `pw batch "open https://example.com" "code ..."`
+- `pw session create bug-123 --open https://example.com`
+- `pw code --session bug-123 "async (page) => { ... }"`
+- `pw batch --session bug-123 "snapshot" "read-text"`
 - `pw skill install .claude/skills`
 
 ## 关键命令建议
@@ -99,3 +99,18 @@ pw <noun> <subcommand> [options]
 
 减少学习成本，降低错误调用概率，提高 Agent 自主执行成功率。
 
+## Session-first 约束
+
+浏览器相关命令当前统一遵守：
+
+```bash
+pw <verb> ... --session <name>
+```
+
+推荐：
+
+```bash
+pw session create qa-a --open https://example.com
+pw snapshot --session qa-a
+pw click e6 --session qa-a
+```

@@ -1,24 +1,31 @@
-import type { Command } from 'commander';
-import { managedTrace } from '../core/managed.js';
-import { printCommandError, printCommandResult } from '../utils/output.js';
+import type { Command } from "commander";
+import { managedTrace } from "../core/managed.js";
+import { printCommandResult } from "../utils/output.js";
+import {
+  addSessionOption,
+  printSessionAwareCommandError,
+  requireSessionName,
+} from "./session-options.js";
 
 export function registerTraceCommand(program: Command): void {
-  program
-    .command('trace <action>')
-    .description('Start or stop tracing in the default managed session')
-    .action(async (action: string) => {
-      try {
-        if (action !== 'start' && action !== 'stop') {
-          throw new Error('trace requires start or stop');
-        }
-        printCommandResult('trace', await managedTrace(action));
-      } catch (error) {
-        printCommandError('trace', {
-          code: 'TRACE_FAILED',
-          message: error instanceof Error ? error.message : 'trace failed',
-          suggestions: ['Use `pw trace start` or `pw trace stop`'],
-        });
-        process.exitCode = 1;
+  addSessionOption(
+    program
+      .command("trace <action>")
+      .description("Start or stop tracing in a named managed session"),
+  ).action(async (action: string, options: { session?: string }) => {
+    try {
+      const sessionName = requireSessionName(options);
+      if (action !== "start" && action !== "stop") {
+        throw new Error("trace requires start or stop");
       }
-    });
+      printCommandResult("trace", await managedTrace(action, { sessionName }));
+    } catch (error) {
+      printSessionAwareCommandError("trace", error, {
+        code: "TRACE_FAILED",
+        message: "trace failed",
+        suggestions: ["Use `pw trace --session bug-a start` or `pw trace --session bug-a stop`"],
+      });
+      process.exitCode = 1;
+    }
+  });
 }

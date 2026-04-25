@@ -2,40 +2,40 @@
 
 `pwcli` 是一个面向内部 Agent 的 Playwright 命令壳，默认命令名是 `pw`。
 
-当前真相很收敛：
+当前项目真相已经收口成：
 
-- 默认工作流围绕一条 `default managed browser`
-- session 能力下沉到 Playwright CLI `session.js + registry.js`
-- 页面动作优先复用 Playwright 公共 API
-- 本地项目层只保留命令语义、输出整形、auth plugin、skill 分发
+- 浏览器命令主路径是 **strict session-first**
+- 先 `session create <name>`
+- 后续所有浏览器相关命令都显式带 `--session <name>`
+- 不再保留自动 fallback
 
 ## 当前命令集
 
 ```text
-pw open <url>
-pw connect [endpoint]
-pw code [source]
-pw auth [plugin]
-pw batch <steps...>
-pw page current|list|frames
-pw snapshot
-pw screenshot [ref]
-pw read-text
-pw fill [parts...]
-pw type [parts...]
-pw press <key>
-pw scroll <direction> [distance]
-pw upload [parts...]
-pw download [ref]
-pw drag [parts...]
-pw console
-pw network
-pw click [ref]
-pw wait [target]
-pw trace <action>
-pw state <action> [file]
+pw session create|list|status|close
+pw open <url> --session <name>
+pw connect [endpoint] --session <name>
+pw code [source] --session <name>
+pw auth [plugin] --session <name>
+pw batch <steps...> --session <name>
+pw page current|list|frames --session <name>
+pw snapshot --session <name>
+pw screenshot [ref] --session <name>
+pw read-text --session <name>
+pw fill [parts...] --session <name>
+pw type [parts...] --session <name>
+pw press <key> --session <name>
+pw scroll <direction> [distance] --session <name>
+pw upload [parts...] --session <name>
+pw download [ref] --session <name>
+pw drag [parts...] --session <name>
+pw console --session <name>
+pw network --session <name>
+pw click [ref] --session <name>
+pw wait [target] --session <name>
+pw trace <action> --session <name>
+pw state <action> [file] --session <name>
 pw profile inspect|open
-pw session status|close
 pw plugin list|path
 pw skill path|install
 ```
@@ -43,64 +43,70 @@ pw skill path|install
 ## 当前推荐主链
 
 ```bash
-pw open https://example.com
-pw wait networkIdle
-pw snapshot
-pw click e6
-pw read-text
+pw session create dc-main --open 'https://developer-192-168-5-18.tap.dev/forge/89347/all-app'
+pw snapshot --session dc-main
+pw click e6 --session dc-main
+pw wait networkIdle --session dc-main
+pw read-text --session dc-main
+pw session close dc-main
 ```
 
-`pw code` 是一级能力，当前既可作为页面推进入口，也可作为手工 smoke 页面注入入口。
+对 Agent，这条规则最清楚：
 
-到达真实已登录页面的顺手入口现在有三条：
+- 先创建 session
+- 后面重复带同一个 `--session`
+- CLI 不会替你猜目标 session
+
+## 到达真实已登录页面
+
+### 1. 直接打开真实页
 
 ```bash
-pw open http://127.0.0.1:4110/forge
-pw open --profile ~/.forge-browser/profiles/acceptance-login http://127.0.0.1:4110/forge
-pw open --profile ~/.pwcli/profiles/dc2 https://dc2.example/
-pw open --state ./auth.json https://dc2.example/
-pw auth dc-login --profile ~/.pwcli/profiles/dc2 --open https://dc2.example/
+pw session create dc-main --open 'https://developer-192-168-5-18.tap.dev/forge/89347/all-app'
 ```
 
-当前这台机器上已经真实验证通过的 DC 2.0 入口是：
+### 2. 复用已登录 profile
 
 ```bash
-pw open http://127.0.0.1:4110/forge
-pw open --profile ~/.forge-browser/profiles/acceptance-login http://127.0.0.1:4110/forge
+pw session create dc-main \
+  --open 'http://127.0.0.1:4110/forge' \
+  --profile ~/.forge-browser/profiles/acceptance-login
 ```
 
-你如果要直接打具体业务页，应该传完整 deep link，例如：
+### 3. 复用 state
 
 ```bash
-pw open 'https://developer-192-168-5-18.tap.dev/forge/89347/all-app'
-pw auth dc-login --open 'https://developer-192-168-5-18.tap.dev/forge/89347/all-app'
+pw session create dc-main --open 'https://developer-192-168-5-18.tap.dev/forge/89347/all-app'
+pw state save ./auth.json --session dc-main
+pw session close dc-main
+
+pw session create dc-main --open 'https://developer-192-168-5-18.tap.dev/forge/89347/all-app' --state ./auth.json
 ```
+
+### 4. 动态登录
+
+```bash
+pw auth dc-login \
+  --session dc-main \
+  --open 'https://developer-192-168-5-18.tap.dev/forge/89347/all-app'
+```
+
+`dc-login` 当前规则：
+
+- 用户给完整 deep link，插件直接把它当 `targetUrl`
+- 并从它提取 `baseURL`
+- 用户没给完整链接，才回落到 `accounts.json / instance / 本地端口探测`
 
 ## 当前值得记住的事实
 
-- `click` 当前支持三类目标：
+- `-s` 是 `--session` 的短别名
+- `session create` 是唯一推荐的浏览器生命周期入口
+- `click` 支持：
   - `aria-ref`
   - `--selector`
   - semantic locator：`--role` / `--text` / `--label` / `--placeholder` / `--testid`
-- `fill` 支持 ref 或 `--selector`
-- `type` 支持 focused element、ref、`--selector`
-- `open` 支持：
-  - `--profile <path>`
-  - `--state <file>`
-- `connect` 当前支持：
-  - 位置参数 endpoint
-  - `--ws-endpoint`
-  - `--browser-url`
-  - `--cdp`
-- `auth` 支持：
-  - `pw auth example-auth`
-  - `pw auth dc-login`
-  - `pw auth --plugin ./plugins/example-auth.js`
-  - `--profile <path>` / `--state <file>`：先复用已登录上下文
-  - `--open <url>`：登录完成后直接落到目标页
-  - `--save-state <file>`：把本轮登录态直接固化出来
-- `plugin list` 会返回 `count`
-- `console` / `network` 当前返回结构化摘要，不是完整诊断系统
+- `open` / `auth` / `connect` 都要求显式 `--session`
+- `console` / `network` 当前返回结构化摘要，不是完整事件流系统
 - `download` 支持：
   - `--path <file>`：明确文件路径
   - `--dir <dir>`：保留浏览器建议文件名
@@ -109,18 +115,20 @@ pw auth dc-login --open 'https://developer-192-168-5-18.tap.dev/forge/89347/all-
 
 不要把这些当成已经存在：
 
+- 自动选择唯一 live session
+- `session use`
+- 多 session 隐式切换
 - 默认 artifact run 目录
 - HAR / perf / video / screencast 管理
 - 项目层 session log / diagnostics cache
 - 完整 request/response wait 语义
-- 多 session 用户面
 
 ## 当前已知限制
 
-- `wait --request/--response/--method/--status` 已出现在参数面，但当前实现还没接上
-- `session status` 只能当 best-effort 视图
-- `download` 当前人工验证是基于已存在下载元素的 managed page，不把 `file://` 打开本地下载页写成稳定 contract
-- `dc-login` 当前已接入，但动态登录仍依赖目标环境返回预期的 login URL；当前最稳的 DC 2.0 探索入口仍然是直接 `open` 本地 `4110/forge`
+- `wait --request/--response/--method/--status` 还没接上
+- `session status` 仍然只是 best-effort 视图
+- `download` 的稳定验证当前建立在 managed page 内已有下载元素，不把 `file://` 打开本地下载页写成稳定 contract
+- `dc-login` 动态登录已接入，但在当前机器上最稳的 DC 2.0 入口仍然是直接打开真实页或复用 profile/state
 
 ## 手工验证
 

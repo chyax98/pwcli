@@ -40,7 +40,7 @@
 | `plugin list/path` | 本地文件系统发现与路径解析 | 无 Playwright 依赖 |
 | `auth` | 读取本地插件源码，包装成 `async page => plugin(page, args)` 后交给 `pw code` | `page` + `pw code` |
 | `skill path/install` | 本地文件系统复制 packaged skill | 无 Playwright 依赖 |
-| `session status/close` | 直接调 `Registry.load()` / `Session(entry)` | `cli-client/session.js` + `registry.js` |
+| `session create/list/status/close` | 直接调 `Registry.load()` / `Session(entry)`，项目层补 named session 命令面 | `cli-client/session.js` + `registry.js` |
 
 ## 当前明确存在的边界
 

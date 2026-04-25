@@ -27,7 +27,7 @@
 
 ### console
 
-`pw console` 当前输出：
+`pw console --session <name>` 当前输出：
 
 ```json
 {
@@ -44,7 +44,7 @@
 
 ### network
 
-`pw network` 当前输出：
+`pw network --session <name>` 当前输出：
 
 ```json
 {
