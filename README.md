@@ -12,7 +12,7 @@
 ## 当前命令集
 
 ```text
-pw session create|list|status|close
+pw session create|list|status|close|recreate
 pw open <url> --session <name>
 pw connect [endpoint] --session <name>
 pw code [source] --session <name>
@@ -21,6 +21,7 @@ pw batch <steps...> --session <name>
 pw page current|list|frames --session <name>
 pw snapshot --session <name>
 pw screenshot [ref] --session <name>
+pw resize --session <name>
 pw read-text --session <name>
 pw fill [parts...] --session <name>
 pw type [parts...] --session <name>
@@ -48,6 +49,7 @@ pw snapshot --session dc-main
 pw click e6 --session dc-main
 pw wait networkIdle --session dc-main
 pw read-text --session dc-main
+pw resize --session dc-main --preset desktop
 pw session close dc-main
 ```
 
@@ -101,6 +103,7 @@ pw auth dc-login \
 
 - `-s` 是 `--session` 的短别名
 - `session create` 是唯一推荐的浏览器生命周期入口
+- `session recreate <name> --headed|--headless` 用于切换有头/无头；底层是重建 session，不是原地切换
 - `click` 支持：
   - `aria-ref`
   - `--selector`
@@ -110,6 +113,10 @@ pw auth dc-login \
 - `download` 支持：
   - `--path <file>`：明确文件路径
   - `--dir <dir>`：保留浏览器建议文件名
+- `resize` 支持：
+  - `--view <width>x<height>`
+  - `--view <width>_<height>`
+  - `--preset desktop|ipad|iphone`
 
 ## 当前没有的东西
 

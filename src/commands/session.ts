@@ -1,6 +1,10 @@
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import type { Command } from "commander";
 import { managedOpen, managedStateLoad } from "../core/managed.js";
 import {
+  getManagedSessionEntry,
   getManagedSessionStatus,
   listManagedSessions,
   runManagedSessionCommand,
@@ -78,7 +82,7 @@ export function registerSessionCommand(program: Command): void {
 
   session
     .command("create <name>")
-    .description("Create or recreate a named managed session")
+    .description("Create a named managed session")
     .option("--open <url>", "Open a URL in the new session")
     .option("--connect <endpoint>", "Attach the session to an existing endpoint")
     .option("--ws-endpoint <url>", "Playwright browser websocket endpoint")
@@ -172,6 +176,107 @@ export function registerSessionCommand(program: Command): void {
             ],
           });
           process.exitCode = 1;
+        }
+      },
+    );
+
+  session
+    .command("recreate <name>")
+    .description("Recreate a named managed session with a new browser shape")
+    .option("--headed", "Launch the recreated session in headed mode")
+    .option("--headless", "Launch the recreated session in headless mode")
+    .option("--open <url>", "Override the target URL after recreation")
+    .action(
+      async (
+        name: string,
+        options: {
+          headed?: boolean;
+          headless?: boolean;
+          open?: string;
+        },
+      ) => {
+        let tempDir: string | undefined;
+        try {
+          if (options.headed && options.headless) {
+            throw new Error("session recreate accepts either --headed or --headless, not both");
+          }
+
+          const entry = await getManagedSessionEntry(name);
+          if (!entry) {
+            throw new Error(`SESSION_NOT_FOUND:${name}`);
+          }
+
+          const currentPage = await getSessionPageSummary(name).catch(() => undefined);
+          const currentHeaded = entry.config.browser?.launchOptions?.headless === false;
+          const headed = options.headed ? true : options.headless ? false : currentHeaded;
+          const profile = entry.config.browser?.userDataDir;
+          const persistent = Boolean(entry.config.cli?.persistent || profile);
+          const targetUrl = options.open ?? currentPage?.url ?? "about:blank";
+
+          tempDir = await mkdtemp(join(tmpdir(), "pwcli-recreate-"));
+          const statePath = join(tempDir, "state.json");
+          let stateSaved = false;
+          try {
+            await runManagedSessionCommand(
+              {
+                _: ["state-save", statePath],
+              },
+              {
+                sessionName: name,
+              },
+            );
+            stateSaved = true;
+          } catch {}
+
+          await stopManagedSession(name);
+          await managedOpen(stateSaved ? "about:blank" : targetUrl, {
+            sessionName: name,
+            headed,
+            ...(profile ? { profile } : {}),
+            ...(persistent ? { persistent: true } : {}),
+            reset: true,
+          });
+
+          if (stateSaved) {
+            await managedStateLoad(statePath, { sessionName: name });
+            if (targetUrl && targetUrl !== "about:blank") {
+              await managedOpen(targetUrl, {
+                sessionName: name,
+                reset: false,
+              });
+            }
+          }
+
+          const page = await getSessionPageSummary(name).catch(() => undefined);
+          printCommandResult("session recreate", {
+            session: {
+              scope: "managed",
+              name,
+              default: name === "default",
+            },
+            page,
+            data: {
+              recreated: true,
+              headed,
+              ...(profile ? { profile } : {}),
+              ...(persistent ? { persistent: true } : {}),
+              ...(options.open ? { openedUrl: options.open } : {}),
+            },
+          });
+        } catch (error) {
+          printCommandError("session recreate", {
+            code: "SESSION_RECREATE_FAILED",
+            message: error instanceof Error ? error.message : "session recreate failed",
+            suggestions: [
+              "Use `pw session recreate <name> --headed`",
+              "Or `pw session recreate <name> --headless`",
+            ],
+          });
+          process.exitCode = 1;
+        } finally {
+          if (tempDir) {
+            await rm(tempDir, { recursive: true, force: true }).catch(() => {});
+          }
         }
       },
     );

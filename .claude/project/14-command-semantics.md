@@ -24,6 +24,7 @@
 - `fill`
 - `type`
 - `press`
+- `resize`
 - `scroll`
 - `wait`
 - `connect`
@@ -114,3 +115,9 @@ pw session create qa-a --open https://example.com
 pw snapshot --session qa-a
 pw click e6 --session qa-a
 ```
+
+## Session shape 与 viewport
+
+- `session create --headed`：创建有头 session
+- `session recreate --headed|--headless`：重建 session shape
+- `resize --session <name> --view/--preset`：只改窗口尺寸，不改有头/无头

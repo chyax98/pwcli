@@ -482,6 +482,40 @@ export async function managedTrace(action: "start" | "stop", options?: { session
   };
 }
 
+export async function managedResize(options: {
+  sessionName?: string;
+  width: number;
+  height: number;
+  view?: string;
+  preset?: string;
+}) {
+  const result = await runManagedSessionCommand(
+    {
+      _: ["resize", String(options.width), String(options.height)],
+    },
+    {
+      sessionName: options.sessionName,
+    },
+  );
+
+  return {
+    session: {
+      scope: "managed",
+      name: result.sessionName,
+      default: result.sessionName === "default",
+    },
+    page: parsePageSummary(result.text),
+    data: {
+      width: options.width,
+      height: options.height,
+      ...(options.view ? { view: options.view } : {}),
+      ...(options.preset ? { preset: options.preset } : {}),
+      resized: true,
+      ...maybeRawOutput(result.text),
+    },
+  };
+}
+
 export async function managedUpload(options: {
   ref?: string;
   selector?: string;

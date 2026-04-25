@@ -15,6 +15,7 @@ import { registerPluginCommand } from "./plugin.js";
 import { registerPressCommand } from "./press.js";
 import { registerProfileCommand } from "./profile.js";
 import { registerReadTextCommand } from "./read-text.js";
+import { registerResizeCommand } from "./resize.js";
 import { registerScreenshotCommand } from "./screenshot.js";
 import { registerScrollCommand } from "./scroll.js";
 import { registerSessionCommand } from "./session.js";
@@ -33,6 +34,7 @@ export function registerCommands(program: Command): void {
   registerAuthCommand(program);
   registerBatchCommand(program);
   registerPageCommand(program);
+  registerResizeCommand(program);
   registerSnapshotCommand(program);
   registerScreenshotCommand(program);
   registerReadTextCommand(program);

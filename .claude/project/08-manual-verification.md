@@ -41,6 +41,8 @@ node dist/cli.js session close bug-a
 node dist/cli.js session create bug-a --open https://example.com
 node dist/cli.js session list
 node dist/cli.js session status bug-a
+node dist/cli.js session recreate bug-a --headed
+node dist/cli.js session recreate bug-a --headless
 node dist/cli.js session close bug-a
 node dist/cli.js session list
 ```
@@ -49,6 +51,7 @@ node dist/cli.js session list
 
 - `session list` 当前会返回 `name/alive/socketPath/version/workspaceDir/page`
 - `session status <name>` 可读
+- `session recreate --headed/--headless` 已验证可执行
 - `session close <name>` 可关闭指定 session
 
 ### open / batch
@@ -67,6 +70,20 @@ node dist/cli.js session close bug-batch
 
 - `open --session <name>` 可创建或命中指定 session
 - `batch --session <name>` 可在同一 named session 内顺序执行步骤
+
+### resize
+
+```bash
+node dist/cli.js session create view-a --open https://example.com
+node dist/cli.js resize --session view-a --view 390x844
+node dist/cli.js resize --session view-a --preset desktop
+node dist/cli.js session close view-a
+```
+
+结论：
+
+- `resize --view` 已验证可用
+- `resize --preset` 已验证可用
 
 ### DC 2.0 真实页面入口
 

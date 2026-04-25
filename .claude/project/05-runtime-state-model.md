@@ -18,6 +18,7 @@
 - `pw session list`
 - `pw session status <name>`
 - `pw session close <name>`
+- `pw session recreate <name> --headed|--headless`
 
 当前没有：
 
@@ -52,6 +53,13 @@ session create <name> --open <url>
 ```
 
 其他 acquisition 命令仍然存在，但都要求显式 `--session`。
+
+`session recreate` 的真实语义：
+
+- 保留 session 名
+- best-effort 保留当前 URL 与 storage state
+- 重建有头/无头形态
+- 不是在同一个 browser process 上原地切换
 
 ## 4. Page truth
 

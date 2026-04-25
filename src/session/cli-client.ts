@@ -46,6 +46,19 @@ async function getSessionEntry(sessionName?: string) {
   };
 }
 
+export async function getManagedSessionEntry(sessionName?: string) {
+  const { sessionName: resolvedSessionName, entry } = await getSessionEntry(sessionName);
+  if (!entry) {
+    return null;
+  }
+  return {
+    name: resolvedSessionName,
+    file: entry.file,
+    daemonDir: entry.daemonDir,
+    config: entry.config,
+  };
+}
+
 export async function listManagedSessions() {
   const clientInfo = createClientInfo();
   const registry = await loadRegistry();
