@@ -30,9 +30,16 @@ pw auth --save-state <file> --session <name>
 当前查找顺序：
 
 1. 显式路径
-2. `./plugins`
-3. `./.pwcli/plugins`
-4. `~/.pwcli/plugins`
+2. 仓库自带 `plugins/`
+3. `./plugins`
+4. `./.pwcli/plugins`
+5. `~/.pwcli/plugins`
+
+这里的“仓库自带 `plugins/`”是包契约的一部分：
+
+- `plugins/` 跟随 `pwcli` NPM 包一起发布
+- 运行时按 CLI 自身位置解析，不依赖当前 `cwd`
+- 用户可以额外在工作目录或 `~/.pwcli/plugins` 覆盖/扩展
 
 当前允许后缀：
 

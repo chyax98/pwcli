@@ -8,12 +8,14 @@ import {
 } from "./session-options.js";
 
 export function registerPageCommand(program: Command): void {
-  const page = program.command("page").description("Inspect current page, tabs, and frames");
+  const page = addSessionOption(
+    program.command("page").description("Inspect current page, tabs, and frames"),
+  );
 
   addSessionOption(page.command("current").description("Show current page truth")).action(
-    async (options: { session?: string }) => {
+    async (options: { session?: string }, command: Command) => {
       try {
-        const sessionName = requireSessionName(options);
+        const sessionName = requireSessionName(options, command);
         printCommandResult("page current", await managedPageCurrent({ sessionName }));
       } catch (error) {
         printSessionAwareCommandError("page current", error, {
@@ -28,9 +30,9 @@ export function registerPageCommand(program: Command): void {
 
   addSessionOption(
     page.command("list").description("List pages in the current runtime session"),
-  ).action(async (options: { session?: string }) => {
+  ).action(async (options: { session?: string }, command: Command) => {
     try {
-      const sessionName = requireSessionName(options);
+      const sessionName = requireSessionName(options, command);
       printCommandResult("page list", await managedPageList({ sessionName }));
     } catch (error) {
       printSessionAwareCommandError("page list", error, {
@@ -43,9 +45,9 @@ export function registerPageCommand(program: Command): void {
   });
 
   addSessionOption(page.command("frames").description("List frames of the current page")).action(
-    async (options: { session?: string }) => {
+    async (options: { session?: string }, command: Command) => {
       try {
-        const sessionName = requireSessionName(options);
+        const sessionName = requireSessionName(options, command);
         printCommandResult("page frames", await managedPageFrames({ sessionName }));
       } catch (error) {
         printSessionAwareCommandError("page frames", error, {

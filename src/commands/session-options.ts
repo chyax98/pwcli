@@ -6,8 +6,12 @@ export function addSessionOption<T extends Command>(command: T): T {
   return command.option("-s, --session <name>", "Target managed session");
 }
 
-export function requireSessionName(options: { session?: string }) {
-  const sessionName = options.session?.trim();
+export function requireSessionName(
+  options: { session?: string },
+  command?: Pick<Command, "optsWithGlobals">,
+) {
+  const merged = command?.optsWithGlobals<{ session?: string }>();
+  const sessionName = merged?.session?.trim() || options.session?.trim();
   if (!sessionName) {
     throw new Error("SESSION_REQUIRED");
   }

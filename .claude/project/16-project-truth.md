@@ -91,6 +91,7 @@ skill path|install
 - AI snapshot / page summary / result summary 解析
 - 本地 auth plugin 发现与执行
 - packaged skill 分发
+- packaged plugin 分发
 
 ## 当前项目层不负责什么
 

@@ -18,6 +18,7 @@ pw connect [endpoint] --session <name>
 pw code [source] --session <name>
 pw auth [plugin] --session <name>
 pw batch <steps...> --session <name>
+pw page --session <name> current|list|frames
 pw page current|list|frames --session <name>
 pw snapshot --session <name>
 pw screenshot [ref] --session <name>
@@ -49,6 +50,7 @@ pw snapshot --session dc-main
 pw click e6 --session dc-main
 pw wait networkIdle --session dc-main
 pw read-text --session dc-main
+pw batch --session dc-main "click e6" "wait networkIdle" "screenshot --path ./shot.png"
 pw resize --session dc-main --preset desktop
 pw session close dc-main
 ```
@@ -102,6 +104,7 @@ pw auth dc-login \
 ## 当前值得记住的事实
 
 - `-s` 是 `--session` 的短别名
+- `plugins/` 和 `skills/` 是包内资源；发布到 NPM 时应随 `pwcli` 一起分发
 - `session create` 是唯一推荐的浏览器生命周期入口
 - `session recreate <name> --headed|--headless` 用于切换有头/无头；底层是重建 session，不是原地切换
 - `click` 支持：
@@ -117,6 +120,15 @@ pw auth dc-login \
   - `--view <width>x<height>`
   - `--view <width>_<height>`
   - `--preset desktop|ipad|iphone`
+- `page` 支持两种等价写法：
+  - `pw page --session dc-main current`
+  - `pw page current --session dc-main`
+- `batch` 当前支持 `screenshot` step，兼容：
+  - `screenshot`
+  - `screenshot --path ./shot.png`
+  - `screenshot e6 --path ./target.png`
+  - `screenshot --selector '#app' --path ./app.png`
+- `plugin list|path` 会优先发现包内 `plugins/`，不依赖当前工作目录
 
 ## 当前没有的东西
 

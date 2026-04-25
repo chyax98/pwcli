@@ -1,11 +1,14 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const FILE_CANDIDATES = [".js", ".mjs", ".cjs", ".ts"];
+const BUNDLED_PLUGIN_DIR = fileURLToPath(new URL("../../plugins", import.meta.url));
 
 function pluginDirs() {
   return [
+    BUNDLED_PLUGIN_DIR,
     resolve(process.cwd(), "plugins"),
     resolve(process.cwd(), ".pwcli", "plugins"),
     join(homedir(), ".pwcli", "plugins"),

@@ -116,8 +116,18 @@ pw snapshot --session qa-a
 pw click e6 --session qa-a
 ```
 
+`page` 保持双位置可读性：
+
+```bash
+pw page --session qa-a current
+pw page current --session qa-a
+```
+
+二者等价。这样 Agent 在“先想到 session，再想到 page 子命令”与“先想到 page 子命令，再补 session”两种习惯下都能命中。
+
 ## Session shape 与 viewport
 
 - `session create --headed`：创建有头 session
 - `session recreate --headed|--headless`：重建 session shape
 - `resize --session <name> --view/--preset`：只改窗口尺寸，不改有头/无头
+- `batch --session <name>`：step 语义尽量贴单命令；像 `screenshot --path out.png` 这类高频步骤要直接支持

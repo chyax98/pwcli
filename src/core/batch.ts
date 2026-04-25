@@ -9,6 +9,7 @@ import {
   managedReadText,
   managedRunCode,
   managedScroll,
+  managedScreenshot,
   managedSnapshot,
   managedStateLoad,
   managedStateSave,
@@ -94,6 +95,54 @@ async function executeBatchStep(rawStep: string, sessionName: string) {
         command: "snapshot",
         data: await managedSnapshot({ sessionName }),
       };
+    case "screenshot": {
+      let ref: string | undefined;
+      let selector: string | undefined;
+      let path: string | undefined;
+      let fullPage = false;
+
+      for (let index = 0; index < args.length; index += 1) {
+        const arg = args[index];
+        if (arg === "--selector") {
+          selector = args[index + 1];
+          index += 1;
+          continue;
+        }
+        if (arg === "--path") {
+          path = args[index + 1];
+          index += 1;
+          continue;
+        }
+        if (arg === "--full-page") {
+          fullPage = true;
+          continue;
+        }
+        if (!ref) {
+          ref = arg;
+          continue;
+        }
+        throw new Error(`unsupported screenshot batch argument '${arg}'`);
+      }
+
+      if (args.includes("--selector") && !selector) {
+        throw new Error(`batch step '${rawStep}' requires a selector after --selector`);
+      }
+      if (args.includes("--path") && !path) {
+        throw new Error(`batch step '${rawStep}' requires a path after --path`);
+      }
+
+      return {
+        ok: true,
+        command: "screenshot",
+        data: await managedScreenshot({
+          sessionName,
+          ref,
+          selector,
+          path,
+          fullPage,
+        }),
+      };
+    }
     case "read-text":
       return {
         ok: true,

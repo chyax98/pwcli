@@ -4,6 +4,12 @@
   "private": true,
   "description": "Agent-first Playwright orchestration CLI for internal use",
   "type": "module",
+  "files": [
+    "dist",
+    "plugins",
+    "skills",
+    "README.md"
+  ],
   "bin": {
     "pw": "dist/cli.js"
   },
