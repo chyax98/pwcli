@@ -150,22 +150,22 @@
 - `route remove`
 - `--abort`
 - `--method`
+- `--match-body`
 - `--body|--body-file`
 - `--headers-file`
+- `--inject-headers-file`
 - `--status`
 - `--content-type`
 
 ### 当前限制
 
-- 只有第一层 route mock
-- 没有 inject
-- 没有复杂条件匹配和 response patch 平台
+- richer matching 当前只到 body substring
+- inject 当前只到 request header merge + continue
+- 没有 response patch helper
 
 ### 后续扩展
 
 - route 第二层：
-  - richer matching
-  - inject
   - response patch helper
 
 ## 8. Environment

@@ -200,14 +200,25 @@ async function executeBatchStep(tokens: string[], sessionName: string) {
               : spec.headers && typeof spec.headers === "object"
                 ? (spec.headers as Record<string, string>)
                 : undefined;
+          const injectHeaders =
+            typeof spec.injectHeadersFile === "string"
+              ? (JSON.parse(await readFile(resolve(dir, spec.injectHeadersFile), "utf8")) as Record<
+                  string,
+                  string
+                >)
+              : spec.injectHeaders && typeof spec.injectHeaders === "object"
+                ? (spec.injectHeaders as Record<string, string>)
+                : undefined;
           const result = await managedRoute("add", {
             sessionName,
             pattern: spec.pattern,
             abort: Boolean(spec.abort),
+            matchBody: typeof spec.matchBody === "string" ? spec.matchBody : undefined,
             body,
             status: spec.status !== undefined ? Number(spec.status) : undefined,
             contentType: typeof spec.contentType === "string" ? spec.contentType : undefined,
             headers,
+            injectHeaders,
             method: typeof spec.method === "string" ? spec.method : undefined,
           });
           loaded.push(result.data.route ?? { pattern: spec.pattern });
@@ -231,6 +242,9 @@ async function executeBatchStep(tokens: string[], sessionName: string) {
         let bodyFile: string | undefined;
         let headersFile: string | undefined;
         let headers: Record<string, string> | undefined;
+        let injectHeadersFile: string | undefined;
+        let injectHeaders: Record<string, string> | undefined;
+        let matchBody: string | undefined;
         let method: string | undefined;
         let status: number | undefined;
         let contentType: string | undefined;
@@ -253,6 +267,16 @@ async function executeBatchStep(tokens: string[], sessionName: string) {
           }
           if (arg === "--headers-file") {
             headersFile = args[index + 1];
+            index += 1;
+            continue;
+          }
+          if (arg === "--inject-headers-file") {
+            injectHeadersFile = args[index + 1];
+            index += 1;
+            continue;
+          }
+          if (arg === "--match-body") {
+            matchBody = args[index + 1];
             index += 1;
             continue;
           }
@@ -282,6 +306,12 @@ async function executeBatchStep(tokens: string[], sessionName: string) {
             string
           >;
         }
+        if (injectHeadersFile) {
+          injectHeaders = JSON.parse(await readFile(resolve(injectHeadersFile), "utf8")) as Record<
+            string,
+            string
+          >;
+        }
 
         return {
           ok: true,
@@ -290,8 +320,10 @@ async function executeBatchStep(tokens: string[], sessionName: string) {
             sessionName,
             pattern,
             abort,
+            matchBody,
             body,
             headers,
+            injectHeaders,
             method,
             status,
             contentType,

@@ -12,6 +12,7 @@ RUN_ID="$(date +%H%M%S)$((RANDOM % 100))"
 SESSION_NAME="sm${RUN_ID}"
 TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/pwcli-smoke.XXXXXX")"
 HEADERS_FILE="${TMP_DIR}/headers.json"
+ROUTE_INJECT_HEADERS_FILE="${TMP_DIR}/route-inject-headers.json"
 SERVER_LOG="${TMP_DIR}/fixture-server.log"
 SERVER_PID=""
 SESSION_CLOSED="0"
@@ -85,6 +86,7 @@ NODE
 }
 
 printf '{"x-pwcli-header":"smoke-1"}' >"$HEADERS_FILE"
+printf '{"x-pwcli-route-mode":"smoke"}' >"$ROUTE_INJECT_HEADERS_FILE"
 
 log "starting deterministic fixture server on ${ORIGIN}"
 node scripts/manual/deterministic-fixture-server.js "$PORT" >"$SERVER_LOG" 2>&1 &
@@ -238,6 +240,20 @@ assert_json "$export_text_json" "diagnostics export accepts text and aliased fie
   "data.ok === true && data.data.exported === true && data.data.text === 'xhr:1'"
 assert_json "${TMP_DIR}/diag-text.json" "diagnostics export text filters projected network rows" \
   "data.section === 'network' && Array.isArray(data.network) && data.network.length >= 1 && data.network.every(item => item.kind === 'response' && typeof item.snippet === 'string' && item.snippet.includes('xhr:1') && item.url === undefined)"
+
+log "route inject continue"
+route_remove_json="$(run_json route-remove route remove '**/__pwcli__/diagnostics/route-hit**' --session "$SESSION_NAME")"
+assert_json "$route_remove_json" "route removed before inject scenario" \
+  "data.ok === true && data.data.removed === true"
+route_inject_json="$(run_json route-inject route add '**/__pwcli__/diagnostics/route-hit**' --session "$SESSION_NAME" --inject-headers-file "$ROUTE_INJECT_HEADERS_FILE")"
+assert_json "$route_inject_json" "route inject continue added" \
+  "data.ok === true && data.data.route.mode === 'inject-continue' && data.data.route.injectHeaders['x-pwcli-route-mode'] === 'smoke'"
+route_only_click_json="$(run_json route-only-click click --session "$SESSION_NAME" --selector '#route-only')"
+assert_json "$route_only_click_json" "route-only click acted" \
+  "data.ok === true && data.data.acted === true"
+route_only_result_json="$(run_json route-only-result read-text --session "$SESSION_NAME" --selector '#last-route-result')"
+assert_json "$route_only_result_json" "inject continue reaches server variant" \
+  "data.ok === true && data.data.text.includes('206:server-route-injected:2:smoke')"
 
 log "doctor"
 doctor_json="$(run_json doctor doctor --session "$SESSION_NAME" --endpoint "$BLANK_URL")"

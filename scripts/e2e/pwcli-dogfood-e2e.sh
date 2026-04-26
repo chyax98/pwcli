@@ -14,6 +14,7 @@ SESSION_NAME="dg${RUN_ID}"
 SESSION_REUSE="${SESSION_NAME}b"
 TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/pwcli-dogfood.XXXXXX")"
 HEADERS_FILE="${TMP_DIR}/headers.json"
+ROUTE_INJECT_HEADERS_FILE="${TMP_DIR}/route-inject-headers.json"
 STATE_FILE="${TMP_DIR}/auth.json"
 UPLOAD_FILE="${TMP_DIR}/upload.txt"
 DOWNLOAD_DIR="${TMP_DIR}/downloads"
@@ -110,6 +111,7 @@ assert_contains() {
 }
 
 printf '{"x-pwcli-header":"dogfood-1"}' >"$HEADERS_FILE"
+printf '{"x-pwcli-route-inject":"dogfood"}' >"$ROUTE_INJECT_HEADERS_FILE"
 printf 'upload-check\n' >"$UPLOAD_FILE"
 mkdir -p "$DOWNLOAD_DIR"
 cat >"$BATCH_FILE" <<'JSON'
@@ -246,6 +248,16 @@ assert_json "$route_result_json" "direct route result visible" \
   "data.ok === true && data.data.text.includes('208:direct-route-success')"
 route_remove_json="$(run_json route-remove route remove '**/api/incidents/alpha/checkout-timeout/mock-target**' --session "$SESSION_NAME")"
 assert_json "$route_remove_json" "route removed" "data.ok === true && data.data.removed === true"
+route_inject_json="$(run_json route-inject route add '**/api/incidents/alpha/checkout-timeout/mock-target**' --session "$SESSION_NAME" --method GET --inject-headers-file "$ROUTE_INJECT_HEADERS_FILE")"
+assert_json "$route_inject_json" "route inject continue added" \
+  "data.ok === true && data.data.route.mode === 'inject-continue' && data.data.route.injectHeaders['x-pwcli-route-inject'] === 'dogfood'"
+route_inject_click_json="$(run_json route-inject-click click --session "$SESSION_NAME" --selector '#route-target')"
+assert_json "$route_inject_click_json" "route target clicked with injected request headers" "data.ok === true && data.data.acted === true"
+route_inject_result_json="$(run_json route-inject-result read-text --session "$SESSION_NAME" --selector '#mock-result')"
+assert_json "$route_inject_result_json" "inject continue reaches server variant" \
+  "data.ok === true && data.data.text.includes('206:server-route-injected:dogfood')"
+route_inject_remove_json="$(run_json route-inject-remove route remove '**/api/incidents/alpha/checkout-timeout/mock-target**' --session "$SESSION_NAME")"
+assert_json "$route_inject_remove_json" "inject route removed" "data.ok === true && data.data.removed === true"
 
 log "route load file"
 route_load_json="$(run_json route-load route load ./scripts/e2e/dogfood-routes.json --session "$SESSION_NAME")"
@@ -259,6 +271,19 @@ assert_json "$route_file_click_json" "route target clicked with file route" "dat
 route_file_result_json="$(run_json route-file-result read-text --session "$SESSION_NAME" --selector '#mock-result')"
 assert_json "$route_file_result_json" "route file result visible" \
   "data.ok === true && data.data.text.includes('209:route-file-success')"
+
+log "route match-body"
+route_match_body_json="$(run_json route-match-body route add '**/api/incidents/alpha/checkout-timeout/start**' --session "$SESSION_NAME" --method POST --match-body fail500 --body '{"ok":true,"mocked":true}' --status 200 --content-type application/json)"
+assert_json "$route_match_body_json" "route match-body fulfill added" \
+  "data.ok === true && data.data.route.mode === 'fulfill' && data.data.route.matchBody === 'fail500'"
+route_match_click_json="$(run_json route-match-click click --session "$SESSION_NAME" --selector '#trigger-bug')"
+assert_json "$route_match_click_json" "trigger bug clicked under match-body mock" \
+  "data.ok === true && data.data.acted === true"
+route_match_result_json="$(run_json route-match-result read-text --session "$SESSION_NAME" --selector '#bug-result')"
+assert_json "$route_match_result_json" "match-body mock forces success path" \
+  "data.ok === true && data.data.text.includes('bug-result: success')"
+route_match_remove_json="$(run_json route-match-remove route remove '**/api/incidents/alpha/checkout-timeout/start**' --session "$SESSION_NAME")"
+assert_json "$route_match_remove_json" "match-body route removed" "data.ok === true && data.data.removed === true"
 
 log "environment controls"
 perm_json="$(run_json env-perm environment permissions grant geolocation --session "$SESSION_NAME")"

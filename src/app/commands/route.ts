@@ -39,11 +39,16 @@ export function registerRouteCommand(program: Command): void {
       .command("add <pattern>")
       .description("Add a route using the current BrowserContext")
       .option("--abort", "Abort matching requests")
+      .option("--match-body <text>", "Only match when request postData contains the substring")
       .option("--body <text>", "Fulfill matching requests with a text body")
       .option("--body-file <path>", "Fulfill matching requests with body loaded from a file")
       .option(
         "--headers-file <path>",
         "Fulfill matching requests with headers loaded from a JSON file",
+      )
+      .option(
+        "--inject-headers-file <path>",
+        "Continue matching requests with request headers merged from a JSON file",
       )
       .option("--method <method>", "Only match one HTTP method")
       .option("--status <code>", "Fulfill matching requests with an HTTP status")
@@ -54,9 +59,11 @@ export function registerRouteCommand(program: Command): void {
       options: {
         session?: string;
         abort?: boolean;
+        matchBody?: string;
         body?: string;
         bodyFile?: string;
         headersFile?: string;
+        injectHeadersFile?: string;
         method?: string;
         status?: string;
         contentType?: string;
@@ -76,16 +83,25 @@ export function registerRouteCommand(program: Command): void {
                 string
               >)
             : undefined;
+        const injectHeaders =
+          options.injectHeadersFile !== undefined
+            ? (JSON.parse(await readFile(resolve(options.injectHeadersFile), "utf8")) as Record<
+                string,
+                string
+              >)
+            : undefined;
         printCommandResult(
           "route add",
           await managedRoute("add", {
             sessionName,
             pattern,
             abort: options.abort,
+            matchBody: options.matchBody,
             body,
             status: options.status ? Number(options.status) : undefined,
             contentType: options.contentType,
             headers,
+            injectHeaders,
             method: options.method,
           }),
         );
@@ -96,6 +112,7 @@ export function registerRouteCommand(program: Command): void {
           suggestions: [
             "Use `pw route --session bug-a add '**/api/**' --abort`",
             "Or fulfill a mock response with `--body` and optional `--status`",
+            "Or inject request headers with `--inject-headers-file` for pass-through reproduction",
           ],
         });
         process.exitCode = 1;
@@ -131,14 +148,25 @@ export function registerRouteCommand(program: Command): void {
             : spec.headers && typeof spec.headers === "object"
               ? (spec.headers as Record<string, string>)
               : undefined;
+        const injectHeaders =
+          typeof spec.injectHeadersFile === "string"
+            ? (JSON.parse(await readFile(resolve(dir, spec.injectHeadersFile), "utf8")) as Record<
+                string,
+                string
+              >)
+            : spec.injectHeaders && typeof spec.injectHeaders === "object"
+              ? (spec.injectHeaders as Record<string, string>)
+              : undefined;
         const result = await managedRoute("add", {
           sessionName,
           pattern: spec.pattern,
           abort: Boolean(spec.abort),
+          matchBody: typeof spec.matchBody === "string" ? spec.matchBody : undefined,
           body,
           status: spec.status !== undefined ? Number(spec.status) : undefined,
           contentType: typeof spec.contentType === "string" ? spec.contentType : undefined,
           headers,
+          injectHeaders,
           method: typeof spec.method === "string" ? spec.method : undefined,
         });
         loaded.push(result.data.route ?? { pattern: spec.pattern });

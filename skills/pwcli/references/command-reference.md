@@ -392,15 +392,21 @@
 
 - `--abort`
 - `--method <method>`
+- `--match-body <text>`
 - `--body <text>`
 - `--body-file <path>`
 - `--headers-file <path>`
+- `--inject-headers-file <path>`
 - `--status <code>`
 - `--content-type <type>`
 
 ### `pw route load <file> --session <name>`
 
 - 从 JSON 文件批量加载 route specs
+- spec 可包含：
+  - `matchBody`
+  - `injectHeaders`
+  - `injectHeadersFile`
 
 ### `pw route remove [pattern] --session <name>`
 

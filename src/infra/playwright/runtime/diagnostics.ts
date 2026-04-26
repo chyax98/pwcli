@@ -129,12 +129,22 @@ export async function managedRoute(
     status?: number;
     contentType?: string;
     headers?: Record<string, string>;
+    matchBody?: string;
+    injectHeaders?: Record<string, string>;
     method?: string;
     sessionName?: string;
   },
 ) {
   if (action === "add" && !options.pattern) {
     throw new Error("route add requires a pattern");
+  }
+  const hasFulfill =
+    options.body !== undefined ||
+    options.status !== undefined ||
+    options.contentType !== undefined ||
+    options.headers !== undefined;
+  if (action === "add" && options.injectHeaders && (options.abort || hasFulfill)) {
+    throw new Error("route add inject mode cannot be combined with abort or fulfill options");
   }
 
   const config = {
@@ -143,6 +153,8 @@ export async function managedRoute(
     status: options.status,
     contentType: options.contentType,
     headers: options.headers,
+    matchBody: options.matchBody,
+    injectHeaders: options.injectHeaders,
     method: options.method?.toUpperCase(),
   };
   const result = await managedRunCode({
@@ -167,15 +179,33 @@ export async function managedRoute(
       const pattern = ${JSON.stringify(options.pattern)};
       const config = ${JSON.stringify(config)};
       await context.route(pattern, async route => {
-        if (config.method && route.request().method().toUpperCase() !== config.method) {
+        const request = route.request();
+        if (config.method && request.method().toUpperCase() !== config.method) {
           await route.fallback();
+          return;
+        }
+        if (config.matchBody) {
+          const postData = request.postData();
+          if (typeof postData !== 'string' || !postData.includes(config.matchBody)) {
+            await route.fallback();
+            return;
+          }
+        }
+        if (config.injectHeaders) {
+          const requestHeaders = await request.allHeaders();
+          await route.continue({
+            headers: {
+              ...requestHeaders,
+              ...config.injectHeaders,
+            },
+          });
           return;
         }
         if (config.abort) {
           await route.abort();
           return;
         }
-        if (config.body !== undefined || config.status !== undefined || config.contentType !== undefined) {
+        if (config.body !== undefined || config.status !== undefined || config.contentType !== undefined || config.headers !== undefined) {
           const fulfillOptions = {
             status: config.status ?? 200,
             body: config.body ?? '',
@@ -191,7 +221,7 @@ export async function managedRoute(
       });
       const routeRecord = {
         pattern,
-        mode: config.abort ? 'abort' : (config.body !== undefined || config.status !== undefined || config.contentType !== undefined) ? 'fulfill' : 'continue',
+        mode: config.abort ? 'abort' : config.injectHeaders ? 'inject-continue' : (config.body !== undefined || config.status !== undefined || config.contentType !== undefined || config.headers !== undefined) ? 'fulfill' : 'continue',
         addedAt: new Date().toISOString(),
       };
       if (config.status !== undefined)
@@ -200,8 +230,12 @@ export async function managedRoute(
         routeRecord.contentType = config.contentType;
       if (config.method)
         routeRecord.method = config.method;
+      if (config.matchBody)
+        routeRecord.matchBody = config.matchBody;
       if (config.headers)
         routeRecord.headers = config.headers;
+      if (config.injectHeaders)
+        routeRecord.injectHeaders = config.injectHeaders;
       if (config.body !== undefined) {
         routeRecord.hasBody = true;
         routeRecord.bodyPreview = config.body.length > 120 ? config.body.slice(0, 120) + '...' : config.body;

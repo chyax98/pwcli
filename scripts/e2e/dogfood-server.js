@@ -668,6 +668,13 @@ async function handleApi(request, response, pathname, url, cookies) {
   }
 
   if (pathname === "/api/incidents/alpha/checkout-timeout/mock-target") {
+    const injectedMode = String(request.headers["x-pwcli-route-inject"] ?? "");
+    if (injectedMode) {
+      writeText(response, 206, `server-route-injected:${injectedMode}`, {
+        "x-pwcli-route": "server-injected",
+      });
+      return true;
+    }
     writeText(response, 207, `server-route-fallback:${url.searchParams.get("mode") ?? "server"}`, {
       "x-pwcli-route": "server-fallback",
     });

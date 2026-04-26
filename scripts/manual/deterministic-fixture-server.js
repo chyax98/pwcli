@@ -77,6 +77,18 @@ const server = createServer((request, response) => {
   }
 
   if (pathname === "/__pwcli__/diagnostics/route-hit") {
+    const injectedMode = String(request.headers["x-pwcli-route-mode"] ?? "");
+    if (injectedMode) {
+      writeText(
+        response,
+        206,
+        `server-route-injected:${url.searchParams.get("run") ?? "0"}:${injectedMode}`,
+        {
+          "x-pwcli-route": "server-injected",
+        },
+      );
+      return;
+    }
     writeText(response, 207, `server-route-fallback:${url.searchParams.get("run") ?? "0"}`, {
       "x-pwcli-route": "server-fallback",
     });
