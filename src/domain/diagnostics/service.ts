@@ -18,6 +18,14 @@ type SignalRecord = {
 };
 
 type RunEventRecord = Record<string, unknown>;
+type DiagnosticsExportSection =
+  | "all"
+  | "workspace"
+  | "console"
+  | "network"
+  | "errors"
+  | "routes"
+  | "bootstrap";
 
 function asObject(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" ? (value as Record<string, unknown>) : {};
@@ -54,6 +62,13 @@ function sortSignals(signals: SignalRecord[]) {
 
 function limitSignals(signals: SignalRecord[], limit: number) {
   return sortSignals(signals).slice(0, Math.max(1, limit));
+}
+
+function limitTail<T>(items: T[], limit: number | undefined) {
+  if (!limit || limit <= 0) {
+    return items;
+  }
+  return items.slice(-limit);
 }
 
 function toConsoleSignal(record: Record<string, unknown>): SignalRecord {
@@ -312,6 +327,97 @@ export async function listDiagnosticsRuns(options?: { limit?: number }) {
   });
   const limit = options?.limit ? Math.max(1, options.limit) : ordered.length;
   return ordered.slice(0, limit);
+}
+
+export async function managedDiagnosticsExportFiltered(options: {
+  sessionName?: string;
+  section?: DiagnosticsExportSection;
+  limit?: number;
+}) {
+  const exported = await managedDiagnosticsExport({ sessionName: options.sessionName });
+  const section = options.section ?? "all";
+  const limit = options.limit && options.limit > 0 ? options.limit : undefined;
+  const data = asObject(exported.data);
+
+  const filteredData =
+    section === "workspace"
+      ? {
+          session: data.session ?? null,
+          workspace: data.workspace ?? null,
+        }
+      : section === "console"
+        ? {
+            session: data.session ?? null,
+            console: limitTail(asArray(data.console), limit),
+          }
+        : section === "network"
+          ? {
+              session: data.session ?? null,
+              network: limitTail(asArray(data.network), limit),
+            }
+          : section === "errors"
+            ? {
+                session: data.session ?? null,
+                errors: limitTail(asArray(data.errors), limit),
+              }
+            : section === "routes"
+              ? {
+                  session: data.session ?? null,
+                  routes: limitTail(asArray(data.routes), limit),
+                }
+              : section === "bootstrap"
+                ? {
+                    session: data.session ?? null,
+                    bootstrap: data.bootstrap ?? null,
+                  }
+                : {
+                    session: data.session ?? null,
+                    workspace: data.workspace ?? null,
+                    console: limitTail(asArray(data.console), limit),
+                    network: limitTail(asArray(data.network), limit),
+                    errors: limitTail(asArray(data.errors), limit),
+                    routes: limitTail(asArray(data.routes), limit),
+                    bootstrap: data.bootstrap ?? null,
+                  };
+
+  return {
+    session: exported.session,
+    page: exported.page,
+    data: {
+      section,
+      limit: limit ?? null,
+      ...filteredData,
+    },
+  };
+}
+
+export async function readDiagnosticsRunView(options: {
+  runId: string;
+  command?: string;
+  text?: string;
+  limit?: number;
+}) {
+  const events = await readRunEvents(options.runId);
+  const command = options.command?.trim();
+  const text = options.text?.trim();
+  const filtered = events.filter((event) => {
+    if (command && asString(event.command) !== command) {
+      return false;
+    }
+    if (text && !JSON.stringify(event).includes(text)) {
+      return false;
+    }
+    return true;
+  });
+  const limited = options.limit && options.limit > 0 ? filtered.slice(-options.limit) : filtered;
+  return {
+    runId: options.runId,
+    command: command ?? null,
+    text: text ?? null,
+    count: limited.length,
+    total: filtered.length,
+    events: limited,
+  };
 }
 
 export {

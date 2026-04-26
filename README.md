@@ -32,6 +32,7 @@ pw snapshot --session bug-a
 pw click e6 --session bug-a
 pw wait networkIdle --session bug-a
 pw diagnostics digest --session bug-a
+pw diagnostics show --run <runId> --command click --limit 5
 pw diagnostics export --session bug-a --out ./diag.json
 ```
 

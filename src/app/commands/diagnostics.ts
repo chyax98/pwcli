@@ -4,8 +4,9 @@ import {
   listDiagnosticsRuns,
   managedDiagnosticsDigest,
   managedDiagnosticsExport,
+  managedDiagnosticsExportFiltered,
+  readDiagnosticsRunView,
 } from "../../domain/diagnostics/service.js";
-import { readRunEvents } from "../../infra/fs/run-artifacts.js";
 import { printCommandResult } from "../output.js";
 import {
   addSessionOption,
@@ -22,43 +23,85 @@ export function registerDiagnosticsCommand(program: Command): void {
     diagnostics
       .command("export")
       .description("Export current session diagnostics to a JSON file")
-      .requiredOption("--out <file>", "Output file"),
-  ).action(async (options: { session?: string; out?: string }, command: Command) => {
-    try {
-      const sessionName = requireSessionName(options, command);
-      const out = options.out;
-      if (!out) {
-        throw new Error("diagnostics export requires --out <file>");
+      .requiredOption("--out <file>", "Output file")
+      .option(
+        "--section <section>",
+        "Export one section: all|workspace|console|network|errors|routes|bootstrap",
+      )
+      .option("--limit <n>", "Limit array-like sections to the last N items"),
+  ).action(
+    async (
+      options: {
+        session?: string;
+        out?: string;
+        section?: string;
+        limit?: string;
+      },
+      command: Command,
+    ) => {
+      try {
+        const sessionName = requireSessionName(options, command);
+        const out = options.out;
+        if (!out) {
+          throw new Error("diagnostics export requires --out <file>");
+        }
+        const section = options.section?.trim() as
+          | "all"
+          | "workspace"
+          | "console"
+          | "network"
+          | "errors"
+          | "routes"
+          | "bootstrap"
+          | undefined;
+        const limit = options.limit ? Number(options.limit) : undefined;
+        if (limit !== undefined && (!Number.isFinite(limit) || limit <= 0)) {
+          throw new Error("diagnostics export requires a positive integer for --limit");
+        }
+        const result =
+          section || limit
+            ? await managedDiagnosticsExportFiltered({
+                sessionName,
+                section,
+                limit,
+              })
+            : await managedDiagnosticsExport({ sessionName });
+        await writeFile(out, JSON.stringify(result.data, null, 2), "utf8");
+        printCommandResult("diagnostics export", {
+          session: result.session,
+          page: result.page,
+          data: {
+            exported: true,
+            out,
+            ...(section ? { section } : {}),
+            ...(limit ? { limit } : {}),
+          },
+        });
+      } catch (error) {
+        printSessionAwareCommandError("diagnostics export", error, {
+          code: "DIAGNOSTICS_EXPORT_FAILED",
+          message: "diagnostics export failed",
+          suggestions: [
+            "Run `pw session create <name> --open <url>` first",
+            "Pass `--out <file>` to save exported diagnostics",
+          ],
+        });
+        process.exitCode = 1;
       }
-      const result = await managedDiagnosticsExport({ sessionName });
-      await writeFile(out, JSON.stringify(result.data, null, 2), "utf8");
-      printCommandResult("diagnostics export", {
-        session: result.session,
-        page: result.page,
-        data: {
-          exported: true,
-          out,
-        },
-      });
-    } catch (error) {
-      printSessionAwareCommandError("diagnostics export", error, {
-        code: "DIAGNOSTICS_EXPORT_FAILED",
-        message: "diagnostics export failed",
-        suggestions: [
-          "Run `pw session create <name> --open <url>` first",
-          "Pass `--out <file>` to save exported diagnostics",
-        ],
-      });
-      process.exitCode = 1;
-    }
-  });
+    },
+  );
 
   diagnostics
     .command("runs")
     .description("List known run ids")
-    .action(async () => {
+    .option("--limit <n>", "Limit returned runs")
+    .action(async (options: { limit?: string }) => {
       try {
-        const runs = await listDiagnosticsRuns();
+        const limit = options.limit ? Number(options.limit) : undefined;
+        if (limit !== undefined && (!Number.isFinite(limit) || limit <= 0)) {
+          throw new Error("diagnostics runs requires a positive integer for --limit");
+        }
+        const runs = await listDiagnosticsRuns({ limit });
         printCommandResult("diagnostics runs", {
           data: {
             count: runs.length,
@@ -131,19 +174,25 @@ export function registerDiagnosticsCommand(program: Command): void {
     .command("show")
     .description("Show all events for one run")
     .requiredOption("--run <runId>", "Run id")
-    .action(async (options: { run?: string }) => {
+    .option("--command <name>", "Filter run events by command name")
+    .option("--limit <n>", "Limit returned events")
+    .action(async (options: { run?: string; command?: string; limit?: string }) => {
       try {
         const runId = options.run;
         if (!runId) {
           throw new Error("diagnostics show requires --run <runId>");
         }
-        const events = await readRunEvents(runId);
+        const limit = options.limit ? Number(options.limit) : undefined;
+        if (limit !== undefined && (!Number.isFinite(limit) || limit <= 0)) {
+          throw new Error("diagnostics show requires a positive integer for --limit");
+        }
+        const data = await readDiagnosticsRunView({
+          runId,
+          command: options.command,
+          limit,
+        });
         printCommandResult("diagnostics show", {
-          data: {
-            runId,
-            count: events.length,
-            events,
-          },
+          data,
         });
       } catch (error) {
         printSessionAwareCommandError("diagnostics show", error, {
@@ -160,22 +209,27 @@ export function registerDiagnosticsCommand(program: Command): void {
     .description("Filter run events by substring")
     .requiredOption("--run <runId>", "Run id")
     .requiredOption("--text <substring>", "Substring to match")
-    .action(async (options: { run?: string; text?: string }) => {
+    .option("--command <name>", "Filter run events by command name")
+    .option("--limit <n>", "Limit returned events")
+    .action(async (options: { run?: string; text?: string; command?: string; limit?: string }) => {
       try {
         const runId = options.run;
         const text = options.text;
         if (!runId || !text) {
           throw new Error("diagnostics grep requires --run <runId> and --text <substring>");
         }
-        const events = await readRunEvents(runId);
-        const matches = events.filter((event) => JSON.stringify(event).includes(text));
+        const limit = options.limit ? Number(options.limit) : undefined;
+        if (limit !== undefined && (!Number.isFinite(limit) || limit <= 0)) {
+          throw new Error("diagnostics grep requires a positive integer for --limit");
+        }
+        const data = await readDiagnosticsRunView({
+          runId,
+          text,
+          command: options.command,
+          limit,
+        });
         printCommandResult("diagnostics grep", {
-          data: {
-            runId,
-            text,
-            count: matches.length,
-            events: matches,
-          },
+          data,
         });
       } catch (error) {
         printSessionAwareCommandError("diagnostics grep", error, {

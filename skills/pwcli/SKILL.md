@@ -115,9 +115,9 @@ pw diagnostics digest --session bug-a
 pw console --session bug-a ...
 pw network --session bug-a ...
 pw errors recent --session bug-a ...
+pw diagnostics show --run <runId> --command click --limit 5
 pw diagnostics export --session bug-a --out ./diag.json
 pw diagnostics runs
-pw diagnostics show --run <runId>
 pw diagnostics grep --run <runId> --text <substring>
 ```
 

@@ -292,10 +292,15 @@
 ### `pw diagnostics export --session <name> --out <file>`
 
 - 导出当前 session 的 workspace / console / network / errors / routes / bootstrap
+- 可选：
+  - `--section all|workspace|console|network|errors|routes|bootstrap`
+  - `--limit <n>`
 
 ### `pw diagnostics runs`
 
 - 列出 `.pwcli/runs/` 下的 run 摘要
+- 可选：
+  - `--limit <n>`
 - 返回：
   - `runId`
   - `sessionName`
@@ -321,11 +326,17 @@
 
 ### `pw diagnostics show --run <runId>`
 
-- 打印一个 run 的全部 `events.jsonl` 事件
+- 打印一个 run 的事件
+- 可选：
+  - `--command <name>`
+  - `--limit <n>`
 
 ### `pw diagnostics grep --run <runId> --text <substring>`
 
 - 按子串过滤 run 事件
+- 可选：
+  - `--command <name>`
+  - `--limit <n>`
 
 ### `pw route list --session <name>`
 

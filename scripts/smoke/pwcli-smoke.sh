@@ -196,6 +196,16 @@ digest_run_json="$(run_json diagnostics-digest-run diagnostics digest --run "$RU
 assert_json "$digest_run_json" "diagnostics digest run exposes recent step summary" \
   "data.ok === true && data.data.source === 'run' && data.data.runId === '${RUN_ID}' && data.data.commandCount >= 1 && Array.isArray(data.data.recentSteps)"
 
+log "diagnostics show filtered"
+show_run_json="$(run_json diagnostics-show-run diagnostics show --run "$RUN_ID" --command click --limit 5)"
+assert_json "$show_run_json" "diagnostics show filters by command" \
+  "data.ok === true && data.data.runId === '${RUN_ID}' && data.data.count >= 1 && data.data.events.every(item => item.command === 'click')"
+
+log "diagnostics grep filtered"
+grep_run_json="$(run_json diagnostics-grep-run diagnostics grep --run "$RUN_ID" --text fixture-route-hit-run-1 --command click --limit 5)"
+assert_json "$grep_run_json" "diagnostics grep filters by command and text" \
+  "data.ok === true && data.data.runId === '${RUN_ID}' && data.data.count >= 1 && data.data.events.every(item => item.command === 'click')"
+
 log "doctor"
 doctor_json="$(run_json doctor doctor --session "$SESSION_NAME" --endpoint "$BLANK_URL")"
 assert_json "$doctor_json" "doctor sees session and endpoint healthy" \
