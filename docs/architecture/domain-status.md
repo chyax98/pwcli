@@ -185,7 +185,7 @@
 
 - `skills/pwcli/` 是唯一使用教程真相
 - `docs/architecture/` 只维护设计与现状
-- `.claude/archive/` 保留历史草案
+- `.claude/` 只做本地过程归档，不进入 git
 
 ### 当前限制
 

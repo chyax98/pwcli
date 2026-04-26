@@ -6,4 +6,5 @@ dist
 .pwcli
 .tmp*
 .codex
+.claude/
 docs/superpowers/

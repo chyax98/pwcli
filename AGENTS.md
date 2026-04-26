@@ -8,16 +8,17 @@
 2. 使用真相：`skills/pwcli/`
 3. 架构真相：`docs/architecture/`
 
-历史 planning、草案、迁移记录都在 `.claude/archive/`，不再回写 active contract。
+过程 planning、草案、survey、迁移记录都放 `.claude/` 本地归档，不再进入 git，也不再回写 active contract。
 
 ## 工作顺序
 
 ```text
 1. 读 skills/pwcli/ 和 docs/architecture/
-2. 改代码
-3. 同步 skill
-4. 同步 architecture docs（如果边界、限制、扩展方向有变化）
-5. 跑 typecheck/build/smoke
+2. 读 `docs/architecture/documentation-governance.md`
+3. 改代码
+4. 同步 skill
+5. 同步 architecture docs（如果边界、限制、扩展方向有变化）
+6. 跑 typecheck/build/smoke
 ```
 
 ## 结构
