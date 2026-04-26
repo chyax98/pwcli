@@ -144,6 +144,11 @@ export function registerRouteCommand(program: Command): void {
         loaded.push(result.data.route ?? { pattern: spec.pattern });
       }
       printCommandResult("route load", {
+        session: {
+          scope: "managed",
+          name: sessionName,
+          default: sessionName === "default",
+        },
         data: {
           loadedCount: loaded.length,
           routes: loaded,

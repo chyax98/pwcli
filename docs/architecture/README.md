@@ -69,6 +69,8 @@ session attach -> state/profile/auth/plugin -> continue
 - 领域现状：[domain-status.md](/Users/xd/work/tools/pwcli/docs/architecture/domain-status.md)
 - 决策 1：[adr-001-agent-first-command-and-lifecycle.md](/Users/xd/work/tools/pwcli/docs/architecture/adr-001-agent-first-command-and-lifecycle.md)
 - 决策 2：[adr-002-diagnostics-mock-environment.md](/Users/xd/work/tools/pwcli/docs/architecture/adr-002-diagnostics-mock-environment.md)
+- E2E 计划：[e2e-dogfood-test-plan.md](/Users/xd/work/tools/pwcli/docs/architecture/e2e-dogfood-test-plan.md)
+- E2E 体验报告：[e2e-dogfood-experience-report.md](/Users/xd/work/tools/pwcli/docs/architecture/e2e-dogfood-experience-report.md)
 
 ## 明确边界
 

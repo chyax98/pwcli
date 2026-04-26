@@ -48,6 +48,13 @@ pw doctor --session bug-a
 pw session recreate bug-a
 ```
 
+4. If recreate lands on a login page or drops auth state:
+
+```bash
+pw state load ./auth.json --session bug-a
+pw open --session bug-a 'https://example.com/deep/path'
+```
+
 Do not keep stacking commands on a blocked session.
 
 ## Environment limitations

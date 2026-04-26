@@ -85,6 +85,7 @@ docs/
 pnpm typecheck
 pnpm build
 pnpm smoke
+pnpm test:dogfood:e2e
 ```
 
 ## 已知限制
@@ -102,3 +103,5 @@ pnpm smoke
 - 工作流：[skills/pwcli/references/workflows.md](/Users/xd/work/tools/pwcli/skills/pwcli/references/workflows.md)
 - 恢复策略：[skills/pwcli/references/failure-recovery.md](/Users/xd/work/tools/pwcli/skills/pwcli/references/failure-recovery.md)
 - 架构总览：[docs/architecture/README.md](/Users/xd/work/tools/pwcli/docs/architecture/README.md)
+- E2E 计划：[docs/architecture/e2e-dogfood-test-plan.md](/Users/xd/work/tools/pwcli/docs/architecture/e2e-dogfood-test-plan.md)
+- E2E 体验报告：[docs/architecture/e2e-dogfood-experience-report.md](/Users/xd/work/tools/pwcli/docs/architecture/e2e-dogfood-experience-report.md)

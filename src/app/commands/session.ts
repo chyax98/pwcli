@@ -2,7 +2,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Command } from "commander";
-import { managedStateLoad } from "../../domain/identity-state/service.js";
+import { managedStateLoad, managedStateSave } from "../../domain/identity-state/service.js";
 import { sessionRoutingError } from "../../domain/session/routing.js";
 import {
   applySessionDefaults,
@@ -289,14 +289,7 @@ export function registerSessionCommand(program: Command): void {
           const statePath = join(tempDir, "state.json");
           let stateSaved = false;
           try {
-            await runManagedSessionCommand(
-              {
-                _: ["state-save", statePath],
-              },
-              {
-                sessionName: name,
-              },
-            );
+            await managedStateSave(statePath, { sessionName: name });
             stateSaved = true;
           } catch {}
 

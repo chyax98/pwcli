@@ -1,56 +1,63 @@
-import { runManagedSessionCommand } from "../cli-client.js";
-import { parsePageSummary } from "../output-parsers.js";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname, resolve } from "node:path";
 import { managedRunCode } from "./code.js";
 import { maybeRawOutput } from "./shared.js";
 
+function defaultStatePath(sessionName?: string) {
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const suffix = sessionName ? `-${sessionName}` : "";
+  return resolve(".pwcli", "state", `storage-state-${stamp}${suffix}.json`);
+}
+
 export async function managedStateSave(file?: string, options?: { sessionName?: string }) {
-  const args = ["state-save"];
-  if (file) {
-    args.push(file);
-  }
-  const result = await runManagedSessionCommand(
-    {
-      _: args,
-    },
-    {
-      sessionName: options?.sessionName,
-    },
-  );
+  const path = resolve(file ?? defaultStatePath(options?.sessionName));
+  const result = await managedRunCode({
+    sessionName: options?.sessionName,
+    source: `async page => {
+      const state = await page.context().storageState();
+      return state;
+    }`,
+  });
+  const state = result.data.result;
+  await mkdir(dirname(path), { recursive: true });
+  await writeFile(path, JSON.stringify(state, null, 2), "utf8");
+
   return {
-    session: {
-      scope: "managed",
-      name: result.sessionName,
-      default: result.sessionName === "default",
-    },
-    page: parsePageSummary(result.text),
+    session: result.session,
+    page: result.page,
     data: {
-      path: file,
+      path,
       saved: true,
-      ...maybeRawOutput(result.text),
+      ...maybeRawOutput(result.rawText ?? ""),
     },
   };
 }
 
 export async function managedStateLoad(file: string, options?: { sessionName?: string }) {
-  const result = await runManagedSessionCommand(
-    {
-      _: ["state-load", file],
-    },
-    {
-      sessionName: options?.sessionName,
-    },
-  );
+  const path = resolve(file);
+  const state = JSON.parse(await readFile(path, "utf8")) as unknown;
+  const result = await managedRunCode({
+    sessionName: options?.sessionName,
+    source: `async page => {
+      await page.context().setStorageState(${JSON.stringify(state)});
+      const cookies = await page.context().cookies();
+      return {
+        loaded: true,
+        cookieCount: cookies.length,
+      };
+    }`,
+  });
+  const parsed =
+    typeof result.data.result === "object" && result.data.result ? result.data.result : {};
+
   return {
-    session: {
-      scope: "managed",
-      name: result.sessionName,
-      default: result.sessionName === "default",
-    },
-    page: parsePageSummary(result.text),
+    session: result.session,
+    page: result.page,
     data: {
-      path: file,
+      path,
       loaded: true,
-      ...maybeRawOutput(result.text),
+      ...(parsed.cookieCount !== undefined ? { cookieCount: Number(parsed.cookieCount) } : {}),
+      ...maybeRawOutput(result.rawText ?? ""),
     },
   };
 }

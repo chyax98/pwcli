@@ -11,11 +11,12 @@ Use `pw`. Do not bypass the CLI and do not reconstruct browser workflows from me
 
 1. Start from a named session.
 2. Keep one task on one session.
-3. Read before acting.
-4. Prefer structured commands over ad hoc code.
-5. Use `pw code` only when the command surface is genuinely insufficient.
-6. Treat CLI output as the source of truth.
-7. Stop claiming support when the CLI returns a limitation code.
+3. Run dependent browser steps serially.
+4. Read before acting.
+5. Prefer structured commands over ad hoc code.
+6. Use `pw code` only when the command surface is genuinely insufficient.
+7. Treat CLI output as the source of truth.
+8. Stop claiming support when the CLI returns a limitation code.
 
 ## Session Discipline
 
@@ -151,6 +152,17 @@ Use `pw code` when:
 - you need to verify a hypothesis before proposing a new command
 
 Do not use `pw code` for work already covered by first-class commands.
+
+## Serial Discipline
+
+- Inside one session, commands that depend on the previous page state must run in order.
+- Do not parallelize:
+  - `session create` -> `fill` / `click`
+  - `click` navigation -> `read-text` / `page current`
+  - `route add/load` -> target action
+  - `environment` mutation -> page verification
+
+If the next command depends on a changed page state, wait for the previous command to finish and then continue.
 
 ## Batch Rules
 

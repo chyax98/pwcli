@@ -8,7 +8,8 @@
       "!!**/.playwright-cli",
       "!!**/.pwcli",
       "!!**/scripts/manual/bootstrap-verify.js",
-      "!!**/scripts/manual/diagnostics-fixture.js"
+      "!!**/scripts/manual/diagnostics-fixture.js",
+      "!!**/scripts/e2e/dogfood-bootstrap.js"
     ]
   },
   "formatter": {
