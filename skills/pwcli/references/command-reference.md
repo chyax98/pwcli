@@ -285,6 +285,7 @@
 
 - `--level info|warning|error`
 - `--text <text>`
+- `--since <iso>`
 - `--limit <n>`
 
 ### `pw network --session <name>`
@@ -298,6 +299,7 @@
 - `--status <code>`
 - `--resource-type <type>`
 - `--text <text>`
+- `--since <iso>`
 - `--limit <n>`
 
 ### `pw errors recent --session <name>`
@@ -305,6 +307,7 @@
 - 查看当前页错误记录
 - 支持：
   - `--text <substring>`
+  - `--since <iso>`
   - `--limit <n>`
 
 ### `pw errors clear --session <name>`
@@ -317,6 +320,8 @@
 - 可选：
   - `--section all|workspace|console|network|errors|routes|bootstrap`
   - `--limit <n>`
+  - `--since <iso>`
+  - `--fields <list>`
 
 ### `pw diagnostics runs`
 
@@ -351,6 +356,8 @@
 - 打印一个 run 的事件
 - 可选：
   - `--command <name>`
+  - `--since <iso>`
+  - `--fields <list>`
   - `--limit <n>`
 
 ### `pw diagnostics grep --run <runId> --text <substring>`
@@ -358,6 +365,8 @@
 - 按子串过滤 run 事件
 - 可选：
   - `--command <name>`
+  - `--since <iso>`
+  - `--fields <list>`
   - `--limit <n>`
 
 ### `pw route list --session <name>`

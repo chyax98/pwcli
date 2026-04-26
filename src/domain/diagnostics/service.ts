@@ -45,6 +45,84 @@ function asNumber(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
+function normalizeSince(since?: string) {
+  const value = since?.trim();
+  if (!value) {
+    return null;
+  }
+  const time = Date.parse(value);
+  if (Number.isNaN(time)) {
+    throw new Error(`INVALID_SINCE:${value}`);
+  }
+  return { raw: value, time };
+}
+
+function timestampAtOrAfter(value: unknown, since?: { raw: string; time: number } | null) {
+  if (!since) {
+    return true;
+  }
+  const timestamp = asString(value);
+  if (!timestamp) {
+    return false;
+  }
+  const time = Date.parse(timestamp);
+  return !Number.isNaN(time) && time >= since.time;
+}
+
+function normalizeFieldList(fields?: string) {
+  const value = fields?.trim();
+  if (!value) {
+    return [];
+  }
+  return value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function pickFieldPath(record: Record<string, unknown>, path: string) {
+  const parts = path.split(".").filter(Boolean);
+  let current: unknown = record;
+  for (const part of parts) {
+    if (!current || typeof current !== "object" || !(part in current)) {
+      return undefined;
+    }
+    current = (current as Record<string, unknown>)[part];
+  }
+  return current;
+}
+
+function setFieldPath(target: Record<string, unknown>, path: string, value: unknown) {
+  const parts = path.split(".").filter(Boolean);
+  if (parts.length === 0) {
+    return;
+  }
+  let current = target;
+  for (let index = 0; index < parts.length - 1; index += 1) {
+    const part = parts[index];
+    const next = current[part];
+    if (!next || typeof next !== "object" || Array.isArray(next)) {
+      current[part] = {};
+    }
+    current = current[part] as Record<string, unknown>;
+  }
+  current[parts.at(-1) as string] = value;
+}
+
+function projectRecord(record: Record<string, unknown>, fields: string[]) {
+  if (fields.length === 0) {
+    return record;
+  }
+  const projected: Record<string, unknown> = {};
+  for (const field of fields) {
+    const value = pickFieldPath(record, field);
+    if (value !== undefined) {
+      setFieldPath(projected, field, value);
+    }
+  }
+  return projected;
+}
+
 function sortSignals(signals: SignalRecord[]) {
   return [...signals].sort((left, right) => {
     if (!left.timestamp && !right.timestamp) {
@@ -333,11 +411,25 @@ export async function managedDiagnosticsExportFiltered(options: {
   sessionName?: string;
   section?: DiagnosticsExportSection;
   limit?: number;
+  fields?: string;
+  since?: string;
 }) {
   const exported = await managedDiagnosticsExport({ sessionName: options.sessionName });
   const section = options.section ?? "all";
   const limit = options.limit && options.limit > 0 ? options.limit : undefined;
+  const since = normalizeSince(options.since);
+  const fields = normalizeFieldList(options.fields);
   const data = asObject(exported.data);
+  const projectArray = (value: unknown, timestampField?: string) =>
+    limitTail(
+      asArray(value)
+        .filter(
+          (item) =>
+            !timestampField || timestampAtOrAfter(pickFieldPath(item, timestampField), since),
+        )
+        .map((item) => projectRecord(item, fields)),
+      limit,
+    );
 
   const filteredData =
     section === "workspace"
@@ -348,22 +440,22 @@ export async function managedDiagnosticsExportFiltered(options: {
       : section === "console"
         ? {
             session: data.session ?? null,
-            console: limitTail(asArray(data.console), limit),
+            console: projectArray(data.console, "timestamp"),
           }
         : section === "network"
           ? {
               session: data.session ?? null,
-              network: limitTail(asArray(data.network), limit),
+              network: projectArray(data.network, "timestamp"),
             }
           : section === "errors"
             ? {
                 session: data.session ?? null,
-                errors: limitTail(asArray(data.errors), limit),
+                errors: projectArray(data.errors, "timestamp"),
               }
             : section === "routes"
               ? {
                   session: data.session ?? null,
-                  routes: limitTail(asArray(data.routes), limit),
+                  routes: projectArray(data.routes, "addedAt"),
                 }
               : section === "bootstrap"
                 ? {
@@ -373,10 +465,10 @@ export async function managedDiagnosticsExportFiltered(options: {
                 : {
                     session: data.session ?? null,
                     workspace: data.workspace ?? null,
-                    console: limitTail(asArray(data.console), limit),
-                    network: limitTail(asArray(data.network), limit),
-                    errors: limitTail(asArray(data.errors), limit),
-                    routes: limitTail(asArray(data.routes), limit),
+                    console: projectArray(data.console, "timestamp"),
+                    network: projectArray(data.network, "timestamp"),
+                    errors: projectArray(data.errors, "timestamp"),
+                    routes: projectArray(data.routes, "addedAt"),
                     bootstrap: data.bootstrap ?? null,
                   };
 
@@ -386,6 +478,8 @@ export async function managedDiagnosticsExportFiltered(options: {
     data: {
       section,
       limit: limit ?? null,
+      since: since?.raw ?? null,
+      fields: fields.length > 0 ? fields : null,
       ...filteredData,
     },
   };
@@ -396,12 +490,19 @@ export async function readDiagnosticsRunView(options: {
   command?: string;
   text?: string;
   limit?: number;
+  since?: string;
+  fields?: string;
 }) {
   const events = await readRunEvents(options.runId);
   const command = options.command?.trim();
   const text = options.text?.trim();
+  const since = normalizeSince(options.since);
+  const fields = normalizeFieldList(options.fields);
   const filtered = events.filter((event) => {
     if (command && asString(event.command) !== command) {
+      return false;
+    }
+    if (!timestampAtOrAfter(event.ts ?? event.timestamp, since)) {
       return false;
     }
     if (text && !JSON.stringify(event).includes(text)) {
@@ -414,9 +515,11 @@ export async function readDiagnosticsRunView(options: {
     runId: options.runId,
     command: command ?? null,
     text: text ?? null,
+    since: since?.raw ?? null,
+    fields: fields.length > 0 ? fields : null,
     count: limited.length,
     total: filtered.length,
-    events: limited,
+    events: fields.length > 0 ? limited.map((event) => projectRecord(event, fields)) : limited,
   };
 }
 

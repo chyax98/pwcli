@@ -19,6 +19,7 @@ export function registerNetworkCommand(program: Command): void {
       .option("--status <code>", "Filter by HTTP status")
       .option("--resource-type <type>", "Filter by Playwright resource type")
       .option("--text <text>", "Filter by URL or failure text")
+      .option("--since <iso>", "Keep only records at or after the given ISO timestamp")
       .option("--limit <n>", "Limit result sample size"),
   ).action(
     async (options: {
@@ -30,6 +31,7 @@ export function registerNetworkCommand(program: Command): void {
       status?: string;
       resourceType?: string;
       text?: string;
+      since?: string;
       limit?: string;
     }) => {
       try {
@@ -45,6 +47,7 @@ export function registerNetworkCommand(program: Command): void {
             status: options.status,
             resourceType: options.resourceType,
             text: options.text,
+            since: options.since,
             limit: options.limit ? Number(options.limit) : undefined,
           }),
         );

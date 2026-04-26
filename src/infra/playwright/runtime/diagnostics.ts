@@ -52,7 +52,7 @@ export async function managedTrace(action: "start" | "stop", options?: { session
 
 export async function managedErrors(
   action: "recent" | "clear",
-  options?: { sessionName?: string; text?: string; limit?: number },
+  options?: { sessionName?: string; text?: string; limit?: number; since?: string },
 ) {
   await managedEnsureDiagnosticsHooks({ sessionName: options?.sessionName });
   const result = await managedRunCode({
@@ -75,13 +75,22 @@ export async function managedErrors(
         });
       }
       const textFilter = ${JSON.stringify(options?.text ?? "")};
+      const sinceFilter = ${JSON.stringify(options?.since ?? "")};
+      const sinceTime = sinceFilter ? Date.parse(sinceFilter) : NaN;
       const limit = ${JSON.stringify(options?.limit ?? 20)};
       const visible = allErrors.slice(clearedCount).map((error, index) => ({
         index: clearedCount + index + 1,
         ...error,
       }));
       const errors = visible
-        .filter(error => !textFilter || String(error.text || '').includes(textFilter))
+        .filter(error => {
+          if (!Number.isNaN(sinceTime)) {
+            const recordTime = Date.parse(String(error.timestamp || ''));
+            if (Number.isNaN(recordTime) || recordTime < sinceTime)
+              return false;
+          }
+          return !textFilter || String(error.text || '').includes(textFilter);
+        })
         .slice(-Math.max(0, Number(limit || 0) || 20));
       return JSON.stringify({
         action: 'recent',
@@ -104,6 +113,7 @@ export async function managedErrors(
         total: Number(parsed.totalErrors ?? 0),
         visible: Number(parsed.visibleCount ?? 0),
         clearedCount: Number(parsed.clearedCount ?? 0),
+        matched: Array.isArray(parsed.errors) ? parsed.errors.length : 0,
       },
       errors: Array.isArray(parsed.errors) ? parsed.errors : [],
     },
@@ -370,7 +380,7 @@ export async function managedObserveStatus(options?: { sessionName?: string }) {
 
 export async function managedConsole(
   level?: string,
-  options?: { sessionName?: string; text?: string; limit?: number },
+  options?: { sessionName?: string; text?: string; limit?: number; since?: string },
 ) {
   await managedEnsureDiagnosticsHooks({ sessionName: options?.sessionName });
   const result = await managedRunCode({
@@ -383,10 +393,17 @@ export async function managedConsole(
       const threshold = ${JSON.stringify(level ?? "info")};
       const thresholdRank = order[threshold] ?? 1;
       const textFilter = ${JSON.stringify(options?.text ?? "")};
+      const sinceFilter = ${JSON.stringify(options?.since ?? "")};
+      const sinceTime = sinceFilter ? Date.parse(sinceFilter) : NaN;
       const limit = ${JSON.stringify(options?.limit ?? 20)};
       const filtered = records.filter(record => {
         if ((order[record.level] ?? 1) < thresholdRank)
           return false;
+        if (!Number.isNaN(sinceTime)) {
+          const recordTime = Date.parse(String(record.timestamp || ''));
+          if (Number.isNaN(recordTime) || recordTime < sinceTime)
+            return false;
+        }
         if (textFilter && !String(record.text || '').includes(textFilter))
           return false;
         return true;
@@ -421,6 +438,7 @@ export async function managedNetwork(options?: {
   url?: string;
   kind?: "request" | "response" | "requestfailed";
   limit?: number;
+  since?: string;
 }) {
   await managedEnsureDiagnosticsHooks({ sessionName: options?.sessionName });
   const result = await managedRunCode({
@@ -436,10 +454,17 @@ export async function managedNetwork(options?: {
       const textFilter = ${JSON.stringify(options?.text ?? "")};
       const urlFilter = ${JSON.stringify(options?.url ?? "")};
       const kindFilter = ${JSON.stringify(options?.kind ?? "")};
+      const sinceFilter = ${JSON.stringify(options?.since ?? "")};
+      const sinceTime = sinceFilter ? Date.parse(sinceFilter) : NaN;
       const limit = ${JSON.stringify(options?.limit ?? 20)};
       const filtered = records.filter(record => {
         if (requestId && record.requestId !== requestId)
           return false;
+        if (!Number.isNaN(sinceTime)) {
+          const recordTime = Date.parse(String(record.timestamp || ''));
+          if (Number.isNaN(recordTime) || recordTime < sinceTime)
+            return false;
+        }
         if (kindFilter && String(record.event || record.kind || '') !== kindFilter)
           return false;
         if (methodFilter && String(record.method || '').toUpperCase() !== methodFilter)

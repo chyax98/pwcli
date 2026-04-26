@@ -134,6 +134,8 @@ Treat:
 - `console/network/errors` as live-session query tools
 - `diagnostics show/grep` as run-scoped replay tools
 - `--verbose` on `observe status` or `doctor` as escalation only
+- `--since` on `console/network/errors/show/grep/export` when you need time-bounded triage
+- `--fields` on `diagnostics show/grep/export` when another agent only needs a narrow projection
 
 If a session is blocked by a dialog, try:
 

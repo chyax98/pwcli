@@ -168,16 +168,25 @@ log "console delta"
 console_json="$(run_json console console --session "$SESSION_NAME" --text fixture-route-hit-run-1)"
 assert_json "$console_json" "console captured route hit log" \
   "data.ok === true && data.data.summary.total >= 1 && data.data.summary.sample[0].text.includes('fixture-route-hit-run-1')"
+console_since_zero_json="$(run_json console-since-zero console --session "$SESSION_NAME" --since 2099-01-01T00:00:00.000Z)"
+assert_json "$console_since_zero_json" "console since filter can exclude all rows" \
+  "data.ok === true && data.data.summary.total === 0"
 
 log "network delta"
 network_json="$(run_json network network --session "$SESSION_NAME" --resource-type xhr)"
 assert_json "$network_json" "network captured xhr" \
   "data.ok === true && data.data.summary.total >= 2 && data.data.summary.sample.some(item => item.kind === 'response' && item.status === 201)"
+network_since_zero_json="$(run_json network-since-zero network --session "$SESSION_NAME" --since 2099-01-01T00:00:00.000Z)"
+assert_json "$network_since_zero_json" "network since filter can exclude all rows" \
+  "data.ok === true && data.data.summary.total === 0"
 
 log "page errors"
 errors_json="$(run_json errors errors recent --session "$SESSION_NAME")"
 assert_json "$errors_json" "page errors captured fixture throw" \
   "data.ok === true && data.data.summary.visible >= 1 && data.data.errors[0].text.includes('fixture-page-error-run-1')"
+errors_since_zero_json="$(run_json errors-since-zero errors recent --session "$SESSION_NAME" --since 2099-01-01T00:00:00.000Z)"
+assert_json "$errors_since_zero_json" "errors since filter can exclude all rows" \
+  "data.ok === true && data.data.summary.matched === 0 && data.data.errors.length === 0"
 
 RUN_ID="$(json_field "$click_json" "data.data.run.runId")"
 
@@ -200,6 +209,9 @@ log "diagnostics show filtered"
 show_run_json="$(run_json diagnostics-show-run diagnostics show --run "$RUN_ID" --command click --limit 5)"
 assert_json "$show_run_json" "diagnostics show filters by command" \
   "data.ok === true && data.data.runId === '${RUN_ID}' && data.data.count >= 1 && data.data.events.every(item => item.command === 'click')"
+show_run_fields_json="$(run_json diagnostics-show-fields diagnostics show --run "$RUN_ID" --command click --limit 1 --fields ts,command,diagnosticsDelta.consoleDelta)"
+assert_json "$show_run_fields_json" "diagnostics show can project event fields" \
+  "data.ok === true && data.data.events.length === 1 && data.data.events[0].command === 'click' && data.data.events[0].diagnosticsDelta && data.data.events[0].pageId === undefined"
 
 log "diagnostics grep filtered"
 grep_run_json="$(run_json diagnostics-grep-run diagnostics grep --run "$RUN_ID" --text fixture-route-hit-run-1 --command click --limit 5)"

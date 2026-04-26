@@ -28,7 +28,9 @@ export function registerDiagnosticsCommand(program: Command): void {
         "--section <section>",
         "Export one section: all|workspace|console|network|errors|routes|bootstrap",
       )
-      .option("--limit <n>", "Limit array-like sections to the last N items"),
+      .option("--limit <n>", "Limit array-like sections to the last N items")
+      .option("--since <iso>", "Keep only records at or after the given ISO timestamp")
+      .option("--fields <list>", "Comma-separated field paths for record-array projection"),
   ).action(
     async (
       options: {
@@ -36,6 +38,8 @@ export function registerDiagnosticsCommand(program: Command): void {
         out?: string;
         section?: string;
         limit?: string;
+        since?: string;
+        fields?: string;
       },
       command: Command,
     ) => {
@@ -64,6 +68,8 @@ export function registerDiagnosticsCommand(program: Command): void {
                 sessionName,
                 section,
                 limit,
+                since: options.since,
+                fields: options.fields,
               })
             : await managedDiagnosticsExport({ sessionName });
         await writeFile(out, JSON.stringify(result.data, null, 2), "utf8");
@@ -75,6 +81,8 @@ export function registerDiagnosticsCommand(program: Command): void {
             out,
             ...(section ? { section } : {}),
             ...(limit ? { limit } : {}),
+            ...(options.since ? { since: options.since } : {}),
+            ...(options.fields ? { fields: options.fields } : {}),
           },
         });
       } catch (error) {
@@ -176,33 +184,45 @@ export function registerDiagnosticsCommand(program: Command): void {
     .requiredOption("--run <runId>", "Run id")
     .option("--command <name>", "Filter run events by command name")
     .option("--limit <n>", "Limit returned events")
-    .action(async (options: { run?: string; command?: string; limit?: string }) => {
-      try {
-        const runId = options.run;
-        if (!runId) {
-          throw new Error("diagnostics show requires --run <runId>");
+    .option("--since <iso>", "Keep only events at or after the given ISO timestamp")
+    .option("--fields <list>", "Comma-separated field paths to project from each event")
+    .action(
+      async (options: {
+        run?: string;
+        command?: string;
+        limit?: string;
+        since?: string;
+        fields?: string;
+      }) => {
+        try {
+          const runId = options.run;
+          if (!runId) {
+            throw new Error("diagnostics show requires --run <runId>");
+          }
+          const limit = options.limit ? Number(options.limit) : undefined;
+          if (limit !== undefined && (!Number.isFinite(limit) || limit <= 0)) {
+            throw new Error("diagnostics show requires a positive integer for --limit");
+          }
+          const data = await readDiagnosticsRunView({
+            runId,
+            command: options.command,
+            limit,
+            since: options.since,
+            fields: options.fields,
+          });
+          printCommandResult("diagnostics show", {
+            data,
+          });
+        } catch (error) {
+          printSessionAwareCommandError("diagnostics show", error, {
+            code: "DIAGNOSTICS_SHOW_FAILED",
+            message: "diagnostics show failed",
+            suggestions: ["Use `pw diagnostics runs` to list available run ids"],
+          });
+          process.exitCode = 1;
         }
-        const limit = options.limit ? Number(options.limit) : undefined;
-        if (limit !== undefined && (!Number.isFinite(limit) || limit <= 0)) {
-          throw new Error("diagnostics show requires a positive integer for --limit");
-        }
-        const data = await readDiagnosticsRunView({
-          runId,
-          command: options.command,
-          limit,
-        });
-        printCommandResult("diagnostics show", {
-          data,
-        });
-      } catch (error) {
-        printSessionAwareCommandError("diagnostics show", error, {
-          code: "DIAGNOSTICS_SHOW_FAILED",
-          message: "diagnostics show failed",
-          suggestions: ["Use `pw diagnostics runs` to list available run ids"],
-        });
-        process.exitCode = 1;
-      }
-    });
+      },
+    );
 
   diagnostics
     .command("grep")
@@ -211,33 +231,46 @@ export function registerDiagnosticsCommand(program: Command): void {
     .requiredOption("--text <substring>", "Substring to match")
     .option("--command <name>", "Filter run events by command name")
     .option("--limit <n>", "Limit returned events")
-    .action(async (options: { run?: string; text?: string; command?: string; limit?: string }) => {
-      try {
-        const runId = options.run;
-        const text = options.text;
-        if (!runId || !text) {
-          throw new Error("diagnostics grep requires --run <runId> and --text <substring>");
+    .option("--since <iso>", "Keep only events at or after the given ISO timestamp")
+    .option("--fields <list>", "Comma-separated field paths to project from each event")
+    .action(
+      async (options: {
+        run?: string;
+        text?: string;
+        command?: string;
+        limit?: string;
+        since?: string;
+        fields?: string;
+      }) => {
+        try {
+          const runId = options.run;
+          const text = options.text;
+          if (!runId || !text) {
+            throw new Error("diagnostics grep requires --run <runId> and --text <substring>");
+          }
+          const limit = options.limit ? Number(options.limit) : undefined;
+          if (limit !== undefined && (!Number.isFinite(limit) || limit <= 0)) {
+            throw new Error("diagnostics grep requires a positive integer for --limit");
+          }
+          const data = await readDiagnosticsRunView({
+            runId,
+            text,
+            command: options.command,
+            limit,
+            since: options.since,
+            fields: options.fields,
+          });
+          printCommandResult("diagnostics grep", {
+            data,
+          });
+        } catch (error) {
+          printSessionAwareCommandError("diagnostics grep", error, {
+            code: "DIAGNOSTICS_GREP_FAILED",
+            message: "diagnostics grep failed",
+            suggestions: ["Use `pw diagnostics runs` to list available run ids"],
+          });
+          process.exitCode = 1;
         }
-        const limit = options.limit ? Number(options.limit) : undefined;
-        if (limit !== undefined && (!Number.isFinite(limit) || limit <= 0)) {
-          throw new Error("diagnostics grep requires a positive integer for --limit");
-        }
-        const data = await readDiagnosticsRunView({
-          runId,
-          text,
-          command: options.command,
-          limit,
-        });
-        printCommandResult("diagnostics grep", {
-          data,
-        });
-      } catch (error) {
-        printSessionAwareCommandError("diagnostics grep", error, {
-          code: "DIAGNOSTICS_GREP_FAILED",
-          message: "diagnostics grep failed",
-          suggestions: ["Use `pw diagnostics runs` to list available run ids"],
-        });
-        process.exitCode = 1;
-      }
-    });
+      },
+    );
 }
