@@ -215,6 +215,9 @@ assert_json "$digest_session_json" "digest session sees http errors" \
 network_fail_json="$(run_json network-fail network --session "$SESSION_NAME" --status 500 --limit 5)"
 assert_json "$network_fail_json" "network query finds 500" \
   "data.ok === true && data.data.summary.total >= 1"
+network_request_body_json="$(run_json network-request-body network --session "$SESSION_NAME" --url '/api/incidents/alpha/checkout-timeout/start' --kind request --method POST --limit 5)"
+assert_json "$network_request_body_json" "network request snippet captures bug payload" \
+  "data.ok === true && data.data.summary.sample.some(item => item.requestBodySnippet && item.requestBodySnippet.includes('fail500'))"
 
 log "page error and console"
 console_warn_click="$(run_json console-warn-click click --session "$SESSION_NAME" --selector '#throw-console-warning')"

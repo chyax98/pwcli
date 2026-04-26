@@ -476,7 +476,16 @@ export async function managedNetwork(options?: {
         if (urlFilter && !String(record.url || '').includes(urlFilter))
           return false;
         if (textFilter) {
-          const haystack = [record.url, record.failureText, record.method, record.resourceType].filter(Boolean).join(' ');
+          const haystack = [
+            record.url,
+            record.failureText,
+            record.method,
+            record.resourceType,
+            record.requestBodySnippet,
+            record.responseBodySnippet,
+          ]
+            .filter(Boolean)
+            .join(' ');
           if (!haystack.includes(textFilter))
             return false;
         }

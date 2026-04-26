@@ -176,6 +176,9 @@ log "network delta"
 network_json="$(run_json network network --session "$SESSION_NAME" --resource-type xhr)"
 assert_json "$network_json" "network captured xhr" \
   "data.ok === true && data.data.summary.total >= 2 && data.data.summary.sample.some(item => item.kind === 'response' && item.status === 201)"
+network_snippet_json="$(run_json network-snippet network --session "$SESSION_NAME" --url '/__pwcli__/diagnostics/xhr' --kind response --limit 5)"
+assert_json "$network_snippet_json" "network response snippet is captured for text responses" \
+  "data.ok === true && data.data.summary.sample.some(item => item.responseBodySnippet && item.responseBodySnippet.includes('xhr:1'))"
 network_since_zero_json="$(run_json network-since-zero network --session "$SESSION_NAME" --since 2099-01-01T00:00:00.000Z)"
 assert_json "$network_since_zero_json" "network since filter can exclude all rows" \
   "data.ok === true && data.data.summary.total === 0"

@@ -302,6 +302,13 @@
 - `--since <iso>`
 - `--limit <n>`
 
+说明：
+
+- 对文本类 request/response，sample/detail 可能带：
+  - `requestBodySnippet`
+  - `responseBodySnippet`
+- 这是裁剪后的诊断片段，不是全量 body
+
 ### `pw errors recent --session <name>`
 
 - 查看当前页错误记录

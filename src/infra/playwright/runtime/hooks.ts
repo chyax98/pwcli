@@ -23,6 +23,27 @@ export async function managedEnsureDiagnosticsHooks(options?: { sessionName?: st
         if (list.length > max)
           list.splice(0, list.length - max);
       };
+      const clipSnippet = (value, max = 240) => {
+        const text = String(value ?? '');
+        return {
+          snippet: text.length > max ? text.slice(0, max) + '...' : text,
+          truncated: text.length > max,
+        };
+      };
+      const isTextLikeContentType = (value) => {
+        const contentType = String(value || '').toLowerCase();
+        return Boolean(
+          contentType &&
+            (
+              contentType.startsWith('text/') ||
+              contentType.includes('json') ||
+              contentType.includes('xml') ||
+              contentType.includes('javascript') ||
+              contentType.includes('x-www-form-urlencoded') ||
+              contentType.includes('svg')
+            )
+        );
+      };
       const ensurePageId = (p) => {
         if (!p.__pwcliPageId)
           p.__pwcliPageId = 'p' + state.nextPageSeq++;
@@ -60,7 +81,10 @@ export async function managedEnsureDiagnosticsHooks(options?: { sessionName?: st
           const requestId = req.__pwcliRequestId || ('req-' + state.nextRequestSeq++);
           req.__pwcliRequestId = requestId;
           const frame = typeof req.frame === 'function' ? req.frame() : null;
-          keep(state.networkRecords, {
+          const headers = typeof req.headers === 'function' ? req.headers() : {};
+          const contentType = String(headers['content-type'] || '');
+          const postData = typeof req.postData === 'function' ? req.postData() : null;
+          const record = {
             kind: 'request',
             sessionName,
             timestamp: now(),
@@ -72,6 +96,7 @@ export async function managedEnsureDiagnosticsHooks(options?: { sessionName?: st
             method: req.method(),
             resourceType: req.resourceType(),
             isNavigationRequest: typeof req.isNavigationRequest === 'function' ? req.isNavigationRequest() : false,
+            ...(contentType ? { requestContentType: contentType } : {}),
             ...(frame
               ? {
                   frame: {
@@ -80,14 +105,22 @@ export async function managedEnsureDiagnosticsHooks(options?: { sessionName?: st
                   },
                 }
               : {}),
-          });
+          };
+          if (postData && isTextLikeContentType(contentType)) {
+            const body = clipSnippet(postData);
+            record.requestBodySnippet = body.snippet;
+            record.requestBodyTruncated = body.truncated;
+          }
+          keep(state.networkRecords, record);
         });
         p.on('response', res => {
           const req = res.request();
           const requestId = req.__pwcliRequestId || ('req-' + state.nextRequestSeq++);
           req.__pwcliRequestId = requestId;
           const frame = typeof req.frame === 'function' ? req.frame() : null;
-          keep(state.networkRecords, {
+          const headers = typeof res.headers === 'function' ? res.headers() : {};
+          const contentType = String(headers['content-type'] || '');
+          const record = {
             kind: 'response',
             sessionName,
             timestamp: now(),
@@ -100,6 +133,7 @@ export async function managedEnsureDiagnosticsHooks(options?: { sessionName?: st
             status: res.status(),
             ok: res.ok(),
             resourceType: req.resourceType(),
+            ...(contentType ? { responseContentType: contentType } : {}),
             ...(frame
               ? {
                   frame: {
@@ -108,7 +142,21 @@ export async function managedEnsureDiagnosticsHooks(options?: { sessionName?: st
                   },
                 }
               : {}),
-          });
+          };
+          keep(state.networkRecords, record);
+          if (isTextLikeContentType(contentType) && typeof res.text === 'function') {
+            Promise.resolve()
+              .then(() => res.text())
+              .then((text) => {
+                const body = clipSnippet(text);
+                record.responseBodySnippet = body.snippet;
+                record.responseBodyTruncated = body.truncated;
+              })
+              .catch((error) => {
+                record.responseBodyReadError =
+                  error instanceof Error ? error.message : String(error);
+              });
+          }
         });
         p.on('requestfailed', req => {
           const requestId = req.__pwcliRequestId || ('req-' + state.nextRequestSeq++);

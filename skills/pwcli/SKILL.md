@@ -136,6 +136,7 @@ Treat:
 - `--verbose` on `observe status` or `doctor` as escalation only
 - `--since` on `console/network/errors/show/grep/export` when you need time-bounded triage
 - `--fields` on `diagnostics show/grep/export` when another agent only needs a narrow projection
+- `requestBodySnippet` / `responseBodySnippet` on `network` when a text-like body is enough to confirm the failure shape
 
 If a session is blocked by a dialog, try:
 
