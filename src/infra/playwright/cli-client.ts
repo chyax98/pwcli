@@ -202,3 +202,23 @@ export async function stopManagedSession(sessionName?: string) {
   await new Session(entry).stop(true);
   return true;
 }
+
+export async function stopAllManagedSessions() {
+  const sessions = await listManagedSessions();
+  const results = [];
+
+  for (const session of sessions) {
+    const closed = await stopManagedSession(session.name).catch(() => false);
+    results.push({
+      name: session.name,
+      alive: session.alive,
+      closed,
+    });
+  }
+
+  return {
+    count: results.length,
+    closedCount: results.filter((item) => item.closed).length,
+    sessions: results,
+  };
+}

@@ -108,6 +108,11 @@
 
 - 关闭一个 named managed session
 
+### `pw session close --all`
+
+- 关闭当前 workspace bucket 下的全部 managed sessions
+- `pw session close all` 等价
+
 ## 3. 页面读取
 
 ### `pw open <url> --session <name>`

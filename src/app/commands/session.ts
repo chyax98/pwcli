@@ -14,6 +14,7 @@ import {
   resolveLifecycleHeaded,
   resolveTraceEnabled,
   runManagedSessionCommand,
+  stopAllManagedSessions,
   stopManagedSession,
 } from "../../domain/session/service.js";
 import { parsePageSummary } from "../../infra/playwright/output-parsers.js";
@@ -405,10 +406,30 @@ export function registerSessionCommand(program: Command): void {
     });
 
   session
-    .command("close <name>")
-    .description("Close a named managed session")
-    .action(async (name: string) => {
+    .command("close [name]")
+    .description("Close one named managed session, or all managed sessions with --all")
+    .option("--all", "Close every managed session in the current workspace bucket")
+    .action(async (name: string | undefined, options: { all?: boolean }) => {
       try {
+        const closeAll = Boolean(options.all) || name === "all";
+        if (!closeAll && !name) {
+          throw new Error("session close requires <name> or --all");
+        }
+        if (closeAll && name && name !== "all") {
+          throw new Error("session close accepts either <name> or --all, not both");
+        }
+        if (closeAll) {
+          const result = await stopAllManagedSessions();
+          printCommandResult("session close", {
+            data: {
+              all: true,
+              count: result.count,
+              closedCount: result.closedCount,
+              sessions: result.sessions,
+            },
+          });
+          return;
+        }
         const closed = await stopManagedSession(name);
         printCommandResult("session close", {
           data: {
@@ -420,7 +441,13 @@ export function registerSessionCommand(program: Command): void {
         printCommandError("session close", {
           code: "SESSION_CLOSE_FAILED",
           message: error instanceof Error ? error.message : "session close failed",
-          suggestions: ["Retry or remove the stale session files manually"],
+          suggestions:
+            error instanceof Error && error.message.includes("--all")
+              ? [
+                  "Use `pw session close <name>` to close one session",
+                  "Or use `pw session close --all` / `pw session close all` to close every managed session in the current workspace bucket",
+                ]
+              : ["Retry or remove the stale session files manually"],
         });
         process.exitCode = 1;
       }

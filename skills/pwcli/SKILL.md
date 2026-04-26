@@ -26,6 +26,7 @@ Use `pw`. Do not bypass the CLI and do not reconstruct browser workflows from me
   - `pw session create <name> --open <url>`
   - `pw session attach <name> ...`
   - `pw session recreate <name> ...`
+- If a long run leaves many stale sessions, clean them explicitly with `pw session close --all`
 - Treat `open` as pure navigation on an existing session.
 - Treat `auth` as plugin execution only.
 - Do not invent a current/default session.

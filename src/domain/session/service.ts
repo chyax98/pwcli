@@ -5,6 +5,7 @@ export {
   getManagedSessionStatus,
   listManagedSessions,
   runManagedSessionCommand,
+  stopAllManagedSessions,
   stopManagedSession,
 } from "../../infra/playwright/cli-client.js";
 export { managedOpen, managedResize } from "../../infra/playwright/runtime.js";
