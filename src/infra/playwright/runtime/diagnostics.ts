@@ -2,9 +2,9 @@ import { resolve } from "node:path";
 import { runManagedSessionCommand } from "../cli-client.js";
 import { parsePageSummary } from "../output-parsers.js";
 import { managedRunCode } from "./code.js";
-import { managedWorkspaceProjection } from "./workspace.js";
-import { DIAGNOSTICS_STATE_KEY, maybeRawOutput } from "./shared.js";
 import { managedEnsureDiagnosticsHooks } from "./hooks.js";
+import { DIAGNOSTICS_STATE_KEY, maybeRawOutput } from "./shared.js";
+import { managedWorkspaceProjection } from "./workspace.js";
 
 export async function managedTrace(action: "start" | "stop", options?: { sessionName?: string }) {
   const command = action === "start" ? "tracing-start" : "tracing-stop";
@@ -149,9 +149,8 @@ export async function managedRoute(
         routes: state.routes,
       });
     }`
-        :
-      action === "add"
-        ? `async page => {
+        : action === "add"
+          ? `async page => {
       const context = page.context();
       const state = context[${JSON.stringify(DIAGNOSTICS_STATE_KEY)}] ||= {};
       state.routes = Array.isArray(state.routes) ? state.routes : [];
@@ -205,7 +204,7 @@ export async function managedRoute(
         routeCount: state.routes.length,
       });
     }`
-        : `async page => {
+          : `async page => {
       const context = page.context();
       const state = context[${JSON.stringify(DIAGNOSTICS_STATE_KEY)}] ||= {};
       const pattern = ${JSON.stringify(options.pattern ?? null)};

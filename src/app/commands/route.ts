@@ -41,7 +41,10 @@ export function registerRouteCommand(program: Command): void {
       .option("--abort", "Abort matching requests")
       .option("--body <text>", "Fulfill matching requests with a text body")
       .option("--body-file <path>", "Fulfill matching requests with body loaded from a file")
-      .option("--headers-file <path>", "Fulfill matching requests with headers loaded from a JSON file")
+      .option(
+        "--headers-file <path>",
+        "Fulfill matching requests with headers loaded from a JSON file",
+      )
       .option("--method <method>", "Only match one HTTP method")
       .option("--status <code>", "Fulfill matching requests with an HTTP status")
       .option("--content-type <type>", "Fulfill matching requests with a content-type"),
@@ -68,7 +71,10 @@ export function registerRouteCommand(program: Command): void {
             : options.body;
         const headers =
           options.headersFile !== undefined
-            ? (JSON.parse(await readFile(resolve(options.headersFile), "utf8")) as Record<string, string>)
+            ? (JSON.parse(await readFile(resolve(options.headersFile), "utf8")) as Record<
+                string,
+                string
+              >)
             : undefined;
         printCommandResult(
           "route add",
@@ -99,59 +105,62 @@ export function registerRouteCommand(program: Command): void {
 
   addSessionOption(
     route.command("load <file>").description("Load multiple route specs from a JSON file"),
-  ).action(
-    async (file: string, options: { session?: string }, command: Command) => {
-      try {
-        const sessionName = requireSessionName(options, command);
-        const path = resolve(file);
-        const dir = dirname(path);
-        const specs = JSON.parse(await readFile(path, "utf8")) as Array<Record<string, unknown>>;
-        const loaded = [];
-        for (const spec of specs) {
-          const body =
-            typeof spec.bodyFile === "string"
-              ? await readFile(resolve(dir, spec.bodyFile), "utf8")
-              : typeof spec.body === "string"
-                ? spec.body
-                : undefined;
-          const headers =
-            typeof spec.headersFile === "string"
-              ? (JSON.parse(await readFile(resolve(dir, spec.headersFile), "utf8")) as Record<string, string>)
-              : spec.headers && typeof spec.headers === "object"
-                ? (spec.headers as Record<string, string>)
-                : undefined;
-          const result = await managedRoute("add", {
-            sessionName,
-            pattern: String(spec.pattern),
-            abort: Boolean(spec.abort),
-            body,
-            status: spec.status !== undefined ? Number(spec.status) : undefined,
-            contentType:
-              typeof spec.contentType === "string" ? spec.contentType : undefined,
-            headers,
-            method: typeof spec.method === "string" ? spec.method : undefined,
-          });
-          loaded.push(result.data.route ?? { pattern: spec.pattern });
+  ).action(async (file: string, options: { session?: string }, command: Command) => {
+    try {
+      const sessionName = requireSessionName(options, command);
+      const path = resolve(file);
+      const dir = dirname(path);
+      const specs = JSON.parse(await readFile(path, "utf8")) as Array<Record<string, unknown>>;
+      const loaded = [];
+      for (const spec of specs) {
+        if (typeof spec.pattern !== "string" || !spec.pattern) {
+          throw new Error("route load requires every route spec to include a non-empty pattern");
         }
-        printCommandResult("route load", {
-          data: {
-            loadedCount: loaded.length,
-            routes: loaded,
-          },
+        const body =
+          typeof spec.bodyFile === "string"
+            ? await readFile(resolve(dir, spec.bodyFile), "utf8")
+            : typeof spec.body === "string"
+              ? spec.body
+              : undefined;
+        const headers =
+          typeof spec.headersFile === "string"
+            ? (JSON.parse(await readFile(resolve(dir, spec.headersFile), "utf8")) as Record<
+                string,
+                string
+              >)
+            : spec.headers && typeof spec.headers === "object"
+              ? (spec.headers as Record<string, string>)
+              : undefined;
+        const result = await managedRoute("add", {
+          sessionName,
+          pattern: spec.pattern,
+          abort: Boolean(spec.abort),
+          body,
+          status: spec.status !== undefined ? Number(spec.status) : undefined,
+          contentType: typeof spec.contentType === "string" ? spec.contentType : undefined,
+          headers,
+          method: typeof spec.method === "string" ? spec.method : undefined,
         });
-      } catch (error) {
-        printSessionAwareCommandError("route load", error, {
-          code: "ROUTE_LOAD_FAILED",
-          message: "route load failed",
-          suggestions: [
-            "Use a JSON array of route specs",
-            "Resolve bodyFile and headersFile relative to the JSON file",
-          ],
-        });
-        process.exitCode = 1;
+        loaded.push(result.data.route ?? { pattern: spec.pattern });
       }
-    },
-  );
+      printCommandResult("route load", {
+        data: {
+          loadedCount: loaded.length,
+          routes: loaded,
+        },
+      });
+    } catch (error) {
+      printSessionAwareCommandError("route load", error, {
+        code: "ROUTE_LOAD_FAILED",
+        message: "route load failed",
+        suggestions: [
+          "Use a JSON array of route specs",
+          "Resolve bodyFile and headersFile relative to the JSON file",
+        ],
+      });
+      process.exitCode = 1;
+    }
+  });
 
   addSessionOption(
     route

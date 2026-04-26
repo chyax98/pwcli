@@ -55,10 +55,7 @@ export async function managedStateLoad(file: string, options?: { sessionName?: s
   };
 }
 
-export async function managedCookiesList(options?: {
-  sessionName?: string;
-  domain?: string;
-}) {
+export async function managedCookiesList(options?: { sessionName?: string; domain?: string }) {
   const result = await managedRunCode({
     sessionName: options?.sessionName,
     source: `async page => {

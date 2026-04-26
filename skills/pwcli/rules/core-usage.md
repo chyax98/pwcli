@@ -5,6 +5,8 @@
 - 复杂页面流程优先 `pw code`。
 - `skill install` 是一等公民能力，必须持续可用。
 - 主路径永远显式带 `--session <name>`。
+- `open` 只做导航。
+- `profile` 只做 inspect。
 - 先读 `snapshot/page/read-text/observe`，再执行动作。
 - `batch` 只用 `--json` 或 `--file` 的 `string[][]`。
 - `auth` 只负责 plugin 执行，不负责 session shape。

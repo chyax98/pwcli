@@ -1,5 +1,5 @@
-import { access, readFile } from "node:fs/promises";
 import { constants } from "node:fs";
+import { access, readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { managedTrace } from "../diagnostics/service.js";
 
@@ -42,8 +42,7 @@ async function readDefaultsConfig(): Promise<Partial<SessionDefaults>> {
 export async function getSessionDefaults(): Promise<SessionDefaults> {
   const config = await readDefaultsConfig();
   return {
-    headed:
-      typeof config.headed === "boolean" ? config.headed : DEFAULT_SESSION_DEFAULTS.headed,
+    headed: typeof config.headed === "boolean" ? config.headed : DEFAULT_SESSION_DEFAULTS.headed,
     trace: typeof config.trace === "boolean" ? config.trace : DEFAULT_SESSION_DEFAULTS.trace,
     diagnosticsRecords:
       typeof config.diagnosticsRecords === "boolean"

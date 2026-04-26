@@ -19,51 +19,56 @@ export function registerDiagnosticsCommand(program: Command): void {
       .command("export")
       .description("Export current session diagnostics to a JSON file")
       .requiredOption("--out <file>", "Output file"),
-  ).action(
-    async (options: { session?: string; out?: string }, command: Command) => {
-      try {
-        const sessionName = requireSessionName(options, command);
-        const result = await managedDiagnosticsExport({ sessionName });
-        await writeFile(options.out!, JSON.stringify(result.data, null, 2), "utf8");
-        printCommandResult("diagnostics export", {
-          session: result.session,
-          page: result.page,
-          data: {
-            exported: true,
-            out: options.out!,
-          },
-        });
-      } catch (error) {
-        printSessionAwareCommandError("diagnostics export", error, {
-          code: "DIAGNOSTICS_EXPORT_FAILED",
-          message: "diagnostics export failed",
-          suggestions: [
-            "Run `pw session create <name> --open <url>` first",
-            "Pass `--out <file>` to save exported diagnostics",
-          ],
-        });
-        process.exitCode = 1;
-      }
-    },
-  );
-
-  diagnostics.command("runs").description("List known run ids").action(async () => {
+  ).action(async (options: { session?: string; out?: string }, command: Command) => {
     try {
-      const runs = await listRunDirs();
-      printCommandResult("diagnostics runs", {
+      const sessionName = requireSessionName(options, command);
+      const out = options.out;
+      if (!out) {
+        throw new Error("diagnostics export requires --out <file>");
+      }
+      const result = await managedDiagnosticsExport({ sessionName });
+      await writeFile(out, JSON.stringify(result.data, null, 2), "utf8");
+      printCommandResult("diagnostics export", {
+        session: result.session,
+        page: result.page,
         data: {
-          count: runs.length,
-          runs,
+          exported: true,
+          out,
         },
       });
     } catch (error) {
-      printSessionAwareCommandError("diagnostics runs", error, {
-        code: "DIAGNOSTICS_RUNS_FAILED",
-        message: "diagnostics runs failed",
+      printSessionAwareCommandError("diagnostics export", error, {
+        code: "DIAGNOSTICS_EXPORT_FAILED",
+        message: "diagnostics export failed",
+        suggestions: [
+          "Run `pw session create <name> --open <url>` first",
+          "Pass `--out <file>` to save exported diagnostics",
+        ],
       });
       process.exitCode = 1;
     }
   });
+
+  diagnostics
+    .command("runs")
+    .description("List known run ids")
+    .action(async () => {
+      try {
+        const runs = await listRunDirs();
+        printCommandResult("diagnostics runs", {
+          data: {
+            count: runs.length,
+            runs,
+          },
+        });
+      } catch (error) {
+        printSessionAwareCommandError("diagnostics runs", error, {
+          code: "DIAGNOSTICS_RUNS_FAILED",
+          message: "diagnostics runs failed",
+        });
+        process.exitCode = 1;
+      }
+    });
 
   diagnostics
     .command("show")
@@ -71,10 +76,14 @@ export function registerDiagnosticsCommand(program: Command): void {
     .requiredOption("--run <runId>", "Run id")
     .action(async (options: { run?: string }) => {
       try {
-        const events = await readRunEvents(options.run!);
+        const runId = options.run;
+        if (!runId) {
+          throw new Error("diagnostics show requires --run <runId>");
+        }
+        const events = await readRunEvents(runId);
         printCommandResult("diagnostics show", {
           data: {
-            runId: options.run!,
+            runId,
             count: events.length,
             events,
           },
@@ -96,12 +105,16 @@ export function registerDiagnosticsCommand(program: Command): void {
     .requiredOption("--text <substring>", "Substring to match")
     .action(async (options: { run?: string; text?: string }) => {
       try {
-        const events = await readRunEvents(options.run!);
-        const text = options.text!;
+        const runId = options.run;
+        const text = options.text;
+        if (!runId || !text) {
+          throw new Error("diagnostics grep requires --run <runId> and --text <substring>");
+        }
+        const events = await readRunEvents(runId);
         const matches = events.filter((event) => JSON.stringify(event).includes(text));
         printCommandResult("diagnostics grep", {
           data: {
-            runId: options.run!,
+            runId,
             text,
             count: matches.length,
             events: matches,

@@ -32,29 +32,30 @@ export function registerNetworkCommand(program: Command): void {
       text?: string;
       limit?: string;
     }) => {
-    try {
-      const sessionName = requireSessionName(options);
-      printCommandResult(
-        "network",
-        await managedNetwork({
-          sessionName,
-          requestId: options.requestId,
-          url: options.url,
-          kind: options.kind,
-          method: options.method,
-          status: options.status,
-          resourceType: options.resourceType,
-          text: options.text,
-          limit: options.limit ? Number(options.limit) : undefined,
-        }),
-      );
-    } catch (error) {
-      printSessionAwareCommandError("network", error, {
-        code: "NETWORK_FAILED",
-        message: "network failed",
-        suggestions: ["Run `pw session create <name> --open <url>` first"],
-      });
-      process.exitCode = 1;
-    }
-  });
+      try {
+        const sessionName = requireSessionName(options);
+        printCommandResult(
+          "network",
+          await managedNetwork({
+            sessionName,
+            requestId: options.requestId,
+            url: options.url,
+            kind: options.kind,
+            method: options.method,
+            status: options.status,
+            resourceType: options.resourceType,
+            text: options.text,
+            limit: options.limit ? Number(options.limit) : undefined,
+          }),
+        );
+      } catch (error) {
+        printSessionAwareCommandError("network", error, {
+          code: "NETWORK_FAILED",
+          message: "network failed",
+          suggestions: ["Run `pw session create <name> --open <url>` first"],
+        });
+        process.exitCode = 1;
+      }
+    },
+  );
 }

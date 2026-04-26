@@ -1,4 +1,4 @@
-import { appendFile, mkdir, readFile, readdir } from "node:fs/promises";
+import { appendFile, mkdir, readdir, readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 
 export async function ensureRunDir(sessionName?: string) {
@@ -17,7 +17,10 @@ export async function listRunDirs() {
   const base = resolve(".pwcli", "runs");
   try {
     const entries = await readdir(base, { withFileTypes: true });
-    return entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort();
+    return entries
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry.name)
+      .sort();
   } catch {
     return [];
   }

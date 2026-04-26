@@ -1,5 +1,16 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.4.12/schema.json",
+  "files": {
+    "includes": [
+      "**",
+      "!!**/dist",
+      "!!**/node_modules",
+      "!!**/.playwright-cli",
+      "!!**/.pwcli",
+      "!!**/scripts/manual/bootstrap-verify.js",
+      "!!**/scripts/manual/diagnostics-fixture.js"
+    ]
+  },
   "formatter": {
     "indentStyle": "space",
     "indentWidth": 2,

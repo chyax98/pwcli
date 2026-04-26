@@ -89,3 +89,9 @@ Use this when:
 - one agent turn needs one browser turn
 - the sequence is deterministic
 - you want one structured result envelope
+
+Keep batch narrow:
+
+- use the documented stable subset first
+- for one-off commands outside that subset, run normal `pw` commands
+- for conditional logic, use `pw code`

@@ -1,6 +1,6 @@
 import http from "node:http";
 
-const server = http.createServer((req, res) => {
+const server = http.createServer((_req, res) => {
   res.setHeader("content-type", "text/html; charset=utf-8");
   res.end(`
     <!doctype html>

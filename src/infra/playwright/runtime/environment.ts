@@ -1,14 +1,14 @@
-import { createRequire } from 'node:module';
-import { dirname, join } from 'node:path';
-import type { Socket } from 'node:net';
-import { ensureManagedSession } from '../cli-client.js';
+import { createRequire } from "node:module";
+import type { Socket } from "node:net";
+import { dirname, join } from "node:path";
+import { ensureManagedSession } from "../cli-client.js";
 import {
   parseErrorText,
   parseJsonStringLiteral,
   parsePageSummary,
   parseResultText,
-} from '../output-parsers.js';
-import { DIAGNOSTICS_STATE_KEY } from './shared.js';
+} from "../output-parsers.js";
+import { DIAGNOSTICS_STATE_KEY } from "./shared.js";
 
 type ManagedEnvironmentOptions = {
   sessionName?: string;
@@ -16,7 +16,7 @@ type ManagedEnvironmentOptions = {
 
 type ManagedEnvironmentRunCodeResult = {
   session: {
-    scope: 'managed';
+    scope: "managed";
     name: string;
     default: boolean;
   };
@@ -35,17 +35,15 @@ type SessionLike = {
 };
 
 const require = createRequire(import.meta.url);
-const playwrightCoreRoot = dirname(require.resolve('playwright-core/package.json'));
+const playwrightCoreRoot = dirname(require.resolve("playwright-core/package.json"));
 const socketConnectionModule = require(
-  join(playwrightCoreRoot, 'lib/tools/utils/socketConnection.js'),
+  join(playwrightCoreRoot, "lib/tools/utils/socketConnection.js"),
 );
 const { SocketConnection } = socketConnectionModule as {
-  SocketConnection: new (socket: Socket) => {
-    onmessage?: (message: {
-      id?: number;
-      result?: { text?: string };
-      error?: string;
-    }) => void;
+  SocketConnection: new (
+    socket: Socket,
+  ) => {
+    onmessage?: (message: { id?: number; result?: { text?: string }; error?: string }) => void;
     onclose?: () => void;
     send(message: Record<string, unknown>): Promise<void>;
     close(): void;
@@ -69,7 +67,7 @@ function parseEnvironmentMutationResult(
   commandName: string,
 ) {
   const parsed =
-    typeof result.data.result === 'object' && result.data.result ? result.data.result : {};
+    typeof result.data.result === "object" && result.data.result ? result.data.result : {};
   const payload = parsed as {
     ok?: boolean;
     code?: string;
@@ -77,9 +75,10 @@ function parseEnvironmentMutationResult(
     [key: string]: unknown;
   };
   if (payload.ok === false) {
-    const code = typeof payload.code === 'string' ? payload.code : `${commandName.toUpperCase()}_FAILED`;
+    const code =
+      typeof payload.code === "string" ? payload.code : `${commandName.toUpperCase()}_FAILED`;
     const message =
-      typeof payload.message === 'string'
+      typeof payload.message === "string"
         ? payload.message
         : `${commandName} failed on the managed session runtime`;
     throw new Error(`${code}:${message}`);
@@ -89,11 +88,7 @@ function parseEnvironmentMutationResult(
 
 class TimeoutSocketConnectionClient {
   private readonly connection: {
-    onmessage?: (message: {
-      id?: number;
-      result?: { text?: string };
-      error?: string;
-    }) => void;
+    onmessage?: (message: { id?: number; result?: { text?: string }; error?: string }) => void;
     onclose?: () => void;
     send(message: Record<string, unknown>): Promise<void>;
     close(): void;
@@ -113,7 +108,7 @@ class TimeoutSocketConnectionClient {
   constructor(socket: Socket) {
     this.connection = new SocketConnection(socket);
     this.connection.onmessage = (message) => this.onMessage(message);
-    this.connection.onclose = () => this.rejectCallbacks(new Error('Session closed'));
+    this.connection.onclose = () => this.rejectCallbacks(new Error("Session closed"));
   }
 
   async send(
@@ -158,11 +153,7 @@ class TimeoutSocketConnectionClient {
     this.connection.close();
   }
 
-  private onMessage(message: {
-    id?: number;
-    result?: { text?: string };
-    error?: string;
-  }) {
+  private onMessage(message: { id?: number; result?: { text?: string }; error?: string }) {
     if (!message.id) {
       throw new Error(`Unexpected message without id: ${JSON.stringify(message)}`);
     }
@@ -208,14 +199,14 @@ async function runManagedEnvironmentCommand(
   }
   const result = await TimeoutSocketConnectionClient.sendAndClose(
     socket,
-    'run',
+    "run",
     { args, cwd: process.cwd() },
     ENVIRONMENT_TIMEOUT_MS,
     timeoutMessage,
   );
   return {
     sessionName,
-    text: result.text ?? '',
+    text: result.text ?? "",
   };
 }
 
@@ -226,7 +217,7 @@ async function managedEnvironmentRunCode(
 ): Promise<ManagedEnvironmentRunCodeResult> {
   const result = await runManagedEnvironmentCommand(
     {
-      _: ['run-code', source],
+      _: ["run-code", source],
     },
     options,
     timeoutMessage,
@@ -238,9 +229,9 @@ async function managedEnvironmentRunCode(
   const resultText = parseResultText(result.text);
   return {
     session: {
-      scope: 'managed',
+      scope: "managed",
       name: result.sessionName,
-      default: result.sessionName === 'default',
+      default: result.sessionName === "default",
     },
     page: parsePageSummary(result.text),
     rawText: result.text,
@@ -252,18 +243,18 @@ async function managedEnvironmentRunCode(
 }
 
 export async function managedEnvironmentOffline(
-  mode: 'on' | 'off',
+  mode: "on" | "off",
   options?: ManagedEnvironmentOptions,
 ) {
-  const offline = mode === 'on';
+  const offline = mode === "on";
   const result = await managedEnvironmentRunCode(
     `async page => {
       const context = page.context();
-      await context.setOffline(${offline ? 'true' : 'false'});
+      await context.setOffline(${offline ? "true" : "false"});
       const state = context[${JSON.stringify(DIAGNOSTICS_STATE_KEY)}] ||= {};
       state.environment = state.environment || {};
       state.environment.offline = {
-        enabled: ${offline ? 'true' : 'false'},
+        enabled: ${offline ? "true" : "false"},
         updatedAt: new Date().toISOString(),
       };
       return JSON.stringify({
@@ -272,9 +263,9 @@ export async function managedEnvironmentOffline(
       });
     }`,
     options ?? {},
-    'BrowserContext.setOffline() did not complete on the managed run-code lane.',
+    "BrowserContext.setOffline() did not complete on the managed run-code lane.",
   );
-  const parsed = parseEnvironmentMutationResult(result, 'environment offline');
+  const parsed = parseEnvironmentMutationResult(result, "environment offline");
   return environmentSessionResult(result, {
     mode,
     offline: parsed.offline ?? {
@@ -313,16 +304,16 @@ export async function managedEnvironmentGeolocationSet(
       });
     }`,
     options,
-    'BrowserContext.setGeolocation() did not complete on the managed run-code lane.',
+    "BrowserContext.setGeolocation() did not complete on the managed run-code lane.",
   );
-  const parsed = parseEnvironmentMutationResult(result, 'environment geolocation set');
+  const parsed = parseEnvironmentMutationResult(result, "environment geolocation set");
   return environmentSessionResult(result, {
     geolocation: parsed.geolocation ?? {
       latitude: options.latitude,
       longitude: options.longitude,
       accuracy,
     },
-    note: 'Grant geolocation permission separately if the page needs to read navigator.geolocation.',
+    note: "Grant geolocation permission separately if the page needs to read navigator.geolocation.",
   });
 }
 
@@ -331,7 +322,9 @@ export async function managedEnvironmentPermissionsGrant(
     permissions: string[];
   },
 ) {
-  const permissions = Array.from(new Set(options.permissions.map((permission) => permission.trim()).filter(Boolean)));
+  const permissions = Array.from(
+    new Set(options.permissions.map((permission) => permission.trim()).filter(Boolean)),
+  );
   const result = await managedEnvironmentRunCode(
     `async page => {
       const context = page.context();
@@ -352,9 +345,9 @@ export async function managedEnvironmentPermissionsGrant(
       });
     }`,
     options,
-    'BrowserContext.grantPermissions() did not complete on the managed run-code lane.',
+    "BrowserContext.grantPermissions() did not complete on the managed run-code lane.",
   );
-  const parsed = parseEnvironmentMutationResult(result, 'environment permissions grant');
+  const parsed = parseEnvironmentMutationResult(result, "environment permissions grant");
   return environmentSessionResult(result, {
     permissions: parsed.permissions ?? {
       granted: permissions,
@@ -380,9 +373,9 @@ export async function managedEnvironmentPermissionsClear(options?: ManagedEnviro
       });
     }`,
     options ?? {},
-    'BrowserContext.clearPermissions() did not complete on the managed run-code lane.',
+    "BrowserContext.clearPermissions() did not complete on the managed run-code lane.",
   );
-  const parsed = parseEnvironmentMutationResult(result, 'environment permissions clear');
+  const parsed = parseEnvironmentMutationResult(result, "environment permissions clear");
   return environmentSessionResult(result, {
     permissions: parsed.permissions ?? {
       granted: [],
@@ -427,9 +420,9 @@ export async function managedEnvironmentClockInstall(options?: ManagedEnvironmen
       });
     }`,
     options ?? {},
-    'Clock.install() did not complete on the managed run-code lane.',
+    "Clock.install() did not complete on the managed run-code lane.",
   );
-  const parsed = parseEnvironmentMutationResult(result, 'environment clock install');
+  const parsed = parseEnvironmentMutationResult(result, "environment clock install");
   return environmentSessionResult(result, {
     clock: parsed.clock ?? {
       installed: true,
@@ -438,10 +431,7 @@ export async function managedEnvironmentClockInstall(options?: ManagedEnvironmen
   });
 }
 
-export async function managedEnvironmentClockSet(
-  iso: string,
-  options?: ManagedEnvironmentOptions,
-) {
+export async function managedEnvironmentClockSet(iso: string, options?: ManagedEnvironmentOptions) {
   const result = await managedEnvironmentRunCode(
     `async page => {
       const context = page.context();
@@ -486,9 +476,9 @@ export async function managedEnvironmentClockSet(
       });
     }`,
     options ?? {},
-    'Clock.pauseAt() did not complete on the managed run-code lane.',
+    "Clock.pauseAt() did not complete on the managed run-code lane.",
   );
-  const parsed = parseEnvironmentMutationResult(result, 'environment clock set');
+  const parsed = parseEnvironmentMutationResult(result, "environment clock set");
   return environmentSessionResult(result, {
     clock: parsed.clock ?? {
       installed: true,
@@ -542,9 +532,9 @@ export async function managedEnvironmentClockResume(options?: ManagedEnvironment
       });
     }`,
     options ?? {},
-    'Clock.resume() did not complete on the managed run-code lane.',
+    "Clock.resume() did not complete on the managed run-code lane.",
   );
-  const parsed = parseEnvironmentMutationResult(result, 'environment clock resume');
+  const parsed = parseEnvironmentMutationResult(result, "environment clock resume");
   return environmentSessionResult(result, {
     clock: parsed.clock ?? {
       installed: true,

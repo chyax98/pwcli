@@ -1,6 +1,6 @@
 import { managedRunCode } from "./code.js";
 import { managedEnsureDiagnosticsHooks } from "./hooks.js";
-import { maybeRawOutput, DIAGNOSTICS_STATE_KEY } from "./shared.js";
+import { DIAGNOSTICS_STATE_KEY, maybeRawOutput } from "./shared.js";
 
 export async function managedWorkspaceProjection(options?: { sessionName?: string }) {
   await managedEnsureDiagnosticsHooks({ sessionName: options?.sessionName });

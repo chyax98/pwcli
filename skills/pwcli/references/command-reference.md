@@ -112,17 +112,12 @@
 
 ### `pw open <url> --session <name>`
 
-选项：
-
-- `--headed`
-- `--profile <path>`
-- `--persistent`
-- `--state <file>`
-
 语义：
 
-- 在目标 session 中导航
-- `--profile` / `--persistent` / `--headed` 会重建 session shape
+- 在现有 session 中导航
+- 不负责 lifecycle shape
+- 如果要加载 state，先显式运行 `state load`
+- 如果要换 profile/headed/persistent，走 `session create|recreate`
 
 ### `pw page current --session <name>`
 
@@ -399,10 +394,6 @@
 
 - 检查 profile 路径是否存在、可写、可用
 
-### `pw profile open <path> <url> --session <name>`
-
-- 用 persistent profile 打开目标 URL
-
 ## 7. 扩展与分发
 
 ### `pw code [source] --session <name>`
@@ -464,14 +455,29 @@ stdin 输入格式：
 当前稳定 argv 命令：
 
 - `snapshot`
-- `click ...`
-- `wait ...`
+- `click <ref>`
+- `click --selector <selector>`
+- `wait networkIdle`
+- `wait --selector <selector>`
+- `wait --text <text>`
+- `wait --request <url> [--method <method>]`
+- `wait --response <url> [--method <method>] [--status <code>]`
 - `screenshot ...`
 - `observe status`
 - `errors recent|clear`
-- `route add|remove ...`
+- `route list`
+- `route add|load|remove ...`
 - `bootstrap apply ...`
+- `state save|load`
+- `page current|list|frames|dialogs`
 - `page dialogs`
+
+说明：
+
+- `batch` 当前只承诺稳定子集
+- 这是有意 trade-off
+- Agent 需要的是稳定可消费的编排，不是“看起来什么都能跑”的脆弱 parity
+- 超出子集时，直接运行单命令或转 `pw code`
 
 ### `pw environment offline on|off --session <name>`
 

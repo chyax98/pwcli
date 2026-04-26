@@ -1,12 +1,12 @@
 import { copyFile, mkdir } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
+import { appendRunEvent, ensureRunDir } from "../../fs/run-artifacts.js";
 import { runManagedSessionCommand } from "../cli-client.js";
 import { parseDownloadEvent, parsePageSummary, stripQuotes } from "../output-parsers.js";
-import { appendRunEvent, ensureRunDir } from "../../fs/run-artifacts.js";
 import { managedRunCode } from "./code.js";
-import { managedPageCurrent } from "./workspace.js";
-import { maybeRawOutput, normalizeRef } from "./shared.js";
 import { buildDiagnosticsDelta, captureDiagnosticsBaseline } from "./diagnostics.js";
+import { maybeRawOutput, normalizeRef } from "./shared.js";
+import { managedPageCurrent } from "./workspace.js";
 
 async function recordRun(
   command: string,
@@ -501,7 +501,7 @@ export async function managedDownload(options: {
   const sourcePath = resolve(downloadEvent.outputPath);
   const savedAs = dir
     ? join(dir, downloadEvent.suggestedFilename)
-    : exactPath ?? join(run.runDir, downloadEvent.suggestedFilename);
+    : (exactPath ?? join(run.runDir, downloadEvent.suggestedFilename));
   if (savedAs) {
     await copyFile(sourcePath, savedAs);
   }

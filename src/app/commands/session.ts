@@ -2,22 +2,22 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Command } from "commander";
+import { managedStateLoad } from "../../domain/identity-state/service.js";
+import { sessionRoutingError } from "../../domain/session/routing.js";
 import {
   applySessionDefaults,
-  getSessionDefaults,
   getManagedSessionEntry,
   getManagedSessionStatus,
+  getSessionDefaults,
   listManagedSessions,
+  managedOpen,
   resolveLifecycleHeaded,
   resolveTraceEnabled,
   runManagedSessionCommand,
   stopManagedSession,
-  managedOpen,
 } from "../../domain/session/service.js";
-import { managedStateLoad } from "../../domain/identity-state/service.js";
 import { parsePageSummary } from "../../infra/playwright/output-parsers.js";
 import { printCommandError, printCommandResult } from "../output.js";
-import { sessionRoutingError } from "../../domain/session/routing.js";
 import { attachManagedSession, resolveAttachTarget } from "./attach-shared.js";
 
 async function getSessionPageSummary(name: string) {
@@ -148,7 +148,9 @@ export function registerSessionCommand(program: Command): void {
             },
           });
         } catch (error) {
-          const routing = sessionRoutingError(error instanceof Error ? error.message : String(error));
+          const routing = sessionRoutingError(
+            error instanceof Error ? error.message : String(error),
+          );
           if (routing) {
             printCommandError("session create", routing);
             process.exitCode = 1;
@@ -343,7 +345,9 @@ export function registerSessionCommand(program: Command): void {
             },
           });
         } catch (error) {
-          const routing = sessionRoutingError(error instanceof Error ? error.message : String(error));
+          const routing = sessionRoutingError(
+            error instanceof Error ? error.message : String(error),
+          );
           if (routing) {
             printCommandError("session recreate", routing);
             process.exitCode = 1;

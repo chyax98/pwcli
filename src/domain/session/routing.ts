@@ -1,6 +1,4 @@
-import {
-  listManagedSessions,
-} from "../../infra/playwright/cli-client.js";
+import { listManagedSessions } from "../../infra/playwright/cli-client.js";
 import { isModalStateBlockedMessage } from "../../infra/playwright/runtime/shared.js";
 
 export function sessionRoutingError(message: string) {

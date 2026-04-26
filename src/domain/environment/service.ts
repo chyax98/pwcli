@@ -6,4 +6,4 @@ export {
   managedEnvironmentOffline,
   managedEnvironmentPermissionsClear,
   managedEnvironmentPermissionsGrant,
-} from '../../infra/playwright/runtime/environment.js';
+} from "../../infra/playwright/runtime/environment.js";

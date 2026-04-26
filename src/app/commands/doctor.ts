@@ -5,8 +5,6 @@ import { resolve } from "node:path";
 import { connect as connectTls } from "node:tls";
 import type { Command } from "commander";
 import { managedObserveStatus } from "../../domain/diagnostics/service.js";
-import { listPluginNames, resolvePluginPath } from "../../infra/plugins/resolve.js";
-import { isModalStateBlockedMessage } from "../../infra/playwright/runtime/shared.js";
 import {
   getManagedSessionEntry,
   getManagedSessionStatus,
@@ -14,6 +12,8 @@ import {
   runManagedSessionCommand,
 } from "../../domain/session/service.js";
 import { parsePageSummary } from "../../infra/playwright/output-parsers.js";
+import { isModalStateBlockedMessage } from "../../infra/playwright/runtime/shared.js";
+import { listPluginNames, resolvePluginPath } from "../../infra/plugins/resolve.js";
 import { printCommandError, printCommandResult } from "../output.js";
 import { addSessionOption } from "./session-options.js";
 

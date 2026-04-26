@@ -31,6 +31,12 @@
 
 这套 skill 面向 agent。
 
+这是 `pwcli` 的唯一使用教程真相。
+
+架构、限制和扩展方向单独维护在：
+
+- [docs/architecture/README.md](/Users/xd/work/tools/pwcli/docs/architecture/README.md)
+
 优先内容：
 
 - 唯一命令路径

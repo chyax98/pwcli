@@ -25,6 +25,8 @@ Use `pw`. Do not bypass the CLI and do not reconstruct browser workflows from me
   - `pw session create <name> --open <url>`
   - `pw session attach <name> ...`
   - `pw session recreate <name> ...`
+- Treat `open` as pure navigation on an existing session.
+- Treat `auth` as plugin execution only.
 - Do not invent a current/default session.
 - Do not refer to deleted `connect` flows.
 
@@ -160,9 +162,20 @@ pw batch --session bug-a --file ./steps.json
 Rules:
 
 - Use `string[][]`
-- Each inner array is one CLI argv
+- Each inner array is one CLI argv shape inside the currently supported batch subset
 - Reuse the same session
 - Use `--continue-on-error` only when partial results are valuable
+
+Trade-off:
+
+- `batch` is intentionally narrower than the full CLI
+- the current stable subset covers deterministic inspection / action / wait / route / bootstrap steps
+- if a needed command is outside the stable subset, run it directly or use `pw code`
+
+Reason:
+
+- Agent stability matters more than broad but brittle parity
+- batch expands only when a concrete repeated agent workflow justifies it
 
 Do not write new string-step workflows.
 
@@ -226,6 +239,7 @@ Read [references/workflows.md](./references/workflows.md) when:
 - Do not mention or use deleted compatibility commands.
 - Do not assume hidden global state.
 - Do not assume `page dialogs` is an authoritative live dialog set.
+- Do not route lifecycle mutations through `open`, `profile`, or `auth`.
 - Do not promise raw CDP substrate support beyond current `session attach` behavior.
 - Do not promise `environment clock set` on the current substrate; treat limitation codes as final unless the user explicitly asks for a deeper substrate survey.
 - Do not write future product ideas as if they already ship.

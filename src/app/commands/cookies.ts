@@ -11,10 +11,10 @@ export function registerCookiesCommand(program: Command): void {
   const cookies = program.command("cookies").description("Inspect or set browser cookies");
 
   addSessionOption(
-    cookies.command("list").description("List cookies for the current BrowserContext").option(
-      "--domain <domain>",
-      "Filter cookies by domain",
-    ),
+    cookies
+      .command("list")
+      .description("List cookies for the current BrowserContext")
+      .option("--domain <domain>", "Filter cookies by domain"),
   ).action(async (options: { session?: string; domain?: string }, command: Command) => {
     try {
       const sessionName = requireSessionName(options, command);

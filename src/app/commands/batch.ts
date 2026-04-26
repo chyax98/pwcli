@@ -16,9 +16,7 @@ function parseBatchCommands(input: string) {
 
   return parsed.map((entry) => {
     if (!Array.isArray(entry) || entry.some((part) => typeof part !== "string")) {
-      throw new Error(
-        "batch expects items shaped like [\"open\", \"https://example.com\"]",
-      );
+      throw new Error('batch expects items shaped like ["open", "https://example.com"]');
     }
     return entry as string[];
   });
@@ -33,7 +31,12 @@ export function registerBatchCommand(program: Command): void {
       .option("--file <path>", "Read a JSON array of argv arrays from a file")
       .option("--continue-on-error", "Continue after a failed step"),
   ).action(
-    async (options: { session?: string; json?: boolean; file?: string; continueOnError?: boolean }) => {
+    async (options: {
+      session?: string;
+      json?: boolean;
+      file?: string;
+      continueOnError?: boolean;
+    }) => {
       try {
         const sessionName = requireSessionName(options);
         if (options.json && options.file) {
@@ -70,7 +73,7 @@ export function registerBatchCommand(program: Command): void {
           code: "BATCH_FAILED",
           message: "batch failed",
           suggestions: [
-            "Pass `--file steps.json` with [[\"snapshot\"],[\"click\",\"--selector\",\"#fire\"]]",
+            'Pass `--file steps.json` with [["snapshot"],["click","--selector","#fire"]]',
             "Or pipe the same JSON into `pw batch --session bug-a --json`",
           ],
         });

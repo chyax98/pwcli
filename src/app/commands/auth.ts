@@ -1,10 +1,12 @@
 import type { Command } from "commander";
-import {
-  managedRunCode,
-} from "../../domain/interaction/service.js";
 import { managedStateSave } from "../../domain/identity-state/service.js";
+import { managedRunCode } from "../../domain/interaction/service.js";
 import { resolveDcLoginArgs } from "../../infra/plugins/dc-login-config.js";
-import { loadPluginSource, parseKeyValueArgs, resolvePluginPath } from "../../infra/plugins/resolve.js";
+import {
+  loadPluginSource,
+  parseKeyValueArgs,
+  resolvePluginPath,
+} from "../../infra/plugins/resolve.js";
 import { printCommandResult } from "../output.js";
 import {
   addSessionOption,

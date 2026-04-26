@@ -1,6 +1,5 @@
 import type { Command } from "commander";
 import { managedOpen } from "../../domain/session/service.js";
-import { managedStateLoad } from "../../domain/identity-state/service.js";
 import { printCommandResult } from "../output.js";
 import {
   addSessionOption,
@@ -12,71 +11,31 @@ export function registerOpenCommand(program: Command): void {
   addSessionOption(
     program
       .command("open <url>")
-      .description("Open a URL in a named managed browser session")
-      .option("--headed", "Launch a visible browser window")
-      .option("--profile <path>", "Use a persistent browser profile")
-      .option("--persistent", "Use a persistent browser profile")
-      .option("--state <file>", "Load storage state before navigating"),
-  ).action(
-    async (
-      url: string,
-      options: {
-        session?: string;
-        headed?: boolean;
-        profile?: string;
-        persistent?: boolean;
-        state?: string;
-      },
-    ) => {
-      try {
-        const sessionName = requireSessionName(options);
-        const persistent = options.persistent || Boolean(options.profile);
-        let stateLoaded: string | undefined;
+      .description("Open a URL in an existing named managed browser session"),
+  ).action(async (url: string, options: { session?: string }) => {
+    try {
+      const sessionName = requireSessionName(options);
+      const result = await managedOpen(url, {
+        sessionName,
+        reset: false,
+      });
 
-        const result = options.state
-          ? await (async () => {
-              await managedOpen("about:blank", {
-                sessionName,
-                headed: options.headed,
-                profile: options.profile,
-                persistent,
-                reset: true,
-              });
-              await managedStateLoad(options.state, { sessionName });
-              stateLoaded = options.state;
-              return await managedOpen(url, {
-                sessionName,
-                reset: false,
-              });
-            })()
-          : await managedOpen(url, {
-              sessionName,
-              headed: options.headed,
-              profile: options.profile,
-              persistent,
-              reset: Boolean(options.headed || options.profile || persistent),
-            });
-
-        printCommandResult("open", {
-          session: result.session,
-          page: result.page,
-          data: {
-            ...result.data,
-            ...(stateLoaded ? { stateLoaded } : {}),
-          },
-        });
-      } catch (error) {
-        printSessionAwareCommandError("open", error, {
-          code: "OPEN_FAILED",
-          message: "open failed",
-          suggestions: [
-            "Verify the URL is reachable",
-            "Verify the local Playwright browser can launch normally",
-            "Use `pw session create <name> --open <url>` as the recommended main path",
-          ],
-        });
-        process.exitCode = 1;
-      }
-    },
-  );
+      printCommandResult("open", {
+        session: result.session,
+        page: result.page,
+        data: result.data,
+      });
+    } catch (error) {
+      printSessionAwareCommandError("open", error, {
+        code: "OPEN_FAILED",
+        message: "open failed",
+        suggestions: [
+          "Verify the URL is reachable",
+          "Create or recreate the session first if you need a different browser shape",
+          "Load storage state with `pw state load <file> --session <name>` before navigating",
+        ],
+      });
+      process.exitCode = 1;
+    }
+  });
 }

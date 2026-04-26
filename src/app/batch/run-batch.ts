@@ -1,25 +1,25 @@
+import { readFile } from "node:fs/promises";
+import { dirname, resolve } from "node:path";
+import { managedBootstrapApply } from "../../domain/bootstrap/service.js";
 import {
   managedErrors,
   managedObserveStatus,
   managedRoute,
 } from "../../domain/diagnostics/service.js";
-import {
-  managedBootstrapApply,
-} from "../../domain/bootstrap/service.js";
+import { managedStateLoad, managedStateSave } from "../../domain/identity-state/service.js";
 import {
   managedClick,
   managedFill,
   managedPress,
   managedReadText,
   managedRunCode,
-  managedScroll,
   managedScreenshot,
+  managedScroll,
   managedSnapshot,
   managedType,
   managedWait,
 } from "../../domain/interaction/service.js";
 import { managedOpen } from "../../domain/session/service.js";
-import { managedStateLoad, managedStateSave } from "../../domain/identity-state/service.js";
 import {
   managedPageCurrent,
   managedPageDialogs,
@@ -28,9 +28,7 @@ import {
 } from "../../domain/workspace/service.js";
 
 function formatBatchArgv(argv: string[]) {
-  return argv
-    .map((part) => (/[\s"'\\]/.test(part) ? JSON.stringify(part) : part))
-    .join(" ");
+  return argv.map((part) => (/[\s"'\\]/.test(part) ? JSON.stringify(part) : part)).join(" ");
 }
 
 async function executeBatchStep(tokens: string[], sessionName: string) {
@@ -163,6 +161,66 @@ async function executeBatchStep(tokens: string[], sessionName: string) {
         data: await managedErrors(args[0], { sessionName }),
       };
     case "route":
+      if (args[0] === "list") {
+        return {
+          ok: true,
+          command: "route list",
+          data: await managedRoute("list", {
+            sessionName,
+          }),
+        };
+      }
+      if (args[0] === "load") {
+        const file = args[1];
+        if (!file) {
+          throw new Error(`batch step '${rawStep}' requires a file after route load`);
+        }
+        const path = resolve(file);
+        const dir = dirname(path);
+        const specs = JSON.parse(await readFile(path, "utf8")) as Array<Record<string, unknown>>;
+        const loaded = [];
+        for (const spec of specs) {
+          if (typeof spec.pattern !== "string" || !spec.pattern) {
+            throw new Error(
+              `batch step '${rawStep}' requires every route spec to include a non-empty pattern`,
+            );
+          }
+          const body =
+            typeof spec.bodyFile === "string"
+              ? await readFile(resolve(dir, spec.bodyFile), "utf8")
+              : typeof spec.body === "string"
+                ? spec.body
+                : undefined;
+          const headers =
+            typeof spec.headersFile === "string"
+              ? (JSON.parse(await readFile(resolve(dir, spec.headersFile), "utf8")) as Record<
+                  string,
+                  string
+                >)
+              : spec.headers && typeof spec.headers === "object"
+                ? (spec.headers as Record<string, string>)
+                : undefined;
+          const result = await managedRoute("add", {
+            sessionName,
+            pattern: spec.pattern,
+            abort: Boolean(spec.abort),
+            body,
+            status: spec.status !== undefined ? Number(spec.status) : undefined,
+            contentType: typeof spec.contentType === "string" ? spec.contentType : undefined,
+            headers,
+            method: typeof spec.method === "string" ? spec.method : undefined,
+          });
+          loaded.push(result.data.route ?? { pattern: spec.pattern });
+        }
+        return {
+          ok: true,
+          command: "route load",
+          data: {
+            loadedCount: loaded.length,
+            routes: loaded,
+          },
+        };
+      }
       if (args[0] === "add") {
         const pattern = args[1];
         if (!pattern) {
@@ -170,6 +228,10 @@ async function executeBatchStep(tokens: string[], sessionName: string) {
         }
         let abort = false;
         let body: string | undefined;
+        let bodyFile: string | undefined;
+        let headersFile: string | undefined;
+        let headers: Record<string, string> | undefined;
+        let method: string | undefined;
         let status: number | undefined;
         let contentType: string | undefined;
 
@@ -181,6 +243,21 @@ async function executeBatchStep(tokens: string[], sessionName: string) {
           }
           if (arg === "--body") {
             body = args[index + 1];
+            index += 1;
+            continue;
+          }
+          if (arg === "--body-file") {
+            bodyFile = args[index + 1];
+            index += 1;
+            continue;
+          }
+          if (arg === "--headers-file") {
+            headersFile = args[index + 1];
+            index += 1;
+            continue;
+          }
+          if (arg === "--method") {
+            method = args[index + 1];
             index += 1;
             continue;
           }
@@ -196,6 +273,15 @@ async function executeBatchStep(tokens: string[], sessionName: string) {
           }
           throw new Error(`unsupported route batch argument '${arg}'`);
         }
+        if (bodyFile) {
+          body = await readFile(resolve(bodyFile), "utf8");
+        }
+        if (headersFile) {
+          headers = JSON.parse(await readFile(resolve(headersFile), "utf8")) as Record<
+            string,
+            string
+          >;
+        }
 
         return {
           ok: true,
@@ -205,6 +291,8 @@ async function executeBatchStep(tokens: string[], sessionName: string) {
             pattern,
             abort,
             body,
+            headers,
+            method,
             status,
             contentType,
           }),
@@ -221,7 +309,7 @@ async function executeBatchStep(tokens: string[], sessionName: string) {
         };
       }
       throw new Error(`unsupported route batch step '${rawStep}'`);
-    case "bootstrap":
+    case "bootstrap": {
       if (args[0] !== "apply") {
         throw new Error(`unsupported bootstrap batch step '${rawStep}'`);
       }
@@ -257,9 +345,23 @@ async function executeBatchStep(tokens: string[], sessionName: string) {
           headersFile,
         }),
       };
+    }
     case "click":
+      if (args[0] === "--selector") {
+        const selector = args[1];
+        if (!selector) {
+          throw new Error(`batch step '${rawStep}' requires a selector after --selector`);
+        }
+        return {
+          ok: true,
+          command: "click",
+          data: await managedClick({ selector, sessionName }),
+        };
+      }
       if (args.length !== 1) {
-        throw new Error(`batch step '${rawStep}' requires exactly one ref`);
+        throw new Error(
+          `batch step '${rawStep}' requires exactly one ref or --selector <selector>`,
+        );
       }
       return {
         ok: true,
@@ -315,13 +417,69 @@ async function executeBatchStep(tokens: string[], sessionName: string) {
         }),
       };
     case "wait": {
-      const target = args[0];
+      let target: string | undefined;
+      let text: string | undefined;
+      let selector: string | undefined;
+      let request: string | undefined;
+      let response: string | undefined;
+      let method: string | undefined;
+      let status: string | undefined;
+      let networkidle = false;
+
+      for (let index = 0; index < args.length; index += 1) {
+        const arg = args[index];
+        if (arg === "networkIdle" || arg === "networkidle" || arg === "--networkidle") {
+          networkidle = true;
+          continue;
+        }
+        if (arg === "--text") {
+          text = args[index + 1];
+          index += 1;
+          continue;
+        }
+        if (arg === "--selector") {
+          selector = args[index + 1];
+          index += 1;
+          continue;
+        }
+        if (arg === "--request") {
+          request = args[index + 1];
+          index += 1;
+          continue;
+        }
+        if (arg === "--response") {
+          response = args[index + 1];
+          index += 1;
+          continue;
+        }
+        if (arg === "--method") {
+          method = args[index + 1];
+          index += 1;
+          continue;
+        }
+        if (arg === "--status") {
+          status = args[index + 1];
+          index += 1;
+          continue;
+        }
+        if (!arg.startsWith("--") && !target) {
+          target = arg;
+          continue;
+        }
+        throw new Error(`unsupported wait batch argument '${arg}'`);
+      }
       return {
         ok: true,
         command: "wait",
         data: await managedWait({
-          target: target === "networkIdle" || target === "networkidle" ? undefined : target,
-          networkidle: target === "networkIdle" || target === "networkidle",
+          target: networkidle ? undefined : target,
+          text,
+          selector,
+          request,
+          response,
+          method,
+          status,
+          networkidle: networkidle || target === "networkIdle" || target === "networkidle",
           sessionName,
         }),
       };
