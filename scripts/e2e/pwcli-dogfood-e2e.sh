@@ -320,6 +320,12 @@ offline_off_json="$(run_json offline-off environment offline off --session "$SES
 assert_json "$offline_off_json" "offline off" "data.ok === true"
 clock_install_json="$(run_json clock-install environment clock install --session "$SESSION_NAME")"
 assert_json "$clock_install_json" "clock install ok" "data.ok === true"
+clock_set_json="$(run_json clock-set environment clock set --session "$SESSION_NAME" 2024-12-10T10:00:00.000Z)"
+assert_json "$clock_set_json" "clock set ok" \
+  "data.ok === true && data.data.clock.currentTime === '2024-12-10T10:00:00.000Z'"
+clock_verify_json="$(run_json clock-verify code --session "$SESSION_NAME" --file ./scripts/manual/clock-verify.js)"
+assert_json "$clock_verify_json" "clock verify sees updated date" \
+  "data.ok === true && data.data.result.iso.startsWith('2024-12-10T10:00:00')"
 clock_resume_json="$(run_json clock-resume environment clock resume --session "$SESSION_NAME")"
 assert_json "$clock_resume_json" "clock resume ok" "data.ok === true"
 

@@ -270,7 +270,7 @@ pw diagnostics digest --session ...
    - inject
    - response patch helper
 4. **environment deepening**
-   - 继续评估 `clock set`
+   - 如有真实场景，再补 `fastForward` / `runFor` / explicit pause
 
 ## 10. 当前结论
 

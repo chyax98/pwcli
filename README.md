@@ -95,7 +95,6 @@ pnpm test:dogfood:e2e
 - `MODAL_STATE_BLOCKED` 会阻断 run-code-backed 读取和部分动作
 - `observe status` 和 `doctor` 默认走 compact 输出，`--verbose` 才展开完整细节
 - `session attach --browser-url/--cdp` 依赖本地 attach bridge registry
-- `environment clock set` 当前是 limitation
 - `har start|stop` 当前只暴露 substrate 边界，没有稳定热录制 contract
 
 ## 入口
@@ -106,5 +105,7 @@ pnpm test:dogfood:e2e
 - 恢复策略：[skills/pwcli/references/failure-recovery.md](/Users/xd/work/tools/pwcli/skills/pwcli/references/failure-recovery.md)
 - 架构总览：[docs/architecture/README.md](/Users/xd/work/tools/pwcli/docs/architecture/README.md)
 - 文档规约：[docs/architecture/documentation-governance.md](/Users/xd/work/tools/pwcli/docs/architecture/documentation-governance.md)
+- Clock survey：[docs/architecture/environment-clock-survey.md](/Users/xd/work/tools/pwcli/docs/architecture/environment-clock-survey.md)
+- Workspace mutation contract：[docs/architecture/workspace-mutation-contract.md](/Users/xd/work/tools/pwcli/docs/architecture/workspace-mutation-contract.md)
 - E2E 计划：[docs/architecture/e2e-dogfood-test-plan.md](/Users/xd/work/tools/pwcli/docs/architecture/e2e-dogfood-test-plan.md)
 - E2E 体验报告：[docs/architecture/e2e-dogfood-experience-report.md](/Users/xd/work/tools/pwcli/docs/architecture/e2e-dogfood-experience-report.md)

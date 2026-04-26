@@ -80,13 +80,13 @@ Meaning:
 
 Typical case:
 
-- `environment clock set`
+- a managed environment mutation timed out on the run-code lane
 
 Recovery:
 
 1. Retry on a fresh session with less page activity
-2. If it fails again, treat it as unsupported on the current substrate
-3. Do not promise support unless a substrate survey says otherwise
+2. If it fails again, treat that specific mutation as unsupported on the current substrate
+3. Do not promise support unless you have direct evidence on the current substrate
 
 ### `CLOCK_REQUIRES_INSTALL`
 

@@ -14,6 +14,35 @@ import {
   requireSessionName,
 } from "./session-options.js";
 
+function formatProviderHelp(
+  provider: NonNullable<ReturnType<typeof getAuthProvider>>,
+) {
+  const lines = ["", `Provider: ${provider.name}`, "", provider.description, ""];
+  if (provider.args.length > 0) {
+    lines.push("Args:");
+    for (const arg of provider.args) {
+      lines.push(
+        `  - ${arg.name}${arg.required ? " (required)" : ""}${arg.defaultValue ? ` [default=${arg.defaultValue}]` : ""}: ${arg.description}`,
+      );
+    }
+    lines.push("");
+  }
+  if (provider.examples.length > 0) {
+    lines.push("Examples:");
+    for (const example of provider.examples) {
+      lines.push(`  ${example}`);
+    }
+    lines.push("");
+  }
+  if (provider.notes?.length) {
+    lines.push("Notes:");
+    for (const note of provider.notes) {
+      lines.push(`  - ${note}`);
+    }
+  }
+  return lines.join("\n").trimEnd();
+}
+
 function buildProviderInvocationSource(
   providerSource: string,
   providerArgs: Record<string, string>,
@@ -40,6 +69,17 @@ export function registerAuthCommand(program: Command): void {
       "  pw auth dc-login --session dc-forge --arg phone=13800138000 --arg targetUrl='https://developer-192-168-5-18.tap.dev/forge'",
     ].join("\n"),
   );
+  auth.action(() => {
+    printCommandError("auth", {
+      code: "AUTH_PROVIDER_REQUIRED",
+      message: "auth requires a provider name or a discovery subcommand",
+      suggestions: [
+        "Run `pw auth list` to inspect built-in auth providers",
+        "Run `pw auth info dc-login` to inspect provider args and defaults",
+      ],
+    });
+    process.exitCode = 1;
+  });
 
   auth
     .command("list")
@@ -81,86 +121,75 @@ export function registerAuthCommand(program: Command): void {
       });
     });
 
-  const authUse = auth.command("use <provider>", { isDefault: true });
-
-  addSessionOption(
-    authUse
-      .option("--save-state <file>", "Save storage state after auth finishes")
-      .option(
-        "--arg <key=value>",
-        "Provider argument",
-        (value, acc) => {
-          acc.push(value);
-          return acc;
-        },
-        [] as string[],
-      ),
-  ).action(
-    async (
-      provider: string,
-      options: {
-        session?: string;
-        saveState?: string;
-        arg?: string[];
-      },
-    ) => {
-      try {
-        const sessionName = requireSessionName(options);
-        const providerName = provider.trim();
-
-        const providerSpec = getAuthProvider(providerName);
-        if (!providerSpec) {
-          throw new Error(`auth provider '${providerName}' not found`);
-        }
-
-        const providerSource = loadAuthProviderSource(providerSpec);
-        const rawArgs = parseKeyValueArgs(options.arg);
-        const args = providerSpec.resolveArgs ? await providerSpec.resolveArgs(rawArgs) : rawArgs;
-
-        const result = await managedRunCode({
-          sessionName,
-          source: buildProviderInvocationSource(providerSource, args),
-        });
-        const providerResult =
-          result.data.result && typeof result.data.result === "object"
-            ? (result.data.result as Record<string, unknown>)
-            : undefined;
-        const pageState =
-          providerResult?.pageState && typeof providerResult.pageState === "object"
-            ? (providerResult.pageState as Record<string, unknown>)
-            : providerResult?.page && typeof providerResult.page === "object"
-              ? (providerResult.page as Record<string, unknown>)
-              : undefined;
-
-        if (options.saveState) {
-          await managedStateSave(options.saveState, { sessionName });
-        }
-
-        printCommandResult("auth", {
-          session: result.session,
-          page: result.page,
-          data: {
-            provider: providerName,
-            args,
-            pageState,
-            ...(options.saveState ? { stateSaved: options.saveState } : {}),
-            result: result.data.result,
-            ...(result.data.resultText ? { resultText: result.data.resultText } : {}),
+  for (const provider of listAuthProviders().map((item) => getAuthProvider(item.name)).filter(Boolean)) {
+    addSessionOption(
+      auth
+        .command(provider.name)
+        .description(provider.summary)
+        .addHelpText("after", formatProviderHelp(provider))
+        .option("--save-state <file>", "Save storage state after auth finishes")
+        .option(
+          "--arg <key=value>",
+          "Provider argument",
+          (value, acc) => {
+            acc.push(value);
+            return acc;
           },
-        });
-      } catch (error) {
-        printSessionAwareCommandError("auth", error, {
-          code: "AUTH_FAILED",
-          message: "auth failed",
-          suggestions: [
-            "Run `pw auth list` to inspect built-in auth providers",
-            "Run `pw auth info dc-login` to inspect required args and defaults",
-            "Create the session first with `pw session create <name> --open <url>`",
-            "Pass provider-specific runtime args through `--arg key=value`",
-          ],
-        });
-        process.exitCode = 1;
-      }
-    },
-  );
+          [] as string[],
+        ),
+    ).action(
+      async (options: { session?: string; saveState?: string; arg?: string[] }) => {
+        try {
+          const sessionName = requireSessionName(options);
+          const providerSource = loadAuthProviderSource(provider);
+          const rawArgs = parseKeyValueArgs(options.arg);
+          const args = provider.resolveArgs ? await provider.resolveArgs(rawArgs) : rawArgs;
+
+          const result = await managedRunCode({
+            sessionName,
+            source: buildProviderInvocationSource(providerSource, args),
+          });
+          const providerResult =
+            result.data.result && typeof result.data.result === "object"
+              ? (result.data.result as Record<string, unknown>)
+              : undefined;
+          const pageState =
+            providerResult?.pageState && typeof providerResult.pageState === "object"
+              ? (providerResult.pageState as Record<string, unknown>)
+              : providerResult?.page && typeof providerResult.page === "object"
+                ? (providerResult.page as Record<string, unknown>)
+                : undefined;
+
+          if (options.saveState) {
+            await managedStateSave(options.saveState, { sessionName });
+          }
+
+          printCommandResult("auth", {
+            session: result.session,
+            page: result.page,
+            data: {
+              provider: provider.name,
+              args,
+              pageState,
+              ...(options.saveState ? { stateSaved: options.saveState } : {}),
+              result: result.data.result,
+              ...(result.data.resultText ? { resultText: result.data.resultText } : {}),
+            },
+          });
+        } catch (error) {
+          printSessionAwareCommandError("auth", error, {
+            code: "AUTH_FAILED",
+            message: "auth failed",
+            suggestions: [
+              "Run `pw auth list` to inspect built-in auth providers",
+              `Run \`pw auth info ${provider.name}\` to inspect required args and defaults`,
+              "Create the session first with `pw session create <name> --open <url>`",
+              "Pass provider-specific runtime args through `--arg key=value`",
+            ],
+          });
+          process.exitCode = 1;
+        }
+      },
+    );
+  }
 }

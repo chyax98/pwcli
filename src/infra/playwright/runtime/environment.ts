@@ -436,11 +436,17 @@ export async function managedEnvironmentClockSet(iso: string, options?: ManagedE
     `async page => {
       const context = page.context();
       const clock = context.clock || page.clock;
-      if (!clock || typeof clock.pauseAt !== 'function') {
+      const setMethod =
+        clock && typeof clock.setFixedTime === 'function'
+          ? 'setFixedTime'
+          : clock && typeof clock.setSystemTime === 'function'
+            ? 'setSystemTime'
+            : null;
+      if (!clock || !setMethod) {
         return JSON.stringify({
           ok: false,
           code: 'CLOCK_LIMITATION',
-          message: 'Clock pauseAt is unavailable on the current managed session substrate.',
+          message: 'Clock set is unavailable on the current managed session substrate.',
         });
       }
       const state = context[${JSON.stringify(DIAGNOSTICS_STATE_KEY)}] ||= {};
@@ -454,7 +460,7 @@ export async function managedEnvironmentClockSet(iso: string, options?: ManagedE
         });
       }
       try {
-        await clock.pauseAt(${JSON.stringify(iso)});
+        await clock[setMethod](${JSON.stringify(iso)});
       } catch (error) {
         return JSON.stringify({
           ok: false,
@@ -465,9 +471,10 @@ export async function managedEnvironmentClockSet(iso: string, options?: ManagedE
       state.environment.clock = {
         ...currentClock,
         installed: true,
-        paused: true,
+        paused: false,
         currentTime: ${JSON.stringify(iso)},
         lastAction: 'set',
+        setMethod,
         updatedAt: new Date().toISOString(),
       };
       return JSON.stringify({
@@ -482,7 +489,7 @@ export async function managedEnvironmentClockSet(iso: string, options?: ManagedE
   return environmentSessionResult(result, {
     clock: parsed.clock ?? {
       installed: true,
-      paused: true,
+      paused: false,
       currentTime: iso,
     },
   });

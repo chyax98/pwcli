@@ -10,16 +10,22 @@ ORIGIN="http://127.0.0.1:${PORT}"
 BLANK_URL="${ORIGIN}/blank"
 RUN_ID="$(date +%H%M%S)$((RANDOM % 100))"
 SESSION_NAME="sm${RUN_ID}"
+AUTH_SESSION="${SESSION_NAME}a"
 TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/pwcli-smoke.XXXXXX")"
 HEADERS_FILE="${TMP_DIR}/headers.json"
 ROUTE_INJECT_HEADERS_FILE="${TMP_DIR}/route-inject-headers.json"
+AUTH_STATE_FILE="${TMP_DIR}/auth-state.json"
 SERVER_LOG="${TMP_DIR}/fixture-server.log"
 SERVER_PID=""
 SESSION_CLOSED="0"
+AUTH_SESSION_CLOSED="0"
 
 cleanup() {
   if [[ "$SESSION_CLOSED" != "1" ]]; then
     "${CLI[@]}" session close "$SESSION_NAME" >/dev/null 2>&1 || true
+  fi
+  if [[ "$AUTH_SESSION_CLOSED" != "1" ]]; then
+    "${CLI[@]}" session close "$AUTH_SESSION" >/dev/null 2>&1 || true
   fi
   if [[ -n "$SERVER_PID" ]]; then
     kill "$SERVER_PID" >/dev/null 2>&1 || true
@@ -119,6 +125,49 @@ log "page current"
 page_json="$(run_json page-current page current --session "$SESSION_NAME")"
 assert_json "$page_json" "page current points at fixture" \
   "data.ok === true && data.data.currentPage.url === '${BLANK_URL}' && data.data.pageCount >= 1"
+
+log "session list"
+session_list_json="$(run_json session-list session list)"
+assert_json "$session_list_json" "session list is lightweight by default" \
+  "data.ok === true && data.data.withPage === false && data.data.sessions.some(item => item.name === '${SESSION_NAME}' && item.page === undefined)"
+session_list_with_page_json="$(run_json session-list-with-page session list --with-page)"
+assert_json "$session_list_with_page_json" "session list can include page summaries on demand" \
+  "data.ok === true && data.data.withPage === true && data.data.sessions.some(item => item.name === '${SESSION_NAME}' && item.page && item.page.url === '${BLANK_URL}')"
+
+log "auth provider discovery"
+auth_list_json="$(run_json auth-list auth list)"
+assert_json "$auth_list_json" "auth list exposes built-in providers" \
+  "data.ok === true && data.data.providers.some(item => item.name === 'dc-login') && data.data.providers.some(item => item.name === 'fixture-auth')"
+auth_info_json="$(run_json auth-info auth info fixture-auth)"
+assert_json "$auth_info_json" "auth info exposes fixture-auth contract" \
+  "data.ok === true && data.data.name === 'fixture-auth' && data.data.args.some(item => item.name === 'marker')"
+auth_apply_json="$(run_json auth-apply auth fixture-auth --session "$SESSION_NAME" --arg marker=smoke-auth --save-state "$AUTH_STATE_FILE")"
+assert_json "$auth_apply_json" "auth provider executes and saves state" \
+  "data.ok === true && data.data.provider === 'fixture-auth' && data.data.pageState.authMarker === 'smoke-auth' && data.data.stateSaved === '${AUTH_STATE_FILE}'"
+storage_after_auth_json="$(run_json storage-after-auth storage local --session "$SESSION_NAME")"
+assert_json "$storage_after_auth_json" "auth provider writes local storage marker" \
+  "data.ok === true && data.data.entries['pwcli-auth-marker'] === 'smoke-auth'"
+cookies_after_auth_json="$(run_json cookies-after-auth cookies list --session "$SESSION_NAME")"
+assert_json "$cookies_after_auth_json" "auth provider writes cookie marker" \
+  "data.ok === true && data.data.cookies.some(item => item.name === 'pwcli_auth_marker' && item.value === 'smoke-auth')"
+
+log "auth state reuse"
+auth_session_create_json="$(run_json auth-session-create session create "$AUTH_SESSION" --open "$BLANK_URL")"
+assert_json "$auth_session_create_json" "auth reuse session created" \
+  "data.ok === true && data.data.created === true"
+auth_state_load_json="$(run_json auth-state-load state load "$AUTH_STATE_FILE" --session "$AUTH_SESSION")"
+assert_json "$auth_state_load_json" "auth state file loaded" \
+  "data.ok === true && data.data.loaded === true"
+auth_storage_reuse_json="$(run_json auth-storage-reuse storage local --session "$AUTH_SESSION")"
+assert_json "$auth_storage_reuse_json" "auth state restores local storage marker" \
+  "data.ok === true && data.data.entries['pwcli-auth-marker'] === 'smoke-auth'"
+auth_cookies_reuse_json="$(run_json auth-cookies-reuse cookies list --session "$AUTH_SESSION")"
+assert_json "$auth_cookies_reuse_json" "auth state restores cookie marker" \
+  "data.ok === true && data.data.cookies.some(item => item.name === 'pwcli_auth_marker' && item.value === 'smoke-auth')"
+auth_session_close_json="$(run_json auth-session-close session close "$AUTH_SESSION")"
+assert_json "$auth_session_close_json" "auth reuse session closed" \
+  "data.ok === true && data.command === 'session close'"
+AUTH_SESSION_CLOSED="1"
 
 log "observe status"
 observe_json="$(run_json observe-status observe status --session "$SESSION_NAME")"
@@ -262,6 +311,20 @@ assert_json "$route_patch_json" "route patch added" \
 route_patch_verify_json="$(run_json route-patch-verify code --session "$SESSION_NAME" --file ./scripts/manual/route-patch-verify.js)"
 assert_json "$route_patch_verify_json" "route patch rewrites upstream json response" \
   "data.ok === true && data.data.result.status === 218 && data.data.result.payload.severity === 'critical' && data.data.result.payload.meta.patched === true && data.data.result.payload.meta.source === 'server'"
+
+log "environment clock"
+clock_install_json="$(run_json clock-install environment clock install --session "$SESSION_NAME")"
+assert_json "$clock_install_json" "clock install ok" \
+  "data.ok === true && data.data.clock.installed === true"
+clock_set_json="$(run_json clock-set environment clock set --session "$SESSION_NAME" 2024-12-10T10:00:00.000Z)"
+assert_json "$clock_set_json" "clock set uses stable method" \
+  "data.ok === true && data.data.clock.currentTime === '2024-12-10T10:00:00.000Z' && (data.data.clock.setMethod === 'setFixedTime' || data.data.clock.setMethod === 'setSystemTime')"
+clock_verify_json="$(run_json clock-verify code --session "$SESSION_NAME" --file ./scripts/manual/clock-verify.js)"
+assert_json "$clock_verify_json" "clock verify sees updated date" \
+  "data.ok === true && data.data.result.iso.startsWith('2024-12-10T10:00:00')"
+clock_resume_json="$(run_json clock-resume environment clock resume --session "$SESSION_NAME")"
+assert_json "$clock_resume_json" "clock resume ok" \
+  "data.ok === true && data.data.clock.installed === true && data.data.clock.paused === false"
 
 log "doctor"
 doctor_json="$(run_json doctor doctor --session "$SESSION_NAME" --endpoint "$BLANK_URL")"

@@ -62,8 +62,7 @@
 - `offline on|off`
 - `geolocation set`
 - `permissions grant|clear`
-- `clock install|resume`
-- `clock set` 当前明确暴露 limitation
+- `clock install|set|resume`
 
 ## 当前取舍
 
@@ -91,7 +90,7 @@
 2. mock 第二层继续深化
    - query / header / json-body matching 是否值得继续扩
    - response patch 是否需要 header merge 或 text patch
-3. environment substrate survey
-   - `clock set` 是否能借更深的 Playwright/Core lane 做稳
+3. environment substrate 继续深化
+   - 是否补 `fastForward` / `runFor` / explicit pause
 
 只有在这些完成后，才讨论 observe stream 或 raw CDP substrate。

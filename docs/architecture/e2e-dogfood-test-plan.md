@@ -256,11 +256,12 @@ scripts/e2e/
 - `geolocation set`
 - `permissions grant|clear`
 - `clock install`
+- `clock set`
 - `clock resume`
 
 限制确认：
 
-- `clock set` 继续作为 limitation 测试
+- `fastForward` / `runFor` / explicit pause 继续后置
 
 ### 5.7 Identity State
 

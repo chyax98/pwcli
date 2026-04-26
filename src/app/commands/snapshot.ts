@@ -9,11 +9,8 @@ import {
 
 export function registerSnapshotCommand(program: Command): void {
   addSessionOption(
-    program
-      .command("snapshot")
-      .description("Capture an AI-friendly page snapshot")
-      .option("--mode <mode>", "Snapshot mode: ai|default"),
-  ).action(async (options: { session?: string; mode?: "ai" | "default" }) => {
+    program.command("snapshot").description("Capture an AI-friendly page snapshot"),
+  ).action(async (options: { session?: string }) => {
     try {
       const sessionName = requireSessionName(options);
       printCommandResult("snapshot", await managedSnapshot({ sessionName }));

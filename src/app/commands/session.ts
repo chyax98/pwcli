@@ -39,20 +39,24 @@ export function registerSessionCommand(program: Command): void {
   session
     .command("list")
     .description("List managed sessions in the current workspace")
-    .action(async () => {
+    .option("--with-page", "Include best-effort page summaries for live sessions")
+    .action(async (options: { withPage?: boolean }) => {
       try {
         const sessions = await listManagedSessions();
-        const enriched = await Promise.all(
-          sessions.map(async (entry) => ({
-            ...entry,
-            page: entry.alive
-              ? await getSessionPageSummary(entry.name).catch(() => undefined)
-              : undefined,
-          })),
-        );
+        const enriched = options.withPage
+          ? await Promise.all(
+              sessions.map(async (entry) => ({
+                ...entry,
+                page: entry.alive
+                  ? await getSessionPageSummary(entry.name).catch(() => undefined)
+                  : undefined,
+              })),
+            )
+          : sessions;
         printCommandResult("session list", {
           data: {
             count: enriched.length,
+            withPage: Boolean(options.withPage),
             sessions: enriched,
           },
         });

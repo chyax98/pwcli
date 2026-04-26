@@ -261,7 +261,7 @@ export function registerEnvironmentCommand(program: Command): void {
   addSessionOption(
     clock
       .command("set <iso>")
-      .description("Pause the managed-session clock at a target ISO timestamp"),
+      .description("Set the managed-session clock to a target ISO timestamp"),
   ).action(async (iso: string, options: { session?: string }, command: Command) => {
     try {
       const sessionName = requireSessionName(options, command);

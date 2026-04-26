@@ -45,6 +45,12 @@ pw session close --all
 pw session list
 ```
 
+只有你真的需要 session 对应页面摘要时，再显式用：
+
+```bash
+pw session list --with-page
+```
+
 然后按这个顺序判断：
 
 1. 已经存在合适的 session，就优先复用。
@@ -96,7 +102,9 @@ pw auth info dc-login
 
 - `auth` 只暴露内置 provider，不再走工作目录 plugin 扫描
 - 外部 JS 脚本请直接使用 `pw code --file`
-- 当前 provider 参数说明以 `pw auth info <name>` 为准，不要期待 `pw auth dc-login --help` 返回完整 contract
+- `pw auth dc-login --help` 现在会返回 provider-specific 参数说明；冷启动时仍然优先先看 `auth list` / `auth info`
+- `auth list` 里可能出现内部测试 provider，看 summary 区分用途
+- `session list` 默认是轻量发现命令；只有显式 `--with-page` 时才补页面摘要
 
 ## 标准工作流
 
@@ -378,7 +386,6 @@ pw diagnostics export --session bug-a --section network --text checkout --fields
 - 不要再猜 `pw plugin *` 这类旧心智。
 - 不要让 `open`、`profile`、`auth` 承担 lifecycle mutation。
 - 不要把当前 `session attach` 之外的 raw CDP substrate 当成已支持。
-- 不要把 `environment clock set` 说成当前 substrate 已稳定支持。
 - 不要把未来规划写得像已经 shipped。
 
 ## 快速索引

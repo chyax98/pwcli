@@ -21,6 +21,9 @@ export type AuthProviderSpec = {
 };
 
 const bundledDcLoginPath = fileURLToPath(new URL("../../../plugins/dc-login.js", import.meta.url));
+const bundledFixtureAuthPath = fileURLToPath(
+  new URL("../../../plugins/fixture-auth.js", import.meta.url),
+);
 
 const AUTH_PROVIDERS: AuthProviderSpec[] = [
   {
@@ -63,6 +66,30 @@ const AUTH_PROVIDERS: AuthProviderSpec[] = [
       "如果同时存在多个本地 Forge dev instance，需要显式传 instance 或 baseURL。",
     ],
     resolveArgs: resolveDcLoginArgs,
+  },
+  {
+    name: "fixture-auth",
+    summary: "内部测试 provider，仅用于 auth contract 回归验证",
+    description:
+      "在当前页面 origin 上写入 cookie 和 localStorage，用于验证 auth provider 执行链与 save-state 行为。",
+    bundledSourcePath: bundledFixtureAuthPath,
+    args: [
+      {
+        name: "marker",
+        defaultValue: "fixture-auth",
+        description: "写入 cookie/localStorage 的标记值。",
+      },
+      {
+        name: "path",
+        defaultValue: "/",
+        description: "写入 cookie 时使用的 path。",
+      },
+    ],
+    examples: [
+      "pw auth fixture-auth --session bug-a --arg marker=smoke-auth",
+      "pw auth fixture-auth --session bug-a --arg marker=smoke-auth --save-state ./auth.json",
+    ],
+    notes: ["仅用于本地 smoke / e2e / contract 回归，不是业务登录能力。"],
   },
 ];
 

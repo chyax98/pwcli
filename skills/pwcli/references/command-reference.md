@@ -48,7 +48,9 @@
 ### `pw session list`
 
 - 列出当前 workspace bucket 下的 managed sessions
-- 返回 session 元数据和 best-effort 页面摘要
+- 默认只返回 session 元数据和 alive 信息
+- 可选：
+  - `--with-page`，为 live session 补 best-effort 页面摘要
 
 ### `pw session create <name>`
 
@@ -508,12 +510,13 @@
 ### `pw auth list`
 
 - 列出内置 auth provider
+- 可能包含内部测试 provider；看 summary 区分用途
 
 ### `pw auth info <name>`
 
 - 返回内置 auth provider 的参数、默认值、示例、说明
 
-### `pw auth [provider] --session <name>`
+### `pw auth <provider> --session <name>`
 
 选项：
 
@@ -526,6 +529,8 @@
 - 需要的 session shape 先通过 `session create` 建好
 - 可选地在完成后保存 state
 - 外部脚本不走 `auth`，直接走 `pw code --file <path>`
+- `pw auth <provider> --help` 现在会返回 provider-specific 参数说明
+- 冷启动时仍然建议先看 `pw auth list` / `pw auth info <name>`
 
 ### `pw bootstrap apply --session <name>`
 
@@ -617,7 +622,8 @@ stdin 输入格式：
 
 ### `pw environment clock set --session <name> <iso>`
 
-- 当前 managed substrate 下可能返回 limitation
+- 将当前 fake time 设到目标 ISO 时间
+- 需要先 `clock install`
 
 ### `pw environment clock resume --session <name>`
 

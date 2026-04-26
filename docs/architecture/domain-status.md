@@ -39,6 +39,7 @@
 - `observe status`
 - page / frame / dialog projection
 - `observe status` 默认 compact，`--verbose` 返回完整状态载荷
+- future mutation contract 已单独定义在 `workspace-mutation-contract.md`
 
 ### 当前限制
 
@@ -179,15 +180,15 @@
 - `offline on|off`
 - `geolocation set`
 - `permissions grant|clear`
-- `clock install|resume`
+- `clock install|set|resume`
 
 ### 当前限制
 
-- `clock set` 当前是 `ENVIRONMENT_LIMITATION`
+- 更复杂的 clock advance / pause 语义还没进入命令面
 
 ### 后续扩展
 
-- 只有在 survey 证明值得时，才继续追 `clock set`
+- 如果真实场景需要，再补 `fastForward` / `runFor` / explicit pause
 
 ## 9. Skill And Docs
 
