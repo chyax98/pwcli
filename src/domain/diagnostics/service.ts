@@ -1,5 +1,6 @@
 export {
   managedConsole,
+  managedDiagnosticsExport,
   managedErrors,
   managedHar,
   managedNetwork,

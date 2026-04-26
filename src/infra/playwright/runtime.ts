@@ -7,3 +7,4 @@ export * from "./runtime/workspace.js";
 export * from "./runtime/diagnostics.js";
 export * from "./runtime/bootstrap.js";
 export * from "./runtime/interaction.js";
+export * from "./runtime/environment.js";

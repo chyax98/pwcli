@@ -13,11 +13,19 @@ export function registerConsoleCommand(program: Command): void {
       .command("console")
       .description("Show recent console messages from a named managed session")
       .option("--level <level>", "Minimum level: info|warning|error", "info")
-      .option("--text <text>", "Filter console messages by substring"),
-  ).action(async (options: { session?: string; level?: string; text?: string }) => {
+      .option("--text <text>", "Filter console messages by substring")
+      .option("--limit <n>", "Limit result sample size"),
+  ).action(async (options: { session?: string; level?: string; text?: string; limit?: string }) => {
     try {
       const sessionName = requireSessionName(options);
-      printCommandResult("console", await managedConsole(options.level, { sessionName, text: options.text }));
+      printCommandResult(
+        "console",
+        await managedConsole(options.level, {
+          sessionName,
+          text: options.text,
+          limit: options.limit ? Number(options.limit) : undefined,
+        }),
+      );
     } catch (error) {
       printSessionAwareCommandError("console", error, {
         code: "CONSOLE_FAILED",

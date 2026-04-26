@@ -52,7 +52,7 @@ export async function managedTrace(action: "start" | "stop", options?: { session
 
 export async function managedErrors(
   action: "recent" | "clear",
-  options?: { sessionName?: string },
+  options?: { sessionName?: string; text?: string; limit?: number },
 ) {
   await managedEnsureDiagnosticsHooks({ sessionName: options?.sessionName });
   const result = await managedRunCode({
@@ -74,15 +74,20 @@ export async function managedErrors(
           errors: [],
         });
       }
-      const errors = allErrors.slice(clearedCount).map((error, index) => ({
+      const textFilter = ${JSON.stringify(options?.text ?? "")};
+      const limit = ${JSON.stringify(options?.limit ?? 20)};
+      const visible = allErrors.slice(clearedCount).map((error, index) => ({
         index: clearedCount + index + 1,
         ...error,
       }));
+      const errors = visible
+        .filter(error => !textFilter || String(error.text || '').includes(textFilter))
+        .slice(-Math.max(0, Number(limit || 0) || 20));
       return JSON.stringify({
         action: 'recent',
         clearedCount,
         totalErrors: allErrors.length,
-        visibleCount: errors.length,
+        visibleCount: visible.length,
         errors,
       });
     }`,
@@ -106,13 +111,15 @@ export async function managedErrors(
 }
 
 export async function managedRoute(
-  action: "add" | "remove",
+  action: "add" | "remove" | "list",
   options: {
     pattern?: string;
     abort?: boolean;
     body?: string;
     status?: number;
     contentType?: string;
+    headers?: Record<string, string>;
+    method?: string;
     sessionName?: string;
   },
 ) {
@@ -125,10 +132,24 @@ export async function managedRoute(
     body: options.body,
     status: options.status,
     contentType: options.contentType,
+    headers: options.headers,
+    method: options.method?.toUpperCase(),
   };
   const result = await managedRunCode({
     sessionName: options.sessionName,
     source:
+      action === "list"
+        ? `async page => {
+      const context = page.context();
+      const state = context[${JSON.stringify(DIAGNOSTICS_STATE_KEY)}] ||= {};
+      state.routes = Array.isArray(state.routes) ? state.routes : [];
+      return JSON.stringify({
+        action: 'list',
+        routeCount: state.routes.length,
+        routes: state.routes,
+      });
+    }`
+        :
       action === "add"
         ? `async page => {
       const context = page.context();
@@ -137,6 +158,10 @@ export async function managedRoute(
       const pattern = ${JSON.stringify(options.pattern)};
       const config = ${JSON.stringify(config)};
       await context.route(pattern, async route => {
+        if (config.method && route.request().method().toUpperCase() !== config.method) {
+          await route.fallback();
+          return;
+        }
         if (config.abort) {
           await route.abort();
           return;
@@ -148,6 +173,8 @@ export async function managedRoute(
           };
           if (config.contentType)
             fulfillOptions.contentType = config.contentType;
+          if (config.headers)
+            fulfillOptions.headers = config.headers;
           await route.fulfill(fulfillOptions);
           return;
         }
@@ -162,6 +189,10 @@ export async function managedRoute(
         routeRecord.status = config.status;
       if (config.contentType)
         routeRecord.contentType = config.contentType;
+      if (config.method)
+        routeRecord.method = config.method;
+      if (config.headers)
+        routeRecord.headers = config.headers;
       if (config.body !== undefined) {
         routeRecord.hasBody = true;
         routeRecord.bodyPreview = config.body.length > 120 ? config.body.slice(0, 120) + '...' : config.body;
@@ -203,7 +234,8 @@ export async function managedRoute(
     page: result.page,
     data: {
       action,
-      ...(action === "add" ? { added: true } : { removed: true }),
+      ...(action === "add" ? { added: true } : {}),
+      ...(action === "remove" ? { removed: true } : {}),
       ...(parsed.route ? { route: parsed.route } : {}),
       ...(parsed.removedPattern !== undefined ? { pattern: parsed.removedPattern } : {}),
       ...(parsed.removedCount !== undefined ? { removedCount: parsed.removedCount } : {}),
@@ -339,7 +371,7 @@ export async function managedObserveStatus(options?: { sessionName?: string }) {
 
 export async function managedConsole(
   level?: string,
-  options?: { sessionName?: string; text?: string },
+  options?: { sessionName?: string; text?: string; limit?: number },
 ) {
   await managedEnsureDiagnosticsHooks({ sessionName: options?.sessionName });
   const result = await managedRunCode({
@@ -352,6 +384,7 @@ export async function managedConsole(
       const threshold = ${JSON.stringify(level ?? "info")};
       const thresholdRank = order[threshold] ?? 1;
       const textFilter = ${JSON.stringify(options?.text ?? "")};
+      const limit = ${JSON.stringify(options?.limit ?? 20)};
       const filtered = records.filter(record => {
         if ((order[record.level] ?? 1) < thresholdRank)
           return false;
@@ -363,7 +396,7 @@ export async function managedConsole(
         total: filtered.length,
         errors: filtered.filter(record => record.level === 'error').length,
         warnings: filtered.filter(record => record.level === 'warning' || record.level === 'warn').length,
-        sample: filtered.slice(-20),
+        sample: filtered.slice(-Math.max(0, Number(limit || 0) || 20)),
       });
     }`,
   });
@@ -386,6 +419,9 @@ export async function managedNetwork(options?: {
   status?: string;
   resourceType?: string;
   text?: string;
+  url?: string;
+  kind?: "request" | "response" | "requestfailed";
+  limit?: number;
 }) {
   await managedEnsureDiagnosticsHooks({ sessionName: options?.sessionName });
   const result = await managedRunCode({
@@ -399,14 +435,21 @@ export async function managedNetwork(options?: {
       const statusFilter = ${JSON.stringify(options?.status ?? "")};
       const resourceTypeFilter = ${JSON.stringify(options?.resourceType ?? "")};
       const textFilter = ${JSON.stringify(options?.text ?? "")};
+      const urlFilter = ${JSON.stringify(options?.url ?? "")};
+      const kindFilter = ${JSON.stringify(options?.kind ?? "")};
+      const limit = ${JSON.stringify(options?.limit ?? 20)};
       const filtered = records.filter(record => {
         if (requestId && record.requestId !== requestId)
+          return false;
+        if (kindFilter && String(record.event || record.kind || '') !== kindFilter)
           return false;
         if (methodFilter && String(record.method || '').toUpperCase() !== methodFilter)
           return false;
         if (statusFilter && String(record.status ?? '') !== statusFilter)
           return false;
         if (resourceTypeFilter && String(record.resourceType || '') !== resourceTypeFilter)
+          return false;
+        if (urlFilter && !String(record.url || '').includes(urlFilter))
           return false;
         if (textFilter) {
           const haystack = [record.url, record.failureText, record.method, record.resourceType].filter(Boolean).join(' ');
@@ -415,7 +458,7 @@ export async function managedNetwork(options?: {
         }
         return true;
       });
-      const sample = filtered.slice(-20);
+      const sample = filtered.slice(-Math.max(0, Number(limit || 0) || 20));
       const detail = requestId ? filtered[filtered.length - 1] || null : null;
       return JSON.stringify({
         total: filtered.length,
@@ -458,5 +501,39 @@ export async function buildDiagnosticsDelta(
     lastConsole: status.data.console?.last ?? null,
     lastNetwork: status.data.network?.last ?? null,
     lastPageError: status.data.pageErrors?.last ?? null,
+  };
+}
+
+export async function managedDiagnosticsExport(options?: { sessionName?: string }) {
+  const workspace = await managedObserveStatus({ sessionName: options?.sessionName });
+  const records = await managedRunCode({
+    sessionName: options?.sessionName,
+    source: `async page => {
+      const context = page.context();
+      const state = context[${JSON.stringify(DIAGNOSTICS_STATE_KEY)}] || {};
+      return JSON.stringify({
+        console: Array.isArray(state.consoleRecords) ? state.consoleRecords : [],
+        network: Array.isArray(state.networkRecords) ? state.networkRecords : [],
+        errors: Array.isArray(state.pageErrorRecords) ? state.pageErrorRecords : [],
+        routes: Array.isArray(state.routes) ? state.routes : [],
+        bootstrap: state.bootstrap || null,
+      });
+    }`,
+  });
+  const parsed =
+    typeof records.data.result === "object" && records.data.result ? records.data.result : {};
+
+  return {
+    session: workspace.session,
+    page: workspace.page,
+    data: {
+      session: workspace.session?.name ?? options?.sessionName ?? null,
+      workspace: workspace.data.workspace,
+      console: Array.isArray(parsed.console) ? parsed.console : [],
+      network: Array.isArray(parsed.network) ? parsed.network : [],
+      errors: Array.isArray(parsed.errors) ? parsed.errors : [],
+      routes: Array.isArray(parsed.routes) ? parsed.routes : [],
+      bootstrap: parsed.bootstrap ?? null,
+    },
   };
 }
