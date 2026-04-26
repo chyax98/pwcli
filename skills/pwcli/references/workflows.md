@@ -8,6 +8,7 @@ pw snapshot --session bug-a
 pw page current --session bug-a
 pw click e6 --session bug-a
 pw wait networkIdle --session bug-a
+pw diagnostics digest --session bug-a
 pw console --session bug-a --level warning --limit 20
 pw network --session bug-a --kind response --limit 20
 pw errors recent --session bug-a --limit 20

@@ -31,6 +31,7 @@
 - `open` 只做导航
 - `auth` 只做 plugin 执行
 - `batch` 只走结构化 `string[][]`
+- `diagnostics digest` 是第一层诊断入口
 - skill 是唯一使用教程真相
 - `docs/architecture` 只维护架构、领域现状、限制和扩展方向
 

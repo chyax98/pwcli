@@ -31,6 +31,7 @@ pw session create bug-a --open 'https://example.com'
 pw snapshot --session bug-a
 pw click e6 --session bug-a
 pw wait networkIdle --session bug-a
+pw diagnostics digest --session bug-a
 pw diagnostics export --session bug-a --out ./diag.json
 ```
 

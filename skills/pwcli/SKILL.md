@@ -111,6 +111,7 @@ Prefer this target order:
 Use:
 
 ```bash
+pw diagnostics digest --session bug-a
 pw console --session bug-a ...
 pw network --session bug-a ...
 pw errors recent --session bug-a ...
@@ -122,6 +123,7 @@ pw diagnostics grep --run <runId> --text <substring>
 
 Treat:
 
+- `diagnostics digest` as the fastest high-signal summary
 - `diagnosticsDelta` on action results as the first signal
 - `console/network/errors` as live-session query tools
 - `diagnostics show/grep` as run-scoped replay tools

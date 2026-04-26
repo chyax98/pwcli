@@ -295,7 +295,29 @@
 
 ### `pw diagnostics runs`
 
-- 列出 `.pwcli/runs/` 下的 run ids
+- 列出 `.pwcli/runs/` 下的 run 摘要
+- 返回：
+  - `runId`
+  - `sessionName`
+  - `firstTimestamp`
+  - `lastTimestamp`
+  - `commandCount`
+  - `summary`
+
+### `pw diagnostics digest`
+
+选项：
+
+- `--session <name>`
+- `--run <runId>`
+- `--limit <n>`
+
+规则：
+
+- `--session` 和 `--run` 二选一
+- `--session` 返回 live session 摘要
+- `--run` 返回一次 run 的摘要
+- 当前适合作为 Agent 的第一层诊断入口
 
 ### `pw diagnostics show --run <runId>`
 

@@ -1,7 +1,11 @@
 import { writeFile } from "node:fs/promises";
 import type { Command } from "commander";
-import { managedDiagnosticsExport } from "../../domain/diagnostics/service.js";
-import { listRunDirs, readRunEvents } from "../../infra/fs/run-artifacts.js";
+import {
+  listDiagnosticsRuns,
+  managedDiagnosticsDigest,
+  managedDiagnosticsExport,
+} from "../../domain/diagnostics/service.js";
+import { readRunEvents } from "../../infra/fs/run-artifacts.js";
 import { printCommandResult } from "../output.js";
 import {
   addSessionOption,
@@ -54,7 +58,7 @@ export function registerDiagnosticsCommand(program: Command): void {
     .description("List known run ids")
     .action(async () => {
       try {
-        const runs = await listRunDirs();
+        const runs = await listDiagnosticsRuns();
         printCommandResult("diagnostics runs", {
           data: {
             count: runs.length,
@@ -69,6 +73,59 @@ export function registerDiagnosticsCommand(program: Command): void {
         process.exitCode = 1;
       }
     });
+
+  addSessionOption(
+    diagnostics
+      .command("digest")
+      .description("Summarize current session diagnostics or one recorded run")
+      .option("--run <runId>", "Summarize one recorded run")
+      .option("--limit <n>", "Limit top signals and recent samples", "5"),
+  ).action(
+    async (
+      options: {
+        session?: string;
+        run?: string;
+        limit?: string;
+      },
+      command: Command,
+    ) => {
+      try {
+        const runId = options.run?.trim();
+        const sessionName =
+          command.optsWithGlobals<{ session?: string }>().session?.trim() ||
+          options.session?.trim();
+        if (runId && sessionName) {
+          throw new Error(
+            "diagnostics digest accepts either --run <runId> or --session <name>, not both",
+          );
+        }
+        if (!runId && !sessionName) {
+          throw new Error("diagnostics digest requires --run <runId> or --session <name>");
+        }
+        const limit = options.limit ? Number(options.limit) : 5;
+        if (!Number.isFinite(limit) || limit <= 0) {
+          throw new Error("diagnostics digest requires a positive integer for --limit");
+        }
+        const result = runId
+          ? await managedDiagnosticsDigest({ runId, limit })
+          : await managedDiagnosticsDigest({
+              sessionName: requireSessionName(options, command),
+              limit,
+            });
+        printCommandResult("diagnostics digest", result);
+      } catch (error) {
+        printSessionAwareCommandError("diagnostics digest", error, {
+          code: "DIAGNOSTICS_DIGEST_FAILED",
+          message: "diagnostics digest failed",
+          suggestions: [
+            "Use `pw diagnostics digest --session <name>` for a live session summary",
+            "Or use `pw diagnostics digest --run <runId>` after `pw diagnostics runs`",
+          ],
+        });
+        process.exitCode = 1;
+      }
+    },
+  );
 
   diagnostics
     .command("show")

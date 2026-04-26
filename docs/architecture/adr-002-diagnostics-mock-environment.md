@@ -41,6 +41,7 @@
 - `console`
 - `network`
 - `errors recent|clear`
+- `diagnostics digest`
 - `diagnostics export`
 - `diagnostics runs|show|grep`
 - action 结果里的 `diagnosticsDelta`

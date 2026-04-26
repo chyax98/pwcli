@@ -63,6 +63,27 @@ if (!fn(data)) {
 NODE
 }
 
+json_field() {
+  local file="$1"
+  local expr="$2"
+  node - "$file" "$expr" <<'NODE'
+const fs = require('node:fs');
+
+const [file, expr] = process.argv.slice(2);
+const data = JSON.parse(fs.readFileSync(file, 'utf8'));
+const fn = new Function('data', `return (${expr});`);
+const value = fn(data);
+if (value === undefined || value === null || value === '') {
+  process.exit(1);
+}
+if (typeof value === 'object') {
+  process.stdout.write(JSON.stringify(value));
+  process.exit(0);
+}
+process.stdout.write(String(value));
+NODE
+}
+
 printf '{"x-pwcli-header":"smoke-1"}' >"$HEADERS_FILE"
 
 log "starting deterministic fixture server on ${ORIGIN}"
@@ -157,6 +178,23 @@ log "page errors"
 errors_json="$(run_json errors errors recent --session "$SESSION_NAME")"
 assert_json "$errors_json" "page errors captured fixture throw" \
   "data.ok === true && data.data.summary.visible >= 1 && data.data.errors[0].text.includes('fixture-page-error-run-1')"
+
+RUN_ID="$(json_field "$click_json" "data.data.run.runId")"
+
+log "diagnostics digest session"
+digest_session_json="$(run_json diagnostics-digest-session diagnostics digest --session "$SESSION_NAME")"
+assert_json "$digest_session_json" "diagnostics digest session exposes top signals" \
+  "data.ok === true && data.data.source === 'session' && data.data.summary.pageErrorCount >= 1 && Array.isArray(data.data.topSignals) && data.data.topSignals.length >= 1"
+
+log "diagnostics runs"
+runs_json="$(run_json diagnostics-runs diagnostics runs)"
+assert_json "$runs_json" "diagnostics runs exposes run metadata" \
+  "data.ok === true && data.data.count >= 1 && Array.isArray(data.data.runs) && typeof data.data.runs[0].runId === 'string' && typeof data.data.runs[0].commandCount === 'number'"
+
+log "diagnostics digest run"
+digest_run_json="$(run_json diagnostics-digest-run diagnostics digest --run "$RUN_ID")"
+assert_json "$digest_run_json" "diagnostics digest run exposes recent step summary" \
+  "data.ok === true && data.data.source === 'run' && data.data.runId === '${RUN_ID}' && data.data.commandCount >= 1 && Array.isArray(data.data.recentSteps)"
 
 log "doctor"
 doctor_json="$(run_json doctor doctor --session "$SESSION_NAME" --endpoint "$BLANK_URL")"
