@@ -56,6 +56,7 @@
 
 - `--level`
 - `--text`
+- `--limit`
 
 ### network
 
@@ -87,10 +88,13 @@
 当前支持的查询面：
 
 - `--request-id`
+- `--url`
+- `--kind`
 - `--method`
 - `--status`
 - `--resource-type`
 - `--text`
+- `--limit`
 
 ### errors
 
@@ -110,6 +114,11 @@
 - `navigationId`
 - `text`
 - `stack`
+
+当前支持的查询面：
+
+- `--text`
+- `--limit`
 
 `pw errors clear --session <name>` 只是把当前 page error 数量记为本 session 的 clear baseline。
 
@@ -143,9 +152,22 @@
 - 直接调用当前 `BrowserContext` 的 public API `route / unroute / unrouteAll`
 - 项目层只在 context 上挂最小 metadata，供 `observe status` 回显
 - 当前支持：
+  - `list`
   - `add <pattern> --abort`
-  - `add <pattern> --body <text> [--status <code>] [--content-type <type>]`
+  - `add <pattern> --method <method>`
+  - `add <pattern> --body <text> | --body-file <path>`
+  - `add <pattern> --headers-file <path>`
+  - `load <file>`
   - `remove [pattern]`
+
+### diagnostics
+
+`pw diagnostics ...` 当前支持：
+
+- `export --session <name> --out <file>`
+- `runs`
+- `show --run <runId>`
+- `grep --run <runId> --text <substring>`
 
 ### observe
 

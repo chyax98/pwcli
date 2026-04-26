@@ -277,6 +277,7 @@ node dist/cli.js session close action-a
 node dist/cli.js session create diag-det2 --open http://127.0.0.1:4179/blank
 node dist/cli.js code --session diag-det2 --file ./scripts/manual/diagnostics-fixture.js
 node dist/cli.js route add '**/__pwcli__/diagnostics/route-hit**' --session diag-det2 --body routed-from-pwcli --status 211 --content-type text/plain
+node dist/cli.js route list --session diag-det2
 node dist/cli.js click --session diag-det2 --selector '#fire'
 node dist/cli.js console --session diag-det2
 PWCLI_RAW_OUTPUT=1 node dist/cli.js network --session diag-det2
@@ -304,6 +305,22 @@ node dist/cli.js session close diag-det2
 - `console --text fixture-route-hit-run-1` 已真实过滤出单条命中日志
 - `network --resource-type xhr` 已真实过滤出 xhr request/response
 - `network --request-id req-2` 已真实返回 detail
+- `route list` 已真实返回 active route metadata
+
+### diagnostics export / run query
+
+```bash
+node dist/cli.js diagnostics export --session dqx --out /tmp/pwcli-diag.json
+node dist/cli.js diagnostics runs
+node dist/cli.js diagnostics show --run 2026-04-26T08-33-32-763Z-dqx
+node dist/cli.js diagnostics grep --run 2026-04-26T08-33-32-763Z-dqx --text fixture-route-hit-run-1
+```
+
+结论：
+
+- `diagnostics export` 已真实写出 JSON 文件
+- `diagnostics runs` 已真实列出 run ids
+- `diagnostics grep` 已真实命中 `events.jsonl` 里的 route-hit 事件
 
 ### attach
 
@@ -319,6 +336,26 @@ node dist/cli.js session attach ac1 --cdp 61632
 - `--ws-endpoint` 已验证通过
 - `--browser-url` 已验证通过
 - `--cdp` 已验证通过
+
+### environment control
+
+```bash
+node dist/cli.js session create env2 --open http://127.0.0.1:4179/blank
+node dist/cli.js environment offline on --session env2
+node dist/cli.js environment permissions grant geolocation --session env2
+node dist/cli.js environment geolocation set --session env2 --lat 37.7749 --lng -122.4194
+node dist/cli.js environment clock install --session env2
+node dist/cli.js environment clock set --session env2 2026-01-01T00:00:00Z
+node dist/cli.js session close env2
+```
+
+结论：
+
+- `offline on` 已真实返回成功
+- `permissions grant geolocation` 已真实返回成功
+- `geolocation set` 已真实返回成功
+- `clock install` 已真实返回成功
+- `clock set` 当前会稳定返回 `ENVIRONMENT_LIMITATION`
 
 ### bootstrap
 

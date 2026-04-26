@@ -82,6 +82,7 @@
 - `storage session --session <name>`
 - `profile inspect <path>`
 - `profile open <path> <url> --session <name>`
+- `environment offline|geolocation|permissions|clock --session <name>`
 
 ### 扩展与分发
 

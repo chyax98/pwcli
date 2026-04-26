@@ -127,10 +127,16 @@ pw wait [target] --session <name> [--text <text>] [--selector <selector>] [--net
 
 ```text
 pw console --session <name> [--level info|warning|error] [--text <text>]
-pw network --session <name> [--request-id <id>] [--method <method>] [--status <code>] [--resource-type <type>] [--text <text>]
-pw errors recent --session <name>
+pw network --session <name> [--request-id <id>] [--url <substring>] [--kind request|response|requestfailed] [--method <method>] [--status <code>] [--resource-type <type>] [--text <text>] [--limit <n>]
+pw errors recent --session <name> [--text <substring>] [--limit <n>]
 pw errors clear --session <name>
-pw route add <pattern> --session <name> [--abort] [--body <text>] [--status <code>] [--content-type <type>]
+pw diagnostics export --session <name> --out <file>
+pw diagnostics runs
+pw diagnostics show --run <runId>
+pw diagnostics grep --run <runId> --text <substring>
+pw route list --session <name>
+pw route add <pattern> --session <name> [--abort] [--method <method>] [--body <text> | --body-file <path>] [--headers-file <path>] [--status <code>] [--content-type <type>]
+pw route load <file> --session <name>
 pw route remove [pattern] --session <name>
 pw trace start --session <name>
 pw trace stop --session <name>
@@ -150,6 +156,18 @@ pw storage local --session <name>
 pw storage session --session <name>
 pw profile inspect <path>
 pw profile open <path> <url> --session <name>
+```
+
+### 环境控制
+
+```text
+pw environment offline on|off --session <name>
+pw environment geolocation set --session <name> --lat <lat> --lng <lng> [--accuracy <meters>]
+pw environment permissions grant <perm...> --session <name>
+pw environment permissions clear --session <name>
+pw environment clock install --session <name>
+pw environment clock set --session <name> <iso>
+pw environment clock resume --session <name>
 ```
 
 ### 扩展与分发
@@ -226,6 +244,8 @@ JSON
 - `session attach --browser-url/--cdp` 依赖本地 attach bridge registry；raw CDP 外部浏览器还未形成通用 contract
 - `storage local|session` 只读当前页 origin；无效 origin 会返回 `accessible: false`
 - `console` / `network` 返回最近记录与过滤结果；当前没有事件流服务
+- `diagnostics export` 当前导出的是 session 内结构化 records，不是持久化数据库
+- `environment clock set` 当前在 managed substrate 下会返回 limitation，不写成稳定能力
 - `har start|stop` 当前用于暴露 substrate 能力边界，热录制尚未形成稳定 contract
 - 当前只有最小 `.pwcli/runs/<runId>/events.jsonl`
 

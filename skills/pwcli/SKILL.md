@@ -16,6 +16,7 @@ description: Use pw to drive Playwright-native browser workflows through strict 
 - 需要执行点击、输入、上传、拖拽、下载、等待
 - 需要即时拿到 console / network / errors / observe / doctor
 - 需要复用 state / profile / auth plugin
+- 需要切换 offline / geolocation / permissions / clock
 
 ## 稳定工作流
 

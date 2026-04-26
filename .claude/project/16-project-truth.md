@@ -140,6 +140,7 @@ state save|load
 cookies list|set
 storage local|session
 profile inspect|open
+environment offline|geolocation|permissions|clock
 ```
 
 ### 扩展与分发

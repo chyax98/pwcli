@@ -46,8 +46,10 @@ app -> domain -> infra -> playwright-core
 | `console` | session `BrowserContext` 上挂结构化 `consoleRecords[]`，再回传摘要与过滤 | Playwright console events |
 | `network` | session `BrowserContext` 上挂结构化 `networkRecords[]`，再回传摘要、detail 与过滤 | request / response / requestfailed events |
 | `errors` | session `BrowserContext` 上挂结构化 `pageErrorRecords[]` | `page.on('pageerror')` |
+| `diagnostics export` | 汇总当前 session 内 workspace、records、routes、bootstrap，再导出 JSON | page/context events + project projection |
 | `observe status` | 聚合 workspace / diagnostics / bootstrap 状态 | page/context events + project projection |
 | `doctor` | 读 substrate、observe、plugin、profile、state、endpoint 诊断 | local fs + session probe + endpoint probe |
+| `environment offline|geolocation|permissions|clock` | BrowserContext 级环境控制，项目层只做命令语义与 limitation surfacing | `context.setOffline()` `context.setGeolocation()` `context.grantPermissions()` `context.clearPermissions()` `context.clock` |
 | `profile inspect/open` | inspect 是本地路径检查；open 最终还是 `managedOpen(..., { profile, persistent: true })` | persistent context |
 | `plugin list/path` | 本地文件系统发现与路径解析 | 无 Playwright 依赖 |
 | `auth` | 读取本地插件源码，包装成 `async page => plugin(page, args)` 后交给 `pw code` | `page` + `pw code` |
@@ -61,6 +63,7 @@ app -> domain -> infra -> playwright-core
   - `network.summary = { total, sample[] }`
 - `page dialogs` 当前只代表观测到的 dialog 事件，不代表 live dialog set
 - modal state 仍会阻断 `browser_run_code` 路径
+- `environment clock set` 当前在 managed substrate 上会走 limitation 路径
 - `session attach --browser-url/--cdp` 不是 raw CDP named-session substrate，它当前依赖 attach bridge registry 去解析 Playwright `wsEndpoint`
 - `screenshot`、`download`、动作命令当前会落最小 `.pwcli/runs/<runId>/events.jsonl`，但还没有完整 artifact 平台。
 - `code --file` 当前实现是本地读文件内容后内联给 `run-code`，不是把文件路径交给另一套自定义执行器。

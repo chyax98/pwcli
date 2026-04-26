@@ -32,6 +32,13 @@
 - 隐式当前绑定态
 - 自动 single-session fallback
 
+当前 lifecycle 默认设置：
+
+- 集中在 `src/domain/session/defaults.ts`
+- 可选本地配置文件：`.pwcli/config.json`
+- `trace` 默认开启
+- 显式 `--no-trace` 覆盖默认值
+
 ## 2. 命令如何拿到 session
 
 所有浏览器相关命令都按这个规则：
@@ -106,6 +113,20 @@ session create <name> --open <url>
 - `--browser-url <url>`：先读 CDP `/json/version`，再通过本地 attach bridge registry 解析成 Playwright `wsEndpoint`
 - `--cdp <port>`：解析成 `http://127.0.0.1:<port>` 后走同一条 browser-url 路径
 
+## 6.1 Batch truth
+
+当前 `batch` 主路：
+
+- `pw batch --session <name> --json`
+- `pw batch --session <name> --file <path>`
+
+输入形态：
+
+- `string[][]`
+- 每个内层数组都按单命令 argv 解释
+
+当前不再把字符串 step 当主 contract。
+
 ## 7. 当前输出模型
 
 大多数命令输出统一为：
@@ -132,6 +153,7 @@ session create <name> --open <url>
 - `--browser-url` / `--cdp` 当前依赖本地 attach bridge registry，不能通用于任意只暴露 raw CDP 的外部浏览器
 - `storage local/session` 只对当前页 origin 有意义
 - `cookies set` 当前只做最小 `name/value/domain/path` 写入
+- `environment clock set` 当前在 managed substrate 上会返回 limitation
 - 项目层仍然没有 artifact run dir truth / session log index / diagnostics cache
 
 ## 9. 当前没有的 state

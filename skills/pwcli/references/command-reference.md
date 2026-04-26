@@ -268,33 +268,67 @@
 
 - `--level info|warning|error`
 - `--text <text>`
+- `--limit <n>`
 
 ### `pw network --session <name>`
 
 选项：
 
 - `--request-id <id>`
+- `--url <substring>`
+- `--kind request|response|requestfailed`
 - `--method <method>`
 - `--status <code>`
 - `--resource-type <type>`
 - `--text <text>`
+- `--limit <n>`
 
 ### `pw errors recent --session <name>`
 
 - 查看当前页错误记录
+- 支持：
+  - `--text <substring>`
+  - `--limit <n>`
 
 ### `pw errors clear --session <name>`
 
 - 清当前错误基线
+
+### `pw diagnostics export --session <name> --out <file>`
+
+- 导出当前 session 的 workspace / console / network / errors / routes / bootstrap
+
+### `pw diagnostics runs`
+
+- 列出 `.pwcli/runs/` 下的 run ids
+
+### `pw diagnostics show --run <runId>`
+
+- 打印一个 run 的全部 `events.jsonl` 事件
+
+### `pw diagnostics grep --run <runId> --text <substring>`
+
+- 按子串过滤 run 事件
+
+### `pw route list --session <name>`
+
+- 返回当前 managed session 的 active route metadata
 
 ### `pw route add <pattern> --session <name>`
 
 选项：
 
 - `--abort`
+- `--method <method>`
 - `--body <text>`
+- `--body-file <path>`
+- `--headers-file <path>`
 - `--status <code>`
 - `--content-type <type>`
+
+### `pw route load <file> --session <name>`
+
+- 从 JSON 文件批量加载 route specs
 
 ### `pw route remove [pattern] --session <name>`
 
@@ -438,6 +472,35 @@ stdin 输入格式：
 - `route add|remove ...`
 - `bootstrap apply ...`
 - `page dialogs`
+
+### `pw environment offline on|off --session <name>`
+
+- 切换 BrowserContext 离线模式
+
+### `pw environment geolocation set --session <name> --lat <lat> --lng <lng>`
+
+- 可选：
+  - `--accuracy <meters>`
+
+### `pw environment permissions grant <perm...> --session <name>`
+
+- 例子：`geolocation clipboard-read`
+
+### `pw environment permissions clear --session <name>`
+
+- 清除所有权限覆盖
+
+### `pw environment clock install --session <name>`
+
+- 安装 fake timers
+
+### `pw environment clock set --session <name> <iso>`
+
+- 当前 managed substrate 下可能返回 limitation
+
+### `pw environment clock resume --session <name>`
+
+- 恢复时钟流逝
 
 ### `pw plugin list`
 
