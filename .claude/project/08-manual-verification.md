@@ -22,6 +22,72 @@ kill "$server_pid"
 rm -f /tmp/pwcli-bootstrap-headers.json
 ```
 
+## smoke / dogfood gate
+
+当前最小 smoke gate 统一走：
+
+```bash
+pnpm run smoke
+```
+
+`pnpm run test:dogfood` 当前直接复用同一条脚本，不再维护第二套口径：
+
+```bash
+pnpm run test:dogfood
+```
+
+脚本位置：
+
+```bash
+scripts/smoke/pwcli-smoke.sh
+```
+
+这条 gate 只覆盖当前稳定主链：
+
+- `session create -> open -> session close`
+- `snapshot`
+- `page current`
+- `observe status`
+- `batch "observe status" "page dialogs"`
+- `bootstrap apply --init-script --headers-file`
+- post-navigation bootstrap verify
+- `route add`
+- `code --file diagnostics-fixture.js`
+- `click`
+- `console --text`
+- `network --resource-type xhr`
+- `errors recent`
+- `doctor --session --endpoint`
+
+这条 gate 当前不覆盖：
+
+- modal recoverability
+- raw CDP without bridge
+- observe stream
+- HAR 热录制
+- workspace 写操作
+- auth plugin 真实登录流
+
+## modal blocked workspace probe
+
+最小复现：
+
+```bash
+node scripts/manual/modal-fixture.js
+node dist/cli.js session create modala --open http://127.0.0.1:4124
+node dist/cli.js click --selector '#open-alert' --session modala
+node dist/cli.js page current --session modala
+node dist/cli.js observe status --session modala
+node dist/cli.js doctor --session modala
+```
+
+期望：
+
+- `click --selector '#open-alert'` 返回 `MODAL_STATE_BLOCKED`
+- `page current` 返回 `MODAL_STATE_BLOCKED`
+- `observe status` 返回 `MODAL_STATE_BLOCKED`
+- `doctor` 返回 `kind: "modal-state"` 的 warning
+
 ## 已真实执行并通过
 
 ### strict session-first 基线

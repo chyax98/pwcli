@@ -15,11 +15,13 @@
 - `trace start`
 - `trace stop`
 - `skill install <dir>`
+- 最小 `.pwcli/runs/<runId>/events.jsonl`
 
 当前行为：
 
-- `screenshot` 没传 `--path` 时不会建立项目级默认目录 contract
-- `download` 没传 `--path` 时只返回下载元信息
+- 动作命令当前会建立最小 run 目录，并把 step 级事件写入 `events.jsonl`
+- `screenshot` 没传 `--path` 时会默认写到当前 command run dir
+- `download` 没传 `--path/--dir` 时会默认复制到当前 command run dir
 - `trace start/stop` 当前只暴露动作结果，没有稳定的 trace 文件路径输出
 - `state save/load` 完全由用户显式路径驱动
 
@@ -111,6 +113,29 @@
 
 `pw errors clear --session <name>` 只是把当前 page error 数量记为本 session 的 clear baseline。
 
+### action diagnostics delta
+
+当前动作命令会把最近诊断增量直接带回输出：
+
+- `click`
+- `fill`
+- `type`
+- `press`
+- `scroll`
+- `upload`
+- `download`
+- `drag`
+- `wait`
+
+当前 `data.diagnosticsDelta` 至少包含：
+
+- `consoleDelta`
+- `networkDelta`
+- `pageErrorDelta`
+- `lastConsole`
+- `lastNetwork`
+- `lastPageError`
+
 ### route
 
 `pw route add/remove --session <name>` 当前行为：
@@ -143,7 +168,7 @@
 明确边界：
 
 - 这不是 authoritative live dialog set
-- modal state 仍会阻断当前 managed-session 的 read path
+- modal state 仍会阻断当前 managed-session 的 run-code 路径
 
 `observe stream` 当前没有实现。
 
@@ -157,13 +182,14 @@
 - profile path inspect
 - state path inspect
 - endpoint reachability
+- modal-blocked workspace probe
 
 它当前不会：
 
 - 自动修复
 - 清理 session
 - 重置 bootstrap
-- 恢复 modal state
+- 直接恢复 modal state
 
 它不会修改任何 session、profile、state 或 plugin。
 
@@ -188,7 +214,9 @@
 - 把 CLI / Playwright 输出转成更稳一点的 JSON
 - 把 session 内 diagnostics 挂成结构化 records
 - 把部分结果整理成 `summary`
+- 把动作后的 diagnostics delta 收口回结果
 - 在少数命令里回传路径、URL、文件名
+- 建立最小 run dir 并追加 `events.jsonl`
 - 在当前 page/context 对象上挂最小 diagnostics metadata
 
 当前项目层没做：
@@ -221,11 +249,13 @@
 当前 README 和 project docs 只能说：
 
 - 支持显式截图、显式下载、显式 state save/load、trace start/stop
+- 支持最小 `.pwcli/runs/<runId>/events.jsonl`
 - `console` / `network` 提供结构化摘要，底层来自 session 内 records
 - `errors` 提供结构化 page error 列表与 clear baseline
+- 动作命令会回传 `diagnosticsDelta`
 - `route` 提供最小 add/remove 命令面
 - `observe` 当前只提供 `status`，但已带 workspace / bootstrap / diagnostics summary
-- `doctor` 当前只提供只读诊断
+- `doctor` 当前能识别 modal-blocked workspace
 - `har` 当前只会明确返回 limitation，不会真的热启动录制
 - `network` 当前支持 detail/filter 查询，但仍然是当前 session 内 records，不是持久化查询系统
 

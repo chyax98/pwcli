@@ -1,177 +1,235 @@
 # pwcli
 
-`pwcli` 是一个面向内部 Agent 的 Playwright 命令壳，默认命令名是 `pw`。
+`pwcli` 是一个面向内部 Agent 的 Playwright orchestration CLI，默认命令名是 `pw`。
 
-当前项目真相已经收口成：
+当前真相：
 
-- 浏览器命令主路径是 **strict session-first**
-- 先 `session create <name>`
-- 后续所有浏览器相关命令都显式带 `--session <name>`
-- 不再保留自动 fallback
+- 浏览器命令走 **strict session-first**
+- 先显式创建或接管 session
+- 后续浏览器命令都显式带 `--session <name>`
+- 输出默认是稳定 JSON envelope
+- 目标用户是 agent，不为人类交互式体验做额外兼容
 
-## 当前命令集
+## 1. 稳定主链
+
+```bash
+pw session create bug-a --open 'https://example.com'
+pw snapshot --session bug-a
+pw click e6 --session bug-a
+pw wait --session bug-a networkIdle
+pw read-text --session bug-a
+pw session close bug-a
+```
+
+接管已有浏览器：
+
+```bash
+pw session attach bug-a --ws-endpoint ws://127.0.0.1:9222/devtools/browser/...
+pw session attach bug-a --browser-url http://127.0.0.1:9222
+pw session attach bug-a --cdp 9222
+```
+
+`pw connect ...` 仍然存在，语义等价于 `pw session attach ...`。新自动化脚本优先使用 `session attach`。
+
+## 2. session 规则
+
+- session 名最长 `16` 个字符
+- 只允许：字母、数字、`-`、`_`
+- 缺失 session 会返回 `SESSION_REQUIRED`
+- 超长会返回 `SESSION_NAME_TOO_LONG`
+- 非法字符会返回 `SESSION_NAME_INVALID`
+
+推荐命名：
+
+- `bug-a`
+- `diag-q2`
+- `auth-a`
+- `dc-main`
+
+## 3. 输出 contract
+
+成功：
+
+```json
+{
+  "ok": true,
+  "command": "snapshot",
+  "session": { "name": "bug-a" },
+  "page": { "url": "https://example.com" },
+  "data": { "resolvedSession": "bug-a" }
+}
+```
+
+失败：
+
+```json
+{
+  "ok": false,
+  "command": "snapshot",
+  "error": {
+    "code": "SESSION_REQUIRED",
+    "message": "Session is required",
+    "retryable": false,
+    "suggestions": ["Run `pw session create <name> --open <url>` first"]
+  }
+}
+```
+
+约束：
+
+- `command` 始终存在
+- 成功时有 `data`
+- 失败时有 `error`
+- `session` / `page` / `diagnostics` 按命令需要返回
+- `resolvedSession` 在大多数 session 相关命令里会出现在 `data`
+
+## 4. 当前命令面
+
+### 生命周期
 
 ```text
-pw session create|list|status|close|recreate
-pw open <url> --session <name>
+pw session list
+pw session create <name> [--open <url>] [--profile <path>] [--persistent] [--state <file>] [--headed]
+pw session attach <name> [endpoint] [--ws-endpoint <url> | --browser-url <url> | --cdp <port>]
+pw session recreate <name> [--headed | --headless] [--open <url>]
+pw session status <name>
+pw session close <name>
 pw connect [endpoint] --session <name>
-pw code [source] --session <name>
-pw auth [plugin] --session <name>
-pw batch <steps...> --session <name>
-pw page --session <name> current|list|frames|dialogs
-pw page current|list|frames|dialogs --session <name>
-pw snapshot --session <name>
-pw screenshot [ref] --session <name>
-pw resize --session <name>
-pw read-text --session <name>
-pw fill [parts...] --session <name>
-pw type [parts...] --session <name>
+```
+
+### 页面读取
+
+```text
+pw open <url> --session <name> [--headed] [--profile <path>] [--persistent] [--state <file>]
+pw page current --session <name>
+pw page list --session <name>
+pw page frames --session <name>
+pw page dialogs --session <name>
+pw snapshot --session <name> [--mode ai|default]
+pw screenshot [ref] --session <name> [--selector <selector>] [--path <path>] [--full-page]
+pw read-text --session <name> [--selector <selector>] [--max-chars <count>]
+pw observe status --session <name>
+```
+
+### 动作与等待
+
+```text
+pw click [ref] --session <name> [--selector <selector> | --role <role> --name <name> | --text <text> | --label <label> | --placeholder <text> | --testid <id>] [--nth <n>]
+pw fill [parts...] --session <name> [--selector <selector>]
+pw type [parts...] --session <name> [--selector <selector>]
 pw press <key> --session <name>
 pw scroll <direction> [distance] --session <name>
-pw upload [parts...] --session <name>
-pw download [ref] --session <name>
-pw drag [parts...] --session <name>
-pw console --session <name>
-pw network --session <name>
-pw click [ref] --session <name>
-pw wait [target] --session <name>
-pw trace <action> --session <name>
-pw cookies list|set --session <name>
-pw state <action> [file] --session <name>
-pw storage local|session --session <name>
-pw profile inspect|open
-pw plugin list|path
-pw skill path|install
+pw upload [parts...] --session <name> [--selector <selector>]
+pw download [ref] --session <name> [--selector <selector>] [--path <path>] [--dir <dir>]
+pw drag [parts...] --session <name> [--from-selector <selector>] [--to-selector <selector>]
+pw resize --session <name> [--view <width>x<height>] [--preset desktop|ipad|iphone]
+pw wait [target] --session <name> [--text <text>] [--selector <selector>] [--networkidle] [--request <url>] [--response <url>] [--method <method>] [--status <code>]
 ```
 
-## 当前推荐主链
+### 诊断
+
+```text
+pw console --session <name> [--level info|warning|error] [--text <text>]
+pw network --session <name> [--request-id <id>] [--method <method>] [--status <code>] [--resource-type <type>] [--text <text>]
+pw errors recent --session <name>
+pw errors clear --session <name>
+pw route add <pattern> --session <name> [--abort] [--body <text>] [--status <code>] [--content-type <type>]
+pw route remove [pattern] --session <name>
+pw trace start --session <name>
+pw trace stop --session <name>
+pw har start [path] --session <name>
+pw har stop --session <name>
+pw doctor [--plugin <name>] [--profile <path>] [--state <file>] [--endpoint <url>] [--session <name>]
+```
+
+### 状态复用
+
+```text
+pw state save [file] --session <name>
+pw state load <file> --session <name>
+pw cookies list --session <name> [--domain <domain>]
+pw cookies set --session <name> --name <name> --value <value> --domain <domain> [--path <path>]
+pw storage local --session <name>
+pw storage session --session <name>
+pw profile inspect <path>
+pw profile open <path> <url> --session <name>
+```
+
+### 扩展与分发
+
+```text
+pw code [source] --session <name> [--file <path>]
+pw auth [plugin] --session <name> [--plugin <name>] [--headed] [--profile <path>] [--persistent] [--state <file>] [--save-state <file>] [--open <url>] [--arg <key=value>]
+pw bootstrap apply --session <name> [--init-script <file> ...] [--headers-file <file>]
+pw batch --session <name> <steps...> [--continue-on-error]
+pw plugin list
+pw plugin path <name>
+pw skill path
+pw skill install <dir>
+```
+
+## 5. 推荐使用路径
+
+### 5.1 探索页面
 
 ```bash
-pw session create dc-main --open 'https://developer-192-168-5-18.tap.dev/forge/89347/all-app'
-pw snapshot --session dc-main
-pw click e6 --session dc-main
-pw wait networkIdle --session dc-main
-pw read-text --session dc-main
-pw batch --session dc-main "click e6" "wait networkIdle" "screenshot --path ./shot.png"
-pw resize --session dc-main --preset desktop
-pw session close dc-main
+pw session create bug-a --open 'https://example.com'
+pw snapshot --session bug-a
+pw page current --session bug-a
+pw read-text --session bug-a --max-chars 1200
 ```
 
-对 Agent，这条规则最清楚：
-
-- 先创建 session
-- 后面重复带同一个 `--session`
-- CLI 不会替你猜目标 session
-- session 名要保持简短，当前 hard limit 是 16 个字符
-
-## 到达真实已登录页面
-
-### 1. 直接打开真实页
+### 5.2 执行动作并拿诊断
 
 ```bash
-pw session create dc-main --open 'https://developer-192-168-5-18.tap.dev/forge/89347/all-app'
+pw click e6 --session bug-a
+pw wait --session bug-a networkIdle
+pw console --session bug-a --level warning
+pw network --session bug-a --resource-type xhr
+pw errors recent --session bug-a
 ```
 
-### 2. 复用已登录 profile
+### 5.3 复用状态
 
 ```bash
-pw session create dc-main \
-  --open 'http://127.0.0.1:4110/forge' \
-  --profile ~/.forge-browser/profiles/acceptance-login
+pw state save ./auth.json --session bug-a
+pw session close bug-a
+pw session create bug-b --open 'https://example.com' --state ./auth.json
 ```
 
-### 3. 复用 state
+### 5.4 运行本地插件登录
 
 ```bash
-pw session create dc-main --open 'https://developer-192-168-5-18.tap.dev/forge/89347/all-app'
-pw state save ./auth.json --session dc-main
-pw session close dc-main
-
-pw session create dc-main --open 'https://developer-192-168-5-18.tap.dev/forge/89347/all-app' --state ./auth.json
+pw auth dc-login --session auth-a --open 'https://example.com' --save-state ./auth.json
 ```
 
-### 4. 动态登录
+### 5.5 批量步骤
 
 ```bash
-pw auth dc-login \
-  --session dc-main \
-  --open 'https://developer-192-168-5-18.tap.dev/forge/89347/all-app'
+pw batch --session bug-a \
+  "click e6" \
+  "wait networkIdle" \
+  "observe status" \
+  "errors recent"
 ```
 
-`dc-login` 当前规则：
+## 6. 当前已知限制
 
-- 用户给完整 deep link，插件直接把它当 `targetUrl`
-- 并从它提取 `baseURL`
-- 用户没给完整链接，才回落到 `accounts.json / instance / 本地端口探测`
+- `connect` 仍是兼容别名；新脚本优先 `session attach`
+- `session status` 是 best-effort 视图
+- `page dialogs` 返回观测到的 dialog 事件投影
+- modal state 当前统一报 `MODAL_STATE_BLOCKED`
+- 动作命令当前会回传 `diagnosticsDelta`
+- `session attach --browser-url/--cdp` 依赖本地 attach bridge registry；raw CDP 外部浏览器还未形成通用 contract
+- `storage local|session` 只读当前页 origin；无效 origin 会返回 `accessible: false`
+- `console` / `network` 返回最近记录与过滤结果；当前没有事件流服务
+- `har start|stop` 当前用于暴露 substrate 能力边界，热录制尚未形成稳定 contract
+- 当前只有最小 `.pwcli/runs/<runId>/events.jsonl`
 
-## 当前值得记住的事实
-
-- `-s` 是 `--session` 的短别名
-- session 名当前只接受字母、数字、`-`、`_`，且最长 16 字符
-- `plugins/` 和 `skills/` 是包内资源；发布到 NPM 时应随 `pwcli` 一起分发
-- `session create` 是唯一推荐的浏览器生命周期入口
-- `session recreate <name> --headed|--headless` 用于切换有头/无头；底层是重建 session，不是原地切换
-- `click` 支持：
-  - `aria-ref`
-  - `--selector`
-  - semantic locator：`--role` / `--text` / `--label` / `--placeholder` / `--testid`
-- `open` / `auth` / `connect` 都要求显式 `--session`
-- `console` / `network` 当前返回结构化摘要，不是完整事件流系统
-- `page dialogs` 当前返回观测到的 dialog 事件投影，不是 authoritative live dialog set
-- `download` 支持：
-  - `--path <file>`：明确文件路径
-  - `--dir <dir>`：保留浏览器建议文件名
-- `resize` 支持：
-  - `--view <width>x<height>`
-  - `--view <width>_<height>`
-  - `--preset desktop|ipad|iphone`
-- `page` 支持两种等价写法：
-  - `pw page --session dc-main current`
-  - `pw page current --session dc-main`
-- `batch` 当前支持 `screenshot` step，兼容：
-  - `screenshot`
-  - `screenshot --path ./shot.png`
-  - `screenshot e6 --path ./target.png`
-  - `screenshot --selector '#app' --path ./app.png`
-- `batch` 当前也支持：
-  - `observe status`
-  - `errors recent|clear`
-  - `route add|remove`
-  - `bootstrap apply ...`
-- `plugin list|path` 会优先发现包内 `plugins/`，不依赖当前工作目录
-
-## 当前没有的东西
-
-不要把这些当成已经存在：
-
-- 自动选择唯一 live session
-- `session use`
-- 多 session 隐式切换
-- 默认 artifact run 目录
-- HAR / perf / video / screencast 管理
-- 项目层 session log / diagnostics cache
-- observe stream server
-
-## 当前已知限制
-
-- `wait --request/--response/--method/--status` 已接上，但当前最稳的验证方式是先挂 wait，再由 fixture 触发命中请求
-- `session status` 仍然只是 best-effort 视图
-- `session attach --browser-url/--cdp` 当前依赖本地 attach bridge registry，把 CDP metadata 映射到 Playwright `wsEndpoint`；对只暴露 raw CDP、没有 bridge 的外部浏览器还不通用
-- `storage local/session` 只读当前页 origin；对无效 origin 页面会返回 `accessible: false`
-- `download` 的稳定验证当前建立在 managed page 内已有下载元素，不把 `file://` 打开本地下载页写成稳定 contract
-- `dc-login` 动态登录已接入，但在当前机器上最稳的 DC 2.0 入口仍然是直接打开真实页或复用 profile/state
-
-## 手工验证
-
-本轮已真实执行并通过的最小集合见：
-
-- [.claude/project/08-manual-verification.md](./.claude/project/08-manual-verification.md)
-
-## 文档入口
+## 7. 文档入口
 
 - 项目真相：[.claude/project/16-project-truth.md](./.claude/project/16-project-truth.md)
-- Playwright 能力映射：[.claude/project/03-playwright-capability-mapping.md](./.claude/project/03-playwright-capability-mapping.md)
+- 命令面：[.claude/project/04-command-surface.md](./.claude/project/04-command-surface.md)
 - runtime state：[.claude/project/05-runtime-state-model.md](./.claude/project/05-runtime-state-model.md)
-- plugin / auth：[.claude/project/06-plugin-auth-model.md](./.claude/project/06-plugin-auth-model.md)
-- artifact / diagnostics：[.claude/project/07-artifacts-diagnostics.md](./.claude/project/07-artifacts-diagnostics.md)
-- borrowing rules：[.claude/project/17-borrowing-rules.md](./.claude/project/17-borrowing-rules.md)
+- diagnostics：[.claude/project/07-artifacts-diagnostics.md](./.claude/project/07-artifacts-diagnostics.md)
+- shipped skill：[skills/pwcli/SKILL.md](./skills/pwcli/SKILL.md)
