@@ -7,7 +7,7 @@
 3. 有哪些明确限制和后续扩展口
 
 它不负责命令教程。  
-命令教程只看 [skills/pwcli/SKILL.md](/Users/xd/work/tools/pwcli/skills/pwcli/SKILL.md)。
+命令教程只看 [skills/pwcli/SKILL.md](../../skills/pwcli/SKILL.md)。
 
 ## 当前结构
 
@@ -66,14 +66,14 @@ session attach -> state/profile/auth provider -> continue
 
 ## 核心文档
 
-- 文档规约：[documentation-governance.md](/Users/xd/work/tools/pwcli/docs/architecture/documentation-governance.md)
-- 领域现状：[domain-status.md](/Users/xd/work/tools/pwcli/docs/architecture/domain-status.md)
-- 决策 1：[adr-001-agent-first-command-and-lifecycle.md](/Users/xd/work/tools/pwcli/docs/architecture/adr-001-agent-first-command-and-lifecycle.md)
-- 决策 2：[adr-002-diagnostics-mock-environment.md](/Users/xd/work/tools/pwcli/docs/architecture/adr-002-diagnostics-mock-environment.md)
-- Clock survey：[environment-clock-survey.md](/Users/xd/work/tools/pwcli/docs/architecture/environment-clock-survey.md)
-- Workspace mutation contract：[workspace-mutation-contract.md](/Users/xd/work/tools/pwcli/docs/architecture/workspace-mutation-contract.md)
-- E2E 计划：[e2e-dogfood-test-plan.md](/Users/xd/work/tools/pwcli/docs/architecture/e2e-dogfood-test-plan.md)
-- E2E 体验报告：[e2e-dogfood-experience-report.md](/Users/xd/work/tools/pwcli/docs/architecture/e2e-dogfood-experience-report.md)
+- 文档规约：[documentation-governance.md](documentation-governance.md)
+- 领域现状：[domain-status.md](domain-status.md)
+- 决策 1：[adr-001-agent-first-command-and-lifecycle.md](adr-001-agent-first-command-and-lifecycle.md)
+- 决策 2：[adr-002-diagnostics-mock-environment.md](adr-002-diagnostics-mock-environment.md)
+- Clock survey：[environment-clock-survey.md](environment-clock-survey.md)
+- Workspace mutation contract：[workspace-mutation-contract.md](workspace-mutation-contract.md)
+- E2E 计划：[e2e-dogfood-test-plan.md](e2e-dogfood-test-plan.md)
+- E2E 体验报告：[e2e-dogfood-experience-report.md](e2e-dogfood-experience-report.md)
 
 ## 文档边界
 

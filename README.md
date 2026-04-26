@@ -9,8 +9,8 @@
 
 当前仓库把真相拆成两条：
 
-- **怎么用**：看 [skills/pwcli/SKILL.md](/Users/xd/work/tools/pwcli/skills/pwcli/SKILL.md)
-- **为什么这样设计**：看 [docs/architecture/README.md](/Users/xd/work/tools/pwcli/docs/architecture/README.md)
+- **怎么用**：看 [skills/pwcli/SKILL.md](skills/pwcli/SKILL.md)
+- **为什么这样设计**：看 [docs/architecture/README.md](docs/architecture/README.md)
 
 ## 当前产品规则
 
@@ -99,13 +99,13 @@ pnpm test:dogfood:e2e
 
 ## 入口
 
-- 使用教程：[skills/pwcli/SKILL.md](/Users/xd/work/tools/pwcli/skills/pwcli/SKILL.md)
-- 命令参考：[skills/pwcli/references/command-reference.md](/Users/xd/work/tools/pwcli/skills/pwcli/references/command-reference.md)
-- 工作流：[skills/pwcli/references/workflows.md](/Users/xd/work/tools/pwcli/skills/pwcli/references/workflows.md)
-- 恢复策略：[skills/pwcli/references/failure-recovery.md](/Users/xd/work/tools/pwcli/skills/pwcli/references/failure-recovery.md)
-- 架构总览：[docs/architecture/README.md](/Users/xd/work/tools/pwcli/docs/architecture/README.md)
-- 文档规约：[docs/architecture/documentation-governance.md](/Users/xd/work/tools/pwcli/docs/architecture/documentation-governance.md)
-- Clock survey：[docs/architecture/environment-clock-survey.md](/Users/xd/work/tools/pwcli/docs/architecture/environment-clock-survey.md)
-- Workspace mutation contract：[docs/architecture/workspace-mutation-contract.md](/Users/xd/work/tools/pwcli/docs/architecture/workspace-mutation-contract.md)
-- E2E 计划：[docs/architecture/e2e-dogfood-test-plan.md](/Users/xd/work/tools/pwcli/docs/architecture/e2e-dogfood-test-plan.md)
-- E2E 体验报告：[docs/architecture/e2e-dogfood-experience-report.md](/Users/xd/work/tools/pwcli/docs/architecture/e2e-dogfood-experience-report.md)
+- 使用教程：[skills/pwcli/SKILL.md](skills/pwcli/SKILL.md)
+- 命令参考：[skills/pwcli/references/command-reference.md](skills/pwcli/references/command-reference.md)
+- 工作流：[skills/pwcli/references/workflows.md](skills/pwcli/references/workflows.md)
+- 恢复策略：[skills/pwcli/references/failure-recovery.md](skills/pwcli/references/failure-recovery.md)
+- 架构总览：[docs/architecture/README.md](docs/architecture/README.md)
+- 文档规约：[docs/architecture/documentation-governance.md](docs/architecture/documentation-governance.md)
+- Clock survey：[docs/architecture/environment-clock-survey.md](docs/architecture/environment-clock-survey.md)
+- Workspace mutation contract：[docs/architecture/workspace-mutation-contract.md](docs/architecture/workspace-mutation-contract.md)
+- E2E 计划：[docs/architecture/e2e-dogfood-test-plan.md](docs/architecture/e2e-dogfood-test-plan.md)
+- E2E 体验报告：[docs/architecture/e2e-dogfood-experience-report.md](docs/architecture/e2e-dogfood-experience-report.md)

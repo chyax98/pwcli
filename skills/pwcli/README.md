@@ -35,7 +35,7 @@
 
 架构、限制和扩展方向单独维护在：
 
-- [docs/architecture/README.md](/Users/xd/work/tools/pwcli/docs/architecture/README.md)
+- [docs/architecture/README.md](../../docs/architecture/README.md)
 
 优先内容：
 

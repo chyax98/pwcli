@@ -8,12 +8,12 @@
 本轮完成了 3 件事：
 
 1. 落地真实 dogfood fixture app  
-   - [scripts/e2e/dogfood-server.js](/Users/xd/work/tools/pwcli/scripts/e2e/dogfood-server.js)
+   - [scripts/e2e/dogfood-server.js](../../scripts/e2e/dogfood-server.js)
 2. 落地完整系统验证脚本  
-   - [scripts/e2e/pwcli-dogfood-e2e.sh](/Users/xd/work/tools/pwcli/scripts/e2e/pwcli-dogfood-e2e.sh)
+   - [scripts/e2e/pwcli-dogfood-e2e.sh](../../scripts/e2e/pwcli-dogfood-e2e.sh)
 3. 做一轮独立 agent 体验反馈  
    - 使用现有 `Godel` agent
-   - 基于 [skills/pwcli/SKILL.md](/Users/xd/work/tools/pwcli/skills/pwcli/SKILL.md) 真实 dogfood
+   - 基于 [skills/pwcli/SKILL.md](../../skills/pwcli/SKILL.md) 真实 dogfood
 
 ## 2. fixture app 覆盖
 
@@ -73,7 +73,7 @@
 
 当前落点：
 
-- [src/infra/playwright/runtime/identity-state.ts](/Users/xd/work/tools/pwcli/src/infra/playwright/runtime/identity-state.ts)
+- [src/infra/playwright/runtime/identity-state.ts](../../src/infra/playwright/runtime/identity-state.ts)
 
 ### 4.2 `session recreate` 仍走旧 state-save 路径
 
@@ -87,7 +87,7 @@
 
 当前落点：
 
-- [src/app/commands/session.ts](/Users/xd/work/tools/pwcli/src/app/commands/session.ts)
+- [src/app/commands/session.ts](../../src/app/commands/session.ts)
 
 ### 4.3 `route load` 返回 envelope 不完整
 
@@ -101,7 +101,7 @@
 
 当前落点：
 
-- [src/app/commands/route.ts](/Users/xd/work/tools/pwcli/src/app/commands/route.ts)
+- [src/app/commands/route.ts](../../src/app/commands/route.ts)
 
 ## 5. 当前已确认的优点
 
