@@ -1,6 +1,20 @@
 import { listManagedSessions } from "../../infra/playwright/cli-client.js";
+import { isModalStateBlockedMessage } from "../../infra/playwright/runtime/shared.js";
 
 export function sessionRoutingError(message: string) {
+  if (isModalStateBlockedMessage(message)) {
+    return {
+      code: "MODAL_STATE_BLOCKED",
+      message:
+        "The current managed session is blocked by a modal dialog, so run-code-backed reads and actions are unavailable.",
+      suggestions: [
+        "Dismiss or accept the browser dialog if one is visible",
+        "Run `pw doctor --session <name>` to confirm the blocked state",
+        "If the session cannot be recovered, run `pw session recreate <name>`",
+      ],
+    };
+  }
+
   if (message === "SESSION_REQUIRED") {
     return {
       code: "SESSION_REQUIRED",
@@ -20,6 +34,32 @@ export function sessionRoutingError(message: string) {
       suggestions: [
         "Run `pw session list` to inspect active sessions",
         "Create it with `pw session create <name> --open <url>`",
+      ],
+      details: { session: name },
+    };
+  }
+
+  if (message.startsWith("SESSION_NAME_TOO_LONG:")) {
+    const [, name, limit] = message.split(":");
+    return {
+      code: "SESSION_NAME_TOO_LONG",
+      message: `Session '${name}' is too long. Maximum length is ${limit} characters.`,
+      suggestions: [
+        "Use a short session name like dc-main, auth-a, q1, or bug-a",
+        `Keep the session name at or below ${limit} characters`,
+      ],
+      details: { session: name, maxLength: Number(limit) },
+    };
+  }
+
+  if (message.startsWith("SESSION_NAME_INVALID:")) {
+    const name = message.slice("SESSION_NAME_INVALID:".length);
+    return {
+      code: "SESSION_NAME_INVALID",
+      message: `Session '${name}' contains unsupported characters.`,
+      suggestions: [
+        "Use only letters, numbers, hyphen, or underscore",
+        "Example valid names: dc-main, auth_a, q1, bug-1",
       ],
       details: { session: name },
     };

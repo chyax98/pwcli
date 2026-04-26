@@ -2,9 +2,7 @@ import { accessSync, constants, existsSync, lstatSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, resolve } from "node:path";
 import type { Command } from "commander";
-import { managedOpen } from "../../domain/session/service.js";
 import { printCommandResult } from "../output.js";
-import { printSessionAwareCommandError, requireSessionName } from "./session-options.js";
 
 function expandPath(input: string) {
   if (input === "~") {
@@ -43,7 +41,7 @@ function inspectProfilePath(input: string) {
 }
 
 export function registerProfileCommand(program: Command): void {
-  const profile = program.command("profile").description("Inspect or use browser profiles");
+  const profile = program.command("profile").description("Inspect browser profile paths");
 
   profile
     .command("inspect <path>")
@@ -55,47 +53,5 @@ export function registerProfileCommand(program: Command): void {
           profile: info,
         },
       });
-    });
-
-  profile
-    .command("open <path> <url>")
-    .description("Open a URL with a persistent browser profile")
-    .option("-s, --session <name>", "Target managed session")
-    .action(async (path: string, url: string, options: { session?: string }) => {
-      try {
-        const sessionName = requireSessionName(options);
-        const profile = inspectProfilePath(path);
-        if (profile.type === "file") {
-          throw new Error(`profile path '${profile.resolvedPath}' points to a file`);
-        }
-        if (!profile.writable) {
-          throw new Error(`profile path '${profile.resolvedPath}' is not writable`);
-        }
-
-        const result = await managedOpen(url, {
-          sessionName,
-          profile: profile.resolvedPath,
-          persistent: true,
-          reset: true,
-        });
-
-        printCommandResult("profile open", {
-          session: result.session,
-          page: result.page,
-          data: {
-            opened: true,
-            persistent: true,
-            url,
-            profile: inspectProfilePath(profile.resolvedPath),
-          },
-        });
-      } catch (error) {
-        printSessionAwareCommandError("profile open", error, {
-          code: "PROFILE_OPEN_FAILED",
-          message: "profile open failed",
-          suggestions: ["Pass an existing writable browser profile path"],
-        });
-        process.exitCode = 1;
-      }
     });
 }

@@ -1,0 +1,10 @@
+[
+  {
+    "pattern": "**/api/incidents/alpha/checkout-timeout/mock-target**",
+    "method": "GET",
+    "status": 209,
+    "contentType": "text/plain",
+    "bodyFile": "dogfood-route-body.txt",
+    "headersFile": "dogfood-route-headers.json"
+  }
+]

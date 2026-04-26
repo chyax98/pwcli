@@ -2,15 +2,20 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Command } from "commander";
+import { managedStateLoad, managedStateSave } from "../../domain/identity-state/service.js";
+import { sessionRoutingError } from "../../domain/session/routing.js";
 import {
+  applySessionDefaults,
   getManagedSessionEntry,
   getManagedSessionStatus,
+  getSessionDefaults,
   listManagedSessions,
+  managedOpen,
+  resolveLifecycleHeaded,
+  resolveTraceEnabled,
   runManagedSessionCommand,
   stopManagedSession,
-  managedOpen,
 } from "../../domain/session/service.js";
-import { managedStateLoad } from "../../domain/identity-state/service.js";
 import { parsePageSummary } from "../../infra/playwright/output-parsers.js";
 import { printCommandError, printCommandResult } from "../output.js";
 import { attachManagedSession, resolveAttachTarget } from "./attach-shared.js";
@@ -68,6 +73,9 @@ export function registerSessionCommand(program: Command): void {
     .option("--persistent", "Use a persistent browser profile")
     .option("--state <file>", "Load storage state after session creation")
     .option("--headed", "Launch a visible browser window")
+    .option("--headless", "Force headless mode")
+    .option("--trace", "Enable tracing for the session")
+    .option("--no-trace", "Disable tracing for the session")
     .action(
       async (
         name: string,
@@ -77,13 +85,28 @@ export function registerSessionCommand(program: Command): void {
           persistent?: boolean;
           state?: string;
           headed?: boolean;
+          headless?: boolean;
+          trace?: boolean;
+          noTrace?: boolean;
         },
       ) => {
         try {
+          if (name.length > 16) {
+            throw new Error(`SESSION_NAME_TOO_LONG:${name}:16`);
+          }
+          if (!/^[a-zA-Z0-9_-]+$/.test(name)) {
+            throw new Error(`SESSION_NAME_INVALID:${name}`);
+          }
+          if (options.headed && options.headless) {
+            throw new Error("session create accepts either --headed or --headless, not both");
+          }
+          const defaults = await getSessionDefaults();
+          const headed = await resolveLifecycleHeaded(options);
+          const traceEnabled = await resolveTraceEnabled(options);
           const persistent = options.persistent || Boolean(options.profile);
-          const result = await managedOpen(options.open ?? "about:blank", {
+          await managedOpen("about:blank", {
             sessionName: name,
-            headed: options.headed,
+            headed,
             profile: options.profile,
             persistent,
             reset: true,
@@ -93,6 +116,23 @@ export function registerSessionCommand(program: Command): void {
             await managedStateLoad(options.state, { sessionName: name });
           }
 
+          const appliedDefaults = await applySessionDefaults({
+            sessionName: name,
+            traceEnabled,
+          });
+
+          const targetUrl = options.open ?? "about:blank";
+          const result =
+            targetUrl === "about:blank"
+              ? await managedOpen("about:blank", {
+                  sessionName: name,
+                  reset: false,
+                })
+              : await managedOpen(targetUrl, {
+                  sessionName: name,
+                  reset: false,
+                });
+
           printCommandResult("session create", {
             session: result.session,
             page: result.page,
@@ -100,10 +140,22 @@ export function registerSessionCommand(program: Command): void {
               ...result.data,
               created: true,
               sessionName: name,
+              defaults,
+              appliedDefaults,
+              headed,
+              traceEnabled,
               ...(options.state ? { stateLoaded: options.state } : {}),
             },
           });
         } catch (error) {
+          const routing = sessionRoutingError(
+            error instanceof Error ? error.message : String(error),
+          );
+          if (routing) {
+            printCommandError("session create", routing);
+            process.exitCode = 1;
+            return;
+          }
           printCommandError("session create", {
             code: "SESSION_CREATE_FAILED",
             message: error instanceof Error ? error.message : "session create failed",
@@ -123,13 +175,29 @@ export function registerSessionCommand(program: Command): void {
     .option("--ws-endpoint <url>", "Playwright browser websocket endpoint")
     .option("--browser-url <url>", "CDP browser URL, for example http://127.0.0.1:9222")
     .option("--cdp <port>", "CDP port, resolved to http://127.0.0.1:<port>")
+    .option("--trace", "Enable tracing for the attached session")
+    .option("--no-trace", "Disable tracing for the attached session")
     .action(
       async (
         name: string,
         endpoint: string | undefined,
-        options: { wsEndpoint?: string; browserUrl?: string; cdp?: string },
+        options: {
+          wsEndpoint?: string;
+          browserUrl?: string;
+          cdp?: string;
+          trace?: boolean;
+          noTrace?: boolean;
+        },
       ) => {
         try {
+          if (name.length > 16) {
+            throw new Error(`SESSION_NAME_TOO_LONG:${name}:16`);
+          }
+          if (!/^[a-zA-Z0-9_-]+$/.test(name)) {
+            throw new Error(`SESSION_NAME_INVALID:${name}`);
+          }
+          const defaults = await getSessionDefaults();
+          const traceEnabled = await resolveTraceEnabled(options);
           const target = await resolveAttachTarget(endpoint, options);
           const result = await attachManagedSession({
             sessionName: name,
@@ -137,9 +205,27 @@ export function registerSessionCommand(program: Command): void {
             resolvedVia: target.resolvedVia,
             ...("browserURL" in target ? { browserURL: target.browserURL } : {}),
           });
-          printCommandResult("session attach", result);
+          const appliedDefaults = await applySessionDefaults({
+            sessionName: name,
+            traceEnabled,
+          });
+          printCommandResult("session attach", {
+            ...result,
+            data: {
+              ...result.data,
+              defaults,
+              appliedDefaults,
+              traceEnabled,
+            },
+          });
         } catch (error) {
           const message = error instanceof Error ? error.message : "session attach failed";
+          const routing = sessionRoutingError(message);
+          if (routing) {
+            printCommandError("session attach", routing);
+            process.exitCode = 1;
+            return;
+          }
           printCommandError("session attach", {
             code: "SESSION_ATTACH_FAILED",
             message,
@@ -160,6 +246,8 @@ export function registerSessionCommand(program: Command): void {
     .option("--headed", "Launch the recreated session in headed mode")
     .option("--headless", "Launch the recreated session in headless mode")
     .option("--open <url>", "Override the target URL after recreation")
+    .option("--trace", "Enable tracing for the recreated session")
+    .option("--no-trace", "Disable tracing for the recreated session")
     .action(
       async (
         name: string,
@@ -167,10 +255,18 @@ export function registerSessionCommand(program: Command): void {
           headed?: boolean;
           headless?: boolean;
           open?: string;
+          trace?: boolean;
+          noTrace?: boolean;
         },
       ) => {
         let tempDir: string | undefined;
         try {
+          if (name.length > 16) {
+            throw new Error(`SESSION_NAME_TOO_LONG:${name}:16`);
+          }
+          if (!/^[a-zA-Z0-9_-]+$/.test(name)) {
+            throw new Error(`SESSION_NAME_INVALID:${name}`);
+          }
           if (options.headed && options.headless) {
             throw new Error("session recreate accepts either --headed or --headless, not both");
           }
@@ -182,7 +278,9 @@ export function registerSessionCommand(program: Command): void {
 
           const currentPage = await getSessionPageSummary(name).catch(() => undefined);
           const currentHeaded = entry.config.browser?.launchOptions?.headless === false;
+          const defaults = await getSessionDefaults();
           const headed = options.headed ? true : options.headless ? false : currentHeaded;
+          const traceEnabled = await resolveTraceEnabled(options);
           const profile = entry.config.browser?.userDataDir;
           const persistent = Boolean(entry.config.cli?.persistent || profile);
           const targetUrl = options.open ?? currentPage?.url ?? "about:blank";
@@ -191,14 +289,7 @@ export function registerSessionCommand(program: Command): void {
           const statePath = join(tempDir, "state.json");
           let stateSaved = false;
           try {
-            await runManagedSessionCommand(
-              {
-                _: ["state-save", statePath],
-              },
-              {
-                sessionName: name,
-              },
-            );
+            await managedStateSave(statePath, { sessionName: name });
             stateSaved = true;
           } catch {}
 
@@ -213,12 +304,18 @@ export function registerSessionCommand(program: Command): void {
 
           if (stateSaved) {
             await managedStateLoad(statePath, { sessionName: name });
-            if (targetUrl && targetUrl !== "about:blank") {
-              await managedOpen(targetUrl, {
-                sessionName: name,
-                reset: false,
-              });
-            }
+          }
+
+          const appliedDefaults = await applySessionDefaults({
+            sessionName: name,
+            traceEnabled,
+          });
+
+          if (targetUrl && targetUrl !== "about:blank") {
+            await managedOpen(targetUrl, {
+              sessionName: name,
+              reset: false,
+            });
           }
 
           const page = await getSessionPageSummary(name).catch(() => undefined);
@@ -232,12 +329,23 @@ export function registerSessionCommand(program: Command): void {
             data: {
               recreated: true,
               headed,
+              defaults,
+              appliedDefaults,
+              traceEnabled,
               ...(profile ? { profile } : {}),
               ...(persistent ? { persistent: true } : {}),
               ...(options.open ? { openedUrl: options.open } : {}),
             },
           });
         } catch (error) {
+          const routing = sessionRoutingError(
+            error instanceof Error ? error.message : String(error),
+          );
+          if (routing) {
+            printCommandError("session recreate", routing);
+            process.exitCode = 1;
+            return;
+          }
           printCommandError("session recreate", {
             code: "SESSION_RECREATE_FAILED",
             message: error instanceof Error ? error.message : "session recreate failed",

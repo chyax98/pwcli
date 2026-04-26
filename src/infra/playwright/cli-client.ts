@@ -11,9 +11,43 @@ const { Session } = sessionModule;
 const { Registry, createClientInfo, resolveSessionName } = registryModule;
 
 export const DEFAULT_SESSION_NAME = "default";
+export const MAX_SESSION_NAME_LENGTH = 16;
+
+type ManagedSessionConfig = {
+  name?: string;
+  socketPath: string;
+  version?: string;
+  workspaceDir?: string;
+  cli?: {
+    persistent?: boolean;
+  };
+  browser?: {
+    launchOptions?: {
+      headless?: boolean;
+    };
+    userDataDir?: string;
+  };
+};
+
+type ManagedSessionEntry = {
+  file: string;
+  daemonDir: string;
+  config: ManagedSessionConfig;
+};
 
 function normalizeSessionName(name?: string) {
   return resolveSessionName(name ?? DEFAULT_SESSION_NAME);
+}
+
+export function validateSessionName(name?: string) {
+  const sessionName = normalizeSessionName(name);
+  if (sessionName.length > MAX_SESSION_NAME_LENGTH) {
+    throw new Error(`SESSION_NAME_TOO_LONG:${sessionName}:${MAX_SESSION_NAME_LENGTH}`);
+  }
+  if (!/^[a-zA-Z0-9_-]+$/.test(sessionName)) {
+    throw new Error(`SESSION_NAME_INVALID:${sessionName}`);
+  }
+  return sessionName;
 }
 
 async function loadRegistry() {
@@ -36,8 +70,8 @@ async function withSuppressedConsole<T>(fn: () => Promise<T>) {
 async function getSessionEntry(sessionName?: string) {
   const clientInfo = createClientInfo();
   const registry = await loadRegistry();
-  const resolvedSessionName = normalizeSessionName(sessionName);
-  const entry = registry.entry(clientInfo, resolvedSessionName);
+  const resolvedSessionName = validateSessionName(sessionName);
+  const entry = registry.entry(clientInfo, resolvedSessionName) as ManagedSessionEntry | undefined;
   return {
     clientInfo,
     registry,

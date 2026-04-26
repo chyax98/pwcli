@@ -1,5 +1,10 @@
 import type { Command } from "commander";
-import { managedPageCurrent, managedPageFrames, managedPageList } from "../../domain/workspace/service.js";
+import {
+  managedPageCurrent,
+  managedPageDialogs,
+  managedPageFrames,
+  managedPageList,
+} from "../../domain/workspace/service.js";
 import { printCommandResult } from "../output.js";
 import {
   addSessionOption,
@@ -59,4 +64,20 @@ export function registerPageCommand(program: Command): void {
       }
     },
   );
+
+  addSessionOption(
+    page.command("dialogs").description("List observed dialogs for the current page workspace"),
+  ).action(async (options: { session?: string }, command: Command) => {
+    try {
+      const sessionName = requireSessionName(options, command);
+      printCommandResult("page dialogs", await managedPageDialogs({ sessionName }));
+    } catch (error) {
+      printSessionAwareCommandError("page dialogs", error, {
+        code: "PAGE_DIALOGS_FAILED",
+        message: "page dialogs failed",
+        suggestions: ["Run `pw session create <name> --open <url>` first"],
+      });
+      process.exitCode = 1;
+    }
+  });
 }

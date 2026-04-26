@@ -1,5 +1,6 @@
 import type { Command } from "commander";
 import { sessionRoutingError } from "../../domain/session/routing.js";
+import { MAX_SESSION_NAME_LENGTH } from "../../infra/playwright/cli-client.js";
 import { printCommandError } from "../output.js";
 
 export function addSessionOption<T extends Command>(command: T): T {
@@ -14,6 +15,12 @@ export function requireSessionName(
   const sessionName = merged?.session?.trim() || options.session?.trim();
   if (!sessionName) {
     throw new Error("SESSION_REQUIRED");
+  }
+  if (sessionName.length > MAX_SESSION_NAME_LENGTH) {
+    throw new Error(`SESSION_NAME_TOO_LONG:${sessionName}:${MAX_SESSION_NAME_LENGTH}`);
+  }
+  if (!/^[a-zA-Z0-9_-]+$/.test(sessionName)) {
+    throw new Error(`SESSION_NAME_INVALID:${sessionName}`);
   }
   return sessionName;
 }

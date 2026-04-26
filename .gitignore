@@ -5,3 +5,6 @@ dist
 .playwright-cli
 .pwcli
 .tmp*
+.codex
+.claude/
+docs/superpowers/

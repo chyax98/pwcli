@@ -1,166 +1,109 @@
 # pwcli
 
-`pwcli` 是一个面向内部 Agent 的 Playwright 命令壳，默认命令名是 `pw`。
+`pwcli` 是一个面向内部 Agent 的 Playwright orchestration CLI，默认命令名是 `pw`。
 
-当前项目真相已经收口成：
+它服务的场景只有两类：
 
-- 浏览器命令主路径是 **strict session-first**
-- 先 `session create <name>`
-- 后续所有浏览器相关命令都显式带 `--session <name>`
-- 不再保留自动 fallback
+1. 执行浏览器任务
+2. 复现、定位、诊断浏览器问题
 
-## 当前命令集
+当前仓库把真相拆成两条：
+
+- **怎么用**：看 [skills/pwcli/SKILL.md](/Users/xd/work/tools/pwcli/skills/pwcli/SKILL.md)
+- **为什么这样设计**：看 [docs/architecture/README.md](/Users/xd/work/tools/pwcli/docs/architecture/README.md)
+
+## 当前产品规则
+
+- agent-first
+- strict session-first
+- 稳定 JSON 输出
+- `session create|attach|recreate` 是唯一 lifecycle 主路
+- `open` 只做导航
+- `auth` 只做 plugin 执行
+- `batch` 走结构化 `string[][]`
+- diagnostics 优先 query/export
+- trace 默认开启
+
+## 稳定主链
+
+```bash
+pw session create bug-a --open 'https://example.com'
+pw snapshot --session bug-a
+pw click e6 --session bug-a
+pw wait networkIdle --session bug-a
+pw diagnostics digest --session bug-a
+pw diagnostics show --run <runId> --command click --limit 5
+pw diagnostics export --session bug-a --out ./diag.json
+```
+
+接管已有浏览器：
+
+```bash
+pw session attach bug-a --ws-endpoint ws://127.0.0.1:9222/devtools/browser/...
+```
+
+确定性 mock：
+
+```bash
+pw route load ./scripts/manual/mock-routes.json --session bug-a
+pw route list --session bug-a
+```
+
+环境控制：
+
+```bash
+pw environment offline on --session bug-a
+pw environment geolocation set --session bug-a --lat 37.7749 --lng -122.4194
+```
+
+## 仓库结构
 
 ```text
-pw session create|list|status|close|recreate
-pw open <url> --session <name>
-pw connect [endpoint] --session <name>
-pw code [source] --session <name>
-pw auth [plugin] --session <name>
-pw batch <steps...> --session <name>
-pw page --session <name> current|list|frames
-pw page current|list|frames --session <name>
-pw snapshot --session <name>
-pw screenshot [ref] --session <name>
-pw resize --session <name>
-pw read-text --session <name>
-pw fill [parts...] --session <name>
-pw type [parts...] --session <name>
-pw press <key> --session <name>
-pw scroll <direction> [distance] --session <name>
-pw upload [parts...] --session <name>
-pw download [ref] --session <name>
-pw drag [parts...] --session <name>
-pw console --session <name>
-pw network --session <name>
-pw click [ref] --session <name>
-pw wait [target] --session <name>
-pw trace <action> --session <name>
-pw state <action> [file] --session <name>
-pw profile inspect|open
-pw plugin list|path
-pw skill path|install
+src/
+  app/
+  domain/
+  infra/
+skills/
+  pwcli/
+docs/
+  architecture/
 ```
 
-## 当前推荐主链
+职责：
+
+- `src/app`：CLI、batch、输出
+- `src/domain`：命令语义与领域编排
+- `src/infra`：Playwright substrate、fs、plugin 适配
+- `skills/pwcli`：模型使用教程的唯一真相
+- `docs/architecture`：架构决策、领域现状、已知限制、扩展方向
+
+## 验证
+
+开发期优先：
 
 ```bash
-pw session create dc-main --open 'https://developer-192-168-5-18.tap.dev/forge/89347/all-app'
-pw snapshot --session dc-main
-pw click e6 --session dc-main
-pw wait networkIdle --session dc-main
-pw read-text --session dc-main
-pw batch --session dc-main "click e6" "wait networkIdle" "screenshot --path ./shot.png"
-pw resize --session dc-main --preset desktop
-pw session close dc-main
+pnpm typecheck
+pnpm build
+pnpm smoke
+pnpm test:dogfood:e2e
 ```
 
-对 Agent，这条规则最清楚：
+## 已知限制
 
-- 先创建 session
-- 后面重复带同一个 `--session`
-- CLI 不会替你猜目标 session
+- `page dialogs` 是事件投影，不是 authoritative live dialog set
+- `MODAL_STATE_BLOCKED` 会阻断 run-code-backed 读取和部分动作
+- `observe status` 和 `doctor` 默认走 compact 输出，`--verbose` 才展开完整细节
+- `session attach --browser-url/--cdp` 依赖本地 attach bridge registry
+- `environment clock set` 当前是 limitation
+- `har start|stop` 当前只暴露 substrate 边界，没有稳定热录制 contract
 
-## 到达真实已登录页面
+## 入口
 
-### 1. 直接打开真实页
-
-```bash
-pw session create dc-main --open 'https://developer-192-168-5-18.tap.dev/forge/89347/all-app'
-```
-
-### 2. 复用已登录 profile
-
-```bash
-pw session create dc-main \
-  --open 'http://127.0.0.1:4110/forge' \
-  --profile ~/.forge-browser/profiles/acceptance-login
-```
-
-### 3. 复用 state
-
-```bash
-pw session create dc-main --open 'https://developer-192-168-5-18.tap.dev/forge/89347/all-app'
-pw state save ./auth.json --session dc-main
-pw session close dc-main
-
-pw session create dc-main --open 'https://developer-192-168-5-18.tap.dev/forge/89347/all-app' --state ./auth.json
-```
-
-### 4. 动态登录
-
-```bash
-pw auth dc-login \
-  --session dc-main \
-  --open 'https://developer-192-168-5-18.tap.dev/forge/89347/all-app'
-```
-
-`dc-login` 当前规则：
-
-- 用户给完整 deep link，插件直接把它当 `targetUrl`
-- 并从它提取 `baseURL`
-- 用户没给完整链接，才回落到 `accounts.json / instance / 本地端口探测`
-
-## 当前值得记住的事实
-
-- `-s` 是 `--session` 的短别名
-- `plugins/` 和 `skills/` 是包内资源；发布到 NPM 时应随 `pwcli` 一起分发
-- `session create` 是唯一推荐的浏览器生命周期入口
-- `session recreate <name> --headed|--headless` 用于切换有头/无头；底层是重建 session，不是原地切换
-- `click` 支持：
-  - `aria-ref`
-  - `--selector`
-  - semantic locator：`--role` / `--text` / `--label` / `--placeholder` / `--testid`
-- `open` / `auth` / `connect` 都要求显式 `--session`
-- `console` / `network` 当前返回结构化摘要，不是完整事件流系统
-- `download` 支持：
-  - `--path <file>`：明确文件路径
-  - `--dir <dir>`：保留浏览器建议文件名
-- `resize` 支持：
-  - `--view <width>x<height>`
-  - `--view <width>_<height>`
-  - `--preset desktop|ipad|iphone`
-- `page` 支持两种等价写法：
-  - `pw page --session dc-main current`
-  - `pw page current --session dc-main`
-- `batch` 当前支持 `screenshot` step，兼容：
-  - `screenshot`
-  - `screenshot --path ./shot.png`
-  - `screenshot e6 --path ./target.png`
-  - `screenshot --selector '#app' --path ./app.png`
-- `plugin list|path` 会优先发现包内 `plugins/`，不依赖当前工作目录
-
-## 当前没有的东西
-
-不要把这些当成已经存在：
-
-- 自动选择唯一 live session
-- `session use`
-- 多 session 隐式切换
-- 默认 artifact run 目录
-- HAR / perf / video / screencast 管理
-- 项目层 session log / diagnostics cache
-- observe stream server
-
-## 当前已知限制
-
-- `wait --request/--response/--method/--status` 已接上，但当前最稳的验证方式是先挂 wait，再由 fixture 触发命中请求
-- `session status` 仍然只是 best-effort 视图
-- `session attach --browser-url/--cdp` 当前依赖本地 attach bridge registry，把 CDP metadata 映射到 Playwright `wsEndpoint`；对只暴露 raw CDP、没有 bridge 的外部浏览器还不通用
-- `download` 的稳定验证当前建立在 managed page 内已有下载元素，不把 `file://` 打开本地下载页写成稳定 contract
-- `dc-login` 动态登录已接入，但在当前机器上最稳的 DC 2.0 入口仍然是直接打开真实页或复用 profile/state
-
-## 手工验证
-
-本轮已真实执行并通过的最小集合见：
-
-- [.claude/project/08-manual-verification.md](./.claude/project/08-manual-verification.md)
-
-## 文档入口
-
-- 项目真相：[.claude/project/16-project-truth.md](./.claude/project/16-project-truth.md)
-- Playwright 能力映射：[.claude/project/03-playwright-capability-mapping.md](./.claude/project/03-playwright-capability-mapping.md)
-- runtime state：[.claude/project/05-runtime-state-model.md](./.claude/project/05-runtime-state-model.md)
-- plugin / auth：[.claude/project/06-plugin-auth-model.md](./.claude/project/06-plugin-auth-model.md)
-- artifact / diagnostics：[.claude/project/07-artifacts-diagnostics.md](./.claude/project/07-artifacts-diagnostics.md)
-- borrowing rules：[.claude/project/17-borrowing-rules.md](./.claude/project/17-borrowing-rules.md)
+- 使用教程：[skills/pwcli/SKILL.md](/Users/xd/work/tools/pwcli/skills/pwcli/SKILL.md)
+- 命令参考：[skills/pwcli/references/command-reference.md](/Users/xd/work/tools/pwcli/skills/pwcli/references/command-reference.md)
+- 工作流：[skills/pwcli/references/workflows.md](/Users/xd/work/tools/pwcli/skills/pwcli/references/workflows.md)
+- 恢复策略：[skills/pwcli/references/failure-recovery.md](/Users/xd/work/tools/pwcli/skills/pwcli/references/failure-recovery.md)
+- 架构总览：[docs/architecture/README.md](/Users/xd/work/tools/pwcli/docs/architecture/README.md)
+- 文档规约：[docs/architecture/documentation-governance.md](/Users/xd/work/tools/pwcli/docs/architecture/documentation-governance.md)
+- E2E 计划：[docs/architecture/e2e-dogfood-test-plan.md](/Users/xd/work/tools/pwcli/docs/architecture/e2e-dogfood-test-plan.md)
+- E2E 体验报告：[docs/architecture/e2e-dogfood-experience-report.md](/Users/xd/work/tools/pwcli/docs/architecture/e2e-dogfood-experience-report.md)

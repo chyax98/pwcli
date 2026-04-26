@@ -50,7 +50,7 @@ export function registerBootstrapCommand(program: Command): void {
           message: "bootstrap failed",
           suggestions: [
             "Use `pw bootstrap --session bug-a apply --init-script ./scripts/manual/bootstrap-fixture.js`",
-            "Use `--headers-file` with a JSON object like {\"x-foo\":\"bar\"}",
+            'Use `--headers-file` with a JSON object like {"x-foo":"bar"}',
           ],
         });
         process.exitCode = 1;

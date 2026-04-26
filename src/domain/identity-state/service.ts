@@ -1,1 +1,7 @@
-export { managedStateLoad, managedStateSave } from "../../infra/playwright/runtime.js";
+export {
+  managedCookiesList,
+  managedCookiesSet,
+  managedStateLoad,
+  managedStateSave,
+  managedStorageRead,
+} from "../../infra/playwright/runtime.js";
