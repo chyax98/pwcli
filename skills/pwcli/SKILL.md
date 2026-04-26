@@ -119,9 +119,9 @@ pw console --session bug-a ...
 pw network --session bug-a ...
 pw errors recent --session bug-a ...
 pw doctor --session bug-a
-pw diagnostics show --run <runId> --command click --limit 5
-pw diagnostics export --session bug-a --out ./diag.json
-pw diagnostics runs
+pw diagnostics show --run <runId> --command click --limit 5 --fields at=ts,cmd=command,net=diagnosticsDelta.networkDelta
+pw diagnostics export --session bug-a --section network --text CHECKOUT_TIMEOUT --fields at=timestamp,method,url,status,snippet=responseBodySnippet --out ./diag.json
+pw diagnostics runs --session bug-a --since 2026-04-26T00:00:00.000Z
 pw diagnostics grep --run <runId> --text <substring>
 ```
 
@@ -135,7 +135,9 @@ Treat:
 - `diagnostics show/grep` as run-scoped replay tools
 - `--verbose` on `observe status` or `doctor` as escalation only
 - `--since` on `console/network/errors/show/grep/export` when you need time-bounded triage
-- `--fields` on `diagnostics show/grep/export` when another agent only needs a narrow projection
+- `--fields` on `diagnostics show/grep/export` when another agent only needs a narrow projection; use `alias=path` when you want stable short keys
+- `--text` on `diagnostics export` when you need one compact evidence artifact instead of a full section dump
+- `--session` and `--since` on `diagnostics runs` when the run directory is already noisy
 - `requestBodySnippet` / `responseBodySnippet` on `network` when a text-like body is enough to confirm the failure shape
 
 If a session is blocked by a dialog, try:
@@ -236,7 +238,7 @@ Use `network` with:
 Use:
 
 ```bash
-pw diagnostics export --session bug-a --out ./diag.json
+pw diagnostics export --session bug-a --section network --text checkout --fields at=timestamp,method,url,status,snippet=responseBodySnippet --out ./diag.json
 ```
 
 ### Need a simple mock

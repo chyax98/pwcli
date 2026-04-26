@@ -373,15 +373,26 @@ if [[ ! -f "${TMP_DIR}/diag-network.json" ]]; then
   exit 1
 fi
 assert_contains "${TMP_DIR}/diag-network.json" "\"network\""
+runs_filtered_json="$(run_json runs-filtered diagnostics runs --session "$SESSION_NAME" --since 2000-01-01T00:00:00.000Z --limit 20)"
+assert_json "$runs_filtered_json" "runs filter keeps only current dogfood session" \
+  "data.ok === true && data.data.count >= 1 && data.data.runs.every(item => item.sessionName === '${SESSION_NAME}')"
 digest_run_json="$(run_json digest-run diagnostics digest --run "$bug_run_id")"
 assert_json "$digest_run_json" "run digest available" \
   "data.ok === true && data.data.runId === '${bug_run_id}' && data.data.commandCount >= 1"
 show_json="$(run_json show diagnostics show --run "$bug_run_id" --command click --limit 10)"
 assert_json "$show_json" "show filtered by command" \
   "data.ok === true && data.data.count >= 1 && data.data.events.every(item => item.command === 'click')"
+show_alias_json="$(run_json show-alias diagnostics show --run "$bug_run_id" --command click --limit 1 --fields at=ts,cmd=command,status=diagnosticsDelta.lastNetwork.status)"
+assert_json "$show_alias_json" "show can alias projected fields" \
+  "data.ok === true && data.data.events.length === 1 && data.data.events[0].cmd === 'click' && data.data.events[0].command === undefined"
 grep_json="$(run_json grep diagnostics grep --run "$bug_run_id" --text CHECKOUT_TIMEOUT --limit 10)"
 assert_json "$grep_json" "grep finds bug payload" \
   "data.ok === true && data.data.count >= 1"
+export_text_json="$(run_json export-text diagnostics export --session "$SESSION_NAME" --out "${TMP_DIR}/diag-checkout.json" --section network --text fail500 --fields at=timestamp,method,url,body=requestBodySnippet)"
+assert_json "$export_text_json" "diagnostics export can narrow by text and alias fields" \
+  "data.ok === true && data.data.exported === true && data.data.text === 'fail500'"
+assert_json "${TMP_DIR}/diag-checkout.json" "diagnostics export file keeps aliased request body snippet" \
+  "Array.isArray(data.network) && data.network.length >= 1 && data.network.every(item => item.method === 'POST' && typeof item.body === 'string' && item.body.includes('fail500'))"
 
 log "state reuse on new session"
 reuse_create_json="$(run_json reuse-create session create "$SESSION_REUSE" --open "$LOGIN_URL")"

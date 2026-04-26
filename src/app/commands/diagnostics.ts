@@ -30,7 +30,11 @@ export function registerDiagnosticsCommand(program: Command): void {
       )
       .option("--limit <n>", "Limit array-like sections to the last N items")
       .option("--since <iso>", "Keep only records at or after the given ISO timestamp")
-      .option("--fields <list>", "Comma-separated field paths for record-array projection"),
+      .option("--text <substring>", "Keep only array records whose JSON includes the substring")
+      .option(
+        "--fields <list>",
+        "Comma-separated projection list; use path or alias=path for record-array projection",
+      ),
   ).action(
     async (
       options: {
@@ -39,6 +43,7 @@ export function registerDiagnosticsCommand(program: Command): void {
         section?: string;
         limit?: string;
         since?: string;
+        text?: string;
         fields?: string;
       },
       command: Command,
@@ -62,16 +67,19 @@ export function registerDiagnosticsCommand(program: Command): void {
         if (limit !== undefined && (!Number.isFinite(limit) || limit <= 0)) {
           throw new Error("diagnostics export requires a positive integer for --limit");
         }
-        const result =
-          section || limit
-            ? await managedDiagnosticsExportFiltered({
-                sessionName,
-                section,
-                limit,
-                since: options.since,
-                fields: options.fields,
-              })
-            : await managedDiagnosticsExport({ sessionName });
+        const useFilteredExport = Boolean(
+          section || limit || options.since || options.text || options.fields,
+        );
+        const result = useFilteredExport
+          ? await managedDiagnosticsExportFiltered({
+              sessionName,
+              section,
+              limit,
+              since: options.since,
+              text: options.text,
+              fields: options.fields,
+            })
+          : await managedDiagnosticsExport({ sessionName });
         await writeFile(out, JSON.stringify(result.data, null, 2), "utf8");
         printCommandResult("diagnostics export", {
           session: result.session,
@@ -82,6 +90,7 @@ export function registerDiagnosticsCommand(program: Command): void {
             ...(section ? { section } : {}),
             ...(limit ? { limit } : {}),
             ...(options.since ? { since: options.since } : {}),
+            ...(options.text ? { text: options.text } : {}),
             ...(options.fields ? { fields: options.fields } : {}),
           },
         });
@@ -103,13 +112,19 @@ export function registerDiagnosticsCommand(program: Command): void {
     .command("runs")
     .description("List known run ids")
     .option("--limit <n>", "Limit returned runs")
-    .action(async (options: { limit?: string }) => {
+    .option("--session <name>", "Keep only runs recorded under the given session name")
+    .option("--since <iso>", "Keep only runs whose last activity is at or after the ISO timestamp")
+    .action(async (options: { limit?: string; session?: string; since?: string }) => {
       try {
         const limit = options.limit ? Number(options.limit) : undefined;
         if (limit !== undefined && (!Number.isFinite(limit) || limit <= 0)) {
           throw new Error("diagnostics runs requires a positive integer for --limit");
         }
-        const runs = await listDiagnosticsRuns({ limit });
+        const runs = await listDiagnosticsRuns({
+          limit,
+          sessionName: options.session,
+          since: options.since,
+        });
         printCommandResult("diagnostics runs", {
           data: {
             count: runs.length,
@@ -185,7 +200,10 @@ export function registerDiagnosticsCommand(program: Command): void {
     .option("--command <name>", "Filter run events by command name")
     .option("--limit <n>", "Limit returned events")
     .option("--since <iso>", "Keep only events at or after the given ISO timestamp")
-    .option("--fields <list>", "Comma-separated field paths to project from each event")
+    .option(
+      "--fields <list>",
+      "Comma-separated projection list; use path or alias=path for event projection",
+    )
     .action(
       async (options: {
         run?: string;
@@ -232,7 +250,10 @@ export function registerDiagnosticsCommand(program: Command): void {
     .option("--command <name>", "Filter run events by command name")
     .option("--limit <n>", "Limit returned events")
     .option("--since <iso>", "Keep only events at or after the given ISO timestamp")
-    .option("--fields <list>", "Comma-separated field paths to project from each event")
+    .option(
+      "--fields <list>",
+      "Comma-separated projection list; use path or alias=path for event projection",
+    )
     .action(
       async (options: {
         run?: string;

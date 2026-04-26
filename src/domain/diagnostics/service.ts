@@ -18,6 +18,11 @@ type SignalRecord = {
 };
 
 type RunEventRecord = Record<string, unknown>;
+type ProjectionField = {
+  raw: string;
+  sourcePath: string;
+  targetPath: string;
+};
 type DiagnosticsExportSection =
   | "all"
   | "workspace"
@@ -77,7 +82,27 @@ function normalizeFieldList(fields?: string) {
   return value
     .split(",")
     .map((item) => item.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .map((item) => {
+      const separatorIndex = item.indexOf("=");
+      if (separatorIndex === -1) {
+        return {
+          raw: item,
+          sourcePath: item,
+          targetPath: item,
+        };
+      }
+      const targetPath = item.slice(0, separatorIndex).trim();
+      const sourcePath = item.slice(separatorIndex + 1).trim();
+      if (!targetPath || !sourcePath) {
+        throw new Error(`INVALID_FIELDS:${item}`);
+      }
+      return {
+        raw: `${targetPath}=${sourcePath}`,
+        sourcePath,
+        targetPath,
+      };
+    });
 }
 
 function pickFieldPath(record: Record<string, unknown>, path: string) {
@@ -109,18 +134,25 @@ function setFieldPath(target: Record<string, unknown>, path: string, value: unkn
   current[parts.at(-1) as string] = value;
 }
 
-function projectRecord(record: Record<string, unknown>, fields: string[]) {
+function projectRecord(record: Record<string, unknown>, fields: ProjectionField[]) {
   if (fields.length === 0) {
     return record;
   }
   const projected: Record<string, unknown> = {};
   for (const field of fields) {
-    const value = pickFieldPath(record, field);
+    const value = pickFieldPath(record, field.sourcePath);
     if (value !== undefined) {
-      setFieldPath(projected, field, value);
+      setFieldPath(projected, field.targetPath, value);
     }
   }
   return projected;
+}
+
+function recordContainsText(record: unknown, text?: string | null) {
+  if (!text) {
+    return true;
+  }
+  return String(JSON.stringify(record) ?? "").includes(text);
 }
 
 function sortSignals(signals: SignalRecord[]) {
@@ -383,8 +415,14 @@ export async function managedDiagnosticsDigest(options: {
   };
 }
 
-export async function listDiagnosticsRuns(options?: { limit?: number }) {
+export async function listDiagnosticsRuns(options?: {
+  limit?: number;
+  sessionName?: string;
+  since?: string;
+}) {
   const runIds = await listRunDirs();
+  const since = normalizeSince(options?.since);
+  const sessionName = options?.sessionName?.trim() || null;
   const runs = await Promise.all(
     runIds.map(async (runId) => {
       const events = await readRunEvents(runId).catch(() => []);
@@ -403,8 +441,14 @@ export async function listDiagnosticsRuns(options?: { limit?: number }) {
     }
     return right.lastTimestamp.localeCompare(left.lastTimestamp);
   });
-  const limit = options?.limit ? Math.max(1, options.limit) : ordered.length;
-  return ordered.slice(0, limit);
+  const filtered = ordered.filter((run) => {
+    if (sessionName && run.sessionName !== sessionName) {
+      return false;
+    }
+    return timestampAtOrAfter(run.lastTimestamp, since);
+  });
+  const limit = options?.limit ? Math.max(1, options.limit) : filtered.length;
+  return filtered.slice(0, limit);
 }
 
 export async function managedDiagnosticsExportFiltered(options: {
@@ -413,12 +457,14 @@ export async function managedDiagnosticsExportFiltered(options: {
   limit?: number;
   fields?: string;
   since?: string;
+  text?: string;
 }) {
   const exported = await managedDiagnosticsExport({ sessionName: options.sessionName });
   const section = options.section ?? "all";
   const limit = options.limit && options.limit > 0 ? options.limit : undefined;
   const since = normalizeSince(options.since);
   const fields = normalizeFieldList(options.fields);
+  const text = options.text?.trim() || null;
   const data = asObject(exported.data);
   const projectArray = (value: unknown, timestampField?: string) =>
     limitTail(
@@ -427,6 +473,7 @@ export async function managedDiagnosticsExportFiltered(options: {
           (item) =>
             !timestampField || timestampAtOrAfter(pickFieldPath(item, timestampField), since),
         )
+        .filter((item) => recordContainsText(item, text))
         .map((item) => projectRecord(item, fields)),
       limit,
     );
@@ -479,7 +526,8 @@ export async function managedDiagnosticsExportFiltered(options: {
       section,
       limit: limit ?? null,
       since: since?.raw ?? null,
-      fields: fields.length > 0 ? fields : null,
+      text,
+      fields: fields.length > 0 ? fields.map((field) => field.raw) : null,
       ...filteredData,
     },
   };
@@ -516,7 +564,7 @@ export async function readDiagnosticsRunView(options: {
     command: command ?? null,
     text: text ?? null,
     since: since?.raw ?? null,
-    fields: fields.length > 0 ? fields : null,
+    fields: fields.length > 0 ? fields.map((field) => field.raw) : null,
     count: limited.length,
     total: filtered.length,
     events: fields.length > 0 ? limited.map((event) => projectRecord(event, fields)) : limited,

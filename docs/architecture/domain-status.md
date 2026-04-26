@@ -105,6 +105,10 @@
 - `diagnostics digest`
 - `diagnostics export`
 - `diagnostics runs|show|grep`
+- `--since` on live/session query commands
+- `--text` on `diagnostics export`
+- `alias=path` field projection on `diagnostics export|show|grep`
+- `--session|--since` filters on `diagnostics runs`
 - `doctor` 默认 compact，`--verbose` 返回完整 probe
 - action 结果里的 `diagnosticsDelta`
 - `.pwcli/runs/<runId>/events.jsonl`
@@ -118,8 +122,8 @@
 ### 后续扩展
 
 - query 深化
-- field projection
-- body 裁剪
+- mock 第二层
+- stream / heavier substrate survey
 
 ## 6. Bootstrap
 

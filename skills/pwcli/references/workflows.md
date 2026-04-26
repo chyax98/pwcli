@@ -12,8 +12,9 @@ pw diagnostics digest --session bug-a
 pw console --session bug-a --level warning --limit 20
 pw network --session bug-a --kind response --limit 20
 pw errors recent --session bug-a --limit 20
-pw diagnostics show --run <runId> --command click --since 2026-04-26T00:00:00.000Z --fields ts,command,diagnosticsDelta.networkDelta
-pw diagnostics export --session bug-a --out ./diag.json
+pw diagnostics show --run <runId> --command click --since 2026-04-26T00:00:00.000Z --fields at=ts,cmd=command,net=diagnosticsDelta.networkDelta
+pw diagnostics export --session bug-a --section network --text checkout --fields at=timestamp,method,url,status,snippet=responseBodySnippet --out ./diag.json
+pw diagnostics runs --session bug-a --since 2026-04-26T00:00:00.000Z
 ```
 
 Use this when you need:

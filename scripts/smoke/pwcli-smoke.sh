@@ -202,6 +202,9 @@ log "diagnostics runs"
 runs_json="$(run_json diagnostics-runs diagnostics runs)"
 assert_json "$runs_json" "diagnostics runs exposes run metadata" \
   "data.ok === true && data.data.count >= 1 && Array.isArray(data.data.runs) && typeof data.data.runs[0].runId === 'string' && typeof data.data.runs[0].commandCount === 'number'"
+runs_filtered_json="$(run_json diagnostics-runs-filtered diagnostics runs --session "$SESSION_NAME" --since 2000-01-01T00:00:00.000Z --limit 20)"
+assert_json "$runs_filtered_json" "diagnostics runs can filter by session and since" \
+  "data.ok === true && data.data.count >= 1 && data.data.runs.every(item => item.sessionName === '${SESSION_NAME}')"
 
 log "diagnostics digest run"
 digest_run_json="$(run_json diagnostics-digest-run diagnostics digest --run "$RUN_ID")"
@@ -215,11 +218,26 @@ assert_json "$show_run_json" "diagnostics show filters by command" \
 show_run_fields_json="$(run_json diagnostics-show-fields diagnostics show --run "$RUN_ID" --command click --limit 1 --fields ts,command,diagnosticsDelta.consoleDelta)"
 assert_json "$show_run_fields_json" "diagnostics show can project event fields" \
   "data.ok === true && data.data.events.length === 1 && data.data.events[0].command === 'click' && data.data.events[0].diagnosticsDelta && data.data.events[0].pageId === undefined"
+show_run_alias_json="$(run_json diagnostics-show-fields-alias diagnostics show --run "$RUN_ID" --command click --limit 1 --fields at=ts,cmd=command,network=diagnosticsDelta.networkDelta)"
+assert_json "$show_run_alias_json" "diagnostics show can alias projected fields" \
+  "data.ok === true && data.data.events.length === 1 && data.data.events[0].cmd === 'click' && data.data.events[0].command === undefined && typeof data.data.events[0].network === 'number'"
 
 log "diagnostics grep filtered"
 grep_run_json="$(run_json diagnostics-grep-run diagnostics grep --run "$RUN_ID" --text fixture-route-hit-run-1 --command click --limit 5)"
 assert_json "$grep_run_json" "diagnostics grep filters by command and text" \
   "data.ok === true && data.data.runId === '${RUN_ID}' && data.data.count >= 1 && data.data.events.every(item => item.command === 'click')"
+
+log "diagnostics export filtered"
+export_since_json="$(run_json diagnostics-export-since diagnostics export --session "$SESSION_NAME" --out "${TMP_DIR}/diag-since.json" --since 2099-01-01T00:00:00.000Z)"
+assert_json "$export_since_json" "diagnostics export accepts since without section or limit" \
+  "data.ok === true && data.data.exported === true && data.data.since === '2099-01-01T00:00:00.000Z'"
+assert_json "${TMP_DIR}/diag-since.json" "diagnostics export since filters all record arrays" \
+  "Array.isArray(data.console) && data.console.length === 0 && Array.isArray(data.network) && data.network.length === 0 && Array.isArray(data.errors) && data.errors.length === 0"
+export_text_json="$(run_json diagnostics-export-text diagnostics export --session "$SESSION_NAME" --out "${TMP_DIR}/diag-text.json" --section network --text xhr:1 --fields at=timestamp,kind,status,snippet=responseBodySnippet)"
+assert_json "$export_text_json" "diagnostics export accepts text and aliased fields" \
+  "data.ok === true && data.data.exported === true && data.data.text === 'xhr:1'"
+assert_json "${TMP_DIR}/diag-text.json" "diagnostics export text filters projected network rows" \
+  "data.section === 'network' && Array.isArray(data.network) && data.network.length >= 1 && data.network.every(item => item.kind === 'response' && typeof item.snippet === 'string' && item.snippet.includes('xhr:1') && item.url === undefined)"
 
 log "doctor"
 doctor_json="$(run_json doctor doctor --session "$SESSION_NAME" --endpoint "$BLANK_URL")"

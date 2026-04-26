@@ -328,13 +328,17 @@
   - `--section all|workspace|console|network|errors|routes|bootstrap`
   - `--limit <n>`
   - `--since <iso>`
+  - `--text <substring>`
   - `--fields <list>`
+- `--fields` 支持 `path` 和 `alias=path`
 
 ### `pw diagnostics runs`
 
 - 列出 `.pwcli/runs/` 下的 run 摘要
 - 可选：
   - `--limit <n>`
+  - `--session <name>`
+  - `--since <iso>`，按 run 的 `lastTimestamp` 过滤
 - 返回：
   - `runId`
   - `sessionName`
@@ -366,6 +370,7 @@
   - `--since <iso>`
   - `--fields <list>`
   - `--limit <n>`
+- `--fields` 支持 `path` 和 `alias=path`
 
 ### `pw diagnostics grep --run <runId> --text <substring>`
 
@@ -375,6 +380,7 @@
   - `--since <iso>`
   - `--fields <list>`
   - `--limit <n>`
+- `--fields` 支持 `path` 和 `alias=path`
 
 ### `pw route list --session <name>`
 
