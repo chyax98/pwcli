@@ -13,6 +13,7 @@ import {
 import { managedStateLoad } from "../../domain/identity-state/service.js";
 import { parsePageSummary } from "../../infra/playwright/output-parsers.js";
 import { printCommandError, printCommandResult } from "../output.js";
+import { sessionRoutingError } from "../../domain/session/routing.js";
 import { attachManagedSession, resolveAttachTarget } from "./attach-shared.js";
 
 async function getSessionPageSummary(name: string) {
@@ -80,6 +81,12 @@ export function registerSessionCommand(program: Command): void {
         },
       ) => {
         try {
+          if (name.length > 16) {
+            throw new Error(`SESSION_NAME_TOO_LONG:${name}:16`);
+          }
+          if (!/^[a-zA-Z0-9_-]+$/.test(name)) {
+            throw new Error(`SESSION_NAME_INVALID:${name}`);
+          }
           const persistent = options.persistent || Boolean(options.profile);
           const result = await managedOpen(options.open ?? "about:blank", {
             sessionName: name,
@@ -104,6 +111,12 @@ export function registerSessionCommand(program: Command): void {
             },
           });
         } catch (error) {
+          const routing = sessionRoutingError(error instanceof Error ? error.message : String(error));
+          if (routing) {
+            printCommandError("session create", routing);
+            process.exitCode = 1;
+            return;
+          }
           printCommandError("session create", {
             code: "SESSION_CREATE_FAILED",
             message: error instanceof Error ? error.message : "session create failed",
@@ -130,6 +143,12 @@ export function registerSessionCommand(program: Command): void {
         options: { wsEndpoint?: string; browserUrl?: string; cdp?: string },
       ) => {
         try {
+          if (name.length > 16) {
+            throw new Error(`SESSION_NAME_TOO_LONG:${name}:16`);
+          }
+          if (!/^[a-zA-Z0-9_-]+$/.test(name)) {
+            throw new Error(`SESSION_NAME_INVALID:${name}`);
+          }
           const target = await resolveAttachTarget(endpoint, options);
           const result = await attachManagedSession({
             sessionName: name,
@@ -140,6 +159,12 @@ export function registerSessionCommand(program: Command): void {
           printCommandResult("session attach", result);
         } catch (error) {
           const message = error instanceof Error ? error.message : "session attach failed";
+          const routing = sessionRoutingError(message);
+          if (routing) {
+            printCommandError("session attach", routing);
+            process.exitCode = 1;
+            return;
+          }
           printCommandError("session attach", {
             code: "SESSION_ATTACH_FAILED",
             message,
@@ -171,6 +196,12 @@ export function registerSessionCommand(program: Command): void {
       ) => {
         let tempDir: string | undefined;
         try {
+          if (name.length > 16) {
+            throw new Error(`SESSION_NAME_TOO_LONG:${name}:16`);
+          }
+          if (!/^[a-zA-Z0-9_-]+$/.test(name)) {
+            throw new Error(`SESSION_NAME_INVALID:${name}`);
+          }
           if (options.headed && options.headless) {
             throw new Error("session recreate accepts either --headed or --headless, not both");
           }
@@ -238,6 +269,12 @@ export function registerSessionCommand(program: Command): void {
             },
           });
         } catch (error) {
+          const routing = sessionRoutingError(error instanceof Error ? error.message : String(error));
+          if (routing) {
+            printCommandError("session recreate", routing);
+            process.exitCode = 1;
+            return;
+          }
           printCommandError("session recreate", {
             code: "SESSION_RECREATE_FAILED",
             message: error instanceof Error ? error.message : "session recreate failed",

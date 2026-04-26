@@ -25,6 +25,32 @@ export function sessionRoutingError(message: string) {
     };
   }
 
+  if (message.startsWith("SESSION_NAME_TOO_LONG:")) {
+    const [, name, limit] = message.split(":");
+    return {
+      code: "SESSION_NAME_TOO_LONG",
+      message: `Session '${name}' is too long. Maximum length is ${limit} characters.`,
+      suggestions: [
+        "Use a short session name like dc-main, auth-a, q1, or bug-a",
+        `Keep the session name at or below ${limit} characters`,
+      ],
+      details: { session: name, maxLength: Number(limit) },
+    };
+  }
+
+  if (message.startsWith("SESSION_NAME_INVALID:")) {
+    const name = message.slice("SESSION_NAME_INVALID:".length);
+    return {
+      code: "SESSION_NAME_INVALID",
+      message: `Session '${name}' contains unsupported characters.`,
+      suggestions: [
+        "Use only letters, numbers, hyphen, or underscore",
+        "Example valid names: dc-main, auth_a, q1, bug-1",
+      ],
+      details: { session: name },
+    };
+  }
+
   return null;
 }
 

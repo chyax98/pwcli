@@ -62,6 +62,7 @@ pw session close dc-main
 - 先创建 session
 - 后面重复带同一个 `--session`
 - CLI 不会替你猜目标 session
+- session 名要保持简短，当前 hard limit 是 16 个字符
 
 ## 到达真实已登录页面
 
@@ -106,6 +107,7 @@ pw auth dc-login \
 ## 当前值得记住的事实
 
 - `-s` 是 `--session` 的短别名
+- session 名当前只接受字母、数字、`-`、`_`，且最长 16 字符
 - `plugins/` 和 `skills/` 是包内资源；发布到 NPM 时应随 `pwcli` 一起分发
 - `session create` 是唯一推荐的浏览器生命周期入口
 - `session recreate <name> --headed|--headless` 用于切换有头/无头；底层是重建 session，不是原地切换

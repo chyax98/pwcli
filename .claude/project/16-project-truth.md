@@ -50,12 +50,12 @@ pw session close bug-123
 pw session create <name> --open <url>
 ```
 
-当前已确认的内部现实：
+当前已确认的运行规则：
 
-- 外部 session 名保留原值
-- 内部 daemon session 名会派生为短 alias
-- 这层 alias 只用于缩短 socket path
-- 不是新的 session substrate
+- session 名必须简短
+- 当前 hard limit 是 16 个字符
+- 当前只接受字母、数字、`-`、`_`
+- 这条规则直接避免底层 daemon socket path 超长
 
 ## 当前真实命令集
 

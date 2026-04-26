@@ -20,6 +20,12 @@
 - `pw session close <name>`
 - `pw session recreate <name> --headed|--headless`
 
+当前命名规则：
+
+- 最长 16 个字符
+- 只接受字母、数字、`-`、`_`
+- 超长直接报 `SESSION_NAME_TOO_LONG`
+
 当前没有：
 
 - `session use`
