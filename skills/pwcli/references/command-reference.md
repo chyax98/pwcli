@@ -576,6 +576,10 @@ stdin 输入格式：
 - 这是有意 trade-off
 - Agent 需要的是稳定可消费的编排，不是“看起来什么都能跑”的脆弱 parity
 - 超出子集时，直接运行单命令或转 `pw code`
+- 同一 session 的依赖步骤必须按数组顺序串行执行
+- `open` / `click` / `press` 后如果下一步依赖导航或网络完成，显式插入 `wait`
+- `session` / `auth` / `environment` / `dialog` / diagnostics query 不属于 batch 稳定子集
+- 返回里的 `data.analysis.warnings` 是串行依赖提示，不要忽略
 
 ### `pw environment offline on|off --session <name>`
 

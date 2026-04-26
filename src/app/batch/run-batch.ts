@@ -27,8 +27,139 @@ import {
   managedPageList,
 } from "../../domain/workspace/service.js";
 
+const SUPPORTED_BATCH_TOP_LEVEL = [
+  "bootstrap",
+  "click",
+  "code",
+  "errors",
+  "fill",
+  "observe",
+  "open",
+  "page",
+  "press",
+  "read-text",
+  "route",
+  "screenshot",
+  "scroll",
+  "snapshot",
+  "state",
+  "type",
+  "wait",
+] as const;
+
+type BatchStepKind = "mutation" | "read" | "recovery" | "session-shape" | "transition" | "wait";
+
 function formatBatchArgv(argv: string[]) {
   return argv.map((part) => (/[\s"'\\]/.test(part) ? JSON.stringify(part) : part)).join(" ");
+}
+
+function classifyBatchStep(tokens: string[]): BatchStepKind {
+  const [command, subcommand] = tokens;
+  if (command === "wait") {
+    return "wait";
+  }
+  if (command === "open" || command === "click" || command === "press") {
+    return "transition";
+  }
+  if (
+    command === "fill" ||
+    command === "type" ||
+    command === "scroll" ||
+    command === "route" ||
+    command === "bootstrap" ||
+    (command === "state" && subcommand === "load") ||
+    command === "code"
+  ) {
+    return command === "code" ? "session-shape" : "mutation";
+  }
+  if (command === "errors" && subcommand === "clear") {
+    return "recovery";
+  }
+  return "read";
+}
+
+function unsupportedBatchStepMessage(tokens: string[]) {
+  const [command] = tokens;
+  if (!command) {
+    return "batch step is empty";
+  }
+  if (command === "session") {
+    return "batch does not support session lifecycle; run `session create|attach|recreate` before batch";
+  }
+  if (command === "environment") {
+    return "batch does not support environment mutation in the stable subset; run environment commands directly before batch";
+  }
+  if (command === "auth") {
+    return "batch does not support auth plugin execution; run `auth` directly before batch";
+  }
+  if (command === "dialog") {
+    return "batch does not support dialog recovery; recover the modal first with `dialog accept|dismiss`";
+  }
+  if (command === "diagnostics" || command === "network" || command === "console") {
+    return "batch does not support diagnostics query commands; run diagnostics directly after the dependent batch flow";
+  }
+  return `unsupported batch step '${command}'`;
+}
+
+function validateBatchPlan(commands: string[][]) {
+  for (const tokens of commands) {
+    const [command] = tokens;
+    if (!command) {
+      throw new Error("batch step is empty");
+    }
+    if (
+      !SUPPORTED_BATCH_TOP_LEVEL.includes(command as (typeof SUPPORTED_BATCH_TOP_LEVEL)[number])
+    ) {
+      throw new Error(unsupportedBatchStepMessage(tokens));
+    }
+  }
+}
+
+function analyzeBatchPlan(commands: string[][], continueOnError?: boolean) {
+  const warnings: string[] = [];
+
+  commands.forEach((tokens, index) => {
+    const kind = classifyBatchStep(tokens);
+    const next = commands[index + 1];
+    const nextKind = next ? classifyBatchStep(next) : null;
+    const rawStep = formatBatchArgv(tokens);
+    const nextRawStep = next ? formatBatchArgv(next) : null;
+
+    if (
+      (tokens[0] === "open" || tokens[0] === "click" || tokens[0] === "press") &&
+      next &&
+      nextKind !== "wait"
+    ) {
+      warnings.push(
+        `step ${index + 1} (${rawStep}) changes page state; if step ${index + 2} (${nextRawStep}) depends on navigation or network completion, insert an explicit wait first`,
+      );
+    }
+
+    if (tokens[0] === "code" && commands.length > 1) {
+      warnings.push(
+        `step ${index + 1} (${rawStep}) uses opaque code; isolate it or keep it at the end of the serial flow when possible`,
+      );
+    }
+
+    if (
+      continueOnError &&
+      (kind === "mutation" || kind === "transition" || kind === "session-shape") &&
+      next
+    ) {
+      warnings.push(
+        `step ${index + 1} (${rawStep}) mutates session state; --continue-on-error can make later steps consume stale state`,
+      );
+    }
+  });
+
+  return {
+    serialOnly: true,
+    requiresExistingSession: true,
+    stepCount: commands.length,
+    continueOnError: Boolean(continueOnError),
+    supportedTopLevel: [...SUPPORTED_BATCH_TOP_LEVEL],
+    warnings,
+  };
 }
 
 async function executeBatchStep(tokens: string[], sessionName: string) {
@@ -567,7 +698,7 @@ async function executeBatchStep(tokens: string[], sessionName: string) {
       }
       throw new Error(`unsupported state batch step '${rawStep}'`);
     default:
-      throw new Error(`unsupported batch step '${command}'`);
+      throw new Error(unsupportedBatchStepMessage(tokens));
   }
 }
 
@@ -579,22 +710,46 @@ export async function runBatch(options: {
   if (!options.commands.length) {
     throw new Error("batch requires at least one step");
   }
+  validateBatchPlan(options.commands);
+  const analysis = analyzeBatchPlan(options.commands, options.continueOnError);
 
   const results = [];
 
-  for (const argv of options.commands) {
+  for (const [index, argv] of options.commands.entries()) {
     try {
       results.push({
+        index,
         argv,
+        step: formatBatchArgv(argv),
         ...(await executeBatchStep(argv, options.sessionName)),
       });
     } catch (error) {
+      const message = error instanceof Error ? error.message : "batch step failed";
       results.push({
         ok: false,
+        index,
         argv,
+        step: formatBatchArgv(argv),
         error: {
           code: "BATCH_STEP_FAILED",
-          message: error instanceof Error ? error.message : "batch step failed",
+          message,
+          suggestions:
+            message === "MODAL_STATE_BLOCKED"
+              ? [
+                  "Recover the dialog outside batch with `pw dialog accept --session <name>` or `pw dialog dismiss --session <name>`",
+                  "Then rerun the batch from the blocked step",
+                ]
+              : message.includes("session lifecycle")
+                ? [
+                    "Create or attach the session first with `pw session create|attach`",
+                    "Keep batch for dependent steps inside one existing session only",
+                  ]
+                : message.includes("environment mutation")
+                  ? [
+                      "Run environment commands directly before batch",
+                      "Keep batch for deterministic page/read/action steps",
+                    ]
+                  : undefined,
         },
       });
 
@@ -606,6 +761,7 @@ export async function runBatch(options: {
 
   return {
     completed: true,
+    analysis,
     results,
   };
 }

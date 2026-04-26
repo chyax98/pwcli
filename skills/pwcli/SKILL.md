@@ -206,7 +206,10 @@ Rules:
 - Use `string[][]`
 - Each inner array is one CLI argv shape inside the currently supported batch subset
 - Reuse the same session
-- Use `--continue-on-error` only when partial results are valuable
+- Keep dependent steps serial inside one batch in the order they must happen
+- Put `wait` explicitly after `open` / `click` / `press` when the next step depends on navigation or network completion
+- Keep lifecycle / auth / environment / dialog recovery outside batch
+- Use `--continue-on-error` only when partial results are valuable and later steps do not depend on earlier mutations
 
 Trade-off:
 
@@ -218,6 +221,7 @@ Reason:
 
 - Agent stability matters more than broad but brittle parity
 - batch expands only when a concrete repeated agent workflow justifies it
+- batch output may include serial warnings; treat them as contract guidance, not noise
 
 Do not write new string-step workflows.
 

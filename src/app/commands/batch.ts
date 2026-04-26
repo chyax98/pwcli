@@ -69,13 +69,24 @@ export function registerBatchCommand(program: Command): void {
           }),
         });
       } catch (error) {
+        const message = error instanceof Error ? error.message : "batch failed";
         printSessionAwareCommandError("batch", error, {
           code: "BATCH_FAILED",
           message: "batch failed",
-          suggestions: [
-            'Pass `--file steps.json` with [["snapshot"],["click","--selector","#fire"]]',
-            "Or pipe the same JSON into `pw batch --session bug-a --json`",
-          ],
+          suggestions: message.includes("session lifecycle")
+            ? [
+                "Create or attach the session first with `pw session create|attach`",
+                "Keep batch for dependent steps inside one existing session only",
+              ]
+            : message.includes("environment mutation")
+              ? [
+                  "Run environment commands directly before batch",
+                  'Keep batch for stable page/read/action steps such as [["snapshot"],["click","e6"],["wait","networkIdle"]]',
+                ]
+              : [
+                  'Pass `--file steps.json` with [["snapshot"],["click","--selector","#fire"]]',
+                  "Or pipe the same JSON into `pw batch --session bug-a --json`",
+                ],
         });
         process.exitCode = 1;
       }

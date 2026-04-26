@@ -98,5 +98,8 @@ Use this when:
 Keep batch narrow:
 
 - use the documented stable subset first
+- keep dependent steps in strict serial order
+- insert `wait` after `open` / `click` / `press` when the next step depends on changed page state
+- keep lifecycle / auth / environment / dialog recovery outside batch
 - for one-off commands outside that subset, run normal `pw` commands
 - for conditional logic, use `pw code`
