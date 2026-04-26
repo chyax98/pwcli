@@ -85,7 +85,8 @@ Use:
 - `snapshot` to discover refs
 - `page current/list/frames/dialogs` to inspect workspace projection
 - `read-text` for visible text
-- `observe status` for workspace + diagnostics summary
+- `observe status` for compact workspace + diagnostics summary
+- `observe status --verbose` only when the compact summary is insufficient
 
 ### 2. Act
 
@@ -113,9 +114,11 @@ Use:
 
 ```bash
 pw diagnostics digest --session bug-a
+pw observe status --session bug-a
 pw console --session bug-a ...
 pw network --session bug-a ...
 pw errors recent --session bug-a ...
+pw doctor --session bug-a
 pw diagnostics show --run <runId> --command click --limit 5
 pw diagnostics export --session bug-a --out ./diag.json
 pw diagnostics runs
@@ -125,9 +128,12 @@ pw diagnostics grep --run <runId> --text <substring>
 Treat:
 
 - `diagnostics digest` as the fastest high-signal summary
+- `observe status` as the compact live-session health snapshot
+- `doctor` as the compact recoverability probe
 - `diagnosticsDelta` on action results as the first signal
 - `console/network/errors` as live-session query tools
 - `diagnostics show/grep` as run-scoped replay tools
+- `--verbose` on `observe status` or `doctor` as escalation only
 
 ### 4. Reproduce deterministically
 

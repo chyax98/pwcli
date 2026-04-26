@@ -159,7 +159,18 @@
 
 ### `pw observe status --session <name>`
 
-- 返回 workspace、diagnostics、routes、dialogs 等状态摘要
+- 默认返回 compact 摘要：
+  - `summary`
+  - `currentPage`
+  - `dialogs`
+  - `routes`
+  - `pageErrors`
+  - `console`
+  - `network`
+  - `trace`
+  - `har`
+  - `bootstrap`
+- `--verbose` 返回完整状态载荷
 
 ### session defaults
 
@@ -380,12 +391,15 @@
 - `--state <file>`
 - `--endpoint <url>`
 - `--session <name>`
+- `--verbose`
 
 用途：
 
 - 诊断 session substrate
 - 诊断 profile/state 路径
 - 探测 endpoint reachability
+- 默认返回 compact 诊断和恢复建议
+- `--verbose` 返回完整 probe 细节
 
 ## 6. 状态复用
 

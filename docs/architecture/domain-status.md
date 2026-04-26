@@ -38,6 +38,7 @@
 - `page current|list|frames|dialogs`
 - `observe status`
 - page / frame / dialog projection
+- `observe status` 默认 compact，`--verbose` 返回完整状态载荷
 
 ### 当前限制
 
@@ -102,6 +103,7 @@
 - `diagnostics digest`
 - `diagnostics export`
 - `diagnostics runs|show|grep`
+- `doctor` 默认 compact，`--verbose` 返回完整 probe
 - action 结果里的 `diagnosticsDelta`
 - `.pwcli/runs/<runId>/events.jsonl`
 

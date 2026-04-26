@@ -92,6 +92,7 @@ pnpm test:dogfood:e2e
 
 - `page dialogs` 是事件投影，不是 authoritative live dialog set
 - `MODAL_STATE_BLOCKED` 会阻断 run-code-backed 读取和部分动作
+- `observe status` 和 `doctor` 默认走 compact 输出，`--verbose` 才展开完整细节
 - `session attach --browser-url/--cdp` 依赖本地 attach bridge registry
 - `environment clock set` 当前是 limitation
 - `har start|stop` 当前只暴露 substrate 边界，没有稳定热录制 contract

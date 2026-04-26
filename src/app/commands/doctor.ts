@@ -26,6 +26,18 @@ type DoctorDiagnostic = {
   details: Record<string, unknown>;
 };
 
+function objectRecord(value: unknown) {
+  return value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+}
+
+function stringValue(value: unknown) {
+  return typeof value === "string" ? value : null;
+}
+
+function numberValue(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
 function expandPath(input: string) {
   if (input === "~") {
     return homedir();
@@ -474,6 +486,139 @@ function summarizeDiagnostics(diagnostics: DoctorDiagnostic[]) {
   );
 }
 
+function compactDoctorDiagnostic(diagnostic: DoctorDiagnostic): DoctorDiagnostic {
+  const details = diagnostic.details ?? {};
+  switch (diagnostic.kind) {
+    case "session-substrate": {
+      const probe = objectRecord(details.probe);
+      const page = objectRecord(probe.page);
+      return {
+        ...diagnostic,
+        details: {
+          requestedSession: stringValue(details.requestedSession),
+          alive: details.alive === true,
+          socketReachable: probe.reachable === true,
+          page: {
+            url: stringValue(page.url),
+            title: stringValue(page.title),
+          },
+        },
+      };
+    }
+    case "observe-status": {
+      const workspace = objectRecord(details.workspace);
+      const pageErrors = objectRecord(details.pageErrors);
+      const routes = objectRecord(details.routes);
+      const trace = objectRecord(details.trace);
+      const bootstrap = objectRecord(details.bootstrap);
+      return {
+        ...diagnostic,
+        details: {
+          sessionName: stringValue(details.sessionName),
+          page: {
+            url: stringValue(objectRecord(details.page).url),
+            title: stringValue(objectRecord(details.page).title),
+          },
+          workspace: {
+            pageCount: numberValue(workspace.pageCount) ?? 0,
+            currentPageId: stringValue(workspace.currentPageId),
+          },
+          routes: {
+            count: numberValue(routes.count) ?? 0,
+          },
+          pageErrors: {
+            visibleCount: numberValue(pageErrors.visibleCount) ?? 0,
+          },
+          trace: {
+            active: trace.active === true,
+          },
+          bootstrap: {
+            applied: bootstrap.applied === true,
+          },
+        },
+      };
+    }
+    case "modal-state":
+      return {
+        ...diagnostic,
+        details: {
+          sessionName: stringValue(details.sessionName),
+          code: stringValue(details.code),
+        },
+      };
+    case "plugin-resolution":
+      return {
+        ...diagnostic,
+        details: {
+          requestedPlugin: stringValue(details.requestedPlugin),
+          resolvedPath: stringValue(details.resolvedPath),
+          discoveredCount: numberValue(details.discoveredCount) ?? 0,
+        },
+      };
+    case "profile-path":
+      return {
+        ...diagnostic,
+        details: {
+          requestedPath: stringValue(details.requestedPath),
+          resolvedPath: stringValue(details.resolvedPath),
+          exists: details.exists === true,
+          writable: details.writable === true,
+          usable: details.usable === true,
+        },
+      };
+    case "state-path":
+      return {
+        ...diagnostic,
+        details: {
+          requestedPath: stringValue(details.requestedPath),
+          resolvedPath: stringValue(details.resolvedPath),
+          exists: details.exists === true,
+          readable: details.readable === true,
+          validJson: details.validJson === true,
+          cookieCount: numberValue(details.cookieCount) ?? 0,
+          originCount: numberValue(details.originCount) ?? 0,
+          ...(stringValue(details.parseError)
+            ? { parseError: stringValue(details.parseError) }
+            : {}),
+        },
+      };
+    case "endpoint-reachability":
+      return {
+        ...diagnostic,
+        details: {
+          endpoint: stringValue(details.endpoint),
+          protocol: stringValue(details.protocol),
+          statusCode: numberValue(details.statusCode),
+          host: stringValue(details.host),
+          port: numberValue(details.port),
+          ...(stringValue(details.error) ? { error: stringValue(details.error) } : {}),
+        },
+      };
+    default:
+      return diagnostic;
+  }
+}
+
+function doctorRecovery(diagnostics: DoctorDiagnostic[]) {
+  const modal = diagnostics.find((diagnostic) => diagnostic.kind === "modal-state");
+  if (modal) {
+    return {
+      blocked: true,
+      kind: "modal-state",
+      suggestions: [
+        "Dismiss or accept the browser dialog if one is visible",
+        "Retry the read after the dialog is cleared",
+        "If still blocked, run `pw session recreate <name>`",
+      ],
+    };
+  }
+  return {
+    blocked: false,
+    kind: null,
+    suggestions: [],
+  };
+}
+
 export function registerDoctorCommand(program: Command): void {
   addSessionOption(
     program
@@ -482,7 +627,8 @@ export function registerDoctorCommand(program: Command): void {
       .option("--plugin <name>", "Resolve a plugin name")
       .option("--profile <path>", "Inspect a profile path")
       .option("--state <file>", "Inspect a storage state path")
-      .option("--endpoint <url>", "Probe an endpoint for reachability"),
+      .option("--endpoint <url>", "Probe an endpoint for reachability")
+      .option("--verbose", "Return the full diagnostic details instead of the compact default"),
   ).action(
     async (options: {
       session?: string;
@@ -490,6 +636,7 @@ export function registerDoctorCommand(program: Command): void {
       profile?: string;
       state?: string;
       endpoint?: string;
+      verbose?: boolean;
     }) => {
       try {
         const diagnostics = [
@@ -501,6 +648,7 @@ export function registerDoctorCommand(program: Command): void {
           await probeEndpoint(options.endpoint),
         ];
         const summary = summarizeDiagnostics(diagnostics);
+        const recovery = doctorRecovery(diagnostics);
         printCommandResult("doctor", {
           ...(options.session
             ? {
@@ -511,10 +659,11 @@ export function registerDoctorCommand(program: Command): void {
                 },
               }
             : {}),
-          diagnostics,
+          diagnostics: options.verbose ? diagnostics : diagnostics.map(compactDoctorDiagnostic),
           data: {
             healthy: summary.fail === 0 && summary.warn === 0,
             summary,
+            recovery,
           },
         });
       } catch (error) {

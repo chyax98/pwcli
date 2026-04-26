@@ -48,6 +48,8 @@ pw doctor --session bug-a
 pw session recreate bug-a
 ```
 
+Use `pw doctor --session bug-a --verbose` only when the compact recovery summary is insufficient.
+
 4. If recreate lands on a login page or drops auth state:
 
 ```bash

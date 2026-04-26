@@ -154,55 +154,51 @@
 - skill 里继续强化“依赖步骤必须串行”
 - 后续如果需要，再考虑更明确的 batch / flow guidance
 
-### P1-2 modal recovery contract 仍然不够统一
+### P1-2 modal recovery contract 仍然需要继续收紧
 
 当前真实行为：
 
 - 触发 modal 的 `click` 自己就可能直接返回 `MODAL_STATE_BLOCKED`
-- 后续读命令是否 blocked，和时机有关
+- 后续读命令现在稳定返回 `MODAL_STATE_BLOCKED`
+- `doctor` 默认会返回 compact recovery summary
 
 问题：
 
-- agent 不容易从单条错误就知道后续哪些命令还可信
+- 仍然没有 dialog-level 原地恢复命令
+- 当前恢复主路仍然是 `doctor -> session recreate`
 
 处理建议：
 
-- `doctor` 的 modal-state 输出继续做硬
-- blocked 后哪些命令还能读，哪些应该一律 fail，要进一步统一
+- 保持当前 blocked contract
+- 未来如果要补恢复能力，优先补 dialog accept/dismiss，别再扩旁路
 
-### P1-3 `observe status` 信息量过大
+### P1-3 `observe status` 默认输出过大
 
 问题：
 
-- `status.workspace`
-- 顶层 `workspace`
-- `console`
-- `network`
-- `routes`
-- `dialogs`
-
-有明显重复。
+- 旧输出存在明显重复。
 
 影响：
 
-- token 成本偏高
-- agent 读第一眼摘要的效率一般
+- 已在 follow-up 修复：
+  - 默认 compact
+  - `--verbose` 再展开
 
 处理建议：
 
-- 默认 compact
-- `--verbose` 再展开
+- 继续把 compact 视为唯一默认主路
 
-### P1-4 `doctor` 太重
+### P1-4 `doctor` 默认输出过大
 
 问题：
 
-- 对恢复场景来说，默认输出偏大
+- 旧输出对恢复场景来说偏大
 
 处理建议：
 
-- 默认 summary
-- 只在显式 verbose 时给完整探测细节
+- 已在 follow-up 修复：
+  - 默认 compact
+  - `--verbose` 才给完整 probe 细节
 
 ### P1-5 `page dialogs` 还是投影
 

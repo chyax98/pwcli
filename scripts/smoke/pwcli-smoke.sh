@@ -121,7 +121,7 @@ assert_json "$page_json" "page current points at fixture" \
 log "observe status"
 observe_json="$(run_json observe-status observe status --session "$SESSION_NAME")"
 assert_json "$observe_json" "observe status workspace is healthy" \
-  "data.ok === true && data.data.status.workspace.pageCount >= 1 && data.data.status.bootstrap.applied === false"
+  "data.ok === true && data.data.summary.pageCount >= 1 && data.data.bootstrap.applied === false"
 
 log "batch surfaces"
 batch_out="${TMP_DIR}/batch.json"
@@ -209,7 +209,7 @@ assert_json "$grep_run_json" "diagnostics grep filters by command and text" \
 log "doctor"
 doctor_json="$(run_json doctor doctor --session "$SESSION_NAME" --endpoint "$BLANK_URL")"
 assert_json "$doctor_json" "doctor sees session and endpoint healthy" \
-  "data.ok === true && data.data.healthy === true && data.diagnostics.some(item => item.kind === 'endpoint-reachability' && item.status === 'ok')"
+  "data.ok === true && data.data.healthy === true && data.diagnostics.some(item => item.kind === 'endpoint-reachability' && item.status === 'ok') && data.data.recovery.blocked === false"
 
 log "session close"
 close_json="$(run_json session-close session close "$SESSION_NAME")"

@@ -9,6 +9,7 @@ export function sessionRoutingError(message: string) {
         "The current managed session is blocked by a modal dialog, so run-code-backed reads and actions are unavailable.",
       suggestions: [
         "Dismiss or accept the browser dialog if one is visible",
+        "Run `pw doctor --session <name>` to confirm the blocked state",
         "If the session cannot be recovered, run `pw session recreate <name>`",
       ],
     };

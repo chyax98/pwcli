@@ -194,7 +194,7 @@ assert_json "$page_frames_json" "iframe visible" \
   "data.ok === true && data.data.frameCount >= 2"
 observe_json="$(run_json observe observe status --session "$SESSION_NAME")"
 assert_json "$observe_json" "observe status sees workspace" \
-  "data.ok === true && data.data.status.workspace.pageCount >= 1 && data.data.status.dialogs.count === 0"
+  "data.ok === true && data.data.summary.pageCount >= 1 && data.data.dialogs.count === 0"
 
 log "summary request"
 summary_click_json="$(run_json summary-click click --session "$SESSION_NAME" --selector '#load-summary')"
@@ -351,7 +351,7 @@ assert_json "$modal_page_out" "modal blockage still blocks reads" \
   "data.ok === false && data.error.code === 'MODAL_STATE_BLOCKED'"
 modal_doctor_json="$(run_json modal-doctor doctor --session "$SESSION_NAME" --endpoint "$REPRO_URL")"
 assert_json "$modal_doctor_json" "doctor sees modal state" \
-  "data.ok === true && data.diagnostics.some(item => item.kind === 'modal-state')"
+  "data.ok === true && data.diagnostics.some(item => item.kind === 'modal-state') && data.data.recovery.blocked === true"
 recreate_json="$(run_json recreate session recreate "$SESSION_NAME" --open "$REPRO_URL")"
 assert_json "$recreate_json" "session recreated" \
   "data.ok === true && data.data.recreated === true && data.data.openedUrl === '${REPRO_URL}'"
