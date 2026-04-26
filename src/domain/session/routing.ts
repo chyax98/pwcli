@@ -1,6 +1,21 @@
-import { listManagedSessions } from "../../infra/playwright/cli-client.js";
+import {
+  listManagedSessions,
+} from "../../infra/playwright/cli-client.js";
+import { isModalStateBlockedMessage } from "../../infra/playwright/runtime/shared.js";
 
 export function sessionRoutingError(message: string) {
+  if (isModalStateBlockedMessage(message)) {
+    return {
+      code: "MODAL_STATE_BLOCKED",
+      message:
+        "The current managed session is blocked by a modal dialog, so run-code-backed reads and actions are unavailable.",
+      suggestions: [
+        "Dismiss or accept the browser dialog if one is visible",
+        "If the session cannot be recovered, run `pw session recreate <name>`",
+      ],
+    };
+  }
+
   if (message === "SESSION_REQUIRED") {
     return {
       code: "SESSION_REQUIRED",

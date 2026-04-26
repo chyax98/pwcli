@@ -6,6 +6,7 @@ import { connect as connectTls } from "node:tls";
 import type { Command } from "commander";
 import { managedObserveStatus } from "../../domain/diagnostics/service.js";
 import { listPluginNames, resolvePluginPath } from "../../infra/plugins/resolve.js";
+import { isModalStateBlockedMessage } from "../../infra/playwright/runtime/shared.js";
 import {
   getManagedSessionEntry,
   getManagedSessionStatus,
@@ -410,13 +411,26 @@ async function inspectObserveStatus(sessionName?: string): Promise<DoctorDiagnos
       },
     };
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (isModalStateBlockedMessage(message)) {
+      return {
+        kind: "modal-state",
+        status: "warn",
+        summary: "Workspace reads are blocked by a modal dialog",
+        details: {
+          sessionName,
+          code: "MODAL_STATE_BLOCKED",
+          error: message,
+        },
+      };
+    }
     return {
       kind: "observe-status",
       status: "warn",
       summary: "Observe status could not be read",
       details: {
         sessionName,
-        error: error instanceof Error ? error.message : String(error),
+        error: message,
       },
     };
   }
