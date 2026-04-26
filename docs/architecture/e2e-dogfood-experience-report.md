@@ -161,16 +161,17 @@
 - 触发 modal 的 `click` 自己就可能直接返回 `MODAL_STATE_BLOCKED`
 - 后续读命令现在稳定返回 `MODAL_STATE_BLOCKED`
 - `doctor` 默认会返回 compact recovery summary
+- `dialog accept|dismiss` 已经成为当前原地恢复主路
 
 问题：
 
-- 仍然没有 dialog-level 原地恢复命令
-- 当前恢复主路仍然是 `doctor -> session recreate`
+- 目前只覆盖 browser dialog handle
+- 仍然没有更复杂页面阻断控件的统一恢复 contract
 
 处理建议：
 
 - 保持当前 blocked contract
-- 未来如果要补恢复能力，优先补 dialog accept/dismiss，别再扩旁路
+- 后续如果要继续扩，只往 dialog 恢复的边界上做深，不再扩旁路
 
 ### P1-3 `observe status` 默认输出过大
 

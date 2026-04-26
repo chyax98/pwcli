@@ -7,6 +7,7 @@ import { registerCodeCommand } from "./code.js";
 import { registerConsoleCommand } from "./console.js";
 import { registerCookiesCommand } from "./cookies.js";
 import { registerDiagnosticsCommand } from "./diagnostics.js";
+import { registerDialogCommand } from "./dialog.js";
 import { registerDoctorCommand } from "./doctor.js";
 import { registerDownloadCommand } from "./download.js";
 import { registerDragCommand } from "./drag.js";
@@ -43,6 +44,7 @@ export function registerCommands(program: Command): void {
   registerBatchCommand(program);
   registerBootstrapCommand(program);
   registerDiagnosticsCommand(program);
+  registerDialogCommand(program);
   registerDoctorCommand(program);
   registerEnvironmentCommand(program);
   registerErrorsCommand(program);

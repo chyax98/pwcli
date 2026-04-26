@@ -352,20 +352,14 @@ assert_json "$modal_page_out" "modal blockage still blocks reads" \
 modal_doctor_json="$(run_json modal-doctor doctor --session "$SESSION_NAME" --endpoint "$REPRO_URL")"
 assert_json "$modal_doctor_json" "doctor sees modal state" \
   "data.ok === true && data.diagnostics.some(item => item.kind === 'modal-state') && data.data.recovery.blocked === true"
-recreate_json="$(run_json recreate session recreate "$SESSION_NAME" --open "$REPRO_URL")"
-assert_json "$recreate_json" "session recreated" \
-  "data.ok === true && data.data.recreated === true && data.data.openedUrl === '${REPRO_URL}'"
-recreate_cookie_auth_json="$(run_json recreate-cookie-auth cookies set --session "$SESSION_NAME" --name pwcli_auth --value 1 --domain 127.0.0.1)"
-assert_json "$recreate_cookie_auth_json" "auth cookie restored after recreate" \
-  "data.ok === true && data.data.set === true"
-recreate_cookie_role_json="$(run_json recreate-cookie-role cookies set --session "$SESSION_NAME" --name pwcli_role --value qa --domain 127.0.0.1)"
-assert_json "$recreate_cookie_role_json" "role cookie restored after recreate" \
-  "data.ok === true && data.data.set === true"
-recreate_open_json="$(run_json recreate-open open --session "$SESSION_NAME" "$REPRO_URL")"
-assert_json "$recreate_open_json" "reopened reproduce after recreate" \
-  "data.ok === true && data.page.url === '${REPRO_URL}'"
-recreate_read_json="$(run_json recreate-read read-text --session "$SESSION_NAME" --selector '#auth-state')"
-assert_json "$recreate_read_json" "recreated session recovered auth state" \
+dialog_accept_json="$(run_json dialog-accept dialog accept --session "$SESSION_NAME")"
+assert_json "$dialog_accept_json" "dialog accepted" \
+  "data.ok === true && data.command === 'dialog accept' && data.data.handled === true"
+recovered_page_json="$(run_json recovered-page page current --session "$SESSION_NAME")"
+assert_json "$recovered_page_json" "page current recovered after dialog accept" \
+  "data.ok === true && data.data.currentPage.url === '${REPRO_URL}'"
+recovered_read_json="$(run_json recovered-read read-text --session "$SESSION_NAME" --selector '#auth-state')"
+assert_json "$recovered_read_json" "dialog recovery preserved auth state" \
   "data.ok === true && data.data.text.includes('cookie-present')"
 
 log "diagnostics export and run queries"

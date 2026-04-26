@@ -53,6 +53,7 @@
 
 ### 当前实现
 
+- `dialog accept|dismiss`
 - `click`
 - `fill`
 - `type`
@@ -68,6 +69,7 @@
 
 - `MODAL_STATE_BLOCKED` 会阻断 run-code-backed 路径
 - `batch` 当前只承诺稳定子集
+- dialog 恢复当前只覆盖 browser dialog handle，不覆盖更复杂的页面级阻断控件
 
 ### 后续扩展
 

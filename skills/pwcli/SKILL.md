@@ -135,6 +135,20 @@ Treat:
 - `diagnostics show/grep` as run-scoped replay tools
 - `--verbose` on `observe status` or `doctor` as escalation only
 
+If a session is blocked by a dialog, try:
+
+```bash
+pw dialog accept --session bug-a
+```
+
+or:
+
+```bash
+pw dialog dismiss --session bug-a
+```
+
+before falling back to `doctor -> session recreate`.
+
 ### 4. Reproduce deterministically
 
 Use:

@@ -39,7 +39,18 @@ Meaning:
 
 Recovery order:
 
-1. Dismiss or accept the dialog if a headed window is visible
+1. Try a direct dialog command:
+
+```bash
+pw dialog accept --session bug-a
+```
+
+or:
+
+```bash
+pw dialog dismiss --session bug-a
+```
+
 2. Re-run the read command
 3. If still blocked:
 

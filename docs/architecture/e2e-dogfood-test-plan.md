@@ -457,14 +457,16 @@ scripts/e2e/
 2. 跑 `page current`
 3. 跑 `observe status`
 4. 跑 `doctor`
-5. 关闭弹窗或 `session recreate`
+5. 跑 `dialog accept` 或 `dialog dismiss`
 6. 再次读取页面
+7. 如果仍 blocked，再走 `session recreate`
 
 通过标准：
 
 - `MODAL_STATE_BLOCKED` 稳定出现
 - `doctor` 能识别
-- recreate 后恢复
+- dialog 级恢复主路可用
+- recreate 仍然是 fallback
 
 ## 7.6 场景 F：state 复用
 

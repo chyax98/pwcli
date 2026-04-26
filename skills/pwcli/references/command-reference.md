@@ -136,6 +136,17 @@
 - 返回观测到的 dialog 事件投影
 - 不是 authoritative live dialog set
 
+### `pw dialog accept [prompt] --session <name>`
+
+- 接受当前 browser dialog
+- 适用于 `MODAL_STATE_BLOCKED` 后的原地恢复
+- `prompt` 只在 prompt dialog 需要显式文本时传
+
+### `pw dialog dismiss --session <name>`
+
+- 关闭当前 browser dialog
+- 适用于 `MODAL_STATE_BLOCKED` 后的原地恢复
+
 ### `pw snapshot --session <name>`
 
 选项：

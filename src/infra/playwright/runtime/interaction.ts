@@ -270,6 +270,37 @@ export async function managedPress(key: string, options?: { sessionName?: string
   };
 }
 
+export async function managedDialog(
+  action: "accept" | "dismiss",
+  options?: { prompt?: string; sessionName?: string },
+) {
+  const command = action === "accept" ? "dialog-accept" : "dialog-dismiss";
+  const argv = action === "accept" && options?.prompt ? [command, options.prompt] : [command];
+  const result = await runManagedSessionCommand(
+    {
+      _: argv,
+    },
+    {
+      sessionName: options?.sessionName,
+    },
+  );
+
+  return {
+    session: {
+      scope: "managed",
+      name: result.sessionName,
+      default: result.sessionName === "default",
+    },
+    page: parsePageSummary(result.text),
+    data: {
+      action,
+      handled: true,
+      ...(options?.prompt ? { prompt: options.prompt } : {}),
+      ...maybeRawOutput(result.text),
+    },
+  };
+}
+
 export async function managedScroll(options: {
   direction: "up" | "down" | "left" | "right";
   distance?: number;

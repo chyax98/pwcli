@@ -1,5 +1,6 @@
 export {
   managedClick,
+  managedDialog,
   managedDownload,
   managedDrag,
   managedFill,
