@@ -96,6 +96,7 @@ pw auth info dc-login
 
 - `auth` 只暴露内置 provider，不再走工作目录 plugin 扫描
 - 外部 JS 脚本请直接使用 `pw code --file`
+- 当前 provider 参数说明以 `pw auth info <name>` 为准，不要期待 `pw auth dc-login --help` 返回完整 contract
 
 ## 标准工作流
 
