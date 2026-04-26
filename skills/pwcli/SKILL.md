@@ -233,7 +233,7 @@ pw read-text --session dc-forge --max-chars 1200
 pw session create dc-forge --headed --open 'https://developer-.../forge'
 ```
 
-然后再通过 plugin 登录：
+然后再通过内置 auth provider 登录：
 
 ```bash
 pw auth dc-login --session dc-forge --arg targetUrl='https://developer-.../forge'
@@ -241,7 +241,7 @@ pw auth dc-login --session dc-forge --arg targetUrl='https://developer-.../forge
 
 `dc-login` 当前参数 contract：
 
-- `phone`：必需，除非能从配置或环境变量推导出来
+- `phone`：必需
 - `smsCode`：默认 `000000`
 - `targetUrl`：如果你已经知道最终目标页，优先传它
 - `baseURL`：当 `targetUrl` 不方便时使用
