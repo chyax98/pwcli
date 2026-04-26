@@ -731,6 +731,14 @@ const server = createServer(async (request, response) => {
     return;
   }
 
+  if (pathname === "/favicon.ico") {
+    response.writeHead(204, {
+      "cache-control": "no-store",
+    });
+    response.end();
+    return;
+  }
+
   if (!cookies.pwcli_auth && pathname.startsWith("/app")) {
     redirect(response, "/login");
     return;
