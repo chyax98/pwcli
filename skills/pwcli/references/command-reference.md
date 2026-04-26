@@ -156,9 +156,7 @@
 
 ### `pw snapshot --session <name>`
 
-选项：
-
-- `--mode ai|default`
+- 捕获 AI 友好的页面快照
 
 ### `pw screenshot [ref] --session <name>`
 

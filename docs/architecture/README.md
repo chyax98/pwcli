@@ -87,5 +87,5 @@ session attach -> state/profile/auth provider -> continue
 - `auth` 只做内置 auth provider 执行
 - `batch` 只承诺稳定子集，不追求全 CLI parity
 - diagnostics 优先 query/export，不优先扩新的录制系统
-- mock 先做 route 第一层，环境控制先做 public API 直映射
+- mock 已覆盖当前需要的第二层能力，环境控制优先走 Playwright Core 公开能力
 - raw CDP substrate、observe stream、workspace 写操作、HAR 热录制继续后置

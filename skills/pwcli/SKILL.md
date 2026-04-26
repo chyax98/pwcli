@@ -60,7 +60,7 @@ pw session list --with-page
 不要一上来就：
 
 - 猜 `auth` 相关命令
-- 猜 plugin 元数据命令
+- 猜不存在的发现型命令
 - 新建一个和现有 session 重复的会话
 
 ## 入口选择

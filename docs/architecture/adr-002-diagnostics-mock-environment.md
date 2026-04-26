@@ -10,7 +10,7 @@
 当前主路：
 
 - diagnostics 走 query/export/run-scoped replay
-- mock 先做 route 第一层
+- mock 继续沿 `route` 主路增强
 - environment 先做 Playwright public API 直映射
 
 明确后置：
