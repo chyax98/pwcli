@@ -50,7 +50,6 @@
 - `session attach <name> --browser-url <url>`
 - `session attach <name> --cdp <port>`
 - `open <url> --session <name>`
-- `connect ... --session <name>`
 - `auth ... --session <name>`
 - `profile open ... --session <name>`
 
@@ -61,6 +60,13 @@ session create <name> --open <url>
 ```
 
 其他 acquisition 命令仍然存在，但都要求显式 `--session`。
+
+当前 lifecycle 默认设置：
+
+- 集中在 `src/domain/session/defaults.ts`
+- 可选本地配置文件：`.pwcli/config.json`
+- `trace` 默认开启
+- 显式 `--no-trace` 覆盖默认值
 
 `session recreate` 的真实语义：
 
@@ -92,22 +98,7 @@ session create <name> --open <url>
 
 它们都不是另一套 runtime。
 
-## 6. Connect 的真实语义
-
-`connect` 当前只是 `session attach` 的兼容壳：
-
-- `connect [endpoint] --session <name>`
-- `connect --ws-endpoint <url> --session <name>`
-- `connect --browser-url <url> --session <name>`
-- `connect --cdp <port> --session <name>`
-
-实现上：
-
-- 命中显式 session 名
-- 先解析成最终 attach source
-- 通过 endpoint 附着
-- 立刻跑一次 `snapshot` 探测当前页是否可读
-- 输出里会带 `compatibilityAlias: "session attach"`
+## 6. Attach 的真实语义
 
 `session attach` 当前支持三类来源：
 

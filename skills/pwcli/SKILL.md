@@ -87,9 +87,9 @@ pw storage local --session bug-a
 ### 6. 跑插件和 batch
 
 ```bash
-pw auth dc-login --session auth-a --open 'https://example.com'
+pw auth dc-login --session auth-a --arg targetUrl='https://example.com'
 pw bootstrap apply --session bug-a --init-script ./script.js
-pw batch --session bug-a "click e6" "wait networkIdle" "errors recent"
+printf '%s\n' '[["click","e6"],["wait","networkIdle"],["errors","recent"]]' | pw batch --session bug-a --json
 ```
 
 ## 输出 contract
@@ -115,8 +115,7 @@ pw batch --session bug-a "click e6" "wait networkIdle" "errors recent"
 ## 推荐规则
 
 - 新自动化统一使用 `session create` 或 `session attach`
-- `connect` 只当兼容别名用
-- `batch` 里的 step 必须逐条加引号
+- `batch` 统一使用 `--json` 或 `--file`
 - 先读 `snapshot`，再用 aria ref
 - 先保存 state，再考虑 profile 迁移
 
@@ -126,7 +125,7 @@ pw batch --session bug-a "click e6" "wait networkIdle" "errors recent"
 - modal state 会让 `page *` / `observe status` 读路径失效
 - `session attach --browser-url/--cdp` 依赖本地 attach bridge registry
 - `har` 当前主要暴露 substrate 能力边界
-- 默认 artifact run 目录还没落地
+- `auth` 不负责 session shape；先建 session，再跑 plugin
 
 ## 相关文件
 

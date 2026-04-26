@@ -4,7 +4,6 @@ import { registerBatchCommand } from "./batch.js";
 import { registerBootstrapCommand } from "./bootstrap.js";
 import { registerClickCommand } from "./click.js";
 import { registerCodeCommand } from "./code.js";
-import { registerConnectCommand } from "./connect.js";
 import { registerConsoleCommand } from "./console.js";
 import { registerCookiesCommand } from "./cookies.js";
 import { registerDoctorCommand } from "./doctor.js";
@@ -37,7 +36,6 @@ import { registerWaitCommand } from "./wait.js";
 
 export function registerCommands(program: Command): void {
   registerOpenCommand(program);
-  registerConnectCommand(program);
   registerCodeCommand(program);
   registerAuthCommand(program);
   registerBatchCommand(program);

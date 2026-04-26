@@ -312,7 +312,6 @@ node scripts/manual/attach-target.js
 node dist/cli.js session attach aw1 --ws-endpoint ws://localhost:61633/...
 node dist/cli.js session attach ab1 --browser-url http://127.0.0.1:61632
 node dist/cli.js session attach ac1 --cdp 61632
-node dist/cli.js connect --session ax1 --browser-url http://localhost:61632
 ```
 
 结论：
@@ -320,7 +319,6 @@ node dist/cli.js connect --session ax1 --browser-url http://localhost:61632
 - `--ws-endpoint` 已验证通过
 - `--browser-url` 已验证通过
 - `--cdp` 已验证通过
-- `connect` 已验证只是 `session attach` 的兼容壳
 
 ### bootstrap
 

@@ -3,9 +3,13 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Command } from "commander";
 import {
+  applySessionDefaults,
+  getSessionDefaults,
   getManagedSessionEntry,
   getManagedSessionStatus,
   listManagedSessions,
+  resolveLifecycleHeaded,
+  resolveTraceEnabled,
   runManagedSessionCommand,
   stopManagedSession,
   managedOpen,
@@ -69,6 +73,9 @@ export function registerSessionCommand(program: Command): void {
     .option("--persistent", "Use a persistent browser profile")
     .option("--state <file>", "Load storage state after session creation")
     .option("--headed", "Launch a visible browser window")
+    .option("--headless", "Force headless mode")
+    .option("--trace", "Enable tracing for the session")
+    .option("--no-trace", "Disable tracing for the session")
     .action(
       async (
         name: string,
@@ -78,6 +85,9 @@ export function registerSessionCommand(program: Command): void {
           persistent?: boolean;
           state?: string;
           headed?: boolean;
+          headless?: boolean;
+          trace?: boolean;
+          noTrace?: boolean;
         },
       ) => {
         try {
@@ -87,10 +97,16 @@ export function registerSessionCommand(program: Command): void {
           if (!/^[a-zA-Z0-9_-]+$/.test(name)) {
             throw new Error(`SESSION_NAME_INVALID:${name}`);
           }
+          if (options.headed && options.headless) {
+            throw new Error("session create accepts either --headed or --headless, not both");
+          }
+          const defaults = await getSessionDefaults();
+          const headed = await resolveLifecycleHeaded(options);
+          const traceEnabled = await resolveTraceEnabled(options);
           const persistent = options.persistent || Boolean(options.profile);
-          const result = await managedOpen(options.open ?? "about:blank", {
+          await managedOpen("about:blank", {
             sessionName: name,
-            headed: options.headed,
+            headed,
             profile: options.profile,
             persistent,
             reset: true,
@@ -100,6 +116,23 @@ export function registerSessionCommand(program: Command): void {
             await managedStateLoad(options.state, { sessionName: name });
           }
 
+          const appliedDefaults = await applySessionDefaults({
+            sessionName: name,
+            traceEnabled,
+          });
+
+          const targetUrl = options.open ?? "about:blank";
+          const result =
+            targetUrl === "about:blank"
+              ? await managedOpen("about:blank", {
+                  sessionName: name,
+                  reset: false,
+                })
+              : await managedOpen(targetUrl, {
+                  sessionName: name,
+                  reset: false,
+                });
+
           printCommandResult("session create", {
             session: result.session,
             page: result.page,
@@ -107,6 +140,10 @@ export function registerSessionCommand(program: Command): void {
               ...result.data,
               created: true,
               sessionName: name,
+              defaults,
+              appliedDefaults,
+              headed,
+              traceEnabled,
               ...(options.state ? { stateLoaded: options.state } : {}),
             },
           });
@@ -136,11 +173,19 @@ export function registerSessionCommand(program: Command): void {
     .option("--ws-endpoint <url>", "Playwright browser websocket endpoint")
     .option("--browser-url <url>", "CDP browser URL, for example http://127.0.0.1:9222")
     .option("--cdp <port>", "CDP port, resolved to http://127.0.0.1:<port>")
+    .option("--trace", "Enable tracing for the attached session")
+    .option("--no-trace", "Disable tracing for the attached session")
     .action(
       async (
         name: string,
         endpoint: string | undefined,
-        options: { wsEndpoint?: string; browserUrl?: string; cdp?: string },
+        options: {
+          wsEndpoint?: string;
+          browserUrl?: string;
+          cdp?: string;
+          trace?: boolean;
+          noTrace?: boolean;
+        },
       ) => {
         try {
           if (name.length > 16) {
@@ -149,6 +194,8 @@ export function registerSessionCommand(program: Command): void {
           if (!/^[a-zA-Z0-9_-]+$/.test(name)) {
             throw new Error(`SESSION_NAME_INVALID:${name}`);
           }
+          const defaults = await getSessionDefaults();
+          const traceEnabled = await resolveTraceEnabled(options);
           const target = await resolveAttachTarget(endpoint, options);
           const result = await attachManagedSession({
             sessionName: name,
@@ -156,7 +203,19 @@ export function registerSessionCommand(program: Command): void {
             resolvedVia: target.resolvedVia,
             ...("browserURL" in target ? { browserURL: target.browserURL } : {}),
           });
-          printCommandResult("session attach", result);
+          const appliedDefaults = await applySessionDefaults({
+            sessionName: name,
+            traceEnabled,
+          });
+          printCommandResult("session attach", {
+            ...result,
+            data: {
+              ...result.data,
+              defaults,
+              appliedDefaults,
+              traceEnabled,
+            },
+          });
         } catch (error) {
           const message = error instanceof Error ? error.message : "session attach failed";
           const routing = sessionRoutingError(message);
@@ -185,6 +244,8 @@ export function registerSessionCommand(program: Command): void {
     .option("--headed", "Launch the recreated session in headed mode")
     .option("--headless", "Launch the recreated session in headless mode")
     .option("--open <url>", "Override the target URL after recreation")
+    .option("--trace", "Enable tracing for the recreated session")
+    .option("--no-trace", "Disable tracing for the recreated session")
     .action(
       async (
         name: string,
@@ -192,6 +253,8 @@ export function registerSessionCommand(program: Command): void {
           headed?: boolean;
           headless?: boolean;
           open?: string;
+          trace?: boolean;
+          noTrace?: boolean;
         },
       ) => {
         let tempDir: string | undefined;
@@ -213,7 +276,9 @@ export function registerSessionCommand(program: Command): void {
 
           const currentPage = await getSessionPageSummary(name).catch(() => undefined);
           const currentHeaded = entry.config.browser?.launchOptions?.headless === false;
+          const defaults = await getSessionDefaults();
           const headed = options.headed ? true : options.headless ? false : currentHeaded;
+          const traceEnabled = await resolveTraceEnabled(options);
           const profile = entry.config.browser?.userDataDir;
           const persistent = Boolean(entry.config.cli?.persistent || profile);
           const targetUrl = options.open ?? currentPage?.url ?? "about:blank";
@@ -244,12 +309,18 @@ export function registerSessionCommand(program: Command): void {
 
           if (stateSaved) {
             await managedStateLoad(statePath, { sessionName: name });
-            if (targetUrl && targetUrl !== "about:blank") {
-              await managedOpen(targetUrl, {
-                sessionName: name,
-                reset: false,
-              });
-            }
+          }
+
+          const appliedDefaults = await applySessionDefaults({
+            sessionName: name,
+            traceEnabled,
+          });
+
+          if (targetUrl && targetUrl !== "about:blank") {
+            await managedOpen(targetUrl, {
+              sessionName: name,
+              reset: false,
+            });
           }
 
           const page = await getSessionPageSummary(name).catch(() => undefined);
@@ -263,6 +334,9 @@ export function registerSessionCommand(program: Command): void {
             data: {
               recreated: true,
               headed,
+              defaults,
+              appliedDefaults,
+              traceEnabled,
               ...(profile ? { profile } : {}),
               ...(persistent ? { persistent: true } : {}),
               ...(options.open ? { openedUrl: options.open } : {}),

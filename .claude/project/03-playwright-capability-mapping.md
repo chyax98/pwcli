@@ -27,7 +27,6 @@ app -> domain -> infra -> playwright-core
 | 命令 | 当前实现 | 上游能力 |
 | --- | --- | --- |
 | `open <url>` | `domain/session/service.ts` -> `infra/playwright/runtime.ts` -> `runManagedSessionCommand({ _: ['goto', url] })` | Playwright CLI managed session + `page.goto()` |
-| `connect [endpoint]` | `app/commands/connect.ts` 兼容转发到 `session attach` 语义 | Playwright CLI endpoint attach |
 | `snapshot` | `infra/playwright/runtime.ts` 调 `runManagedSessionCommand({ _: ['snapshot'] })`，再解析 `### Snapshot` yaml | `page.ariaSnapshot({ mode: 'ai' })` 经 CLI 输出 |
 | `code [source]` | `infra/playwright/runtime.ts` 调 `runManagedSessionCommand({ _: ['run-code', source], filename? })`；`--file` 先本地读文件，再把源码内联过去 | Playwright CLI run-code |
 | `page current/list/frames/dialogs` | `domain/workspace/service.ts` 通过当前 session projection 汇总 page/frame/dialog truth | `page.url()` `page.title()` `context.pages()` `page.frames()` `page.on('dialog')` |
@@ -63,7 +62,7 @@ app -> domain -> infra -> playwright-core
 - `page dialogs` 当前只代表观测到的 dialog 事件，不代表 live dialog set
 - modal state 仍会阻断 `browser_run_code` 路径
 - `session attach --browser-url/--cdp` 不是 raw CDP named-session substrate，它当前依赖 attach bridge registry 去解析 Playwright `wsEndpoint`
-- `screenshot`、`download`、`state save` 都是显式路径驱动。当前没有默认 artifact run 目录。
+- `screenshot`、`download`、动作命令当前会落最小 `.pwcli/runs/<runId>/events.jsonl`，但还没有完整 artifact 平台。
 - `code --file` 当前实现是本地读文件内容后内联给 `run-code`，不是把文件路径交给另一套自定义执行器。
 
 ## 当前允许借用的内部层

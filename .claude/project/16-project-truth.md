@@ -93,7 +93,6 @@ src/
 
 ```text
 session create|attach|recreate|list|status|close
-connect
 ```
 
 ### 页面读取
@@ -213,5 +212,5 @@ skill path|install
 - 以 `src/app/commands/*` 和 `dist/cli.js --help` 为准
 - 只写已落地命令和已落地 flag
 - 只写已验证或已在源码中实现的行为
-- `connect` 标成兼容别名
 - skill 文档和 README 视为 shipped agent contract
+- 不再把已删除命令写进 shipped contract

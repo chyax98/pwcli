@@ -59,6 +59,9 @@
 - `--persistent`
 - `--state <file>`
 - `--headed`
+- `--headless`
+- `--trace`
+- `--no-trace`
 
 语义：
 
@@ -73,6 +76,8 @@
 - `--ws-endpoint <url>`
 - `--browser-url <url>`
 - `--cdp <port>`
+- `--trace`
+- `--no-trace`
 
 语义：
 
@@ -86,6 +91,8 @@
 - `--headed`
 - `--headless`
 - `--open <url>`
+- `--trace`
+- `--no-trace`
 
 语义：
 
@@ -100,11 +107,6 @@
 ### `pw session close <name>`
 
 - 关闭一个 named managed session
-
-### `pw connect [endpoint] --session <name>`
-
-- `session attach` 的兼容别名
-- 新自动化脚本优先 `session attach`
 
 ## 3. 页面读取
 
@@ -163,6 +165,13 @@
 ### `pw observe status --session <name>`
 
 - 返回 workspace、diagnostics、routes、dialogs 等状态摘要
+
+### session defaults
+
+- 默认值集中在 `src/domain/session/defaults.ts`
+- 可选本地配置文件：`.pwcli/config.json`
+- 当前默认 `trace: true`
+- 显式 `--no-trace` 优先于默认值
 
 ## 4. 动作与等待
 
@@ -373,18 +382,13 @@
 选项：
 
 - `--plugin <name>`
-- `--headed`
-- `--profile <path>`
-- `--persistent`
-- `--state <file>`
 - `--save-state <file>`
-- `--open <url>`
 - `--arg <key=value>`，可重复
 
 语义：
 
 - 在现有 named managed session 中运行本地 auth plugin
-- 可选地先加载 profile/state
+- 需要的 session shape 先通过 `session create` 建好
 - 可选地在完成后保存 state
 
 ### `pw bootstrap apply --session <name>`
@@ -399,13 +403,31 @@
 - 对已存在 session 做 live bootstrap
 - 当前只支持 `apply`
 
-### `pw batch --session <name> <steps...>`
+### `pw batch --session <name> --json`
 
 选项：
 
 - `--continue-on-error`
 
-当前稳定 step：
+stdin 输入格式：
+
+```json
+[
+  ["snapshot"],
+  ["click", "--selector", "#fire"],
+  ["wait", "--response", "/fixture", "--status", "200"]
+]
+```
+
+### `pw batch --session <name> --file <path>`
+
+选项：
+
+- `--continue-on-error`
+
+文件内容格式与 `--json` 相同，都是 `string[][]`。
+
+当前稳定 argv 命令：
 
 - `snapshot`
 - `click ...`

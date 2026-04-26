@@ -27,52 +27,15 @@ import {
   managedPageList,
 } from "../../domain/workspace/service.js";
 
-function splitBatchStep(input: string) {
-  const tokens = [];
-  let current = "";
-  let quote = null;
-
-  for (let index = 0; index < input.length; index += 1) {
-    const char = input[index];
-
-    if (quote) {
-      if (char === quote) {
-        quote = null;
-      } else if (char === "\\" && index + 1 < input.length) {
-        current += input[index + 1];
-        index += 1;
-      } else {
-        current += char;
-      }
-      continue;
-    }
-
-    if (char === '"' || char === "'") {
-      quote = char;
-      continue;
-    }
-
-    if (/\s/.test(char)) {
-      if (current) {
-        tokens.push(current);
-        current = "";
-      }
-      continue;
-    }
-
-    current += char;
-  }
-
-  if (current) {
-    tokens.push(current);
-  }
-
-  return tokens;
+function formatBatchArgv(argv: string[]) {
+  return argv
+    .map((part) => (/[\s"'\\]/.test(part) ? JSON.stringify(part) : part))
+    .join(" ");
 }
 
-async function executeBatchStep(rawStep: string, sessionName: string) {
-  const tokens = splitBatchStep(rawStep);
+async function executeBatchStep(tokens: string[], sessionName: string) {
   const [command, ...args] = tokens;
+  const rawStep = formatBatchArgv(tokens);
 
   if (!command) {
     throw new Error("batch step is empty");
@@ -386,22 +349,25 @@ async function executeBatchStep(rawStep: string, sessionName: string) {
 
 export async function runBatch(options: {
   sessionName: string;
-  steps: string[];
+  commands: string[][];
   continueOnError?: boolean;
 }) {
-  if (!options.steps.length) {
+  if (!options.commands.length) {
     throw new Error("batch requires at least one step");
   }
 
   const results = [];
 
-  for (const rawStep of options.steps) {
+  for (const argv of options.commands) {
     try {
-      results.push(await executeBatchStep(rawStep, options.sessionName));
+      results.push({
+        argv,
+        ...(await executeBatchStep(argv, options.sessionName)),
+      });
     } catch (error) {
       results.push({
         ok: false,
-        command: rawStep,
+        argv,
         error: {
           code: "BATCH_STEP_FAILED",
           message: error instanceof Error ? error.message : "batch step failed",

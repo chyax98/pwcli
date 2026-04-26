@@ -34,7 +34,6 @@
 - `session recreate <name>`
 - `session status <name>`
 - `session close <name>`
-- `connect [endpoint] --session <name>`
 
 ### 页面读取
 
@@ -89,7 +88,7 @@
 - `code [source] --session <name>`
 - `auth [plugin] --session <name>`
 - `bootstrap apply --session <name>`
-- `batch --session <name> <steps...>`
+- `batch --session <name> --json|--file`
 - `plugin list`
 - `plugin path <name>`
 - `skill path`
@@ -103,8 +102,6 @@
 - 接管：`session attach`
 - 重建：`session recreate`
 - 关闭：`session close`
-
-`connect` 仍然 shipped，用作兼容别名。新脚本不应优先选择它。
 
 ### 诊断
 
@@ -137,4 +134,4 @@
 - modal state 会阻断当前读路径
 - `session attach --browser-url/--cdp` 依赖 attach bridge registry
 - `har` 当前暴露 substrate 边界，热录制未稳定
-- `batch` 当前输入是字符串 step 列表
+- `batch` 当前输入是 JSON argv 数组

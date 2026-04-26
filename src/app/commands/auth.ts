@@ -2,8 +2,7 @@ import type { Command } from "commander";
 import {
   managedRunCode,
 } from "../../domain/interaction/service.js";
-import { managedOpen } from "../../domain/session/service.js";
-import { managedStateLoad, managedStateSave } from "../../domain/identity-state/service.js";
+import { managedStateSave } from "../../domain/identity-state/service.js";
 import { resolveDcLoginArgs } from "../../infra/plugins/dc-login-config.js";
 import { loadPluginSource, parseKeyValueArgs, resolvePluginPath } from "../../infra/plugins/resolve.js";
 import { printCommandResult } from "../output.js";
@@ -28,12 +27,7 @@ export function registerAuthCommand(program: Command): void {
       .command("auth [plugin]")
       .description("Run a local auth plugin inside a named managed session")
       .option("--plugin <name>", "Plugin name or file path")
-      .option("--headed", "Launch a visible browser window")
-      .option("--profile <path>", "Use a persistent browser profile before auth")
-      .option("--persistent", "Use a persistent browser profile before auth")
-      .option("--state <file>", "Load storage state before running the auth plugin")
       .option("--save-state <file>", "Save storage state after auth finishes")
-      .option("--open <url>", "Navigate to a target page after auth completes")
       .option(
         "--arg <key=value>",
         "Plugin argument",
@@ -49,12 +43,7 @@ export function registerAuthCommand(program: Command): void {
       options: {
         session?: string;
         plugin?: string;
-        headed?: boolean;
-        profile?: string;
-        persistent?: boolean;
-        state?: string;
         saveState?: string;
-        open?: string;
         arg?: string[];
       },
     ) => {
@@ -72,25 +61,7 @@ export function registerAuthCommand(program: Command): void {
 
         const pluginSource = loadPluginSource(path);
         const rawArgs = parseKeyValueArgs(options.arg);
-        if (pluginName === "dc-login" && options.open && !rawArgs.targetUrl) {
-          rawArgs.targetUrl = options.open;
-        }
         const args = pluginName === "dc-login" ? await resolveDcLoginArgs(rawArgs) : rawArgs;
-        const persistent = options.persistent || Boolean(options.profile);
-
-        if (options.profile || options.persistent || options.state || options.headed) {
-          await managedOpen("about:blank", {
-            sessionName,
-            headed: options.headed,
-            profile: options.profile,
-            persistent,
-            reset: true,
-          });
-        }
-
-        if (options.state) {
-          await managedStateLoad(options.state, { sessionName });
-        }
 
         const result = await managedRunCode({
           sessionName,
@@ -107,33 +78,18 @@ export function registerAuthCommand(program: Command): void {
               ? (pluginResult.page as Record<string, unknown>)
               : undefined;
 
-        let finalSession = result.session;
-        let finalPage = result.page;
-        if (options.open) {
-          const openResult = await managedOpen(options.open, {
-            sessionName,
-            reset: false,
-          });
-          finalSession = openResult.session;
-          finalPage = openResult.page;
-        }
-
         if (options.saveState) {
           await managedStateSave(options.saveState, { sessionName });
         }
 
         printCommandResult("auth", {
-          session: finalSession,
-          page: finalPage,
+          session: result.session,
+          page: result.page,
           data: {
             plugin: pluginName,
             pluginPath: path,
             args,
             pageState,
-            ...(options.profile ? { profile: options.profile } : {}),
-            ...(persistent ? { persistent: true } : {}),
-            ...(options.state ? { stateLoaded: options.state } : {}),
-            ...(options.open ? { openedUrl: options.open } : {}),
             ...(options.saveState ? { stateSaved: options.saveState } : {}),
             result: result.data.result,
             ...(result.data.resultText ? { resultText: result.data.resultText } : {}),
@@ -146,8 +102,8 @@ export function registerAuthCommand(program: Command): void {
           suggestions: [
             "Create plugins/<name>.js or ~/.pwcli/plugins/<name>.js",
             "Export a function like: async (page, args) => { ... }",
-            "Use `pw auth <plugin> --profile <dir> --open <url>` to reuse a persistent login flow",
-            "Use `pw auth <plugin> --state ./auth.json --open <url>` to reuse a saved authenticated state",
+            "Create the session first with `pw session create <name> --open <url>`",
+            "Pass plugin-specific targets through `--arg key=value`",
           ],
         });
         process.exitCode = 1;

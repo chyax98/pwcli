@@ -29,8 +29,6 @@ pw session attach bug-a --browser-url http://127.0.0.1:9222
 pw session attach bug-a --cdp 9222
 ```
 
-`pw connect ...` 仍然存在，语义等价于 `pw session attach ...`。新自动化脚本优先使用 `session attach`。
-
 ## 2. session 规则
 
 - session 名最长 `16` 个字符
@@ -89,12 +87,11 @@ pw session attach bug-a --cdp 9222
 
 ```text
 pw session list
-pw session create <name> [--open <url>] [--profile <path>] [--persistent] [--state <file>] [--headed]
-pw session attach <name> [endpoint] [--ws-endpoint <url> | --browser-url <url> | --cdp <port>]
-pw session recreate <name> [--headed | --headless] [--open <url>]
+pw session create <name> [--open <url>] [--profile <path>] [--persistent] [--state <file>] [--headed | --headless] [--trace | --no-trace]
+pw session attach <name> [endpoint] [--ws-endpoint <url> | --browser-url <url> | --cdp <port>] [--trace | --no-trace]
+pw session recreate <name> [--headed | --headless] [--open <url>] [--trace | --no-trace]
 pw session status <name>
 pw session close <name>
-pw connect [endpoint] --session <name>
 ```
 
 ### 页面读取
@@ -159,9 +156,9 @@ pw profile open <path> <url> --session <name>
 
 ```text
 pw code [source] --session <name> [--file <path>]
-pw auth [plugin] --session <name> [--plugin <name>] [--headed] [--profile <path>] [--persistent] [--state <file>] [--save-state <file>] [--open <url>] [--arg <key=value>]
+pw auth [plugin] --session <name> [--plugin <name>] [--save-state <file>] [--arg <key=value>]
 pw bootstrap apply --session <name> [--init-script <file> ...] [--headers-file <file>]
-pw batch --session <name> <steps...> [--continue-on-error]
+pw batch --session <name> --json|--file <path> [--continue-on-error]
 pw plugin list
 pw plugin path <name>
 pw skill path
@@ -200,22 +197,28 @@ pw session create bug-b --open 'https://example.com' --state ./auth.json
 ### 5.4 运行本地插件登录
 
 ```bash
-pw auth dc-login --session auth-a --open 'https://example.com' --save-state ./auth.json
+pw auth dc-login --session auth-a --arg targetUrl='https://example.com' --save-state ./auth.json
 ```
 
 ### 5.5 批量步骤
 
 ```bash
-pw batch --session bug-a \
-  "click e6" \
-  "wait networkIdle" \
-  "observe status" \
-  "errors recent"
+cat <<'JSON' | pw batch --session bug-a --json
+[
+  ["click", "e6"],
+  ["wait", "networkIdle"],
+  ["observe", "status"],
+  ["errors", "recent"]
+]
+JSON
 ```
 
 ## 6. 当前已知限制
 
-- `connect` 仍是兼容别名；新脚本优先 `session attach`
+- session defaults 当前集中在：
+  - `src/domain/session/defaults.ts`
+  - 可选本地配置：`.pwcli/config.json`
+- `trace` 默认开启；显式 `--no-trace` 才关闭
 - `session status` 是 best-effort 视图
 - `page dialogs` 返回观测到的 dialog 事件投影
 - modal state 当前统一报 `MODAL_STATE_BLOCKED`

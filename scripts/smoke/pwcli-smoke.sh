@@ -103,7 +103,13 @@ assert_json "$observe_json" "observe status workspace is healthy" \
   "data.ok === true && data.data.status.workspace.pageCount >= 1 && data.data.status.bootstrap.applied === false"
 
 log "batch surfaces"
-batch_json="$(run_json batch batch --session "$SESSION_NAME" "observe status" "page dialogs")"
+batch_out="${TMP_DIR}/batch.json"
+if ! printf '[["observe","status"],["page","dialogs"]]' | "${CLI[@]}" batch --session "$SESSION_NAME" --json >"$batch_out"; then
+  log "command failed: ${CLI[*]} batch --session ${SESSION_NAME} --json"
+  cat "$batch_out" >&2 || true
+  exit 1
+fi
+batch_json="$batch_out"
 assert_json "$batch_json" "batch completed" \
   "data.ok === true && data.data.completed === true && Array.isArray(data.data.results) && data.data.results.length === 2 && data.data.results.every(item => item.ok === true)"
 
