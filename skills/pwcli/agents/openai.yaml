@@ -1,0 +1,4 @@
+interface:
+  display_name: "pwcli Browser Ops"
+  short_description: "Guide models to use pw correctly"
+  default_prompt: "Use $pwcli to inspect, diagnose, and automate a browser task through strict named sessions and structured diagnostics."

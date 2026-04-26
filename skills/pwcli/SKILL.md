@@ -1,134 +1,238 @@
 ---
 name: pwcli
-description: Use pw to drive Playwright-native browser workflows through strict named sessions, inspect diagnostics, and install this shipped skill for agent use.
+description: Use when Codex needs to drive a browser with `pw` for bug reproduction, bug diagnosis, DOM inspection, authenticated state reuse, deterministic browser automation, request mocking, diagnostics export, or environment mutation. Use for workflows that need strict named sessions, structured JSON output, route mocking, run-scoped diagnostics, or controlled browser state such as offline, geolocation, permissions, and clock.
 ---
 
 # pwcli
 
-用 `pw`，不要绕过 CLI 直接调底层脚本。
+Use `pw`. Do not bypass the CLI and do not reconstruct browser workflows from memory.
 
-## 何时使用
+## Core Rules
 
-适用场景：
+1. Start from a named session.
+2. Keep one task on one session.
+3. Read before acting.
+4. Prefer structured commands over ad hoc code.
+5. Use `pw code` only when the command surface is genuinely insufficient.
+6. Treat CLI output as the source of truth.
+7. Stop claiming support when the CLI returns a limitation code.
 
-- 需要稳定的浏览器 session
-- 需要读取当前页面、文本、frames、dialogs
-- 需要执行点击、输入、上传、拖拽、下载、等待
-- 需要即时拿到 console / network / errors / observe / doctor
-- 需要复用 state / profile / auth plugin
-- 需要切换 offline / geolocation / permissions / clock
+## Session Discipline
 
-## 稳定工作流
+- Always pass `--session <name>` for browser commands.
+- Keep session names short: 16 chars max, letters/numbers/`-`/`_` only.
+- Prefer:
+  - `pw session create <name> --open <url>`
+  - `pw session attach <name> ...`
+  - `pw session recreate <name> ...`
+- Do not invent a current/default session.
+- Do not refer to deleted `connect` flows.
 
-### 1. 创建或接管 session
+## Choose the Right Entry
+
+### Open a fresh investigation
+
+Use:
 
 ```bash
 pw session create bug-a --open 'https://example.com'
+```
+
+### Reuse an existing browser
+
+Use:
+
+```bash
 pw session attach bug-a --ws-endpoint ws://127.0.0.1:9222/devtools/browser/...
 ```
 
-规则：
+### Reuse authenticated state
 
-- session 名最长 `16` 个字符
-- 只允许字母、数字、`-`、`_`
-- 缺失 `--session` 会失败
+Use:
 
-### 2. 读取页面真相
+```bash
+pw session create auth-a --open 'https://example.com' --state ./auth.json
+```
+
+### Run a project login plugin
+
+Use:
+
+```bash
+pw auth dc-login --session auth-a --arg targetUrl='https://example.com'
+```
+
+Build session shape first. `auth` does not own lifecycle.
+
+## Standard Workflow
+
+### 1. Inspect
+
+Run in this order:
 
 ```bash
 pw snapshot --session bug-a
 pw page current --session bug-a
-pw page list --session bug-a
-pw page frames --session bug-a
-pw page dialogs --session bug-a
 pw read-text --session bug-a --max-chars 1200
 pw observe status --session bug-a
 ```
 
-### 3. 执行动作
+Use:
 
-```bash
-pw click e6 --session bug-a
-pw fill e8 hello --session bug-a
-pw type --selector '#search' world --session bug-a
-pw press Enter --session bug-a
-pw wait networkIdle --session bug-a
-```
+- `snapshot` to discover refs
+- `page current/list/frames/dialogs` to inspect workspace projection
+- `read-text` for visible text
+- `observe status` for workspace + diagnostics summary
 
-选择器优先级：
+### 2. Act
 
-1. `snapshot` 返回的 aria ref
+Prefer explicit commands:
+
+- `click`
+- `fill`
+- `type`
+- `press`
+- `scroll`
+- `upload`
+- `download`
+- `drag`
+- `wait`
+
+Prefer this target order:
+
+1. aria ref from `snapshot`
 2. `--selector`
-3. 语义定位：
-   - `--role` + `--name`
-   - `--text`
-   - `--label`
-   - `--placeholder`
-   - `--testid`
+3. semantic locator flags already supported by the command
 
-### 4. 拿诊断
+### 3. Diagnose
+
+Use:
 
 ```bash
-pw console --session bug-a --level warning
-pw network --session bug-a --resource-type xhr
-pw errors recent --session bug-a
-pw doctor --session bug-a
+pw console --session bug-a ...
+pw network --session bug-a ...
+pw errors recent --session bug-a ...
+pw diagnostics export --session bug-a --out ./diag.json
+pw diagnostics runs
+pw diagnostics show --run <runId>
+pw diagnostics grep --run <runId> --text <substring>
 ```
 
-### 5. 复用状态
+Treat:
+
+- `diagnosticsDelta` on action results as the first signal
+- `console/network/errors` as live-session query tools
+- `diagnostics show/grep` as run-scoped replay tools
+
+### 4. Reproduce deterministically
+
+Use:
 
 ```bash
-pw state save ./auth.json --session bug-a
-pw session create bug-b --open 'https://example.com' --state ./auth.json
-
-pw cookies list --session bug-a
-pw storage local --session bug-a
+pw route add ...
+pw route list ...
+pw route load ./mock-routes.json ...
+pw environment offline on ...
+pw environment geolocation set ...
+pw environment permissions grant ...
 ```
 
-### 6. 跑插件和 batch
+### 5. Escalate only if needed
+
+Use `pw code` when:
+
+- you need conditional mock logic
+- you need multi-step page logic not present in commands
+- you need one-off DOM/JS inspection
+- you need to verify a hypothesis before proposing a new command
+
+Do not use `pw code` for work already covered by first-class commands.
+
+## Batch Rules
+
+Use structured batch only:
 
 ```bash
-pw auth dc-login --session auth-a --arg targetUrl='https://example.com'
-pw bootstrap apply --session bug-a --init-script ./script.js
-printf '%s\n' '[["click","e6"],["wait","networkIdle"],["errors","recent"]]' | pw batch --session bug-a --json
+printf '%s\n' '[["snapshot"],["click","e6"],["wait","networkIdle"]]' | pw batch --session bug-a --json
+pw batch --session bug-a --file ./steps.json
 ```
 
-## 输出 contract
+Rules:
 
-每条命令都输出 JSON。
+- Use `string[][]`
+- Each inner array is one CLI argv
+- Reuse the same session
+- Use `--continue-on-error` only when partial results are valuable
 
-成功字段：
+Do not write new string-step workflows.
 
-- `ok: true`
-- `command`
-- `data`
-- 按需返回 `session` / `page` / `diagnostics`
+## Diagnostics and Mock Decision Tree
 
-失败字段：
+### Need one request or class of requests
 
-- `ok: false`
-- `command`
-- `error.code`
-- `error.message`
-- `error.retryable`
-- `error.suggestions`
+Use `network` with:
 
-## 推荐规则
+- `--request-id`
+- `--url`
+- `--kind`
+- `--method`
+- `--status`
+- `--resource-type`
+- `--text`
+- `--limit`
 
-- 新自动化统一使用 `session create` 或 `session attach`
-- `batch` 统一使用 `--json` 或 `--file`
-- 先读 `snapshot`，再用 aria ref
-- 先保存 state，再考虑 profile 迁移
+### Need stable export for another agent or review
 
-## 当前限制
+Use:
 
-- `page dialogs` 是事件投影
-- modal state 会让 `page *` / `observe status` 读路径失效
-- `session attach --browser-url/--cdp` 依赖本地 attach bridge registry
-- `har` 当前主要暴露 substrate 能力边界
-- `auth` 不负责 session shape；先建 session，再跑 plugin
+```bash
+pw diagnostics export --session bug-a --out ./diag.json
+```
 
-## 相关文件
+### Need a simple mock
 
-- 参考命令面：[references/command-reference.md](./references/command-reference.md)
-- skill 目录说明：[README.md](./README.md)
+Use `route add`.
+
+### Need many mocks or file-backed payloads
+
+Use `route load <file>` and keep the file in JSON form.
+
+### Need browser environment mutation
+
+Use `environment`.
+
+Do not claim `HAR` or stream-based diagnostics are the answer unless the user explicitly wants those missing capabilities explored.
+
+## Recovery Rules
+
+Read [references/failure-recovery.md](./references/failure-recovery.md) when:
+
+- a command fails
+- you see session routing errors
+- you hit modal blockage
+- you need to decide whether to recreate the session
+
+## Workflow Playbooks
+
+Read [references/workflows.md](./references/workflows.md) when:
+
+- reproducing a bug
+- doing deterministic automation
+- reusing auth/state/profile
+- using diagnostics export or run replay
+
+## Hard Constraints
+
+- Do not mention or use deleted compatibility commands.
+- Do not assume hidden global state.
+- Do not assume `page dialogs` is an authoritative live dialog set.
+- Do not promise raw CDP substrate support beyond current `session attach` behavior.
+- Do not promise `environment clock set` on the current substrate; treat limitation codes as final unless the user explicitly asks for a deeper substrate survey.
+- Do not write future product ideas as if they already ship.
+
+## Quick Reference
+
+- Current command details: [references/command-reference.md](./references/command-reference.md)
+- Real workflow patterns: [references/workflows.md](./references/workflows.md)
+- Failure handling and recovery: [references/failure-recovery.md](./references/failure-recovery.md)
+- Local hard rules: [rules/core-usage.md](./rules/core-usage.md)

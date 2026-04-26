@@ -10,8 +10,14 @@
 - `references/command-reference.md`
   - 当前 shipped command surface
   - 当前稳定参数和限制
+- `references/workflows.md`
+  - 模型可直接套用的调查 / 自动化工作流
+- `references/failure-recovery.md`
+  - 常见错误、limitation 和恢复路径
 - `rules/`
   - 项目级规则、补充约束
+- `agents/openai.yaml`
+  - skill 列表和默认 prompt 所需的 UI 元数据
 
 ## 维护规则
 
@@ -31,6 +37,7 @@
 - 明确参数
 - 稳定 JSON 输出
 - 明确限制与恢复建议
+- 工作流顺序和决策树
 
 低优先级内容：
 
