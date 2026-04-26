@@ -84,7 +84,7 @@ session create <name> --open <url>
 
 ## 6. Connect 的真实语义
 
-`connect` 当前只是 session acquisition 的另一种来源：
+`connect` 当前只是 `session attach` 的兼容壳：
 
 - `connect [endpoint] --session <name>`
 - `connect --ws-endpoint <url> --session <name>`
@@ -94,8 +94,16 @@ session create <name> --open <url>
 实现上：
 
 - 命中显式 session 名
+- 先解析成最终 attach source
 - 通过 endpoint 附着
 - 立刻跑一次 `snapshot` 探测当前页是否可读
+- 输出里会带 `compatibilityAlias: "session attach"`
+
+`session attach` 当前支持三类来源：
+
+- `--ws-endpoint <url>`：直接 attach
+- `--browser-url <url>`：先读 CDP `/json/version`，再通过本地 attach bridge registry 解析成 Playwright `wsEndpoint`
+- `--cdp <port>`：解析成 `http://127.0.0.1:<port>` 后走同一条 browser-url 路径
 
 ## 7. 当前输出模型
 
@@ -119,7 +127,8 @@ session create <name> --open <url>
 ## 8. 当前观察到的限制
 
 - `session status` 仍然是 best-effort liveness 视图，不是强一致 truth
-- `wait --request/--response/--method/--status` 还没实现
+- `wait --request/--response/--method/--status` 已实现
+- `--browser-url` / `--cdp` 当前依赖本地 attach bridge registry，不能通用于任意只暴露 raw CDP 的外部浏览器
 - 项目层仍然没有 artifact run dir truth / session log index / diagnostics cache
 
 ## 9. 当前没有的 state

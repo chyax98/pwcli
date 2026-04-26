@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { Command } from "commander";
-import { registerCommands } from "./commands/index.js";
+import { registerCommands } from "./app/commands/index.js";
 import { CLI_VERSION } from "./version.js";
 
 const program = new Command();
