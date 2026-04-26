@@ -18,8 +18,8 @@ pw connect [endpoint] --session <name>
 pw code [source] --session <name>
 pw auth [plugin] --session <name>
 pw batch <steps...> --session <name>
-pw page --session <name> current|list|frames
-pw page current|list|frames --session <name>
+pw page --session <name> current|list|frames|dialogs
+pw page current|list|frames|dialogs --session <name>
 pw snapshot --session <name>
 pw screenshot [ref] --session <name>
 pw resize --session <name>
@@ -36,7 +36,9 @@ pw network --session <name>
 pw click [ref] --session <name>
 pw wait [target] --session <name>
 pw trace <action> --session <name>
+pw cookies list|set --session <name>
 pw state <action> [file] --session <name>
+pw storage local|session --session <name>
 pw profile inspect|open
 pw plugin list|path
 pw skill path|install
@@ -113,6 +115,7 @@ pw auth dc-login \
   - semantic locator：`--role` / `--text` / `--label` / `--placeholder` / `--testid`
 - `open` / `auth` / `connect` 都要求显式 `--session`
 - `console` / `network` 当前返回结构化摘要，不是完整事件流系统
+- `page dialogs` 当前返回观测到的 dialog 事件投影，不是 authoritative live dialog set
 - `download` 支持：
   - `--path <file>`：明确文件路径
   - `--dir <dir>`：保留浏览器建议文件名
@@ -128,6 +131,11 @@ pw auth dc-login \
   - `screenshot --path ./shot.png`
   - `screenshot e6 --path ./target.png`
   - `screenshot --selector '#app' --path ./app.png`
+- `batch` 当前也支持：
+  - `observe status`
+  - `errors recent|clear`
+  - `route add|remove`
+  - `bootstrap apply ...`
 - `plugin list|path` 会优先发现包内 `plugins/`，不依赖当前工作目录
 
 ## 当前没有的东西
@@ -147,6 +155,7 @@ pw auth dc-login \
 - `wait --request/--response/--method/--status` 已接上，但当前最稳的验证方式是先挂 wait，再由 fixture 触发命中请求
 - `session status` 仍然只是 best-effort 视图
 - `session attach --browser-url/--cdp` 当前依赖本地 attach bridge registry，把 CDP metadata 映射到 Playwright `wsEndpoint`；对只暴露 raw CDP、没有 bridge 的外部浏览器还不通用
+- `storage local/session` 只读当前页 origin；对无效 origin 页面会返回 `accessible: false`
 - `download` 的稳定验证当前建立在 managed page 内已有下载元素，不把 `file://` 打开本地下载页写成稳定 contract
 - `dc-login` 动态登录已接入，但在当前机器上最稳的 DC 2.0 入口仍然是直接打开真实页或复用 profile/state
 

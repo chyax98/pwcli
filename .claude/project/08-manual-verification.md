@@ -59,6 +59,7 @@ node dist/cli.js session list
 - `session status <name>` 可读
 - `session recreate --headed/--headless` 已验证可执行
 - `session close <name>` 可关闭指定 session
+- 长 session 名当前已验证不会再直接触发 Unix socket path `listen EINVAL`
 
 ### open / batch
 
@@ -76,6 +77,11 @@ node dist/cli.js session close bug-batch
 
 - `open --session <name>` 可创建或命中指定 session
 - `batch --session <name>` 可在同一 named session 内顺序执行步骤
+- 新增的 debug/read surfaces 也已支持 batch：
+
+```bash
+node dist/cli.js batch --session phase4-a "observe status" "errors recent" "route remove"
+```
 
 ### resize
 
@@ -132,6 +138,24 @@ node dist/cli.js skill install "$(mktemp -d)"
 - `auth --open` 已验证会在插件执行后把页面落到目标 URL
 - `auth --save-state` 已验证会真实生成 state 文件
 - `skill install` 已验证可以把 packaged skill 复制到目标目录
+
+### page / observe projection
+
+```bash
+node dist/cli.js session create phase2-projection-clean --open about:blank
+node dist/cli.js code --session phase2-projection-clean "async page => { await page.setContent('<title>Phase2 Projection</title><iframe name=\"child-frame\" srcdoc=\"<p>Inner frame</p>\"></iframe><button id=\"noop\">Ready</button>'); return { ok: true, title: await page.title(), frameCount: page.frames().length }; }"
+node dist/cli.js page current --session phase2-projection-clean
+node dist/cli.js page list --session phase2-projection-clean
+node dist/cli.js page frames --session phase2-projection-clean
+node dist/cli.js page dialogs --session phase2-projection-clean
+node dist/cli.js observe status --session phase2-projection-clean
+```
+
+结论：
+
+- `page current/list/frames/dialogs` 与 `observe status` 现在共享同一套 `pageId/navigationId` projection
+- `page dialogs` 当前会显式输出 limitation
+- 如果 session 卡在 modal state，当前 `browser_run_code` 读路径会失败，这条边界已确认
 
 ### profile
 
@@ -211,6 +235,9 @@ node dist/cli.js session close diag-det2
   - `GET /__pwcli__/diagnostics/route-hit?run=1 -> 211`
 - `errors recent` 已真实抓到 `fixture-page-error-run-1`
 - `read-text #last-route-result` 已真实返回 `211:routed-from-pwcli`，这条值明确证明 route hit 走的是 Playwright fulfill，不是 server fallback
+- `console --text fixture-route-hit-run-1` 已真实过滤出单条命中日志
+- `network --resource-type xhr` 已真实过滤出 xhr request/response
+- `network --request-id req-2` 已真实返回 detail
 
 ### attach
 
@@ -248,6 +275,25 @@ node dist/cli.js session close boot-det2
   - `__pwcliBootstrapFetch()` 和 `__pwcliBootstrapXhr()` 都能命中 `server-echo`
   - `--headers-file` 注入的 `x-pwcli-header: boot-1` 会被 fixture server 回显进 `headerEcho`
   - `__pwcliBootstrapSnapshot()` 会保留 `documentMarks` 和请求记录
+
+### cookies / storage
+
+```bash
+node scripts/manual/deterministic-fixture-server.js 4191
+node dist/cli.js open --session ident-b http://127.0.0.1:4191/blank
+node dist/cli.js code --session ident-b "async page => await page.evaluate(() => { localStorage.setItem('alpha','1'); sessionStorage.setItem('beta','2'); return { origin: location.origin, href: location.href, local: localStorage.getItem('alpha'), session: sessionStorage.getItem('beta') }; })"
+node dist/cli.js storage local --session ident-b
+node dist/cli.js storage session --session ident-b
+node dist/cli.js cookies set --session ident-b --name gamma --value 3 --domain 127.0.0.1
+node dist/cli.js cookies list --session ident-b --domain 127.0.0.1
+```
+
+结论：
+
+- `storage local` 已真实返回当前页 origin 的 localStorage entries
+- `storage session` 已真实返回当前页 origin 的 sessionStorage entries
+- `cookies set/list` 已真实可用
+- 对 `data:` / `chrome-error://` 页面，storage 当前会返回 `accessible: false`
 
 ### upload / drag / download
 
@@ -302,3 +348,21 @@ node dist/cli.js session close diag-det2
 - 对任意只暴露 raw CDP、没有 attach bridge 的外部浏览器，`session attach --browser-url/--cdp` 还没有写成稳定 contract
 
 这些都不能写成“已人工验证通过”。
+
+## Ship Gate
+
+发下一次大改前，最小 gate：
+
+```bash
+pnpm build
+pnpm typecheck
+node dist/cli.js session create gate-a --open about:blank
+node dist/cli.js snapshot --session gate-a
+node dist/cli.js page dialogs --session phase2-projection-clean
+node dist/cli.js batch --session phase4-a "observe status" "errors recent" "route remove"
+node dist/cli.js storage local --session ident-b
+node dist/cli.js cookies list --session ident-b --domain 127.0.0.1
+node dist/cli.js console --session diag-q2 --text fixture-route-hit-run-1
+node dist/cli.js network --session diag-q2 --request-id req-2
+node dist/cli.js session close gate-a
+```

@@ -50,6 +50,11 @@
 - `level`
 - `text`
 
+当前支持的查询面：
+
+- `--level`
+- `--text`
+
 ### network
 
 `pw network --session <name>` 当前输出：
@@ -76,6 +81,14 @@
 - `resourceType`
 - `status` / `ok` / `failureText`
 - `frame`
+
+当前支持的查询面：
+
+- `--request-id`
+- `--method`
+- `--status`
+- `--resource-type`
+- `--text`
 
 ### errors
 
@@ -125,6 +138,13 @@
 - bootstrap metadata
 - stream limitation status
 
+`page dialogs` 和 `observe status.data.dialogs` 当前用的是同一套 dialog event projection。
+
+明确边界：
+
+- 这不是 authoritative live dialog set
+- modal state 仍会阻断当前 managed-session 的 read path
+
 `observe stream` 当前没有实现。
 
 ### doctor
@@ -137,6 +157,13 @@
 - profile path inspect
 - state path inspect
 - endpoint reachability
+
+它当前不会：
+
+- 自动修复
+- 清理 session
+- 重置 bootstrap
+- 恢复 modal state
 
 它不会修改任何 session、profile、state 或 plugin。
 
@@ -171,6 +198,24 @@
 - 诊断面默认开启与默认采样
 - 新的 diagnostics runtime
 
+## 4.1 Bootstrap ownership
+
+当前 `bootstrap apply` 只认这两类 live 操作：
+
+- `--init-script <file>`
+- `--headers-file <file>`
+
+当前没有：
+
+- `bootstrap apply --state`
+- `bootstrap apply --route-file`
+
+原因很简单：
+
+- `state` 属于 acquisition-time state
+- route 当前仍然通过独立 `route add/remove` 暴露
+- 这两类东西还没有稳定到需要揉进 bootstrap contract
+
 ## 5. 文档口径
 
 当前 README 和 project docs 只能说：
@@ -182,6 +227,7 @@
 - `observe` 当前只提供 `status`，但已带 workspace / bootstrap / diagnostics summary
 - `doctor` 当前只提供只读诊断
 - `har` 当前只会明确返回 limitation，不会真的热启动录制
+- `network` 当前支持 detail/filter 查询，但仍然是当前 session 内 records，不是持久化查询系统
 
 不能说：
 

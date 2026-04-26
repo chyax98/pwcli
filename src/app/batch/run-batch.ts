@@ -1,4 +1,12 @@
 import {
+  managedErrors,
+  managedObserveStatus,
+  managedRoute,
+} from "../../domain/diagnostics/service.js";
+import {
+  managedBootstrapApply,
+} from "../../domain/bootstrap/service.js";
+import {
   managedClick,
   managedFill,
   managedPress,
@@ -12,7 +20,12 @@ import {
 } from "../../domain/interaction/service.js";
 import { managedOpen } from "../../domain/session/service.js";
 import { managedStateLoad, managedStateSave } from "../../domain/identity-state/service.js";
-import { managedPageCurrent, managedPageFrames, managedPageList } from "../../domain/workspace/service.js";
+import {
+  managedPageCurrent,
+  managedPageDialogs,
+  managedPageFrames,
+  managedPageList,
+} from "../../domain/workspace/service.js";
 
 function splitBatchStep(input: string) {
   const tokens = [];
@@ -160,7 +173,127 @@ async function executeBatchStep(rawStep: string, sessionName: string) {
       if (args[0] === "frames") {
         return { ok: true, command: "page frames", data: await managedPageFrames({ sessionName }) };
       }
+      if (args[0] === "dialogs") {
+        return {
+          ok: true,
+          command: "page dialogs",
+          data: await managedPageDialogs({ sessionName }),
+        };
+      }
       throw new Error(`unsupported page batch step '${rawStep}'`);
+    case "observe":
+      if (args[0] !== "status") {
+        throw new Error(`unsupported observe batch step '${rawStep}'`);
+      }
+      return {
+        ok: true,
+        command: "observe status",
+        data: await managedObserveStatus({ sessionName }),
+      };
+    case "errors":
+      if (args[0] !== "recent" && args[0] !== "clear") {
+        throw new Error(`unsupported errors batch step '${rawStep}'`);
+      }
+      return {
+        ok: true,
+        command: `errors ${args[0]}`,
+        data: await managedErrors(args[0], { sessionName }),
+      };
+    case "route":
+      if (args[0] === "add") {
+        const pattern = args[1];
+        if (!pattern) {
+          throw new Error(`batch step '${rawStep}' requires a pattern after route add`);
+        }
+        let abort = false;
+        let body: string | undefined;
+        let status: number | undefined;
+        let contentType: string | undefined;
+
+        for (let index = 2; index < args.length; index += 1) {
+          const arg = args[index];
+          if (arg === "--abort") {
+            abort = true;
+            continue;
+          }
+          if (arg === "--body") {
+            body = args[index + 1];
+            index += 1;
+            continue;
+          }
+          if (arg === "--status") {
+            status = args[index + 1] ? Number(args[index + 1]) : undefined;
+            index += 1;
+            continue;
+          }
+          if (arg === "--content-type") {
+            contentType = args[index + 1];
+            index += 1;
+            continue;
+          }
+          throw new Error(`unsupported route batch argument '${arg}'`);
+        }
+
+        return {
+          ok: true,
+          command: "route add",
+          data: await managedRoute("add", {
+            sessionName,
+            pattern,
+            abort,
+            body,
+            status,
+            contentType,
+          }),
+        };
+      }
+      if (args[0] === "remove") {
+        return {
+          ok: true,
+          command: "route remove",
+          data: await managedRoute("remove", {
+            sessionName,
+            pattern: args[1],
+          }),
+        };
+      }
+      throw new Error(`unsupported route batch step '${rawStep}'`);
+    case "bootstrap":
+      if (args[0] !== "apply") {
+        throw new Error(`unsupported bootstrap batch step '${rawStep}'`);
+      }
+      const initScripts: string[] = [];
+      let headersFile: string | undefined;
+      for (let index = 1; index < args.length; index += 1) {
+        const arg = args[index];
+        if (arg === "--init-script") {
+          const file = args[index + 1];
+          if (!file) {
+            throw new Error(`batch step '${rawStep}' requires a file after --init-script`);
+          }
+          initScripts.push(file);
+          index += 1;
+          continue;
+        }
+        if (arg === "--headers-file") {
+          headersFile = args[index + 1];
+          if (!headersFile) {
+            throw new Error(`batch step '${rawStep}' requires a file after --headers-file`);
+          }
+          index += 1;
+          continue;
+        }
+        throw new Error(`unsupported bootstrap batch argument '${arg}'`);
+      }
+      return {
+        ok: true,
+        command: "bootstrap apply",
+        data: await managedBootstrapApply({
+          sessionName,
+          initScripts,
+          headersFile,
+        }),
+      };
     case "click":
       if (args.length !== 1) {
         throw new Error(`batch step '${rawStep}' requires exactly one ref`);

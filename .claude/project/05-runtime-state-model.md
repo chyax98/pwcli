@@ -1,6 +1,6 @@
 # Runtime State Model
 
-更新时间：2026-04-25
+更新时间：2026-04-26
 状态：active
 
 当前 `pwcli` 的 runtime truth 已经切成 **strict session-first**。
@@ -40,7 +40,9 @@
 当前 acquisition 命令：
 
 - `session create <name> --open <url>`
-- `session create <name> --connect <endpoint>`
+- `session attach <name> --ws-endpoint <url>`
+- `session attach <name> --browser-url <url>`
+- `session attach <name> --cdp <port>`
 - `open <url> --session <name>`
 - `connect ... --session <name>`
 - `auth ... --session <name>`
@@ -63,16 +65,18 @@ session create <name> --open <url>
 
 ## 4. Page truth
 
-当前没有项目层持久 page registry。page truth 仍然来自命令级即时结果：
+当前没有项目层持久 page registry。page truth 当前来自 session 内 projection：
 
-- `parsePageSummary(result.text)` 解析 CLI 输出里的 `### Page`
-- `page current/list/frames` 用 `pw code` 现查现返
-- `p1`、`activePageId` 仍然是命令级结构化别名，不是全局 page id 系统
+- `observe status` 是当前最完整的 workspace projection
+- `page current/list/frames/dialogs` 现在都复用同一套 projection
+- `pageId` / `navigationId` 是 session 内稳定投影，不承诺跨 session 稳定
+- `dialogs` 当前是事件投影，不是 authoritative live set
 
 这意味着：
 
 - page truth 是 session 内的命令级快照
-- 还没有跨命令稳定 page identity contract
+- 还没有 tab 写操作 contract
+- modal state 仍然会阻断 `browser_run_code` 路径
 
 ## 5. Profile / state / auth 的边界
 
@@ -129,6 +133,8 @@ session create <name> --open <url>
 - `session status` 仍然是 best-effort liveness 视图，不是强一致 truth
 - `wait --request/--response/--method/--status` 已实现
 - `--browser-url` / `--cdp` 当前依赖本地 attach bridge registry，不能通用于任意只暴露 raw CDP 的外部浏览器
+- `storage local/session` 只对当前页 origin 有意义
+- `cookies set` 当前只做最小 `name/value/domain/path` 写入
 - 项目层仍然没有 artifact run dir truth / session log index / diagnostics cache
 
 ## 9. 当前没有的 state

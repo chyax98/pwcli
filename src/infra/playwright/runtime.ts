@@ -595,6 +595,148 @@ export async function managedStateLoad(file: string, options?: { sessionName?: s
   };
 }
 
+export async function managedCookiesList(options?: {
+  sessionName?: string;
+  domain?: string;
+}) {
+  const result = await managedRunCode({
+    sessionName: options?.sessionName,
+    source: `async page => {
+      const cookies = await page.context().cookies();
+      const filtered = ${options?.domain ? `cookies.filter(cookie => cookie.domain === ${JSON.stringify(options.domain)} || cookie.domain.endsWith('.' + ${JSON.stringify(options.domain)}))` : "cookies"};
+      return JSON.stringify({
+        count: filtered.length,
+        cookies: filtered,
+      });
+    }`,
+  });
+  const parsed =
+    typeof result.data.result === "object" && result.data.result ? result.data.result : {};
+  return {
+    session: result.session,
+    page: result.page,
+    data: {
+      count: Number(parsed.count ?? 0),
+      cookies: Array.isArray(parsed.cookies) ? parsed.cookies : [],
+      ...(options?.domain ? { domain: options.domain } : {}),
+      ...maybeRawOutput(result.rawText ?? ""),
+    },
+  };
+}
+
+export async function managedCookiesSet(options: {
+  sessionName?: string;
+  name: string;
+  value: string;
+  domain: string;
+  path?: string;
+}) {
+  const result = await managedRunCode({
+    sessionName: options.sessionName,
+    source: `async page => {
+      await page.context().addCookies([
+        {
+          name: ${JSON.stringify(options.name)},
+          value: ${JSON.stringify(options.value)},
+          domain: ${JSON.stringify(options.domain)},
+          path: ${JSON.stringify(options.path ?? "/")},
+        },
+      ]);
+      const cookies = await page.context().cookies();
+      const cookie = cookies.find(item => item.name === ${JSON.stringify(options.name)} && item.domain === ${JSON.stringify(options.domain)});
+      return JSON.stringify({
+        set: true,
+        cookie: cookie || null,
+      });
+    }`,
+  });
+  const parsed =
+    typeof result.data.result === "object" && result.data.result ? result.data.result : {};
+  return {
+    session: result.session,
+    page: result.page,
+    data: {
+      set: true,
+      cookie: parsed.cookie ?? null,
+      ...maybeRawOutput(result.rawText ?? ""),
+    },
+  };
+}
+
+export async function managedStorageRead(
+  kind: "local" | "session",
+  options?: { sessionName?: string },
+) {
+  const source =
+    kind === "local"
+      ? `async page => {
+      return await page.evaluate(() => {
+        try {
+          return {
+            kind: 'local',
+            origin: globalThis.location?.origin ?? '',
+            href: globalThis.location?.href ?? '',
+            accessible: true,
+            entries: Object.fromEntries(Object.entries(localStorage)),
+          };
+        } catch (error) {
+          return {
+            kind: 'local',
+            origin: globalThis.location?.origin ?? '',
+            href: globalThis.location?.href ?? '',
+            accessible: false,
+            error: error instanceof Error ? error.message : String(error),
+            entries: {},
+          };
+        }
+      });
+    }`
+      : `async page => {
+      return await page.evaluate(() => {
+        try {
+          return {
+            kind: 'session',
+            origin: globalThis.location?.origin ?? '',
+            href: globalThis.location?.href ?? '',
+            accessible: true,
+            entries: Object.fromEntries(Object.entries(sessionStorage)),
+          };
+        } catch (error) {
+          return {
+            kind: 'session',
+            origin: globalThis.location?.origin ?? '',
+            href: globalThis.location?.href ?? '',
+            accessible: false,
+            error: error instanceof Error ? error.message : String(error),
+            entries: {},
+          };
+        }
+      });
+    }`;
+  const result = await managedRunCode({
+    sessionName: options?.sessionName,
+    source,
+  });
+  const parsed =
+    typeof result.data.result === "object" && result.data.result ? result.data.result : {};
+  return {
+    session: result.session,
+    page: result.page,
+    data: {
+      kind,
+      origin: parsed.origin ?? "",
+      href: parsed.href ?? "",
+      accessible: Boolean(parsed.accessible),
+      entries:
+        parsed.entries && typeof parsed.entries === "object" && !Array.isArray(parsed.entries)
+          ? parsed.entries
+          : {},
+      ...(parsed.error ? { error: parsed.error } : {}),
+      ...maybeRawOutput(result.rawText ?? ""),
+    },
+  };
+}
+
 export async function managedScreenshot(options?: {
   ref?: string;
   selector?: string;
@@ -885,7 +1027,7 @@ export async function managedHar(
 }
 
 export async function managedObserveStatus(options?: { sessionName?: string }) {
-  await managedEnsureDiagnosticsHooks({ sessionName: options?.sessionName });
+  const projection = await managedWorkspaceProjection({ sessionName: options?.sessionName });
   const result = await managedRunCode({
     sessionName: options?.sessionName,
     source: `async page => {
@@ -910,26 +1052,7 @@ export async function managedObserveStatus(options?: { sessionName?: string }) {
         initScriptCount: 0,
         headersApplied: false,
       };
-      const workspacePages = await Promise.all(pages.map(async item => ({
-        pageId: item.__pwcliPageId || null,
-        navigationId: item.__pwcliNavigationId || null,
-        url: item.url(),
-        title: await item.title().catch(() => ''),
-        current: item === page,
-        openerPageId: item.opener()?.__pwcliPageId || null,
-      })));
       return JSON.stringify({
-        page: {
-          pageId: page.__pwcliPageId || null,
-          navigationId: page.__pwcliNavigationId || null,
-          url: page.url(),
-          title: await page.title().catch(() => ''),
-        },
-        workspace: {
-          pageCount: pages.length,
-          currentPageId: page.__pwcliPageId || null,
-          pages: workspacePages,
-        },
         console: {
           total: state.consoleRecords.length,
           last: state.consoleRecords.at(-1) || null,
@@ -944,10 +1067,6 @@ export async function managedObserveStatus(options?: { sessionName?: string }) {
         routes: {
           count: routes.length,
           items: routes,
-        },
-        dialogs: {
-          count: state.dialogRecords.length,
-          items: state.dialogRecords.slice(-20),
         },
         pageErrors: {
           total: state.pageErrorRecords.length,
@@ -970,15 +1089,20 @@ export async function managedObserveStatus(options?: { sessionName?: string }) {
     typeof result.data.result === "object" && result.data.result ? result.data.result : {};
 
   return {
-    session: result.session,
-    page: result.page,
+    session: projection.session,
+    page: projection.page,
     data: {
-      status: parsed,
-      workspace: parsed.workspace,
+      status: {
+        page: projection.data.page,
+        workspace: projection.data.workspace,
+        dialogs: projection.data.dialogs,
+        ...parsed,
+      },
+      workspace: projection.data.workspace,
       console: parsed.console,
       network: parsed.network,
       routes: parsed.routes,
-      dialogs: parsed.dialogs,
+      dialogs: projection.data.dialogs,
       pageErrors: parsed.pageErrors,
       trace: parsed.trace,
       har: parsed.har,
@@ -1247,100 +1371,194 @@ export async function managedReadText(options?: {
   };
 }
 
-export async function managedPageCurrent(options?: { sessionName?: string }) {
+async function managedWorkspaceProjection(options?: { sessionName?: string }) {
+  await managedEnsureDiagnosticsHooks({ sessionName: options?.sessionName });
   const result = await managedRunCode({
     sessionName: options?.sessionName,
     source: `async page => {
+      const context = page.context();
+      const state = context[${JSON.stringify(DIAGNOSTICS_STATE_KEY)}] ||= {};
+      state.dialogRecords = Array.isArray(state.dialogRecords) ? state.dialogRecords : [];
+      state.nextPageSeq = Number.isInteger(state.nextPageSeq) ? state.nextPageSeq : 1;
+      state.nextNavigationSeq = Number.isInteger(state.nextNavigationSeq) ? state.nextNavigationSeq : 1;
+
+      const ensurePageId = (p) => {
+        if (!p.__pwcliPageId)
+          p.__pwcliPageId = 'p' + state.nextPageSeq++;
+        return p.__pwcliPageId;
+      };
+      const ensureNavigationId = (p) => {
+        if (!p.__pwcliNavigationId)
+          p.__pwcliNavigationId = 'nav-' + state.nextNavigationSeq++;
+        return p.__pwcliNavigationId;
+      };
+      const projectPage = async (p, index) => ({
+        index,
+        pageId: ensurePageId(p),
+        navigationId: ensureNavigationId(p),
+        url: p.url(),
+        title: await p.title().catch(() => ''),
+        current: p === page,
+        openerPageId: p.opener()?.__pwcliPageId || null,
+      });
+
+      const pages = context.pages();
+      const workspacePages = await Promise.all(pages.map((item, index) => projectPage(item, index)));
+      const currentPage =
+        workspacePages.find(item => item.current) ||
+        (await projectPage(page, Math.max(pages.indexOf(page), 0)));
+      const frames = page.frames();
+      const frameItems = frames.map((frame, index) => {
+        const parent = frame.parentFrame();
+        const parentIndex = parent ? frames.indexOf(parent) : null;
+        return {
+          index,
+          pageId: currentPage.pageId,
+          navigationId: currentPage.navigationId,
+          url: frame.url(),
+          name: frame.name(),
+          main: frame === page.mainFrame(),
+          parentIndex: parentIndex >= 0 ? parentIndex : null,
+        };
+      });
+
       return JSON.stringify({
-        url: page.url(),
-        title: await page.title(),
-        pageCount: page.context().pages().length,
+        page: currentPage,
+        workspace: {
+          pageCount: workspacePages.length,
+          currentPageId: currentPage.pageId,
+          currentNavigationId: currentPage.navigationId,
+          pages: workspacePages,
+        },
+        frames: {
+          pageId: currentPage.pageId,
+          navigationId: currentPage.navigationId,
+          frameCount: frameItems.length,
+          frames: frameItems,
+        },
+        dialogs: {
+          count: state.dialogRecords.length,
+          items: state.dialogRecords.slice(-20),
+          limitation:
+            'Observed dialog events only; Playwright Core does not expose an authoritative live dialog set on the current managed-session substrate.',
+        },
       });
     }`,
   });
-  const parsed = result.data.result || {};
+  const parsed =
+    typeof result.data.result === "object" && result.data.result ? result.data.result : {};
+  const workspace = parsed.workspace ?? {
+    pageCount: 0,
+    currentPageId: null,
+    currentNavigationId: null,
+    pages: [],
+  };
+  const frames = parsed.frames ?? {
+    pageId: null,
+    navigationId: null,
+    frameCount: 0,
+    frames: [],
+  };
+  const dialogs = parsed.dialogs ?? {
+    count: 0,
+    items: [],
+    limitation:
+      "Observed dialog events only; Playwright Core does not expose an authoritative live dialog set on the current managed-session substrate.",
+  };
+  const page = parsed.page ?? result.page;
+
   return {
     session: result.session,
-    page: {
-      id: "p1",
-      url: parsed.url ?? "",
-      title: parsed.title ?? "",
-      current: true,
-    },
+    page,
     data: {
-      activePageId: "p1",
-      pageCount: parsed.pageCount ?? 1,
-      pages: [
-        {
-          id: "p1",
-          url: parsed.url ?? "",
-          title: parsed.title ?? "",
-          current: true,
-        },
-      ],
+      page,
+      workspace,
+      frames,
+      dialogs,
       ...maybeRawOutput(result.data.output ?? ""),
+    },
+  };
+}
+
+export async function managedPageCurrent(options?: { sessionName?: string }) {
+  const projection = await managedWorkspaceProjection({ sessionName: options?.sessionName });
+  return {
+    session: projection.session,
+    page: projection.page,
+    data: {
+      activePageId: projection.data.workspace.currentPageId,
+      currentNavigationId: projection.data.workspace.currentNavigationId,
+      pageCount: projection.data.workspace.pageCount,
+      currentPage: projection.data.page,
+      pages: projection.data.workspace.pages,
+      workspace: projection.data.workspace,
+      ...maybeRawOutput(projection.data.output ?? ""),
     },
   };
 }
 
 export async function managedPageList(options?: { sessionName?: string }) {
-  const result = await managedRunCode({
-    sessionName: options?.sessionName,
-    source: `async page => {
-      const pages = page.context().pages();
-      const current = page;
-      return JSON.stringify({
-        pages: await Promise.all(pages.map(async (p, index) => ({
-          id: 'p' + (index + 1),
-          url: p.url(),
-          title: await p.title().catch(() => ''),
-          current: p === current,
-        }))),
-      });
-    }`,
-  });
-  const parsed = result.data.result || {};
-  const current = parsed.pages?.find((entry) => entry.current) ?? parsed.pages?.[0];
+  const projection = await managedWorkspaceProjection({ sessionName: options?.sessionName });
+  const current =
+    projection.data.workspace.pages.find((entry: { current?: boolean }) => entry.current) ??
+    projection.data.workspace.pages[0] ??
+    projection.page;
 
   return {
-    session: result.session,
+    session: projection.session,
     page: current,
     data: {
-      activePageId: current?.id ?? "p1",
-      pageCount: parsed.pages?.length ?? 0,
-      pages: parsed.pages ?? [],
-      ...maybeRawOutput(result.data.output ?? ""),
+      activePageId: projection.data.workspace.currentPageId,
+      currentNavigationId: projection.data.workspace.currentNavigationId,
+      pageCount: projection.data.workspace.pageCount,
+      pages: projection.data.workspace.pages,
+      workspace: projection.data.workspace,
+      ...maybeRawOutput(projection.data.output ?? ""),
     },
   };
 }
 
 export async function managedPageFrames(options?: { sessionName?: string }) {
-  const result = await managedRunCode({
-    sessionName: options?.sessionName,
-    source: `async page => {
-      const frames = page.frames().map((frame, index) => ({
-        index,
-        url: frame.url(),
-        name: frame.name(),
-        main: frame === page.mainFrame(),
-      }));
-      return JSON.stringify({ frames });
-    }`,
-  });
-  const parsed = result.data.result || {};
+  const projection = await managedWorkspaceProjection({ sessionName: options?.sessionName });
   return {
-    session: result.session,
-    page: result.page,
+    session: projection.session,
+    page: projection.page,
     data: {
-      activePageId: "p1",
-      frameCount: parsed.frames?.length ?? 0,
-      frames: parsed.frames ?? [],
-      ...maybeRawOutput(result.data.output ?? ""),
+      activePageId: projection.data.workspace.currentPageId,
+      currentNavigationId: projection.data.workspace.currentNavigationId,
+      pageId: projection.data.frames.pageId,
+      navigationId: projection.data.frames.navigationId,
+      frameCount: projection.data.frames.frameCount,
+      frames: projection.data.frames.frames,
+      workspace: projection.data.workspace,
+      ...maybeRawOutput(projection.data.output ?? ""),
     },
   };
 }
 
-export async function managedConsole(level?: string, options?: { sessionName?: string }) {
+export async function managedPageDialogs(options?: { sessionName?: string }) {
+  const projection = await managedWorkspaceProjection({ sessionName: options?.sessionName });
+  return {
+    session: projection.session,
+    page: projection.page,
+    data: {
+      activePageId: projection.data.workspace.currentPageId,
+      currentNavigationId: projection.data.workspace.currentNavigationId,
+      pageId: projection.data.page?.pageId ?? null,
+      navigationId: projection.data.page?.navigationId ?? null,
+      dialogCount: projection.data.dialogs.count,
+      dialogs: projection.data.dialogs.items,
+      limitation: projection.data.dialogs.limitation,
+      workspace: projection.data.workspace,
+      ...maybeRawOutput(projection.data.output ?? ""),
+    },
+  };
+}
+
+export async function managedConsole(
+  level?: string,
+  options?: { sessionName?: string; text?: string },
+) {
   await managedEnsureDiagnosticsHooks({ sessionName: options?.sessionName });
   const result = await managedRunCode({
     sessionName: options?.sessionName,
@@ -1351,7 +1569,14 @@ export async function managedConsole(level?: string, options?: { sessionName?: s
       const order = { error: 3, warning: 2, warn: 2, info: 1, log: 1, debug: 0 };
       const threshold = ${JSON.stringify(level ?? "info")};
       const thresholdRank = order[threshold] ?? 1;
-      const filtered = records.filter(record => (order[record.level] ?? 1) >= thresholdRank);
+      const textFilter = ${JSON.stringify(options?.text ?? "")};
+      const filtered = records.filter(record => {
+        if ((order[record.level] ?? 1) < thresholdRank)
+          return false;
+        if (textFilter && !String(record.text || '').includes(textFilter))
+          return false;
+        return true;
+      });
       return JSON.stringify({
         total: filtered.length,
         errors: filtered.filter(record => record.level === 'error').length,
@@ -1372,7 +1597,14 @@ export async function managedConsole(level?: string, options?: { sessionName?: s
   };
 }
 
-export async function managedNetwork(options?: { sessionName?: string }) {
+export async function managedNetwork(options?: {
+  sessionName?: string;
+  requestId?: string;
+  method?: string;
+  status?: string;
+  resourceType?: string;
+  text?: string;
+}) {
   await managedEnsureDiagnosticsHooks({ sessionName: options?.sessionName });
   const result = await managedRunCode({
     sessionName: options?.sessionName,
@@ -1380,10 +1612,33 @@ export async function managedNetwork(options?: { sessionName?: string }) {
       const context = page.context();
       const state = context[${JSON.stringify(DIAGNOSTICS_STATE_KEY)}] || {};
       const records = Array.isArray(state.networkRecords) ? state.networkRecords : [];
-      const sample = records.slice(-20);
+      const requestId = ${JSON.stringify(options?.requestId ?? "")};
+      const methodFilter = ${JSON.stringify(options?.method?.toUpperCase() ?? "")};
+      const statusFilter = ${JSON.stringify(options?.status ?? "")};
+      const resourceTypeFilter = ${JSON.stringify(options?.resourceType ?? "")};
+      const textFilter = ${JSON.stringify(options?.text ?? "")};
+      const filtered = records.filter(record => {
+        if (requestId && record.requestId !== requestId)
+          return false;
+        if (methodFilter && String(record.method || '').toUpperCase() !== methodFilter)
+          return false;
+        if (statusFilter && String(record.status ?? '') !== statusFilter)
+          return false;
+        if (resourceTypeFilter && String(record.resourceType || '') !== resourceTypeFilter)
+          return false;
+        if (textFilter) {
+          const haystack = [record.url, record.failureText, record.method, record.resourceType].filter(Boolean).join(' ');
+          if (!haystack.includes(textFilter))
+            return false;
+        }
+        return true;
+      });
+      const sample = filtered.slice(-20);
+      const detail = requestId ? filtered[filtered.length - 1] || null : null;
       return JSON.stringify({
-        total: records.length,
+        total: filtered.length,
         sample,
+        detail,
       });
     }`,
   });
@@ -1394,6 +1649,7 @@ export async function managedNetwork(options?: { sessionName?: string }) {
     page: result.page,
     data: {
       summary: parsed,
+      ...(parsed.detail ? { detail: parsed.detail } : {}),
       ...maybeRawOutput(result.rawText ?? ""),
     },
   };

@@ -11,11 +11,34 @@ export function registerNetworkCommand(program: Command): void {
   addSessionOption(
     program
       .command("network")
-      .description("Show recent network activity from a named managed session"),
-  ).action(async (options: { session?: string }) => {
+      .description("Show recent network activity from a named managed session")
+      .option("--request-id <id>", "Return detail for one request id")
+      .option("--method <method>", "Filter by HTTP method")
+      .option("--status <code>", "Filter by HTTP status")
+      .option("--resource-type <type>", "Filter by Playwright resource type")
+      .option("--text <text>", "Filter by URL or failure text"),
+  ).action(
+    async (options: {
+      session?: string;
+      requestId?: string;
+      method?: string;
+      status?: string;
+      resourceType?: string;
+      text?: string;
+    }) => {
     try {
       const sessionName = requireSessionName(options);
-      printCommandResult("network", await managedNetwork({ sessionName }));
+      printCommandResult(
+        "network",
+        await managedNetwork({
+          sessionName,
+          requestId: options.requestId,
+          method: options.method,
+          status: options.status,
+          resourceType: options.resourceType,
+          text: options.text,
+        }),
+      );
     } catch (error) {
       printSessionAwareCommandError("network", error, {
         code: "NETWORK_FAILED",

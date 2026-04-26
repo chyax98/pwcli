@@ -50,6 +50,13 @@ pw session close bug-123
 pw session create <name> --open <url>
 ```
 
+当前已确认的内部现实：
+
+- 外部 session 名保留原值
+- 内部 daemon session 名会派生为短 alias
+- 这层 alias 只用于缩短 socket path
+- 不是新的 session substrate
+
 ## 当前真实命令集
 
 ```text
@@ -60,11 +67,12 @@ code --session
 auth --session
 batch --session
 bootstrap --session
+cookies list|set --session
 doctor --session?
 errors --session
 har --session
 observe --session
-page current|list|frames --session
+page current|list|frames|dialogs --session
 snapshot --session
 screenshot --session
 read-text --session
@@ -82,6 +90,7 @@ click --session
 wait --session
 trace --session
 state --session
+storage local|session --session
 profile inspect|open
 plugin list|path
 skill path|install
@@ -172,6 +181,9 @@ pw auth dc-login --session dc-main --open 'https://developer-192-168-5-18.tap.de
 - `wait --request/--response/--method/--status` 已接上，当前最稳的验证方式是先挂 wait，再触发请求
 - `session status` 不是强一致 liveness truth
 - `session attach --browser-url/--cdp` 当前依赖 attach bridge registry，把 CDP metadata 映射成 Playwright `wsEndpoint`
+- `page dialogs` 当前是观测到的 dialog 事件投影，不是 authoritative live dialog set
+- modal state 会阻断当前 `browser_run_code` 读路径，进而影响 `page *` 和 `observe status`
+- `storage local/session` 只读当前页 origin；对 `data:` / `chrome-error://` 这类无效 origin 会返回 `accessible: false`
 - `download` 的稳定验证当前建立在 managed page 内已有下载元素，不把 `file://` 打开本地下载页写成项目 truth
 - 当前没有默认 artifact run 目录
 
