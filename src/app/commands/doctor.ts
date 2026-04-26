@@ -11,9 +11,9 @@ import {
   listManagedSessions,
   runManagedSessionCommand,
 } from "../../domain/session/service.js";
+import { getAuthProvider, listAuthProviders } from "../../infra/auth-providers/registry.js";
 import { parsePageSummary } from "../../infra/playwright/output-parsers.js";
 import { isModalStateBlockedMessage } from "../../infra/playwright/runtime/shared.js";
-import { listPluginNames, resolvePluginPath } from "../../infra/plugins/resolve.js";
 import { printCommandError, printCommandResult } from "../output.js";
 import { addSessionOption } from "./session-options.js";
 
@@ -448,30 +448,30 @@ async function inspectObserveStatus(sessionName?: string): Promise<DoctorDiagnos
   }
 }
 
-function inspectPluginResolution(pluginName?: string): DoctorDiagnostic {
-  const plugins = listPluginNames();
-  if (!pluginName) {
+function inspectAuthProviderResolution(providerName?: string): DoctorDiagnostic {
+  const providers = listAuthProviders();
+  if (!providerName) {
     return {
-      kind: "plugin-resolution",
-      status: plugins.length > 0 ? "ok" : "warn",
-      summary: plugins.length > 0 ? "Plugin directories are readable" : "No plugins discovered",
+      kind: "auth-provider-resolution",
+      status: providers.length > 0 ? "ok" : "warn",
+      summary: providers.length > 0 ? "Built-in auth providers are readable" : "No auth providers discovered",
       details: {
-        discoveredCount: plugins.length,
-        plugins,
+        discoveredCount: providers.length,
+        providers,
       },
     };
   }
 
-  const resolvedPath = resolvePluginPath(pluginName);
+  const provider = getAuthProvider(providerName);
   return {
-    kind: "plugin-resolution",
-    status: resolvedPath ? "ok" : "warn",
-    summary: resolvedPath ? `Plugin '${pluginName}' resolved` : `Plugin '${pluginName}' not found`,
+    kind: "auth-provider-resolution",
+    status: provider ? "ok" : "warn",
+    summary: provider ? `Auth provider '${providerName}' resolved` : `Auth provider '${providerName}' not found`,
     details: {
-      requestedPlugin: pluginName,
-      discoveredCount: plugins.length,
-      plugins,
-      resolvedPath,
+      requestedProvider: providerName,
+      discoveredCount: providers.length,
+      providers,
+      resolved: Boolean(provider),
     },
   };
 }
@@ -546,12 +546,12 @@ function compactDoctorDiagnostic(diagnostic: DoctorDiagnostic): DoctorDiagnostic
           code: stringValue(details.code),
         },
       };
-    case "plugin-resolution":
+    case "auth-provider-resolution":
       return {
         ...diagnostic,
         details: {
-          requestedPlugin: stringValue(details.requestedPlugin),
-          resolvedPath: stringValue(details.resolvedPath),
+          requestedProvider: stringValue(details.requestedProvider),
+          resolved: details.resolved === true,
           discoveredCount: numberValue(details.discoveredCount) ?? 0,
         },
       };
@@ -624,7 +624,7 @@ export function registerDoctorCommand(program: Command): void {
     program
       .command("doctor")
       .description("Run readonly diagnostics for session substrate and local inputs")
-      .option("--plugin <name>", "Resolve a plugin name")
+      .option("--auth-provider <name>", "Resolve a built-in auth provider")
       .option("--profile <path>", "Inspect a profile path")
       .option("--state <file>", "Inspect a storage state path")
       .option("--endpoint <url>", "Probe an endpoint for reachability")
@@ -632,7 +632,7 @@ export function registerDoctorCommand(program: Command): void {
   ).action(
     async (options: {
       session?: string;
-      plugin?: string;
+      authProvider?: string;
       profile?: string;
       state?: string;
       endpoint?: string;
@@ -642,7 +642,7 @@ export function registerDoctorCommand(program: Command): void {
         const diagnostics = [
           await inspectSessionSubstrate(options.session),
           await inspectObserveStatus(options.session),
-          inspectPluginResolution(options.plugin),
+          inspectAuthProviderResolution(options.authProvider),
           inspectProfilePath(options.profile),
           inspectStatePath(options.state),
           await probeEndpoint(options.endpoint),
@@ -672,7 +672,7 @@ export function registerDoctorCommand(program: Command): void {
           message: error instanceof Error ? error.message : "doctor failed",
           suggestions: [
             "Retry with `pw doctor --session <name>` to probe a managed session",
-            "Add `--plugin`, `--profile`, `--state`, or `--endpoint` to inspect specific inputs",
+            "Add `--auth-provider`, `--profile`, `--state`, or `--endpoint` to inspect specific inputs",
           ],
         });
         process.exitCode = 1;

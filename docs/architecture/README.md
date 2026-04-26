@@ -28,7 +28,7 @@ src/
   infra/
     playwright/
     fs/
-    plugins/
+    auth-providers/
 ```
 
 分层责任：
@@ -42,7 +42,7 @@ src/
   - workspace / diagnostics / environment / bootstrap 编排
 - `infra`
   - Playwright substrate
-  - run dir / skill path / plugin 解析
+  - run dir / skill path / 内置 auth provider / 外部脚本执行适配
 
 ## 当前核心闭环
 
@@ -61,7 +61,7 @@ click/fill/type/wait -> diagnosticsDelta -> console/network/errors/export
 ### 3. 接管复用闭环
 
 ```text
-session attach -> state/profile/auth/plugin -> continue
+session attach -> state/profile/auth provider -> continue
 ```
 
 ## 核心文档
@@ -82,7 +82,7 @@ session attach -> state/profile/auth/plugin -> continue
 ## 明确边界
 
 - `open` 只做导航
-- `auth` 只做 plugin 执行
+- `auth` 只做内置 auth provider 执行
 - `batch` 只承诺稳定子集，不追求全 CLI parity
 - diagnostics 优先 query/export，不优先扩新的录制系统
 - mock 先做 route 第一层，环境控制先做 public API 直映射

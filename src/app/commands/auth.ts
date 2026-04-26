@@ -1,38 +1,94 @@
 import type { Command } from "commander";
 import { managedStateSave } from "../../domain/identity-state/service.js";
 import { managedRunCode } from "../../domain/interaction/service.js";
-import { resolveDcLoginArgs } from "../../infra/plugins/dc-login-config.js";
 import {
-  loadPluginSource,
+  getAuthProvider,
+  listAuthProviders,
+  loadAuthProviderSource,
   parseKeyValueArgs,
-  resolvePluginPath,
-} from "../../infra/plugins/resolve.js";
-import { printCommandResult } from "../output.js";
+} from "../../infra/auth-providers/registry.js";
+import { printCommandError, printCommandResult } from "../output.js";
 import {
   addSessionOption,
   printSessionAwareCommandError,
   requireSessionName,
 } from "./session-options.js";
 
-function buildPluginInvocationSource(pluginSource: string, pluginArgs: Record<string, string>) {
+function buildProviderInvocationSource(
+  providerSource: string,
+  providerArgs: Record<string, string>,
+) {
   return `async page => {
-    const plugin = (() => {
-      return ${pluginSource}
+    const provider = (() => {
+      return ${providerSource}
     })();
-    return await plugin(page, ${JSON.stringify(pluginArgs)});
+    return await provider(page, ${JSON.stringify(providerArgs)});
   }`;
 }
 
 export function registerAuthCommand(program: Command): void {
+  const auth = program
+    .command("auth")
+    .description("Run a built-in auth provider inside a named managed session");
+  auth.addHelpText(
+    "after",
+    [
+      "",
+      "Examples:",
+      "  pw auth list",
+      "  pw auth info dc-login",
+      "  pw auth dc-login --session dc-forge --arg phone=13800138000 --arg targetUrl='https://developer-192-168-5-18.tap.dev/forge'",
+    ].join("\n"),
+  );
+
+  auth
+    .command("list")
+    .description("List built-in auth providers")
+    .action(() => {
+      const providers = listAuthProviders();
+      printCommandResult("auth list", {
+        data: {
+          count: providers.length,
+          providers,
+        },
+      });
+    });
+
+  auth
+    .command("info <name>")
+    .description("Show built-in auth provider details")
+    .action((name: string) => {
+      const provider = getAuthProvider(name);
+      if (!provider) {
+        printCommandError("auth info", {
+          code: "AUTH_PROVIDER_NOT_FOUND",
+          message: `auth provider '${name}' not found`,
+          suggestions: ["Run `pw auth list` to inspect built-in auth providers"],
+        });
+        process.exitCode = 1;
+        return;
+      }
+
+      printCommandResult("auth info", {
+        data: {
+          name: provider.name,
+          summary: provider.summary,
+          description: provider.description,
+          args: provider.args,
+          examples: provider.examples,
+          ...(provider.notes ? { notes: provider.notes } : {}),
+        },
+      });
+    });
+
+  const authUse = auth.command("use <provider>", { isDefault: true });
+
   addSessionOption(
-    program
-      .command("auth [plugin]")
-      .description("Run a local auth plugin inside a named managed session")
-      .option("--plugin <name>", "Plugin name or file path")
+    authUse
       .option("--save-state <file>", "Save storage state after auth finishes")
       .option(
         "--arg <key=value>",
-        "Plugin argument",
+        "Provider argument",
         (value, acc) => {
           acc.push(value);
           return acc;
@@ -41,43 +97,39 @@ export function registerAuthCommand(program: Command): void {
       ),
   ).action(
     async (
-      plugin: string | undefined,
+      provider: string,
       options: {
         session?: string;
-        plugin?: string;
         saveState?: string;
         arg?: string[];
       },
     ) => {
-      const sessionName = requireSessionName(options);
       try {
-        const pluginName = options.plugin ?? plugin;
-        if (!pluginName) {
-          throw new Error("auth requires a plugin name or --plugin <name>");
+        const sessionName = requireSessionName(options);
+        const providerName = provider.trim();
+
+        const providerSpec = getAuthProvider(providerName);
+        if (!providerSpec) {
+          throw new Error(`auth provider '${providerName}' not found`);
         }
 
-        const path = resolvePluginPath(pluginName);
-        if (!path) {
-          throw new Error(`plugin '${pluginName}' not found`);
-        }
-
-        const pluginSource = loadPluginSource(path);
+        const providerSource = loadAuthProviderSource(providerSpec);
         const rawArgs = parseKeyValueArgs(options.arg);
-        const args = pluginName === "dc-login" ? await resolveDcLoginArgs(rawArgs) : rawArgs;
+        const args = providerSpec.resolveArgs ? await providerSpec.resolveArgs(rawArgs) : rawArgs;
 
         const result = await managedRunCode({
           sessionName,
-          source: buildPluginInvocationSource(pluginSource, args),
+          source: buildProviderInvocationSource(providerSource, args),
         });
-        const pluginResult =
+        const providerResult =
           result.data.result && typeof result.data.result === "object"
             ? (result.data.result as Record<string, unknown>)
             : undefined;
         const pageState =
-          pluginResult?.pageState && typeof pluginResult.pageState === "object"
-            ? (pluginResult.pageState as Record<string, unknown>)
-            : pluginResult?.page && typeof pluginResult.page === "object"
-              ? (pluginResult.page as Record<string, unknown>)
+          providerResult?.pageState && typeof providerResult.pageState === "object"
+            ? (providerResult.pageState as Record<string, unknown>)
+            : providerResult?.page && typeof providerResult.page === "object"
+              ? (providerResult.page as Record<string, unknown>)
               : undefined;
 
         if (options.saveState) {
@@ -88,8 +140,7 @@ export function registerAuthCommand(program: Command): void {
           session: result.session,
           page: result.page,
           data: {
-            plugin: pluginName,
-            pluginPath: path,
+            provider: providerName,
             args,
             pageState,
             ...(options.saveState ? { stateSaved: options.saveState } : {}),
@@ -102,10 +153,10 @@ export function registerAuthCommand(program: Command): void {
           code: "AUTH_FAILED",
           message: "auth failed",
           suggestions: [
-            "Create plugins/<name>.js or ~/.pwcli/plugins/<name>.js",
-            "Export a function like: async (page, args) => { ... }",
+            "Run `pw auth list` to inspect built-in auth providers",
+            "Run `pw auth info dc-login` to inspect required args and defaults",
             "Create the session first with `pw session create <name> --open <url>`",
-            "Pass plugin-specific targets through `--arg key=value`",
+            "Pass provider-specific runtime args through `--arg key=value`",
           ],
         });
         process.exitCode = 1;

@@ -505,19 +505,27 @@
 
 - `--file <path>`
 
-### `pw auth [plugin] --session <name>`
+### `pw auth list`
+
+- 列出内置 auth provider
+
+### `pw auth info <name>`
+
+- 返回内置 auth provider 的参数、默认值、示例、说明
+
+### `pw auth [provider] --session <name>`
 
 选项：
 
-- `--plugin <name>`
 - `--save-state <file>`
 - `--arg <key=value>`，可重复
 
 语义：
 
-- 在现有 named managed session 中运行本地 auth plugin
+- 在现有 named managed session 中运行内置 auth provider
 - 需要的 session shape 先通过 `session create` 建好
 - 可选地在完成后保存 state
+- 外部脚本不走 `auth`，直接走 `pw code --file <path>`
 
 ### `pw bootstrap apply --session <name>`
 
@@ -614,14 +622,6 @@ stdin 输入格式：
 ### `pw environment clock resume --session <name>`
 
 - 恢复时钟流逝
-
-### `pw plugin list`
-
-- 列出可发现的本地插件
-
-### `pw plugin path <name>`
-
-- 返回插件解析路径
 
 ### `pw skill path`
 

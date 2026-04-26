@@ -1,51 +1,25 @@
-import { existsSync, readFileSync } from "node:fs";
 import net from "node:net";
-import { homedir, networkInterfaces } from "node:os";
-import { join } from "node:path";
+import { networkInterfaces } from "node:os";
 
 const FORGE_DEV_BASE_PORT = 4110;
 const FORGE_DEV_RANGE = 3;
 const FORGE_SUBDOMAIN = "developer";
 const DEFAULT_SMS_CODE = "000000";
 
-interface DcLoginAccountsFile {
-  defaultAccount?: string;
-  accounts?: Record<string, DcLoginAccountEntry>;
-}
-
-interface DcLoginAccountEntry {
-  phone?: string;
-  smsCode?: string;
-  baseURL?: string;
-  instance?: number;
-}
-
 export async function resolveDcLoginArgs(
   pluginArgs: Record<string, string>,
   options?: {
-    env?: NodeJS.ProcessEnv;
-    homeDir?: string;
     portProbe?: (port: number) => Promise<boolean>;
     localIpResolver?: () => string;
   },
 ): Promise<Record<string, string>> {
-  const env = options?.env ?? process.env;
-  const homeDir = options?.homeDir ?? homedir();
   const portProbe = options?.portProbe ?? isLocalPortOpen;
   const localIpResolver = options?.localIpResolver ?? getLocalIp;
-  const accountsPath = resolveAccountsPath(homeDir);
-  const accountsFile = readAccountsFile(accountsPath);
-  const accountName = pickFirst(pluginArgs.account, env.FORGE_DC_LOGIN_ACCOUNT);
-  const account = resolveAccountEntry(accountsFile, accountName, accountsPath);
-
-  const phone = pickFirst(pluginArgs.phone, env.FORGE_TEST_PHONE, account?.phone) ?? "";
-  const smsCode =
-    pickFirst(pluginArgs.smsCode, env.FORGE_TEST_SMS_CODE, account?.smsCode) ?? DEFAULT_SMS_CODE;
+  const phone = pickFirst(pluginArgs.phone) ?? "";
+  const smsCode = pickFirst(pluginArgs.smsCode) ?? DEFAULT_SMS_CODE;
 
   if (!phone) {
-    throw new Error(
-      `dc-login requires a phone number. Add --arg phone=<number> or configure ${accountsPath}`,
-    );
+    throw new Error("dc-login requires --arg phone=<number>");
   }
 
   const explicitTargetUrl = pickFirst(pluginArgs.targetUrl);
@@ -56,24 +30,20 @@ export async function resolveDcLoginArgs(
       smsCode,
       targetUrl: explicitTargetUrl,
       baseURL: normalizeBaseURL(explicitTargetUrl),
-      ...(accountName ? { account: accountName } : {}),
     };
   }
 
-  const explicitBaseURL = pickFirst(pluginArgs.baseURL, env.FORGE_E2E_BASE_URL, account?.baseURL);
+  const explicitBaseURL = pickFirst(pluginArgs.baseURL);
   if (explicitBaseURL) {
     return {
       ...pluginArgs,
       phone,
       smsCode,
       baseURL: normalizeBaseURL(explicitBaseURL),
-      ...(accountName ? { account: accountName } : {}),
     };
   }
 
-  const instance = parseInstance(
-    pickFirst(pluginArgs.instance, env.FORGE_DC_LOGIN_INSTANCE, account?.instance?.toString()),
-  );
+  const instance = parseInstance(pickFirst(pluginArgs.instance));
   const localIp = localIpResolver();
 
   if (instance !== undefined) {
@@ -87,7 +57,6 @@ export async function resolveDcLoginArgs(
       phone,
       smsCode,
       baseURL: buildDcLoginBaseURL(localIp, instance),
-      ...(accountName ? { account: accountName } : {}),
       instance: String(instance),
     };
   }
@@ -99,7 +68,6 @@ export async function resolveDcLoginArgs(
       phone,
       smsCode,
       baseURL: buildDcLoginBaseURL(localIp, runningInstances[0]),
-      ...(accountName ? { account: accountName } : {}),
       instance: String(runningInstances[0]),
     };
   }
@@ -111,66 +79,8 @@ export async function resolveDcLoginArgs(
   }
 
   throw new Error(
-    `dc-login could not resolve baseURL automatically. Pass --arg baseURL=<url> or configure ${accountsPath}.`,
+    "dc-login could not resolve baseURL automatically. Pass --arg targetUrl=<url>, --arg baseURL=<url>, or --arg instance=<0|1|2>.",
   );
-}
-
-function resolveAccountsPath(homeDir: string) {
-  const candidates = [
-    join(homeDir, ".pwcli", "plugins", "dc-login", "accounts.json"),
-    join(homeDir, ".forge-browser", "plugins", "dc-login", "accounts.json"),
-  ];
-  return candidates.find((candidate) => existsSync(candidate)) ?? candidates[0];
-}
-
-function readAccountsFile(path: string): DcLoginAccountsFile | undefined {
-  if (!existsSync(path)) {
-    return undefined;
-  }
-
-  const parsed = JSON.parse(readFileSync(path, "utf8")) as DcLoginAccountsFile;
-  if (!parsed || typeof parsed !== "object") {
-    throw new Error(`dc-login config is invalid: ${path}`);
-  }
-  return parsed;
-}
-
-function resolveAccountEntry(
-  file: DcLoginAccountsFile | undefined,
-  accountName: string | undefined,
-  path: string,
-) {
-  const accounts = file?.accounts;
-  if (!accounts) {
-    return undefined;
-  }
-
-  if (accountName) {
-    const selected = accounts[accountName];
-    if (!selected) {
-      throw new Error(`dc-login account '${accountName}' not found in ${path}`);
-    }
-    return selected;
-  }
-
-  if (file?.defaultAccount) {
-    const selected = accounts[file.defaultAccount];
-    if (!selected) {
-      throw new Error(`dc-login defaultAccount '${file.defaultAccount}' is missing in ${path}`);
-    }
-    return selected;
-  }
-
-  const names = Object.keys(accounts);
-  if (names.length === 1) {
-    return accounts[names[0]];
-  }
-
-  if (names.length > 1) {
-    throw new Error(`dc-login config ${path} contains multiple accounts but no defaultAccount`);
-  }
-
-  return undefined;
 }
 
 function pickFirst(...values: Array<string | undefined>) {

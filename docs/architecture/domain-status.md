@@ -84,7 +84,7 @@
 - `cookies list|set`
 - `storage local|session`
 - `profile inspect`
-- `auth` plugin 执行 + `save-state`
+- `auth` 内置 provider 执行 + `save-state`
 
 ### 当前限制
 

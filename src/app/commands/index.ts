@@ -19,7 +19,6 @@ import { registerNetworkCommand } from "./network.js";
 import { registerObserveCommand } from "./observe.js";
 import { registerOpenCommand } from "./open.js";
 import { registerPageCommand } from "./page.js";
-import { registerPluginCommand } from "./plugin.js";
 import { registerPressCommand } from "./press.js";
 import { registerProfileCommand } from "./profile.js";
 import { registerReadTextCommand } from "./read-text.js";
@@ -73,6 +72,5 @@ export function registerCommands(program: Command): void {
   registerStorageCommand(program);
   registerProfileCommand(program);
   registerSessionCommand(program);
-  registerPluginCommand(program);
   registerSkillCommand(program);
 }

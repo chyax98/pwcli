@@ -14,7 +14,7 @@
 附带规则：
 
 - `open` 只做导航
-- `auth` 只做 plugin 执行
+- `auth` 只做内置 auth provider 执行
 - `profile` 只做 inspect
 - `batch` 只接受结构化 `string[][]`
 - skill 是唯一使用教程真相

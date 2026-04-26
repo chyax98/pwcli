@@ -1,11 +1,13 @@
-# Workflows
+# 工作流剧本
 
-## 1. Reproduce a bug on a fresh page
+## 1. 新页面上复现一个 bug
 
 ```bash
 pw session create bug-a --open 'https://example.com'
-pw snapshot --session bug-a
+pw observe status --session bug-a
 pw page current --session bug-a
+pw read-text --session bug-a --max-chars 1200
+pw snapshot --session bug-a
 pw click e6 --session bug-a
 pw wait networkIdle --session bug-a
 pw diagnostics digest --session bug-a
@@ -17,13 +19,18 @@ pw diagnostics export --session bug-a --section network --text checkout --fields
 pw diagnostics runs --session bug-a --since 2026-04-26T00:00:00.000Z
 ```
 
-Use this when you need:
+适用场景：
 
-- DOM truth
-- immediate diagnostics
-- a stable export artifact
+- 需要拿到 DOM 真实状态
+- 需要立刻拿到 diagnostics
+- 需要一份稳定导出证据
 
-## 2. Reproduce with deterministic mocks
+补充：
+
+- 大页面默认不要先打 `snapshot`
+- 只有你真的需要 refs 时，再把 `snapshot` 提前
+
+## 2. 用确定性 mock 复现
 
 ```bash
 pw session create mock-a --open 'http://127.0.0.1:4179/blank'
@@ -34,14 +41,14 @@ pw read-text --session mock-a --selector '#last-route-result'
 pw route add '**/api/summary**' --patch-json-file ./summary-patch.json --patch-status 298 --session mock-a
 ```
 
-Use this when:
+适用场景：
 
-- backend responses are unstable
-- you need exact status/body control
-- you need to patch one or two fields while keeping the real upstream response shape
-- you need repeatable smoke or diagnosis
+- 后端响应不稳定
+- 需要精确控制 status / body
+- 只想 patch 一两个字段，但又保留真实 upstream response 形状
+- 需要稳定 smoke 或诊断环境
 
-## 3. Reuse auth state
+## 3. 复用认证态
 
 ```bash
 pw session create auth-a --open 'https://example.com'
@@ -50,12 +57,30 @@ pw session close auth-a
 pw session create auth-b --open 'https://example.com' --state ./auth.json
 ```
 
-Use this when:
+适用场景：
 
-- login is expensive
-- you need deterministic follow-up investigation
+- 登录成本高
+- 后续还有稳定复查动作
 
-## 4. Use environment control
+## 3.1 Forge / DC 登录
+
+```bash
+pw session list
+pw auth list
+pw auth info dc-login
+pw observe status --session dc-forge
+pw page current --session dc-forge
+pw read-text --session dc-forge --max-chars 1200
+pw auth dc-login --session dc-forge --arg targetUrl='https://developer-.../forge'
+```
+
+适用场景：
+
+- 任务已经明确指向 Forge / DC session
+- 你想优先复用已有登录态，而不是新建重复 session
+- 你需要确认登录 contract，但不想猜不存在的命令
+
+## 4. 使用环境控制
 
 ```bash
 pw session create env-a --open 'http://127.0.0.1:4179/blank'
@@ -64,15 +89,15 @@ pw environment permissions grant geolocation --session env-a
 pw environment geolocation set --session env-a --lat 37.7749 --lng -122.4194
 ```
 
-Use this when reproducing:
+适用场景：
 
-- offline-only failures
-- geolocation-dependent behavior
-- permission-gated UI
+- 复现 offline 场景
+- 复现 geolocation 相关逻辑
+- 复现 permission gated UI
 
-## 5. Use structured batch
+## 5. 使用结构化 batch
 
-Stdin mode:
+stdin 模式：
 
 ```bash
 printf '%s\n' '[
@@ -83,23 +108,23 @@ printf '%s\n' '[
 ]' | pw batch --session bug-a --json
 ```
 
-File mode:
+文件模式：
 
 ```bash
 pw batch --session bug-a --file ./steps.json
 ```
 
-Use this when:
+适用场景：
 
-- one agent turn needs one browser turn
-- the sequence is deterministic
-- you want one structured result envelope
+- 一个 agent turn 需要一个浏览器 turn
+- 步骤序列是确定性的
+- 你需要一个结构化结果 envelope
 
-Keep batch narrow:
+保持 batch 收窄：
 
-- use the documented stable subset first
-- keep dependent steps in strict serial order
-- insert `wait` after `open` / `click` / `press` when the next step depends on changed page state
-- keep lifecycle / auth / environment / dialog recovery outside batch
-- for one-off commands outside that subset, run normal `pw` commands
-- for conditional logic, use `pw code`
+- 优先使用文档里的稳定子集
+- 有依赖关系的步骤必须严格按顺序写
+- `open` / `click` / `press` 后，如果下一步依赖新页面状态，显式插入 `wait`
+- lifecycle / auth / environment / dialog recovery 不要放进 batch
+- 超出稳定子集时，直接跑普通 `pw` 命令
+- 需要条件逻辑时，再转 `pw code`

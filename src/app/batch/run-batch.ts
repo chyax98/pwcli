@@ -90,7 +90,7 @@ function unsupportedBatchStepMessage(tokens: string[]) {
     return "batch does not support environment mutation in the stable subset; run environment commands directly before batch";
   }
   if (command === "auth") {
-    return "batch does not support auth plugin execution; run `auth` directly before batch";
+    return "batch does not support auth provider execution; run `auth` directly before batch";
   }
   if (command === "dialog") {
     return "batch does not support dialog recovery; recover the modal first with `dialog accept|dismiss`";

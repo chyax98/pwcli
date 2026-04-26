@@ -19,7 +19,7 @@
 - 稳定 JSON 输出
 - `session create|attach|recreate` 是唯一 lifecycle 主路
 - `open` 只做导航
-- `auth` 只做 plugin 执行
+- `auth` 只做内置 auth provider 执行
 - `batch` 走结构化 `string[][]`
 - diagnostics 优先 query/export
 - trace 默认开启
@@ -28,7 +28,8 @@
 
 ```bash
 pw session create bug-a --open 'https://example.com'
-pw snapshot --session bug-a
+pw observe status --session bug-a
+pw page current --session bug-a
 pw click e6 --session bug-a
 pw wait networkIdle --session bug-a
 pw diagnostics digest --session bug-a
@@ -73,7 +74,7 @@ docs/
 
 - `src/app`：CLI、batch、输出
 - `src/domain`：命令语义与领域编排
-- `src/infra`：Playwright substrate、fs、plugin 适配
+- `src/infra`：Playwright substrate、fs、内置 auth provider / 外部脚本适配
 - `skills/pwcli`：模型使用教程的唯一真相
 - `docs/architecture`：架构决策、领域现状、已知限制、扩展方向
 
