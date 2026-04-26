@@ -11,7 +11,7 @@ export function registerObserveCommand(program: Command): void {
   addSessionOption(
     program
       .command("observe <action>")
-      .description("Inspect lightweight observe status for a named managed session"),
+      .description("Inspect workspace and diagnostics status for a named managed session"),
   ).action(async (action: string, options: { session?: string }) => {
     try {
       const sessionName = requireSessionName(options);
@@ -24,7 +24,7 @@ export function registerObserveCommand(program: Command): void {
         code: "OBSERVE_FAILED",
         message: "observe failed",
         suggestions: [
-          "Use `pw observe --session bug-a status` to inspect current diagnostics state",
+          "Use `pw observe --session bug-a status` to inspect current workspace and diagnostics state",
         ],
       });
       process.exitCode = 1;

@@ -2,11 +2,9 @@ import { copyFile, mkdir, readFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { runManagedSessionCommand } from "../session/cli-client.js";
 import {
-  parseConsoleSummary,
   parseDownloadEvent,
   parseErrorText,
   parseJsonStringLiteral,
-  parseNetworkSummary,
   parsePageSummary,
   parseResultText,
   parseSnapshotYaml,
@@ -29,11 +27,15 @@ async function managedEnsureDiagnosticsHooks(options?: { sessionName?: string })
     source: `async page => {
       const context = page.context();
       const state = context[${JSON.stringify(DIAGNOSTICS_STATE_KEY)}] ||= {};
+      const sessionName = ${JSON.stringify(options?.sessionName ?? null)};
       state.consoleRecords = Array.isArray(state.consoleRecords) ? state.consoleRecords : [];
       state.networkRecords = Array.isArray(state.networkRecords) ? state.networkRecords : [];
       state.pageErrorRecords = Array.isArray(state.pageErrorRecords) ? state.pageErrorRecords : [];
+      state.dialogRecords = Array.isArray(state.dialogRecords) ? state.dialogRecords : [];
       state.nextPageSeq = Number.isInteger(state.nextPageSeq) ? state.nextPageSeq : 1;
       state.nextRequestSeq = Number.isInteger(state.nextRequestSeq) ? state.nextRequestSeq : 1;
+      state.nextDialogSeq = Number.isInteger(state.nextDialogSeq) ? state.nextDialogSeq : 1;
+      state.nextNavigationSeq = Number.isInteger(state.nextNavigationSeq) ? state.nextNavigationSeq : 1;
 
       const now = () => new Date().toISOString();
       const keep = (list, entry, max = 200) => {
@@ -46,77 +48,139 @@ async function managedEnsureDiagnosticsHooks(options?: { sessionName?: string })
           p.__pwcliPageId = 'p' + state.nextPageSeq++;
         return p.__pwcliPageId;
       };
+      const ensureNavigationId = (p) => {
+        if (!p.__pwcliNavigationId)
+          p.__pwcliNavigationId = 'nav-' + state.nextNavigationSeq++;
+        return p.__pwcliNavigationId;
+      };
       const installPage = (p) => {
         ensurePageId(p);
+        ensureNavigationId(p);
         if (p.__pwcliDiagnosticsInstalled)
           return;
         p.__pwcliDiagnosticsInstalled = true;
+        p.on('framenavigated', frame => {
+          if (frame === p.mainFrame())
+            p.__pwcliNavigationId = 'nav-' + state.nextNavigationSeq++;
+        });
         p.on('console', msg => {
+          const location = typeof msg.location === 'function' ? msg.location() : undefined;
           keep(state.consoleRecords, {
+            kind: 'console',
+            sessionName,
             timestamp: now(),
             pageId: ensurePageId(p),
+            navigationId: ensureNavigationId(p),
             level: msg.type(),
             text: msg.text(),
+            ...(location?.url ? { location } : {}),
           });
         });
         p.on('request', req => {
           const requestId = req.__pwcliRequestId || ('req-' + state.nextRequestSeq++);
           req.__pwcliRequestId = requestId;
+          const frame = typeof req.frame === 'function' ? req.frame() : null;
           keep(state.networkRecords, {
+            kind: 'request',
+            sessionName,
             timestamp: now(),
             event: 'request',
             requestId,
             pageId: ensurePageId(p),
+            navigationId: ensureNavigationId(p),
             url: req.url(),
             method: req.method(),
             resourceType: req.resourceType(),
+            isNavigationRequest: typeof req.isNavigationRequest === 'function' ? req.isNavigationRequest() : false,
+            ...(frame
+              ? {
+                  frame: {
+                    url: frame.url(),
+                    name: frame.name(),
+                  },
+                }
+              : {}),
           });
         });
         p.on('response', res => {
           const req = res.request();
           const requestId = req.__pwcliRequestId || ('req-' + state.nextRequestSeq++);
           req.__pwcliRequestId = requestId;
+          const frame = typeof req.frame === 'function' ? req.frame() : null;
           keep(state.networkRecords, {
+            kind: 'response',
+            sessionName,
             timestamp: now(),
             event: 'response',
             requestId,
             pageId: ensurePageId(p),
+            navigationId: ensureNavigationId(p),
             url: req.url(),
             method: req.method(),
             status: res.status(),
+            ok: res.ok(),
             resourceType: req.resourceType(),
+            ...(frame
+              ? {
+                  frame: {
+                    url: frame.url(),
+                    name: frame.name(),
+                  },
+                }
+              : {}),
           });
         });
         p.on('requestfailed', req => {
           const requestId = req.__pwcliRequestId || ('req-' + state.nextRequestSeq++);
           req.__pwcliRequestId = requestId;
+          const frame = typeof req.frame === 'function' ? req.frame() : null;
           keep(state.networkRecords, {
+            kind: 'requestfailed',
+            sessionName,
             timestamp: now(),
             event: 'requestfailed',
             requestId,
             pageId: ensurePageId(p),
+            navigationId: ensureNavigationId(p),
             url: req.url(),
             method: req.method(),
             resourceType: req.resourceType(),
             failureText: req.failure()?.errorText || '',
+            ...(frame
+              ? {
+                  frame: {
+                    url: frame.url(),
+                    name: frame.name(),
+                  },
+                }
+              : {}),
           });
         });
         p.on('pageerror', err => {
           keep(state.pageErrorRecords, {
+            kind: 'pageerror',
+            sessionName,
             timestamp: now(),
             pageId: ensurePageId(p),
+            navigationId: ensureNavigationId(p),
             text: err?.message || String(err),
             stack: typeof err?.stack === 'string' ? err.stack : '',
           });
         });
         p.on('dialog', dialog => {
-          state.dialog = {
-            open: true,
+          const record = {
+            kind: 'dialog',
+            sessionName,
+            dialogId: 'dialog-' + state.nextDialogSeq++,
             pageId: ensurePageId(p),
+            timestamp: now(),
+            navigationId: ensureNavigationId(p),
+            open: true,
             type: dialog.type(),
             message: dialog.message(),
-            timestamp: now(),
           };
+          keep(state.dialogRecords, record, 50);
+          state.dialog = record;
         });
       };
 
@@ -622,15 +686,17 @@ export async function managedErrors(
   action: "recent" | "clear",
   options?: { sessionName?: string },
 ) {
+  await managedEnsureDiagnosticsHooks({ sessionName: options?.sessionName });
   const result = await managedRunCode({
     sessionName: options?.sessionName,
     source: `async page => {
-      const allErrors = await page.pageErrors({ filter: 'all' }).catch(async () => {
-        return await page.pageErrors().catch(() => []);
-      });
-      const clearedCount = Number(page.__pwcliErrorsClearedCount || 0);
+      const context = page.context();
+      const state = context[${JSON.stringify(DIAGNOSTICS_STATE_KEY)}] ||= {};
+      state.pageErrorRecords = Array.isArray(state.pageErrorRecords) ? state.pageErrorRecords : [];
+      const allErrors = state.pageErrorRecords;
+      const clearedCount = Number.isInteger(state.pageErrorClearedCount) ? state.pageErrorClearedCount : 0;
       if (${JSON.stringify(action)} === 'clear') {
-        page.__pwcliErrorsClearedCount = allErrors.length;
+        state.pageErrorClearedCount = allErrors.length;
         return JSON.stringify({
           action: 'clear',
           cleared: true,
@@ -642,9 +708,7 @@ export async function managedErrors(
       }
       const errors = allErrors.slice(clearedCount).map((error, index) => ({
         index: clearedCount + index + 1,
-        name: error?.name || 'Error',
-        message: error?.message || String(error),
-        stack: typeof error?.stack === 'string' ? error.stack : '',
+        ...error,
       }));
       return JSON.stringify({
         action: 'recent',
@@ -821,17 +885,19 @@ export async function managedHar(
 }
 
 export async function managedObserveStatus(options?: { sessionName?: string }) {
+  await managedEnsureDiagnosticsHooks({ sessionName: options?.sessionName });
   const result = await managedRunCode({
     sessionName: options?.sessionName,
     source: `async page => {
       const context = page.context();
       const state = context[${JSON.stringify(DIAGNOSTICS_STATE_KEY)}] ||= {};
       const pages = context.pages();
-      const allErrors = await page.pageErrors({ filter: 'all' }).catch(async () => {
-        return await page.pageErrors().catch(() => []);
-      });
-      const clearedCount = Number(page.__pwcliErrorsClearedCount || 0);
-      const visibleCount = Math.max(0, allErrors.length - clearedCount);
+      state.consoleRecords = Array.isArray(state.consoleRecords) ? state.consoleRecords : [];
+      state.networkRecords = Array.isArray(state.networkRecords) ? state.networkRecords : [];
+      state.pageErrorRecords = Array.isArray(state.pageErrorRecords) ? state.pageErrorRecords : [];
+      state.dialogRecords = Array.isArray(state.dialogRecords) ? state.dialogRecords : [];
+      const clearedCount = Number.isInteger(state.pageErrorClearedCount) ? state.pageErrorClearedCount : 0;
+      const visibleCount = Math.max(0, state.pageErrorRecords.length - clearedCount);
       const routes = Array.isArray(state.routes) ? state.routes : [];
       const trace = state.trace || { supported: true, active: false };
       const har = state.har || {
@@ -839,26 +905,59 @@ export async function managedObserveStatus(options?: { sessionName?: string }) {
         active: false,
         limitation: 'Current managed sessions do not expose HAR start/stop on an existing BrowserContext.',
       };
+      const bootstrap = state.bootstrap || {
+        applied: false,
+        initScriptCount: 0,
+        headersApplied: false,
+      };
+      const workspacePages = await Promise.all(pages.map(async item => ({
+        pageId: item.__pwcliPageId || null,
+        navigationId: item.__pwcliNavigationId || null,
+        url: item.url(),
+        title: await item.title().catch(() => ''),
+        current: item === page,
+        openerPageId: item.opener()?.__pwcliPageId || null,
+      })));
       return JSON.stringify({
         page: {
+          pageId: page.__pwcliPageId || null,
+          navigationId: page.__pwcliNavigationId || null,
           url: page.url(),
           title: await page.title().catch(() => ''),
         },
         workspace: {
           pageCount: pages.length,
-          pageUrls: pages.map(item => item.url()),
+          currentPageId: page.__pwcliPageId || null,
+          pages: workspacePages,
+        },
+        console: {
+          total: state.consoleRecords.length,
+          last: state.consoleRecords.at(-1) || null,
+        },
+        network: {
+          total: state.networkRecords.length,
+          requests: state.networkRecords.filter(record => record.event === 'request').length,
+          responses: state.networkRecords.filter(record => record.event === 'response').length,
+          failures: state.networkRecords.filter(record => record.event === 'requestfailed').length,
+          last: state.networkRecords.at(-1) || null,
         },
         routes: {
           count: routes.length,
           items: routes,
         },
+        dialogs: {
+          count: state.dialogRecords.length,
+          items: state.dialogRecords.slice(-20),
+        },
         pageErrors: {
-          total: allErrors.length,
+          total: state.pageErrorRecords.length,
           clearedCount,
           visibleCount,
+          last: state.pageErrorRecords.at(-1) || null,
         },
         trace,
         har,
+        bootstrap,
         stream: {
           supported: false,
           active: false,
@@ -875,10 +974,15 @@ export async function managedObserveStatus(options?: { sessionName?: string }) {
     page: result.page,
     data: {
       status: parsed,
+      workspace: parsed.workspace,
+      console: parsed.console,
+      network: parsed.network,
       routes: parsed.routes,
+      dialogs: parsed.dialogs,
       pageErrors: parsed.pageErrors,
       trace: parsed.trace,
       har: parsed.har,
+      bootstrap: parsed.bootstrap,
       stream: parsed.stream,
     },
   };
@@ -904,14 +1008,24 @@ export async function managedBootstrapApply(options: {
   const scriptContents = await Promise.all(initScripts.map((file) => readFile(file, "utf8")));
   const source = `async page => {
     const context = page.context();
+    const state = context[${JSON.stringify(DIAGNOSTICS_STATE_KEY)}] ||= {};
     ${headers ? `await context.setExtraHTTPHeaders(${JSON.stringify(headers)});` : ""}
     ${scriptContents
       .map((content) => `await context.addInitScript({ content: ${JSON.stringify(content)} });`)
       .join("\n    ")}
+    state.bootstrap = {
+      applied: true,
+      updatedAt: new Date().toISOString(),
+      initScriptCount: ${initScripts.length},
+      initScripts: ${JSON.stringify(initScripts)},
+      headersApplied: ${headers ? "true" : "false"},
+      ${headersFile ? `headersFile: ${JSON.stringify(headersFile)},` : ""}
+    };
     return JSON.stringify({
       applied: true,
       initScriptCount: ${initScripts.length},
       ${headers ? `headersApplied: true,` : `headersApplied: false,`}
+      bootstrap: state.bootstrap,
     });
   }`;
 

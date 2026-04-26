@@ -140,12 +140,13 @@ pw auth dc-login \
 - 默认 artifact run 目录
 - HAR / perf / video / screencast 管理
 - 项目层 session log / diagnostics cache
-- 完整 request/response wait 语义
+- observe stream server
 
 ## 当前已知限制
 
-- `wait --request/--response/--method/--status` 还没接上
+- `wait --request/--response/--method/--status` 已接上，但当前最稳的验证方式是先挂 wait，再由 fixture 触发命中请求
 - `session status` 仍然只是 best-effort 视图
+- `session attach --browser-url/--cdp` 当前依赖本地 attach bridge registry，把 CDP metadata 映射到 Playwright `wsEndpoint`；对只暴露 raw CDP、没有 bridge 的外部浏览器还不通用
 - `download` 的稳定验证当前建立在 managed page 内已有下载元素，不把 `file://` 打开本地下载页写成稳定 contract
 - `dc-login` 动态登录已接入，但在当前机器上最稳的 DC 2.0 入口仍然是直接打开真实页或复用 profile/state
 

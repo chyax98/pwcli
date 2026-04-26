@@ -1,6 +1,6 @@
 import type { Command } from "commander";
-import { attachManagedSession, resolveAttachTarget } from "./attach-shared.js";
 import { printCommandResult } from "../utils/output.js";
+import { attachManagedSession, resolveAttachTarget } from "./attach-shared.js";
 import {
   addSessionOption,
   printSessionAwareCommandError,
@@ -39,14 +39,12 @@ export function registerConnectCommand(program: Command): void {
       } catch (error) {
         const message = error instanceof Error ? error.message : "connect failed";
         printSessionAwareCommandError("connect", error, {
-          code: message.includes("_ATTACH_NOT_SUPPORTED")
-            ? "CONNECT_NOT_SUPPORTED"
-            : "CONNECT_FAILED",
+          code: "CONNECT_FAILED",
           message,
           suggestions: [
             "Pass exactly one reachable target: positional endpoint, --ws-endpoint, --browser-url, or --cdp",
-            "Preferred main path: `pw session attach <name> --ws-endpoint <url>`",
-            "For a manual Playwright target, start `node scripts/manual/attach-target.js` and use the printed endpoint",
+            "Preferred main path: `pw session attach <name> ...`",
+            "For a local verification target, start `node scripts/manual/attach-target.js` and use any printed attach source",
           ],
         });
         process.exitCode = 1;

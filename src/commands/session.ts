@@ -2,7 +2,6 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Command } from "commander";
-import { attachManagedSession, resolveAttachTarget } from "./attach-shared.js";
 import { managedOpen, managedStateLoad } from "../core/managed.js";
 import {
   getManagedSessionEntry,
@@ -13,6 +12,7 @@ import {
 } from "../session/cli-client.js";
 import { parsePageSummary } from "../session/output-parsers.js";
 import { printCommandError, printCommandResult } from "../utils/output.js";
+import { attachManagedSession, resolveAttachTarget } from "./attach-shared.js";
 
 async function getSessionPageSummary(name: string) {
   const result = await runManagedSessionCommand(
@@ -140,14 +140,12 @@ export function registerSessionCommand(program: Command): void {
         } catch (error) {
           const message = error instanceof Error ? error.message : "session attach failed";
           printCommandError("session attach", {
-            code: message.includes("_ATTACH_NOT_SUPPORTED")
-              ? "SESSION_ATTACH_NOT_SUPPORTED"
-              : "SESSION_ATTACH_FAILED",
+            code: "SESSION_ATTACH_FAILED",
             message,
             suggestions: [
               "Pass exactly one attach source: positional endpoint, --ws-endpoint, --browser-url, or --cdp",
-              "Current stable path: `--ws-endpoint`",
-              "For a manual Playwright target, start `node scripts/manual/attach-target.js` and use the printed endpoint",
+              "For a local verification target, start `node scripts/manual/attach-target.js` and use any printed attach source",
+              "If the browser only exposes CDP, resolve or publish a Playwright ws endpoint and attach with `--ws-endpoint`",
             ],
           });
           process.exitCode = 1;

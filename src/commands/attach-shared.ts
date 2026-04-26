@@ -1,3 +1,6 @@
+import { readFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { runManagedSessionCommand } from "../session/cli-client.js";
 import { parsePageSummary } from "../session/output-parsers.js";
 
@@ -11,18 +14,114 @@ type ResolvedAttachTarget =
   | { endpoint: string; resolvedVia: "ws-endpoint" | "argument" }
   | { endpoint: string; resolvedVia: "browser-url" | "cdp"; browserURL: string };
 
-async function resolveBrowserWsEndpoint(browserURL: string) {
-  const response = await fetch(`${browserURL.replace(/\/$/, "")}/json/version`, {
+type AttachBridgeRegistry = {
+  targets?: Array<{
+    browserURL?: string;
+    cdpPort?: number;
+    wsEndpoint?: string;
+    cdpWebSocketDebuggerUrl?: string;
+  }>;
+};
+
+const ATTACH_BRIDGE_REGISTRY_PATH = join(tmpdir(), "pwcli-attach-target-registry.json");
+
+function normalizeBrowserURL(browserURL: string) {
+  try {
+    const url = new URL(browserURL);
+    if (url.hostname === "localhost") {
+      url.hostname = "127.0.0.1";
+    }
+    return url.toString().replace(/\/$/, "");
+  } catch {
+    return browserURL.replace(/\/$/, "");
+  }
+}
+
+function parseBrowserPort(browserURL: string) {
+  try {
+    const url = new URL(browserURL);
+    return url.port ? Number(url.port) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function normalizeAttachMetadataEndpoint(endpoint: string) {
+  try {
+    const url = new URL(endpoint);
+    if (url.hostname === "localhost") {
+      url.hostname = "127.0.0.1";
+    }
+    return url.toString();
+  } catch {
+    return endpoint;
+  }
+}
+
+async function readAttachBridgeRegistry() {
+  try {
+    const text = await readFile(ATTACH_BRIDGE_REGISTRY_PATH, "utf8");
+    const parsed = JSON.parse(text) as AttachBridgeRegistry;
+    return Array.isArray(parsed.targets) ? parsed.targets : [];
+  } catch {
+    return [];
+  }
+}
+
+async function readBrowserMetadata(browserURL: string) {
+  const normalizedBrowserURL = normalizeBrowserURL(browserURL);
+  const response = await fetch(`${normalizedBrowserURL}/json/version`, {
     method: "GET",
     signal: AbortSignal.timeout(3000),
   });
   if (!response.ok) {
-    throw new Error(`attach could not read browser metadata from ${browserURL}`);
+    throw new Error(`attach could not read browser metadata from ${normalizedBrowserURL}`);
   }
-  const json = (await response.json()) as { webSocketDebuggerUrl?: string };
-  const wsEndpoint = json.webSocketDebuggerUrl?.trim();
+  return {
+    browserURL: normalizedBrowserURL,
+    json: (await response.json()) as { webSocketDebuggerUrl?: string },
+  };
+}
+
+async function resolveBrowserWsEndpoint(browserURL: string) {
+  const { browserURL: normalizedBrowserURL, json } = await readBrowserMetadata(browserURL);
+  const cdpWebSocketDebuggerUrl = json.webSocketDebuggerUrl?.trim();
+  const normalizedCdpWebSocketDebuggerUrl = cdpWebSocketDebuggerUrl
+    ? normalizeAttachMetadataEndpoint(cdpWebSocketDebuggerUrl)
+    : undefined;
+  const cdpPort = parseBrowserPort(normalizedBrowserURL);
+  if (!normalizedCdpWebSocketDebuggerUrl) {
+    throw new Error(
+      `attach did not receive webSocketDebuggerUrl from ${normalizedBrowserURL}/json/version`,
+    );
+  }
+
+  const registry = await readAttachBridgeRegistry();
+  const registryMatch = registry.find((target) => {
+    const browserURLMatches = target.browserURL === normalizedBrowserURL;
+    const cdpPortMatches =
+      cdpPort !== undefined && Number.isInteger(target.cdpPort) && target.cdpPort === cdpPort;
+    if (!browserURLMatches && !cdpPortMatches) {
+      return false;
+    }
+    if (!target.wsEndpoint?.trim()) {
+      return false;
+    }
+    if (
+      target.cdpWebSocketDebuggerUrl?.trim() &&
+      normalizeAttachMetadataEndpoint(target.cdpWebSocketDebuggerUrl.trim()) !==
+        normalizedCdpWebSocketDebuggerUrl
+    ) {
+      return false;
+    }
+    return true;
+  });
+
+  const wsEndpoint = registryMatch?.wsEndpoint?.trim();
   if (!wsEndpoint) {
-    throw new Error(`attach did not receive webSocketDebuggerUrl from ${browserURL}`);
+    throw new Error(
+      `ATTACH_SUBSTRATE_UNAVAILABLE: ${normalizedBrowserURL} exposes CDP metadata but no Playwright ws bridge. Start a cooperating target such as \`node scripts/manual/attach-target.js\`, or attach with \`--ws-endpoint\`.`,
+    );
   }
   return wsEndpoint;
 }
@@ -34,10 +133,14 @@ export async function resolveAttachTarget(
     browserUrl?: string;
     cdp?: string;
   },
-) : Promise<ResolvedAttachTarget> {
+): Promise<ResolvedAttachTarget> {
   const candidates = [
-    options.wsEndpoint ? { endpoint: options.wsEndpoint, resolvedVia: "ws-endpoint" as const } : null,
-    options.browserUrl ? { endpoint: options.browserUrl, resolvedVia: "browser-url" as const } : null,
+    options.wsEndpoint
+      ? { endpoint: options.wsEndpoint, resolvedVia: "ws-endpoint" as const }
+      : null,
+    options.browserUrl
+      ? { endpoint: options.browserUrl, resolvedVia: "browser-url" as const }
+      : null,
     options.cdp
       ? {
           endpoint: `http://127.0.0.1:${options.cdp}`,
@@ -57,10 +160,12 @@ export async function resolveAttachTarget(
   }
   const target = candidates[0];
   if (target.resolvedVia === "browser-url" || target.resolvedVia === "cdp") {
-    await resolveBrowserWsEndpoint(target.endpoint);
-    throw new Error(
-      `${target.resolvedVia.toUpperCase()}_ATTACH_NOT_SUPPORTED: current managed session substrate only supports --ws-endpoint`,
-    );
+    const wsEndpoint = await resolveBrowserWsEndpoint(target.endpoint);
+    return {
+      endpoint: wsEndpoint,
+      resolvedVia: target.resolvedVia,
+      browserURL: normalizeBrowserURL(target.endpoint),
+    };
   }
   return target;
 }

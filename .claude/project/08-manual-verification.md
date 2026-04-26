@@ -1,20 +1,26 @@
 # Manual Verification
 
-更新时间：2026-04-25
+更新时间：2026-04-26
 状态：active
 
-这份清单只记录本轮真实跑过的验证，不写“理论上应该能跑”。
+这份清单记录最近真实跑过的验证，不写“理论上应该能跑”。
 
 ## 先决条件
 
-本轮先执行：
+这次新增的 deterministic fixture / bootstrap / wait 验证直接基于现成 `dist/cli.js` 和本地 fixture server：
 
 ```bash
-pnpm build
-pnpm typecheck
+node scripts/manual/deterministic-fixture-server.js >/tmp/pwcli-deterministic-server.log 2>&1 &
+server_pid=$!
+printf '{"x-pwcli-header":"boot-1"}' > /tmp/pwcli-bootstrap-headers.json
 ```
 
-两者均通过。
+收尾：
+
+```bash
+kill "$server_pid"
+rm -f /tmp/pwcli-bootstrap-headers.json
+```
 
 ## 已真实执行并通过
 
@@ -178,18 +184,70 @@ node dist/cli.js session close action-a
 ### console / network
 
 ```bash
-node dist/cli.js session create diag-a --open about:blank
-node dist/cli.js code --session diag-a --file ./scripts/manual/console-network.js
-node dist/cli.js click --session diag-a --selector '#fire'
-node dist/cli.js console --session diag-a
-PWCLI_RAW_OUTPUT=1 node dist/cli.js network --session diag-a
-node dist/cli.js session close diag-a
+node dist/cli.js session create diag-det2 --open http://127.0.0.1:4179/blank
+node dist/cli.js code --session diag-det2 --file ./scripts/manual/diagnostics-fixture.js
+node dist/cli.js route add '**/__pwcli__/diagnostics/route-hit**' --session diag-det2 --body routed-from-pwcli --status 211 --content-type text/plain
+node dist/cli.js click --session diag-det2 --selector '#fire'
+node dist/cli.js console --session diag-det2
+PWCLI_RAW_OUTPUT=1 node dist/cli.js network --session diag-det2
+node dist/cli.js errors recent --session diag-det2
+node dist/cli.js read-text --session diag-det2 --selector '#last-route-result'
+node dist/cli.js session close diag-det2
 ```
 
 结论：
 
-- `console.summary` 当前已验证会返回 `total/errors/warnings/sample[]`
-- `network.summary` 当前已验证会返回 `total/sample[]`
+- `diagnostics-fixture.js` 现在稳定打出 5 类信号：`console`、普通 `request/response`、`page error`、route fulfill 命中、延迟 `wait` 命中
+- `console.summary` 已真实返回：
+  - `fixture-log-run-1`
+  - `fixture-warn-run-1`
+  - `fixture-error-run-1`
+  - `fixture-fetch-run-1 200 fetch:1`
+  - `fixture-xhr-run-1 201 xhr:1`
+  - `fixture-route-hit-run-1 211 routed-from-pwcli`
+- `network.summary.sample[]` 已真实返回：
+  - `GET /__pwcli__/diagnostics/fetch?run=1 -> 200`
+  - `GET /__pwcli__/diagnostics/xhr?run=1 -> 201`
+  - `GET /__pwcli__/diagnostics/route-hit?run=1 -> 211`
+- `errors recent` 已真实抓到 `fixture-page-error-run-1`
+- `read-text #last-route-result` 已真实返回 `211:routed-from-pwcli`，这条值明确证明 route hit 走的是 Playwright fulfill，不是 server fallback
+
+### attach
+
+```bash
+node scripts/manual/attach-target.js
+node dist/cli.js session attach aw1 --ws-endpoint ws://localhost:61633/...
+node dist/cli.js session attach ab1 --browser-url http://127.0.0.1:61632
+node dist/cli.js session attach ac1 --cdp 61632
+node dist/cli.js connect --session ax1 --browser-url http://localhost:61632
+```
+
+结论：
+
+- `--ws-endpoint` 已验证通过
+- `--browser-url` 已验证通过
+- `--cdp` 已验证通过
+- `connect` 已验证只是 `session attach` 的兼容壳
+
+### bootstrap
+
+```bash
+node dist/cli.js session create boot-det2 --open http://127.0.0.1:4179/blank
+node dist/cli.js bootstrap apply --session boot-det2 --init-script ./scripts/manual/bootstrap-fixture.js --headers-file /tmp/pwcli-bootstrap-headers.json
+node dist/cli.js open --session boot-det2 http://127.0.0.1:4179/blank
+node dist/cli.js code --session boot-det2 --file ./scripts/manual/bootstrap-verify.js
+node dist/cli.js session close boot-det2
+```
+
+结论：
+
+- `bootstrap apply --init-script` 已验证会在下一次导航前生效；对当前页不追溯
+- `bootstrap-fixture.js` 已真实写入 document marks：`install -> readystatechange-interactive -> domcontentloaded -> readystatechange-complete -> load`
+- `bootstrap-verify.js` 已真实验证：
+  - `globalThis.__PWCLI_BOOTSTRAP_FIXTURE__` 已安装
+  - `__pwcliBootstrapFetch()` 和 `__pwcliBootstrapXhr()` 都能命中 `server-echo`
+  - `--headers-file` 注入的 `x-pwcli-header: boot-1` 会被 fixture server 回显进 `headerEcho`
+  - `__pwcliBootstrapSnapshot()` 会保留 `documentMarks` 和请求记录
 
 ### upload / drag / download
 
@@ -214,12 +272,33 @@ node dist/cli.js session close file-a
 
 ### `wait --request/--response/--method/--status`
 
-参数面已经暴露，但功能尚未实现。
+```bash
+node dist/cli.js session create diag-det2 --open http://127.0.0.1:4179/blank
+node dist/cli.js code --session diag-det2 --file ./scripts/manual/diagnostics-fixture.js
+
+node dist/cli.js code --session diag-det2 "async page => await page.evaluate(() => window.__pwcliDiagnosticsFixture.armRequestWait(10000, 'manual-request'))"
+node dist/cli.js wait --session diag-det2 --request 'http://127.0.0.1:4179/__pwcli__/wait/request?token=manual-request' --method GET
+
+node dist/cli.js code --session diag-det2 "async page => await page.evaluate(() => window.__pwcliDiagnosticsFixture.armResponseWait(10000, 'manual-response'))"
+node dist/cli.js wait --session diag-det2 --response 'http://127.0.0.1:4179/__pwcli__/wait/response?token=manual-response' --method GET --status 203
+
+node dist/cli.js session close diag-det2
+```
+
+结论：
+
+- `wait --request` 已真实返回 `matched: true`，命中 `http://127.0.0.1:4179/__pwcli__/wait/request?token=manual-request`
+- `wait --response --status` 已真实返回 `matched: true`，命中 `http://127.0.0.1:4179/__pwcli__/wait/response?token=manual-response`，状态码 `203`
+- 当前最稳的手法是：
+  - 先打开同源 fixture 页 `http://127.0.0.1:4179/blank`
+  - 用 `pw code` 预埋一个 10 秒延迟请求
+  - `wait` 里传绝对 URL
 
 ## 本轮没有做功能性验证
 
 - 更复杂的多 tab / frame / dialog 工作流
 - `download` 在 `file://` 打开的本地下载页上仍不写成稳定 contract
 - `dc-login` 在当前环境里的完整动态登录链路；当前只验证了插件接入和参数解析，未把它写成稳定主路
+- 对任意只暴露 raw CDP、没有 attach bridge 的外部浏览器，`session attach --browser-url/--cdp` 还没有写成稳定 contract
 
 这些都不能写成“已人工验证通过”。

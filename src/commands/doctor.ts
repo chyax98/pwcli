@@ -4,6 +4,7 @@ import { homedir } from "node:os";
 import { resolve } from "node:path";
 import { connect as connectTls } from "node:tls";
 import type { Command } from "commander";
+import { managedObserveStatus } from "../core/managed.js";
 import { listPluginNames, resolvePluginPath } from "../plugins/resolve.js";
 import {
   getManagedSessionEntry,
@@ -362,6 +363,65 @@ async function inspectSessionSubstrate(sessionName?: string): Promise<DoctorDiag
   };
 }
 
+async function inspectObserveStatus(sessionName?: string): Promise<DoctorDiagnostic> {
+  if (!sessionName) {
+    return {
+      kind: "observe-status",
+      status: "skipped",
+      summary: "No session provided for observe status",
+      details: {},
+    };
+  }
+
+  try {
+    const result = await managedObserveStatus({ sessionName });
+    const status =
+      typeof result.data?.status === "object" && result.data.status ? result.data.status : {};
+    const workspace =
+      typeof result.data?.workspace === "object" && result.data.workspace
+        ? result.data.workspace
+        : {};
+    const pageErrors =
+      typeof result.data?.pageErrors === "object" && result.data.pageErrors
+        ? result.data.pageErrors
+        : {};
+    const routes =
+      typeof result.data?.routes === "object" && result.data.routes ? result.data.routes : {};
+    const stream =
+      typeof result.data?.stream === "object" && result.data.stream ? result.data.stream : {};
+
+    return {
+      kind: "observe-status",
+      status: "ok",
+      summary: "Observe status is readable",
+      details: {
+        sessionName,
+        page: result.page,
+        workspace,
+        pageErrors,
+        routes,
+        trace: result.data?.trace,
+        har: result.data?.har,
+        bootstrap: result.data?.bootstrap,
+        console: result.data?.console,
+        network: result.data?.network,
+        stream,
+        rawStatus: status,
+      },
+    };
+  } catch (error) {
+    return {
+      kind: "observe-status",
+      status: "warn",
+      summary: "Observe status could not be read",
+      details: {
+        sessionName,
+        error: error instanceof Error ? error.message : String(error),
+      },
+    };
+  }
+}
+
 function inspectPluginResolution(pluginName?: string): DoctorDiagnostic {
   const plugins = listPluginNames();
   if (!pluginName) {
@@ -420,6 +480,7 @@ export function registerDoctorCommand(program: Command): void {
       try {
         const diagnostics = [
           await inspectSessionSubstrate(options.session),
+          await inspectObserveStatus(options.session),
           inspectPluginResolution(options.plugin),
           inspectProfilePath(options.profile),
           inspectStatePath(options.state),

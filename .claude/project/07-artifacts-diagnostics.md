@@ -40,7 +40,15 @@
 }
 ```
 
-它来自 Playwright CLI 结果文本解析，不是项目层自建缓存。
+它来自当前 session `BrowserContext` 上挂的结构化 `consoleRecords[]`，记录至少包含：
+
+- `kind`
+- `sessionName`
+- `timestamp`
+- `pageId`
+- `navigationId`
+- `level`
+- `text`
 
 ### network
 
@@ -55,7 +63,19 @@
 }
 ```
 
-同样只是解析 CLI 结果文本。
+它来自当前 session `BrowserContext` 上挂的结构化 `networkRecords[]`，记录至少包含：
+
+- `kind`
+- `sessionName`
+- `timestamp`
+- `requestId`
+- `pageId`
+- `navigationId`
+- `url`
+- `method`
+- `resourceType`
+- `status` / `ok` / `failureText`
+- `frame`
 
 ### errors
 
@@ -66,7 +86,15 @@
 - `summary.clearedCount`
 - `errors[]`，字段包括 `name` / `message` / `stack`
 
-来源是 Playwright `page.pageErrors()`，不是项目层自建长期 buffer。
+来源是当前 session `BrowserContext` 上挂的结构化 `pageErrorRecords[]`，记录至少包含：
+
+- `kind`
+- `sessionName`
+- `timestamp`
+- `pageId`
+- `navigationId`
+- `text`
+- `stack`
 
 `pw errors clear --session <name>` 只是把当前 page error 数量记为本 session 的 clear baseline。
 
@@ -83,14 +111,18 @@
 
 ### observe
 
-`pw observe status --session <name>` 当前输出的是轻量 status，不是 stream server：
+`pw observe status --session <name>` 当前输出的是 workspace-aware status，不是 stream server：
 
-- 当前 page URL / title
-- pageCount / pageUrls
+- 当前 page URL / title / `pageId` / `navigationId`
+- workspace pages projection
+- console summary
+- network summary
 - route metadata
+- recent dialog metadata
 - page error summary
 - trace metadata
 - har limitation status
+- bootstrap metadata
 - stream limitation status
 
 `observe stream` 当前没有实现。
@@ -100,6 +132,7 @@
 `pw doctor` 当前是只读诊断聚合，至少覆盖：
 
 - session substrate / named session probe
+- observe status probe
 - plugin resolution
 - profile path inspect
 - state path inspect
@@ -118,8 +151,6 @@
 - video / screencast
 - artifact index / search
 - 动作后自动附带 console/network diagnostics
-- 项目层长期 console/network ring buffer
-- 项目层长期 page error ring buffer
 - observe stream server
 - 运行中 HAR start/stop substrate
 
@@ -128,6 +159,7 @@
 当前项目层做的事只有：
 
 - 把 CLI / Playwright 输出转成更稳一点的 JSON
+- 把 session 内 diagnostics 挂成结构化 records
 - 把部分结果整理成 `summary`
 - 在少数命令里回传路径、URL、文件名
 - 在当前 page/context 对象上挂最小 diagnostics metadata
@@ -144,10 +176,10 @@
 当前 README 和 project docs 只能说：
 
 - 支持显式截图、显式下载、显式 state save/load、trace start/stop
-- `console` / `network` 提供结构化摘要
+- `console` / `network` 提供结构化摘要，底层来自 session 内 records
 - `errors` 提供结构化 page error 列表与 clear baseline
 - `route` 提供最小 add/remove 命令面
-- `observe` 当前只提供 `status`
+- `observe` 当前只提供 `status`，但已带 workspace / bootstrap / diagnostics summary
 - `doctor` 当前只提供只读诊断
 - `har` 当前只会明确返回 limitation，不会真的热启动录制
 
