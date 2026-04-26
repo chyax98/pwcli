@@ -205,4 +205,4 @@ async (page) => {
   `);
 
   return "ready";
-};
+}

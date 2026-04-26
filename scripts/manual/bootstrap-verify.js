@@ -12,4 +12,4 @@ async (page) => {
       snapshot: globalThis.__pwcliBootstrapSnapshot(),
     };
   });
-};
+}

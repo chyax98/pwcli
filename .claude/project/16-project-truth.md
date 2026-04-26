@@ -1,6 +1,6 @@
 # Project Truth
 
-更新时间：2026-04-25
+更新时间：2026-04-26
 状态：active
 
 ## 我们现在到底在做什么
@@ -53,12 +53,17 @@ pw session create <name> --open <url>
 ## 当前真实命令集
 
 ```text
-session create|list|status|close
+session create|attach|recreate|list|status|close
 open --session
 connect --session
 code --session
 auth --session
 batch --session
+bootstrap --session
+doctor --session?
+errors --session
+har --session
+observe --session
 page current|list|frames --session
 snapshot --session
 screenshot --session
@@ -72,6 +77,7 @@ download --session
 drag --session
 console --session
 network --session
+route --session
 click --session
 wait --session
 trace --session
@@ -82,6 +88,36 @@ skill path|install
 ```
 
 这就是当前文档应该描述的面。不要扩产品面，不要再掺入旧的 `default session` 心智。
+
+## 当前源码结构
+
+当前已经切到三层：
+
+```text
+src/
+  app/
+    commands/
+    batch/
+    output.ts
+  domain/
+    session/
+    workspace/
+    interaction/
+    identity-state/
+    diagnostics/
+    bootstrap/
+  infra/
+    playwright/
+    plugins/
+    fs/
+```
+
+当前约束：
+
+- `app` 负责 CLI 命令、batch、输出
+- `domain` 负责领域服务编排
+- `infra` 负责 Playwright substrate、parser、plugin/fs 适配
+- 旧 `src/{commands,core,session,plugins,utils}` 已从主路径退场
 
 ## 当前项目层真正负责什么
 
@@ -133,8 +169,9 @@ pw auth dc-login --session dc-main --open 'https://developer-192-168-5-18.tap.de
 
 ## 当前已知现实限制
 
-- `wait` 的 request/response 参数面已露出，但当前实现还没接上
+- `wait --request/--response/--method/--status` 已接上，当前最稳的验证方式是先挂 wait，再触发请求
 - `session status` 不是强一致 liveness truth
+- `session attach --browser-url/--cdp` 当前依赖 attach bridge registry，把 CDP metadata 映射成 Playwright `wsEndpoint`
 - `download` 的稳定验证当前建立在 managed page 内已有下载元素，不把 `file://` 打开本地下载页写成项目 truth
 - 当前没有默认 artifact run 目录
 
