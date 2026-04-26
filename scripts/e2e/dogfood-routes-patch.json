@@ -1,0 +1,8 @@
+[
+  {
+    "pattern": "**/api/incidents/alpha/checkout-timeout/summary**",
+    "method": "GET",
+    "patchStatus": 298,
+    "patchJsonFile": "dogfood-route-patch.json"
+  }
+]

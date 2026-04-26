@@ -255,6 +255,14 @@ route_only_result_json="$(run_json route-only-result read-text --session "$SESSI
 assert_json "$route_only_result_json" "inject continue reaches server variant" \
   "data.ok === true && data.data.text.includes('206:server-route-injected:2:smoke')"
 
+log "route patch response"
+route_patch_json="$(run_json route-patch route add '**/__pwcli__/diagnostics/json**' --session "$SESSION_NAME" --patch-json '{"severity":"critical","meta":{"patched":true}}' --patch-status 218)"
+assert_json "$route_patch_json" "route patch added" \
+  "data.ok === true && data.data.route.mode === 'patch-response' && data.data.route.patchStatus === 218 && data.data.route.patchJson.severity === 'critical'"
+route_patch_verify_json="$(run_json route-patch-verify code --session "$SESSION_NAME" --file ./scripts/manual/route-patch-verify.js)"
+assert_json "$route_patch_verify_json" "route patch rewrites upstream json response" \
+  "data.ok === true && data.data.result.status === 218 && data.data.result.payload.severity === 'critical' && data.data.result.payload.meta.patched === true && data.data.result.payload.meta.source === 'server'"
+
 log "doctor"
 doctor_json="$(run_json doctor doctor --session "$SESSION_NAME" --endpoint "$BLANK_URL")"
 assert_json "$doctor_json" "doctor sees session and endpoint healthy" \

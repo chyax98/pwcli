@@ -393,12 +393,21 @@
 - `--abort`
 - `--method <method>`
 - `--match-body <text>`
+- `--patch-json <json>`
+- `--patch-json-file <path>`
+- `--patch-status <code>`
 - `--body <text>`
 - `--body-file <path>`
 - `--headers-file <path>`
 - `--inject-headers-file <path>`
 - `--status <code>`
 - `--content-type <type>`
+
+规则：
+
+- patch 模式会先拿 upstream response，再应用 JSON merge patch
+- patch 模式当前只适用于 upstream `application/json`
+- patch 模式和 `--abort` / fulfill 选项 / inject 选项互斥
 
 ### `pw route load <file> --session <name>`
 
@@ -407,6 +416,9 @@
   - `matchBody`
   - `injectHeaders`
   - `injectHeadersFile`
+  - `patchJson`
+  - `patchJsonFile`
+  - `patchStatus`
 
 ### `pw route remove [pattern] --session <name>`
 

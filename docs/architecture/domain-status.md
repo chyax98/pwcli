@@ -151,6 +151,8 @@
 - `--abort`
 - `--method`
 - `--match-body`
+- `--patch-json|--patch-json-file`
+- `--patch-status`
 - `--body|--body-file`
 - `--headers-file`
 - `--inject-headers-file`
@@ -161,12 +163,13 @@
 
 - richer matching 当前只到 body substring
 - inject 当前只到 request header merge + continue
-- 没有 response patch helper
+- response patch 当前只到 upstream JSON merge patch + status override
 
 ### 后续扩展
 
 - route 第二层：
-  - response patch helper
+  - richer matching 是否继续扩到 query/header/json-body
+  - response patch 是否需要 header merge 或 text patch
 
 ## 8. Environment
 

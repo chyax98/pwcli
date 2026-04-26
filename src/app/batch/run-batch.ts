@@ -191,6 +191,12 @@ async function executeBatchStep(tokens: string[], sessionName: string) {
               : typeof spec.body === "string"
                 ? spec.body
                 : undefined;
+          const patchJson =
+            typeof spec.patchJsonFile === "string"
+              ? JSON.parse(await readFile(resolve(dir, spec.patchJsonFile), "utf8"))
+              : spec.patchJson !== undefined
+                ? spec.patchJson
+                : undefined;
           const headers =
             typeof spec.headersFile === "string"
               ? (JSON.parse(await readFile(resolve(dir, spec.headersFile), "utf8")) as Record<
@@ -214,6 +220,8 @@ async function executeBatchStep(tokens: string[], sessionName: string) {
             pattern: spec.pattern,
             abort: Boolean(spec.abort),
             matchBody: typeof spec.matchBody === "string" ? spec.matchBody : undefined,
+            patchJson,
+            patchStatus: spec.patchStatus !== undefined ? Number(spec.patchStatus) : undefined,
             body,
             status: spec.status !== undefined ? Number(spec.status) : undefined,
             contentType: typeof spec.contentType === "string" ? spec.contentType : undefined,
@@ -240,6 +248,10 @@ async function executeBatchStep(tokens: string[], sessionName: string) {
         let abort = false;
         let body: string | undefined;
         let bodyFile: string | undefined;
+        let patchJsonText: string | undefined;
+        let patchJsonFile: string | undefined;
+        let patchJson: unknown;
+        let patchStatus: number | undefined;
         let headersFile: string | undefined;
         let headers: Record<string, string> | undefined;
         let injectHeadersFile: string | undefined;
@@ -262,6 +274,21 @@ async function executeBatchStep(tokens: string[], sessionName: string) {
           }
           if (arg === "--body-file") {
             bodyFile = args[index + 1];
+            index += 1;
+            continue;
+          }
+          if (arg === "--patch-json") {
+            patchJsonText = args[index + 1];
+            index += 1;
+            continue;
+          }
+          if (arg === "--patch-json-file") {
+            patchJsonFile = args[index + 1];
+            index += 1;
+            continue;
+          }
+          if (arg === "--patch-status") {
+            patchStatus = args[index + 1] ? Number(args[index + 1]) : undefined;
             index += 1;
             continue;
           }
@@ -300,6 +327,11 @@ async function executeBatchStep(tokens: string[], sessionName: string) {
         if (bodyFile) {
           body = await readFile(resolve(bodyFile), "utf8");
         }
+        if (patchJsonFile) {
+          patchJson = JSON.parse(await readFile(resolve(patchJsonFile), "utf8"));
+        } else if (patchJsonText !== undefined) {
+          patchJson = JSON.parse(patchJsonText);
+        }
         if (headersFile) {
           headers = JSON.parse(await readFile(resolve(headersFile), "utf8")) as Record<
             string,
@@ -321,6 +353,8 @@ async function executeBatchStep(tokens: string[], sessionName: string) {
             pattern,
             abort,
             matchBody,
+            patchJson,
+            patchStatus,
             body,
             headers,
             injectHeaders,

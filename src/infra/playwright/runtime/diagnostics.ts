@@ -131,6 +131,8 @@ export async function managedRoute(
     headers?: Record<string, string>;
     matchBody?: string;
     injectHeaders?: Record<string, string>;
+    patchJson?: unknown;
+    patchStatus?: number;
     method?: string;
     sessionName?: string;
   },
@@ -143,8 +145,14 @@ export async function managedRoute(
     options.status !== undefined ||
     options.contentType !== undefined ||
     options.headers !== undefined;
+  const hasPatch = options.patchJson !== undefined || options.patchStatus !== undefined;
   if (action === "add" && options.injectHeaders && (options.abort || hasFulfill)) {
     throw new Error("route add inject mode cannot be combined with abort or fulfill options");
+  }
+  if (action === "add" && hasPatch && (options.abort || hasFulfill || options.injectHeaders)) {
+    throw new Error(
+      "route add response patch mode cannot be combined with abort, fulfill, or inject options",
+    );
   }
 
   const config = {
@@ -155,6 +163,8 @@ export async function managedRoute(
     headers: options.headers,
     matchBody: options.matchBody,
     injectHeaders: options.injectHeaders,
+    patchJson: options.patchJson,
+    patchStatus: options.patchStatus,
     method: options.method?.toUpperCase(),
   };
   const result = await managedRunCode({
@@ -178,6 +188,21 @@ export async function managedRoute(
       state.routes = Array.isArray(state.routes) ? state.routes : [];
       const pattern = ${JSON.stringify(options.pattern)};
       const config = ${JSON.stringify(config)};
+      const applyMergePatch = (target, patch) => {
+        if (patch === null || typeof patch !== 'object' || Array.isArray(patch)) {
+          return patch;
+        }
+        const base =
+          target && typeof target === 'object' && !Array.isArray(target) ? { ...target } : {};
+        for (const [key, value] of Object.entries(patch)) {
+          if (value === null) {
+            delete base[key];
+            continue;
+          }
+          base[key] = applyMergePatch(base[key], value);
+        }
+        return base;
+      };
       await context.route(pattern, async route => {
         const request = route.request();
         if (config.method && request.method().toUpperCase() !== config.method) {
@@ -205,6 +230,35 @@ export async function managedRoute(
           await route.abort();
           return;
         }
+        if (config.patchJson !== undefined || config.patchStatus !== undefined) {
+          const upstream = await route.fetch();
+          const headers = { ...upstream.headers() };
+          delete headers['content-length'];
+          const status = config.patchStatus ?? upstream.status();
+          if (config.patchJson === undefined) {
+            await route.fulfill({
+              response: upstream,
+              status,
+              headers,
+            });
+            return;
+          }
+          const contentType = String(headers['content-type'] || '');
+          if (!contentType.includes('application/json')) {
+            throw new Error('route patch json mode requires an upstream application/json response');
+          }
+          const sourceText = await upstream.text();
+          const sourceJson = sourceText ? JSON.parse(sourceText) : null;
+          const patchedJson = applyMergePatch(sourceJson, config.patchJson);
+          headers['content-type'] = contentType || 'application/json; charset=utf-8';
+          await route.fulfill({
+            response: upstream,
+            status,
+            headers,
+            body: JSON.stringify(patchedJson),
+          });
+          return;
+        }
         if (config.body !== undefined || config.status !== undefined || config.contentType !== undefined || config.headers !== undefined) {
           const fulfillOptions = {
             status: config.status ?? 200,
@@ -221,11 +275,21 @@ export async function managedRoute(
       });
       const routeRecord = {
         pattern,
-        mode: config.abort ? 'abort' : config.injectHeaders ? 'inject-continue' : (config.body !== undefined || config.status !== undefined || config.contentType !== undefined || config.headers !== undefined) ? 'fulfill' : 'continue',
+        mode: config.abort
+          ? 'abort'
+          : config.injectHeaders
+            ? 'inject-continue'
+            : (config.patchJson !== undefined || config.patchStatus !== undefined)
+              ? 'patch-response'
+              : (config.body !== undefined || config.status !== undefined || config.contentType !== undefined || config.headers !== undefined)
+                ? 'fulfill'
+                : 'continue',
         addedAt: new Date().toISOString(),
       };
       if (config.status !== undefined)
         routeRecord.status = config.status;
+      if (config.patchStatus !== undefined)
+        routeRecord.patchStatus = config.patchStatus;
       if (config.contentType)
         routeRecord.contentType = config.contentType;
       if (config.method)
@@ -236,6 +300,8 @@ export async function managedRoute(
         routeRecord.headers = config.headers;
       if (config.injectHeaders)
         routeRecord.injectHeaders = config.injectHeaders;
+      if (config.patchJson !== undefined)
+        routeRecord.patchJson = config.patchJson;
       if (config.body !== undefined) {
         routeRecord.hasBody = true;
         routeRecord.bodyPreview = config.body.length > 120 ? config.body.slice(0, 120) + '...' : config.body;

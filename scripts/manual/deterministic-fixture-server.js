@@ -76,6 +76,19 @@ const server = createServer((request, response) => {
     return;
   }
 
+  if (pathname === "/__pwcli__/diagnostics/json") {
+    writeJson(response, 200, {
+      ok: true,
+      run: url.searchParams.get("run") ?? "0",
+      severity: "high",
+      meta: {
+        source: "server",
+        patched: false,
+      },
+    });
+    return;
+  }
+
   if (pathname === "/__pwcli__/diagnostics/route-hit") {
     const injectedMode = String(request.headers["x-pwcli-route-mode"] ?? "");
     if (injectedMode) {

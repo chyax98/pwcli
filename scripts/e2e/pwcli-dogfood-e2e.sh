@@ -285,6 +285,22 @@ assert_json "$route_match_result_json" "match-body mock forces success path" \
 route_match_remove_json="$(run_json route-match-remove route remove '**/api/incidents/alpha/checkout-timeout/start**' --session "$SESSION_NAME")"
 assert_json "$route_match_remove_json" "match-body route removed" "data.ok === true && data.data.removed === true"
 
+log "route patch response"
+route_patch_json="$(run_json route-patch route load ./scripts/e2e/dogfood-routes-patch.json --session "$SESSION_NAME")"
+assert_json "$route_patch_json" "route patch loaded from file" \
+  "data.ok === true && data.data.loadedCount >= 1 && data.data.routes.some(item => item.mode === 'patch-response' && item.patchStatus === 298 && item.patchJson.severity === 'critical')"
+summary_patch_click_json="$(run_json summary-patch-click click --session "$SESSION_NAME" --selector '#load-summary')"
+assert_json "$summary_patch_click_json" "patched summary clicked" \
+  "data.ok === true && data.data.acted === true"
+summary_patch_text_json="$(run_json summary-patch-read read-text --session "$SESSION_NAME" --selector '#summary-result')"
+assert_json "$summary_patch_text_json" "patched summary text visible" \
+  "data.ok === true && data.data.text.includes('checkout-timeout-patched / critical')"
+summary_patch_network_json="$(run_json summary-patch-network network --session "$SESSION_NAME" --url '/api/incidents/alpha/checkout-timeout/summary' --kind response --status 298 --limit 5)"
+assert_json "$summary_patch_network_json" "patched summary status visible in diagnostics" \
+  "data.ok === true && data.data.summary.total >= 1"
+route_patch_remove_json="$(run_json route-patch-remove route remove '**/api/incidents/alpha/checkout-timeout/summary**' --session "$SESSION_NAME")"
+assert_json "$route_patch_remove_json" "route patch removed" "data.ok === true && data.data.removed === true"
+
 log "environment controls"
 perm_json="$(run_json env-perm environment permissions grant geolocation --session "$SESSION_NAME")"
 assert_json "$perm_json" "permission granted" "data.ok === true"

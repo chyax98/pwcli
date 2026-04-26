@@ -40,6 +40,12 @@ export function registerRouteCommand(program: Command): void {
       .description("Add a route using the current BrowserContext")
       .option("--abort", "Abort matching requests")
       .option("--match-body <text>", "Only match when request postData contains the substring")
+      .option("--patch-json <json>", "Fetch upstream response and apply a JSON merge patch")
+      .option(
+        "--patch-json-file <path>",
+        "Fetch upstream response and apply a JSON merge patch loaded from a file",
+      )
+      .option("--patch-status <code>", "Override upstream status while preserving or patching body")
       .option("--body <text>", "Fulfill matching requests with a text body")
       .option("--body-file <path>", "Fulfill matching requests with body loaded from a file")
       .option(
@@ -60,6 +66,9 @@ export function registerRouteCommand(program: Command): void {
         session?: string;
         abort?: boolean;
         matchBody?: string;
+        patchJson?: string;
+        patchJsonFile?: string;
+        patchStatus?: string;
         body?: string;
         bodyFile?: string;
         headersFile?: string;
@@ -76,6 +85,12 @@ export function registerRouteCommand(program: Command): void {
           options.bodyFile !== undefined
             ? await readFile(resolve(options.bodyFile), "utf8")
             : options.body;
+        const patchJson =
+          options.patchJsonFile !== undefined
+            ? JSON.parse(await readFile(resolve(options.patchJsonFile), "utf8"))
+            : options.patchJson !== undefined
+              ? JSON.parse(options.patchJson)
+              : undefined;
         const headers =
           options.headersFile !== undefined
             ? (JSON.parse(await readFile(resolve(options.headersFile), "utf8")) as Record<
@@ -97,6 +112,8 @@ export function registerRouteCommand(program: Command): void {
             pattern,
             abort: options.abort,
             matchBody: options.matchBody,
+            patchJson,
+            patchStatus: options.patchStatus ? Number(options.patchStatus) : undefined,
             body,
             status: options.status ? Number(options.status) : undefined,
             contentType: options.contentType,
@@ -113,6 +130,7 @@ export function registerRouteCommand(program: Command): void {
             "Use `pw route --session bug-a add '**/api/**' --abort`",
             "Or fulfill a mock response with `--body` and optional `--status`",
             "Or inject request headers with `--inject-headers-file` for pass-through reproduction",
+            "Or patch an upstream JSON response with `--patch-json-file`",
           ],
         });
         process.exitCode = 1;
@@ -139,6 +157,12 @@ export function registerRouteCommand(program: Command): void {
             : typeof spec.body === "string"
               ? spec.body
               : undefined;
+        const patchJson =
+          typeof spec.patchJsonFile === "string"
+            ? JSON.parse(await readFile(resolve(dir, spec.patchJsonFile), "utf8"))
+            : spec.patchJson !== undefined
+              ? spec.patchJson
+              : undefined;
         const headers =
           typeof spec.headersFile === "string"
             ? (JSON.parse(await readFile(resolve(dir, spec.headersFile), "utf8")) as Record<
@@ -162,6 +186,8 @@ export function registerRouteCommand(program: Command): void {
           pattern: spec.pattern,
           abort: Boolean(spec.abort),
           matchBody: typeof spec.matchBody === "string" ? spec.matchBody : undefined,
+          patchJson,
+          patchStatus: spec.patchStatus !== undefined ? Number(spec.patchStatus) : undefined,
           body,
           status: spec.status !== undefined ? Number(spec.status) : undefined,
           contentType: typeof spec.contentType === "string" ? spec.contentType : undefined,

@@ -52,6 +52,10 @@
 - `route add`
 - `route load`
 - `route remove`
+- 第二层当前已覆盖：
+  - body substring matching
+  - request header inject + continue
+  - upstream JSON response patch + status override
 
 ### environment
 
@@ -84,10 +88,9 @@
    - 时间范围
    - field projection
    - body 裁剪
-2. mock 第二层
-   - 更复杂匹配
-   - inject
-   - response patch helper
+2. mock 第二层继续深化
+   - query / header / json-body matching 是否值得继续扩
+   - response patch 是否需要 header merge 或 text patch
 3. environment substrate survey
    - `clock set` 是否能借更深的 Playwright/Core lane 做稳
 

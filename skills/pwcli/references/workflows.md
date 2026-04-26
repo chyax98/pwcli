@@ -31,12 +31,14 @@ pw route load ./scripts/manual/mock-routes.json --session mock-a
 pw route list --session mock-a
 pw click --selector '#route-only' --session mock-a
 pw read-text --session mock-a --selector '#last-route-result'
+pw route add '**/api/summary**' --patch-json-file ./summary-patch.json --patch-status 298 --session mock-a
 ```
 
 Use this when:
 
 - backend responses are unstable
 - you need exact status/body control
+- you need to patch one or two fields while keeping the real upstream response shape
 - you need repeatable smoke or diagnosis
 
 ## 3. Reuse auth state
