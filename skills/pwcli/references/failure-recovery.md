@@ -56,7 +56,7 @@ pw dialog dismiss --session bug-a
 
 ```bash
 pw doctor --session bug-a
-pw session recreate bug-a
+pw session recreate bug-a --open '<url from observe status>'
 ```
 
 Use `pw doctor --session bug-a --verbose` only when the compact recovery summary is insufficient.

@@ -281,7 +281,7 @@
 - aria ref
 - `--text <text>`
 - `--selector <selector>`
-- `--networkidle`
+- `network-idle`（positional）或 `--networkidle`（flag），两者等价
 - `--request <url>`
 - `--response <url>`
 
@@ -600,10 +600,17 @@ stdin 输入格式：
 
 当前稳定 argv 命令：
 
-- `snapshot`
+- `snapshot`、`snapshot -i`、`snapshot -c`
 - `click <ref>`
-- `click --selector <selector>`
-- `wait network-idle`
+- `click --selector <selector>`（注意：batch click **不支持** `--text`/`--role`/`--label` 等语义定位）
+- `fill <ref> <value>`
+- `fill --selector <selector> <value>`
+- `press <key>`
+- `scroll <direction> [distance]`
+- `type [ref] <value>`
+- `open <url>`
+- `read-text`、`read-text --max-chars <n>`、`read-text --selector <selector>`、`read-text --include-overlay`
+- `wait network-idle`（或 `wait --networkidle`，两者等价）
 - `wait --selector <selector>`
 - `wait --text <text>`
 - `wait --request <url> [--method <method>]`
@@ -616,13 +623,12 @@ stdin 输入格式：
 - `bootstrap apply ...`
 - `state save|load`
 - `page current|list|frames|dialogs`
-- `page dialogs`
 
 说明：
 
 - `batch` 当前只承诺稳定子集
 - 这是有意 trade-off
-- Agent 需要的是稳定可消费的编排，不是“看起来什么都能跑”的脆弱 parity
+- Agent 需要的是稳定可消费的编排，不是”看起来什么都能跑”的脆弱 parity
 - 超出子集时，直接运行单命令或转 `pw code`
 - 同一 session 的依赖步骤必须按数组顺序串行执行
 - `open` / `click` / `press` 后如果下一步依赖导航或网络完成，显式插入 `wait`

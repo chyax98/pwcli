@@ -1,6 +1,6 @@
 ---
 name: pwcli
-description: Use when an agent needs to drive a browser with `pw` for page exploration, QA, bug reproduction, auth reuse, Forge/DC login, network/console diagnostics, route mock, or controlled browser state. Triggers on "用 pw", "打开页面看看", "点一下", "继续探索", "诊断页面", "看 network", "dc2", "Forge 登录", "developer-*.tap.dev/forge", "自动化测试".
+description: Use when an agent needs to drive a browser with `pw` for page exploration, QA, bug reproduction, auth reuse, Forge/DC login, network/console diagnostics, route mock, or controlled browser state. Triggers on "用 pw", "pw session", "打开页面看看", "点一下", "继续探索", "诊断页面", "看 network", "dc2 登录", "Forge 登录", "developer-*.tap.dev/forge", "用浏览器跑", "pw 自动化".
 ---
 
 # pwcli
@@ -426,7 +426,7 @@ pw --output json read-text --session bug-a
 `batch` 输入只接受 `string[][]`：
 
 ```bash
-printf '%s\n' '[["read-text","--max-chars","1000"],["click","--text","提交"],["wait","network-idle"]]' | pw batch --session bug-a --stdin-json
+printf '%s\n' '[["read-text","--max-chars","1000"],["click","--selector","button[type=submit]"],["wait","network-idle"]]' | pw batch --session bug-a --stdin-json
 pw batch --session bug-a --file ./steps.json
 ```
 
@@ -435,6 +435,7 @@ pw batch --session bug-a --file ./steps.json
 - `pw batch --stdin-json` 表示 stdin steps 是 JSON，不表示输出 JSON。
 - 要 JSON 输出：`pw --output json batch --session bug-a --stdin-json`。
 - `batch` 适合单 session 串行动作，不适合 lifecycle/auth/environment/dialog recovery。
+- batch `click` 只支持 ref 或 `--selector`，不支持 `--text`/`--role`/`--label` 等语义定位；需要语义定位时拆出单命令。
 - 超出稳定子集时，直接跑单命令或用 `pw code`。
 
 ## 12. 标准任务模板
