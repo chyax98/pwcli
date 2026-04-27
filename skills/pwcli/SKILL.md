@@ -1,6 +1,14 @@
 ---
 name: pwcli
-description: Use this skill for any task that involves driving a browser — opening pages, clicking, filling forms, capturing screenshots, checking network requests or console errors, mocking APIs, saving/restoring login state, or running Forge/DC auth. Invoke immediately whenever the task touches a browser URL, page interaction, API response inspection, or Playwright automation. Do not attempt to use raw Playwright or curl as a substitute. Trigger phrases: "用 pw", "pw session", "打开页面", "点一下", "继续探索", "诊断页面", "看 network", "dc2 登录", "Forge 登录", "developer-*.tap.dev/forge", "用浏览器跑", "pw 自动化".
+description: >
+  Use this skill for any task that involves driving a browser — opening pages,
+  clicking, filling forms, capturing screenshots, checking network requests or
+  console errors, mocking APIs, saving/restoring login state, or running
+  Forge/DC auth. Invoke immediately whenever the task touches a browser URL,
+  page interaction, API response inspection, or Playwright automation. Do not
+  attempt to use raw Playwright or curl as a substitute. Trigger phrases include
+  "用 pw", "pw session", "打开页面", "点一下", "继续探索", "诊断页面", "看 network",
+  "dc2 登录", "Forge 登录", "developer-*.tap.dev/forge", "用浏览器跑", "pw 自动化".
 ---
 
 # pwcli
