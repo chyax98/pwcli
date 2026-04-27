@@ -191,12 +191,24 @@ async function executeBatchStep(tokens: string[], sessionName: string) {
         data: await managedRunCode({ source, sessionName }),
       };
     }
-    case "snapshot":
+    case "snapshot": {
+      let interactive = false;
+      let compact = false;
+      for (const arg of args) {
+        if (arg === "-i" || arg === "--interactive") {
+          interactive = true;
+        } else if (arg === "-c" || arg === "--compact") {
+          compact = true;
+        } else {
+          throw new Error(`unsupported snapshot batch argument '${arg}'`);
+        }
+      }
       return {
         ok: true,
         command: "snapshot",
-        data: await managedSnapshot({ sessionName }),
+        data: await managedSnapshot({ sessionName, interactive, compact }),
       };
+    }
     case "screenshot": {
       let ref: string | undefined;
       let selector: string | undefined;
@@ -245,12 +257,30 @@ async function executeBatchStep(tokens: string[], sessionName: string) {
         }),
       };
     }
-    case "read-text":
+    case "read-text": {
+      let selector: string | undefined;
+      let includeOverlay = false;
+      let maxChars: number | undefined;
+      for (let index = 0; index < args.length; index += 1) {
+        const arg = args[index];
+        if (arg === "--selector") {
+          selector = args[index + 1];
+          index += 1;
+        } else if (arg === "--include-overlay") {
+          includeOverlay = true;
+        } else if (arg === "--max-chars") {
+          maxChars = args[index + 1] ? Number(args[index + 1]) : undefined;
+          index += 1;
+        } else {
+          throw new Error(`unsupported read-text batch argument '${arg}'`);
+        }
+      }
       return {
         ok: true,
         command: "read-text",
-        data: await managedReadText({ sessionName }),
+        data: await managedReadText({ sessionName, selector, includeOverlay, maxChars }),
       };
+    }
     case "page":
       if (args[0] === "current") {
         return {
@@ -565,9 +595,24 @@ async function executeBatchStep(tokens: string[], sessionName: string) {
         command: "click",
         data: await managedClick({ ref: args[0], sessionName }),
       };
-    case "fill":
+    case "fill": {
+      if (args[0] === "--selector") {
+        const selector = args[1];
+        const value = args.slice(2).join(" ");
+        if (!selector) {
+          throw new Error(`batch step '${rawStep}' requires a selector after --selector`);
+        }
+        if (!value) {
+          throw new Error(`batch step '${rawStep}' requires a value after the selector`);
+        }
+        return {
+          ok: true,
+          command: "fill",
+          data: await managedFill({ selector, value, sessionName }),
+        };
+      }
       if (args.length < 2) {
-        throw new Error(`batch step '${rawStep}' requires ref/selector and value`);
+        throw new Error(`batch step '${rawStep}' requires ref/--selector and value`);
       }
       return {
         ok: true,
@@ -578,6 +623,7 @@ async function executeBatchStep(tokens: string[], sessionName: string) {
           sessionName,
         }),
       };
+    }
     case "type":
       if (args.length < 1) {
         throw new Error(`batch step '${rawStep}' requires a value`);
