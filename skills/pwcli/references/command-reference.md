@@ -166,7 +166,8 @@
 ### `pw snapshot --session <name>`
 
 - 捕获 AI 友好的页面快照
-- 大页面优先加 `--compact`，只看可交互节点和 ref
+- 找 ref 首选 `-i, --interactive`，只输出疑似可交互节点
+- 大页面可加 `-c, --compact`，移除低信号结构节点
 
 ### `pw screenshot [ref] --session <name>`
 

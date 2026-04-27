@@ -121,8 +121,11 @@ snapshot_json="$(run_json snapshot snapshot --session "$SESSION_NAME")"
 assert_json "$snapshot_json" "snapshot contains fixture title" \
   "data.ok === true && typeof data.data.snapshot === 'string' && data.data.snapshot.includes('pwcli deterministic fixture')"
 snapshot_compact_json="$(run_json snapshot-compact snapshot --compact --session "$SESSION_NAME")"
-assert_json "$snapshot_compact_json" "compact snapshot is smaller and keeps interactive refs" \
+assert_json "$snapshot_compact_json" "compact snapshot is smaller" \
   "data.ok === true && data.data.mode === 'compact' && data.data.charCount <= data.data.totalCharCount && typeof data.data.snapshot === 'string'"
+snapshot_interactive_json="$(run_json snapshot-interactive snapshot --interactive --session "$SESSION_NAME")"
+assert_json "$snapshot_interactive_json" "interactive snapshot keeps only action-oriented lines" \
+  "data.ok === true && data.data.mode === 'interactive' && data.data.charCount <= data.data.totalCharCount && typeof data.data.snapshot === 'string'"
 
 log "page current"
 page_json="$(run_json page-current page current --session "$SESSION_NAME")"

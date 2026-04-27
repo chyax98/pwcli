@@ -12,11 +12,19 @@ export function registerSnapshotCommand(program: Command): void {
     program
       .command("snapshot")
       .description("Capture an AI-friendly page snapshot")
-      .option("--compact", "Return only likely interactive snapshot lines"),
-  ).action(async (options: { session?: string; compact?: boolean }) => {
+      .option("-i, --interactive", "Return only likely interactive snapshot lines")
+      .option("-c, --compact", "Remove low-signal structural lines"),
+  ).action(async (options: { session?: string; interactive?: boolean; compact?: boolean }) => {
     try {
       const sessionName = requireSessionName(options);
-      printCommandResult("snapshot", await managedSnapshot({ sessionName, compact: options.compact }));
+      printCommandResult(
+        "snapshot",
+        await managedSnapshot({
+          sessionName,
+          interactive: options.interactive,
+          compact: options.compact,
+        }),
+      );
     } catch (error) {
       printSessionAwareCommandError("snapshot", error, {
         code: "SNAPSHOT_FAILED",

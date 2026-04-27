@@ -26,7 +26,7 @@ description: Use when an agent needs to drive a browser with `pw` for page explo
 | 继续当前页面 | `session list/status` | 用户明确说继续旧任务 |
 | 已有 session 导航 | `open` | 只换 URL，不换 browser shape |
 | 页面理解 | `observe status`、`page current`、`read-text` | 默认观察路径 |
-| 结构定位 | `snapshot` | 需要 aria ref 或页面结构 |
+| 结构定位 | `snapshot -i` / `snapshot` | 需要 aria ref 或页面结构 |
 | 页面动作 | `click/fill/type/press/scroll/drag` | 稳定动作，带 action 记录 |
 | 文件交互 | `upload/download` | 上传文件、验证下载 |
 | 等待状态 | `wait` | 动作后依赖页面变化 |
@@ -95,12 +95,13 @@ pw read-text --session bug-a --max-chars 2000
 - `observe status`：页面、dialog、console、network、errors、routes、bootstrap 的 compact 摘要。
 - `page current`：当前 page projection。
 - `read-text`：可见文本，适合快速理解页面。
-- `snapshot`：需要 aria ref 或页面结构时再用。
+- `snapshot -i`：只看可交互节点，找 ref 首选。
+- `snapshot`：完整结构树，需要理解页面层级时再用。
 
 需要 ref 点击或结构定位：
 
 ```bash
-pw snapshot --session bug-a
+pw snapshot -i --session bug-a
 ```
 
 截图证据：
@@ -442,7 +443,7 @@ pw batch --session bug-a --file ./steps.json
 pw session create explore-a --headed --open '<url>'
 pw observe status --session explore-a
 pw read-text --session explore-a --max-chars 2000
-pw snapshot --session explore-a
+pw snapshot -i --session explore-a
 ```
 
 复现 bug：
@@ -485,7 +486,7 @@ pw --output json read-text --session test-a --max-chars 1000
 - console/network/errors：用 `--limit`、`--text`、`--since`。
 - diagnostics export/show/grep：用 `--fields`，支持 `alias=path`。
 - 大页面不要先 `snapshot`。
-- 必须找 ref 时用 `pw snapshot --compact --session <name>`，不够再全量 `snapshot`。
+- 必须找 ref 时用 `pw snapshot -i --session <name>`，不够再全量 `snapshot`。
 
 ## 14. 禁止事项
 

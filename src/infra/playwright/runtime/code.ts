@@ -13,6 +13,7 @@ import { isModalStateBlockedMessage, maybeRawOutput } from "./shared.js";
 export async function managedSnapshot(options?: {
   depth?: number;
   sessionName?: string;
+  interactive?: boolean;
   compact?: boolean;
 }) {
   const args = ["snapshot"];
@@ -28,7 +29,10 @@ export async function managedSnapshot(options?: {
     },
   );
   const snapshot = parseSnapshotYaml(result.text);
-  const compactSnapshot = options?.compact ? compactInteractiveSnapshot(snapshot) : snapshot;
+  const projectedSnapshot = projectSnapshot(snapshot, {
+    interactive: Boolean(options?.interactive),
+    compact: Boolean(options?.compact),
+  });
   return {
     session: {
       scope: "managed",
@@ -37,13 +41,13 @@ export async function managedSnapshot(options?: {
     },
     page: parsePageSummary(result.text),
     data: {
-      mode: options?.compact ? "compact" : "ai",
-      snapshot: compactSnapshot,
-      ...(options?.compact
+      mode: options?.interactive ? "interactive" : options?.compact ? "compact" : "ai",
+      snapshot: projectedSnapshot,
+      ...(options?.interactive || options?.compact
         ? {
-            totalCharCount: snapshot.length,
-            charCount: compactSnapshot.length,
-            truncated: compactSnapshot.length !== snapshot.length,
+          totalCharCount: snapshot.length,
+            charCount: projectedSnapshot.length,
+            truncated: projectedSnapshot.length !== snapshot.length,
           }
         : {}),
       ...maybeRawOutput(result.text),
@@ -51,14 +55,28 @@ export async function managedSnapshot(options?: {
   };
 }
 
-function compactInteractiveSnapshot(snapshot: string) {
+function projectSnapshot(
+  snapshot: string,
+  options: {
+    interactive: boolean;
+    compact: boolean;
+  },
+) {
+  const lines = options.interactive ? interactiveSnapshotLines(snapshot) : snapshot.split("\n");
+  const projected = options.compact ? compactSnapshotLines(lines) : lines;
+  return projected.join("\n").trim();
+}
+
+function interactiveSnapshotLines(snapshot: string) {
   const interactivePattern =
     /\b(button|link|textbox|combobox|checkbox|radio|menuitem|tab|switch|slider|spinbutton|searchbox|option)\b|aria-ref=|ref=/i;
   return snapshot
     .split("\n")
-    .filter((line) => interactivePattern.test(line))
-    .join("\n")
-    .trim();
+    .filter((line) => interactivePattern.test(line));
+}
+
+function compactSnapshotLines(lines: string[]) {
+  return lines.filter((line) => !/^\s*-\s+generic(?:\s+\[ref=[^\]]+\])?:?\s*$/.test(line));
 }
 
 export async function managedRunCode(options: {
