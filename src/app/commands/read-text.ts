@@ -22,7 +22,7 @@ export function registerReadTextCommand(program: Command): void {
         await managedReadText({
           sessionName,
           selector: options.selector,
-          maxChars: options.maxChars ? Number(options.maxChars) : undefined,
+          maxChars: options.maxChars ? Number(options.maxChars) : 2000,
         }),
       );
     } catch (error) {

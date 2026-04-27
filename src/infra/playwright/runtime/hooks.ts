@@ -14,6 +14,7 @@ export async function managedEnsureDiagnosticsHooks(options?: { sessionName?: st
       state.dialogRecords = Array.isArray(state.dialogRecords) ? state.dialogRecords : [];
       state.nextPageSeq = Number.isInteger(state.nextPageSeq) ? state.nextPageSeq : 1;
       state.nextRequestSeq = Number.isInteger(state.nextRequestSeq) ? state.nextRequestSeq : 1;
+      state.nextConsoleResourceSeq = Number.isInteger(state.nextConsoleResourceSeq) ? state.nextConsoleResourceSeq : 1;
       state.nextDialogSeq = Number.isInteger(state.nextDialogSeq) ? state.nextDialogSeq : 1;
       state.nextNavigationSeq = Number.isInteger(state.nextNavigationSeq) ? state.nextNavigationSeq : 1;
 
@@ -44,6 +45,21 @@ export async function managedEnsureDiagnosticsHooks(options?: { sessionName?: st
             )
         );
       };
+      const classifyConsoleSource = (text, location) => {
+        const value = String(text || '');
+        const url = String(location?.url || '');
+        if (/Failed to load resource|\\b4\\d\\d\\b|\\b5\\d\\d\\b/.test(value))
+          return 'api';
+        if (/React|Warning:|Each child in a list should have a unique/.test(value))
+          return 'react';
+        if (/Mixed Content|Content Security Policy|CORS|net::|ERR_|deprecated/i.test(value))
+          return 'browser';
+        return 'app';
+      };
+      const parseConsoleHttpStatus = (text) => {
+        const match = String(text || '').match(/(?:status of|status code|\\b)([45]\\d\\d)\\b/i);
+        return match ? Number(match[1]) : null;
+      };
       const ensurePageId = (p) => {
         if (!p.__pwcliPageId)
           p.__pwcliPageId = 'p' + state.nextPageSeq++;
@@ -66,6 +82,9 @@ export async function managedEnsureDiagnosticsHooks(options?: { sessionName?: st
         });
         p.on('console', msg => {
           const location = typeof msg.location === 'function' ? msg.location() : undefined;
+          const text = msg.text();
+          const source = classifyConsoleSource(text, location);
+          const httpStatus = parseConsoleHttpStatus(text);
           keep(state.consoleRecords, {
             kind: 'console',
             sessionName,
@@ -73,9 +92,29 @@ export async function managedEnsureDiagnosticsHooks(options?: { sessionName?: st
             pageId: ensurePageId(p),
             navigationId: ensureNavigationId(p),
             level: msg.type(),
-            text: msg.text(),
+            source,
+            text,
+            ...(httpStatus ? { httpStatus } : {}),
             ...(location?.url ? { location } : {}),
           });
+          if (httpStatus && source === 'api') {
+            keep(state.networkRecords, {
+              kind: 'console-resource-error',
+              sessionName,
+              timestamp: now(),
+              event: 'console-resource-error',
+              requestId: 'console-' + state.nextConsoleResourceSeq++,
+              pageId: ensurePageId(p),
+              navigationId: ensureNavigationId(p),
+              url: location?.url || '',
+              method: '',
+              status: httpStatus,
+              resourceType: 'unknown',
+              failureText: text,
+              source: 'console',
+              ...(location?.url ? { location } : {}),
+            });
+          }
         });
         p.on('request', req => {
           const requestId = req.__pwcliRequestId || ('req-' + state.nextRequestSeq++);

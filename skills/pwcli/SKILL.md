@@ -1,396 +1,517 @@
 ---
 name: pwcli
-description: 当 Codex 需要用 `pw` 驱动浏览器完成 bug 复现、问题诊断、DOM 检查、认证态复用、确定性自动化、请求 mock、diagnostics 导出或环境控制时使用。适用于严格 named session、结构化 JSON 输出、route mock、run 级 diagnostics 和 offline/geolocation/permissions/clock 等受控浏览器状态场景。
+description: Use when an agent needs to drive a browser with `pw` for page exploration, QA, bug reproduction, auth reuse, Forge/DC login, network/console diagnostics, route mock, or controlled browser state. Triggers on "用 pw", "打开页面看看", "点一下", "继续探索", "诊断页面", "看 network", "dc2", "Forge 登录", "developer-*.tap.dev/forge", "自动化测试".
 ---
 
 # pwcli
 
-只使用 `pw`。不要绕过 CLI，也不要靠记忆重建浏览器工作流。
+`pwcli` 是 Agent-first Playwright CLI。用它完成页面探索、动作执行、bug 定位、全链路诊断、受控自动化测试。不要临时绕过到裸 Playwright，除非你明确选择 `pw code` 作为快速执行通道。
 
-## 核心规则
+## 总原则
 
-1. 一切从 named session 开始。
-2. 一个任务尽量只占用一个 session。
-3. 有依赖关系的浏览器步骤必须串行。
-4. 先读再动。
-5. 优先使用结构化命令，不优先写临时代码。
-6. 只有命令面真的不够时才用 `pw code`。
-7. CLI 输出就是事实，不要自己脑补能力。
-8. 看到 limitation code，就不要继续把它说成“已支持”。
+- 新任务、新系统、新 URL、新登录态：默认新建 named session。
+- 用户说“继续 / 接着 / 刚才那个页面”：复用原 session。
+- `session create|attach|recreate` 是 lifecycle 主路。
+- `open` 只在已有 session 里导航，不负责创建、profile、state、headed。
+- `auth` 只执行内置 provider，不负责创建 session。
+- 所有浏览器命令显式带 `--session <name>`。
+- session 名最长 16 字符，只用字母、数字、`-`、`_`。
+- 默认 stdout 给 Agent 阅读；脚本解析和字段断言才用 `--output json`。
 
-## Session 纪律
+## 1. 能力地图
 
-- 浏览器命令一律显式传 `--session <name>`。
-- session 名尽量短，最多 `16` 个字符，只用字母、数字、`-`、`_`。
-- 冷启动时，先看 `pw session list`，不要先新建 session。
-- lifecycle 主路只有：
-  - `pw session create <name> --open <url>`
-  - `pw session attach <name> ...`
-  - `pw session recreate <name> ...`
-- `open` 只负责已有 session 内的导航。
-- `auth` 只负责内置 auth provider 执行，不负责 lifecycle。
-- 不要凭空假设 current/default session。
-- 不要再使用已经删除的 `connect` 心智。
-- 如果长时间调试留下很多 session，显式清理：
+| 目标 | 首选命令 | 什么时候用 |
+|---|---|---|
+| 新开浏览器任务 | `session create` | 新任务、新 URL、新登录态 |
+| 继续当前页面 | `session list/status` | 用户明确说继续旧任务 |
+| 已有 session 导航 | `open` | 只换 URL，不换 browser shape |
+| 页面理解 | `observe status`、`page current`、`read-text` | 默认观察路径 |
+| 结构定位 | `snapshot` | 需要 aria ref 或页面结构 |
+| 页面动作 | `click/fill/type/press/scroll/drag` | 稳定动作，带 action 记录 |
+| 文件交互 | `upload/download` | 上传文件、验证下载 |
+| 等待状态 | `wait` | 动作后依赖页面变化 |
+| 快速脚本 | `code` | 多状态读取、组合动作、能力未覆盖 |
+| 登录 | `auth <provider>` | 内置 provider，如 `dc` |
+| 状态复用 | `state/cookies/storage` | 保存登录态、检查存储 |
+| 诊断 | `diagnostics/console/network/errors/doctor` | bug 定位和证据导出 |
+| Mock | `route` | 网络请求 mock、patch、abort |
+| 浏览器环境 | `environment` | 离线、地理位置、权限、时钟 |
+| 注入启动项 | `bootstrap` | init script、headers |
+| 串行编排 | `batch` | 单 session 稳定子集 |
+
+## 2. Session
+
+创建新页面调查：
 
 ```bash
-pw session close --all
+pw session create bug-a --headed --open 'https://example.com'
 ```
 
-## 冷启动第一步
+无头自动化：
 
-当你刚接手一个浏览器任务，还不知道当前状态时，先做这个：
+```bash
+pw session create bug-a --headless --open 'https://example.com'
+```
+
+已有 session 内换 URL：
+
+```bash
+pw open --session bug-a 'https://example.com/next'
+```
+
+恢复或改变 browser shape：
+
+```bash
+pw session recreate bug-a --headed --open 'https://example.com'
+```
+
+只在继续旧任务时查现状：
 
 ```bash
 pw session list
-```
-
-只有你真的需要 session 对应页面摘要时，再显式用：
-
-```bash
 pw session list --with-page
+pw session status bug-a
 ```
 
-然后按这个顺序判断：
-
-1. 已经存在合适的 session，就优先复用。
-2. 没有合适 session，再创建新的。
-3. 如果任务依赖登录态，优先复用已有登录态 session，不要重复创建。
-
-不要一上来就：
-
-- 猜 `auth` 相关命令
-- 猜不存在的发现型命令
-- 新建一个和现有 session 重复的会话
-
-## 入口选择
-
-### 新开一个调查 session
+清理：
 
 ```bash
-pw session create bug-a --open 'https://example.com'
+pw session close bug-a
+pw session close --all
 ```
 
-### 复用一个现成浏览器
+## 3. 页面观察
 
-```bash
-pw session attach bug-a --ws-endpoint ws://127.0.0.1:9222/devtools/browser/...
-```
-
-### 复用已有认证态
-
-```bash
-pw session create auth-a --open 'https://example.com' --state ./auth.json
-```
-
-### 执行内置登录 provider
-
-```bash
-pw auth dc-login --session auth-a --arg targetUrl='https://example.com'
-```
-
-先把 session shape 建好，再跑 `auth`。`auth` 不拥有 lifecycle。
-
-### 先看有哪些 auth provider，再决定怎么登录
-
-```bash
-pw auth list
-pw auth info dc-login
-```
-
-当前限制要记住：
-
-- `auth` 只暴露内置 provider，不再走工作目录 plugin 扫描
-- 外部 JS 脚本请直接使用 `pw code --file`
-- `pw auth dc-login --help` 现在会返回 provider-specific 参数说明；冷启动时仍然优先先看 `auth list` / `auth info`
-- `auth list` 里可能出现内部测试 provider，看 summary 区分用途
-- `session list` 默认是轻量发现命令；只有显式 `--with-page` 时才补页面摘要
-
-## 标准工作流
-
-### 1. 先观察
-
-默认按这个顺序：
+默认先用低噪声命令，不先打大 snapshot：
 
 ```bash
 pw observe status --session bug-a
 pw page current --session bug-a
-pw read-text --session bug-a --max-chars 1200
+pw read-text --session bug-a --max-chars 2000
+```
+
+用途：
+
+- `observe status`：页面、dialog、console、network、errors、routes、bootstrap 的 compact 摘要。
+- `page current`：当前 page projection。
+- `read-text`：可见文本，适合快速理解页面。
+- `snapshot`：需要 aria ref 或页面结构时再用。
+
+需要 ref 点击或结构定位：
+
+```bash
 pw snapshot --session bug-a
 ```
 
-怎么理解这四个命令：
+截图证据：
 
-- `observe status`：默认第一手入口，载荷最紧凑，适合冷启动
-- `page current/list/frames/dialogs`：看 workspace 投影
-- `read-text`：看可见文本，比 `snapshot` 更窄
-- `snapshot`：只在你需要 refs 或更大范围结构时才用
-- `observe status --verbose`：只有 compact 信息不够时再升级
+```bash
+pw screenshot --session bug-a --path ./evidence.png --full-page
+pw screenshot --session bug-a --selector '.panel' --path ./panel.png
+```
 
-载荷判断：
+查看多页面和 frame：
 
-- `observe status`：轻
-- `page current`：轻
-- `read-text`：中等，但仍比 `snapshot` 窄
-- `snapshot`：默认观察工具里最重，尤其大页面更重
+```bash
+pw page list --session bug-a
+pw page frames --session bug-a
+pw page dialogs --session bug-a
+```
 
-结论：
+## 4. 页面动作
 
-- 大页面冷启动时，不要先打 `snapshot`
-- 只有你真的要找 ref 或看大结构时，再打 `snapshot`
+优先 selector 或语义定位；已有 snapshot ref 时用 ref。
 
-### 2. 再动作
+```bash
+pw click --session bug-a --selector 'button[type=submit]'
+pw fill --session bug-a --selector 'input[name=phone]' '19545672859'
+pw click --session bug-a --role button --name '提交'
+pw click --session bug-a --text '继续'
+pw click --session bug-a e42
+pw press --session bug-a Enter
+pw type --session bug-a --selector 'textarea' 'hello'
+pw scroll --session bug-a down 800
+pw drag --session bug-a --from-selector '.source' --to-selector '.target'
+```
 
-优先使用明确命令：
+动作后如果依赖导航、请求、DOM 更新，必须等待：
 
-- `click`
-- `fill`
-- `type`
-- `press`
-- `scroll`
-- `upload`
-- `download`
-- `drag`
-- `wait`
+```bash
+pw wait --session bug-a network-idle
+pw wait --session bug-a --text '保存成功'
+pw wait --session bug-a --selector '.loaded'
+pw wait --session bug-a --response '/api/app/v2/detail' --status 200
+```
 
-定位优先顺序：
+动作闭环：
 
-1. 已经有 `snapshot` 时，优先用里面的 aria ref
-2. 否则优先 `--selector`
-3. 再考虑命令已经支持的语义 locator
+```bash
+pw click --session bug-a --text '提交'
+pw wait --session bug-a network-idle
+pw read-text --session bug-a --max-chars 2000
+pw diagnostics digest --session bug-a
+```
 
-如果你还没做 `snapshot`，不要为了拿 ref 强行先打一份很重的 snapshot。先试 `--selector` 或语义 locator。
+文件上传下载：
 
-### 3. 问题诊断
+```bash
+pw upload --session bug-a --selector 'input[type=file]' ./fixture.png
+pw download --session bug-a --selector 'a.download' --dir ./downloads
+pw download --session bug-a e42 --path ./downloads/report.csv
+```
+
+响应式检查：
+
+```bash
+pw resize --session bug-a --preset iphone
+pw resize --session bug-a --view 390x844
+pw read-text --session bug-a --max-chars 1200
+pw screenshot --session bug-a --path ./mobile.png --full-page
+```
+
+## 5. `pw code` 策略
+
+`pw code` 不是最后手段。它是快速探索、复杂判断、组合动作的执行通道。它底层直接在 managed session 里跑 Playwright 代码，适合减少多次 CLI 往返。
+
+优先用 `pw code`：
+
+- 一次读取多个 DOM 状态、全局变量、localStorage、computed state。
+- 快速验证 selector、页面假设、业务状态。
+- 执行多步 Playwright 逻辑，拆成多个命令反而慢。
+- 跑本地脚本：`pw code --file <path>`。
+- 一等命令没有覆盖当前 Playwright 能力。
+
+优先用一等命令：
+
+- 需要稳定 action 记录和 diagnostics delta。
+- 需要标准化 text/json 输出给其他 Agent 或脚本。
+- 高频动作：`click`、`fill`、`wait`、`read-text`、`network`、`console`、`errors`、`route`、`environment`。
+
+示例：
+
+```bash
+pw code --session bug-a "async page => {
+  return JSON.stringify({
+    title: await page.title(),
+    url: page.url(),
+    buttons: await page.locator('button').allTextContents()
+  });
+}"
+```
+
+限制：
+
+- 遇到 browser modal 可能返回 `MODAL_STATE_BLOCKED`，先用 `dialog accept|dismiss` 或 `doctor`。
+- 返回值要自己设计，审计性不如一等命令。
+
+## 6. Bug 诊断
+
+页面异常、白屏、按钮无效、跳转错误、接口失败，按这个顺序查：
 
 ```bash
 pw diagnostics digest --session bug-a
-pw observe status --session bug-a
-pw console --session bug-a ...
-pw network --session bug-a ...
-pw errors recent --session bug-a ...
-pw doctor --session bug-a
-pw diagnostics show --run <runId> --command click --limit 5 --fields at=ts,cmd=command,net=diagnosticsDelta.networkDelta
-pw diagnostics export --session bug-a --section network --text CHECKOUT_TIMEOUT --fields at=timestamp,method,url,status,snippet=responseBodySnippet --out ./diag.json
-pw diagnostics runs --session bug-a --since 2026-04-26T00:00:00.000Z
-pw diagnostics grep --run <runId> --text <substring>
+pw console --session bug-a --level error --limit 20
+pw network --session bug-a --status 400 --limit 20
+pw network --session bug-a --status 500 --limit 20
+pw errors recent --session bug-a --limit 20
 ```
 
-要点：
+先清错误基线再复现：
 
-- `diagnostics digest` 是最快的高信号摘要
-- `observe status` 是 live session 的紧凑健康快照
-- `doctor` 是恢复性探测
-- action 结果里的 `diagnosticsDelta` 是第一层信号
-- `console/network/errors` 是 live query 工具
-- `diagnostics show/grep` 是 run 回放工具
-- `--verbose` 只在 `observe status` / `doctor` 的默认输出不够时再用
-- `--since` 适合时间窗口 triage
-- `--fields` 适合给下游 Agent 压缩输出；需要短 key 时用 `alias=path`
-- `--text` 适合做一份紧凑证据导出
-- `network` 里的 `requestBodySnippet` / `responseBodySnippet` 适合快速确认请求或响应形状
+```bash
+pw errors clear --session bug-a
+pw click --session bug-a --text '提交'
+pw wait --session bug-a network-idle
+pw diagnostics digest --session bug-a
+```
 
-如果 session 被 dialog 卡住，先尝试：
+查具体接口：
+
+```bash
+pw network --session bug-a --url '/api/app/v2/detail' --limit 20
+pw network --session bug-a --request-id <id>
+pw network --session bug-a --kind requestfailed --limit 20
+pw network --session bug-a --method POST --text 'developer_id' --limit 20
+```
+
+导出证据：
+
+```bash
+pw diagnostics export --session bug-a --section network --text 'developer_id' --fields at=timestamp,method,url,status,snippet=responseBodySnippet --out ./diag.json
+```
+
+回放 run：
+
+```bash
+pw diagnostics runs --session bug-a --limit 20
+pw diagnostics show --run <runId> --command click --limit 10
+pw diagnostics grep --run <runId> --text 'CHECKOUT_TIMEOUT' --limit 10
+```
+
+报告 bug 必须给：页面 URL、复现动作、console/network/errors 证据、严重级别、是否阻塞主流程。
+
+Trace / HAR：
+
+```bash
+pw trace start --session bug-a
+pw trace stop --session bug-a
+pw har start ./bug.har --session bug-a
+pw har stop --session bug-a
+```
+
+HAR 热录制当前只暴露 substrate 边界，稳定诊断仍优先 `network` 和 `diagnostics export`。
+
+## 7. Dialog 和卡死恢复
+
+先看 compact 状态：
+
+```bash
+pw observe status --session bug-a
+pw doctor --session bug-a
+```
+
+browser dialog 阻塞：
 
 ```bash
 pw dialog accept --session bug-a
-```
-
-或者：
-
-```bash
 pw dialog dismiss --session bug-a
 ```
 
-再考虑 `doctor -> session recreate`。
-
-### 4. 确定性复现
+恢复失败再重建：
 
 ```bash
-pw route add ...
-pw route list ...
-pw route load ./mock-routes.json ...
-pw route add '**/api/**' --method POST --match-body fail500 --body '{"ok":true}' --status 200 --content-type application/json --session bug-a
-pw route add '**/api/**' --inject-headers-file ./inject-headers.json --session bug-a
-pw route add '**/api/**' --patch-json-file ./summary-patch.json --patch-status 298 --session bug-a
-pw environment offline on ...
-pw environment geolocation set ...
-pw environment permissions grant ...
+pw session recreate bug-a --headed --open '<url>'
 ```
 
-### 4.1 Forge / DC 登录主路
+`page dialogs` 是事件投影，不是 authoritative live dialog set。
 
-Forge / DC 相关任务，按这个顺序来：
+## 8. Auth
+
+Forge/DC 登录是内置 provider 场景。主路径：
 
 ```bash
-pw session list
-pw auth list
-pw auth info dc-login
+pw session create dc2 --headed
+pw auth dc --session dc2
+pw read-text --session dc2 --max-chars 1200
 ```
 
-如果目标 session 已经存在，先复用它：
+URL 规则：
+
+- 用户给 URL：先 `pw session create dc2 --headed --open '<url>'`，再 `pw auth dc --session dc2 --arg targetUrl='<url>'`。
+- 用户明确说 RND：`pw session create dc2 --headed --open 'https://developer.xdrnd.cn/forge'`，再 `pw auth dc --session dc2`。
+- 用户没给 URL 且没说 RND：不要问，直接执行主路径。
+- 主路径失败且错误要求 `targetUrl`：让用户给 Forge 链接，再执行 `pw auth dc --session dc2 --arg targetUrl='<url>'`。
+
+硬规则：
+
+- `dc2.0` 是系统名，不是 `instance=2`。
+- 禁止猜 `developer-p2-*`。
+- 禁止手填手机号、短信码、登录表单。
+- 用户给 URL 就作为 `targetUrl` 传给 `pw auth dc`。
+- 用户没给 URL 且没说 RND 时，直接执行默认登录命令，不先问 URL。
+
+手机号优先级：
+
+- 用户本轮给的手机号。
+- 默认测试账号：`19545672859`。
+
+更细失败分支见 `references/forge-dc-auth.md`。
+
+## 9. 状态复用
+
+保存登录态：
 
 ```bash
-pw observe status --session dc-forge
-pw page current --session dc-forge
-pw read-text --session dc-forge --max-chars 1200
+pw state save ./auth.json --session bug-a
 ```
 
-只有在没有合适 session 时，才新建：
+用 state 创建新 session：
 
 ```bash
-pw session create dc-forge --headed --open 'https://developer-.../forge'
+pw session create bug-b --state ./auth.json --headed --open 'https://example.com'
 ```
 
-然后再通过内置 auth provider 登录：
+已有 session 加载 state：
 
 ```bash
-pw auth dc-login --session dc-forge --arg targetUrl='https://developer-.../forge'
+pw state load ./auth.json --session bug-a
 ```
 
-`dc-login` 当前参数 contract：
-
-- `phone`：必需
-- `smsCode`：默认 `000000`
-- `targetUrl`：如果你已经知道最终目标页，优先传它
-- `baseURL`：当 `targetUrl` 不方便时使用
-- `instance`：本地有多个 Forge dev instance 时使用
-- `dc-login` 当前只依赖运行时参数和少量自动推导，不再依赖 `accounts.json`
-
-如果登录很贵，而且后面还会继续排查，直接保存 state：
+Cookie / storage 读取：
 
 ```bash
-pw auth dc-login --session dc-forge --arg targetUrl='https://developer-.../forge' --save-state ./auth.json
+pw cookies list --session bug-a --domain example.com
+pw storage local --session bug-a
+pw storage session --session bug-a
 ```
 
-在向人类追问登录参数之前，先检查这四件事：
-
-1. 有没有现成 session 可复用
-2. 默认 `smsCode` 是否已经够用
-3. Forge dev 的 `baseURL` / `instance` 能不能自动推出来
-4. 是否真的还需要向人追问 `phone`
-
-### 5. 只有在命令面不够时才升级
-
-只有这些情况才用 `pw code`：
-
-- 需要条件 mock 逻辑
-- 需要多步页面逻辑，而现有命令面没有
-- 需要一次性 DOM/JS 假设验证
-- 需要在提出新命令前快速验证一个猜想
-
-已经有一等命令覆盖的能力，不要再用 `pw code` 重写一遍。
-
-## 串行纪律
-
-- 同一个 session 内，依赖前一步页面状态的命令必须按顺序执行。
-- 不要并行：
-  - `session create` -> `fill` / `click`
-  - `click` 导航 -> `read-text` / `page current`
-  - `route add/load` -> 目标动作
-  - `environment` 变更 -> 页面验证
-
-如果下一步依赖前一步改动后的页面状态，就等前一步完成，再继续。
-
-## Batch 规则
-
-只使用结构化 batch：
+设置 cookie：
 
 ```bash
-printf '%s\n' '[["snapshot"],["click","e6"],["wait","networkIdle"]]' | pw batch --session bug-a --json
+pw cookies set --session bug-a --name token --value '<value>' --domain example.com --path /
+```
+
+Profile 检查：
+
+```bash
+pw profile inspect ./profile
+pw session create bug-a --profile ./profile --persistent --headed --open 'https://example.com'
+```
+
+## 10. Controlled Testing
+
+Mock 单个接口：
+
+```bash
+pw route add '**/api/**' --session bug-a --method GET --status 200 --content-type application/json --body '{"ok":true}'
+pw route list --session bug-a
+```
+
+按请求体匹配：
+
+```bash
+pw route add '**/api/**' --session bug-a --method POST --match-body 'fail500' --status 200 --content-type application/json --body '{"ok":true}'
+```
+
+Patch upstream JSON：
+
+```bash
+pw route add '**/api/**' --session bug-a --patch-json-file ./patch.json --patch-status 298
+```
+
+批量加载 route：
+
+```bash
+pw route load ./routes.json --session bug-a
+```
+
+环境控制：
+
+```bash
+pw environment offline on --session bug-a
+pw environment offline off --session bug-a
+pw environment geolocation set --session bug-a --lat 37.7749 --lng -122.4194
+pw environment permissions grant geolocation --session bug-a
+pw environment permissions clear --session bug-a
+pw environment clock install --session bug-a
+pw environment clock set --session bug-a 2024-12-10T10:00:00.000Z
+pw environment clock resume --session bug-a
+```
+
+Bootstrap：
+
+```bash
+pw bootstrap apply --session bug-a --init-script ./bootstrap.js
+pw bootstrap apply --session bug-a --headers-file ./headers.json
+```
+
+清理 route：
+
+```bash
+pw route remove '**/api/**' --session bug-a
+pw route remove --session bug-a
+```
+
+## 11. Batch 和输出
+
+脚本解析 stdout 必须加 `--output json`：
+
+```bash
+pw --output json read-text --session bug-a
+```
+
+`batch` 输入只接受 `string[][]`：
+
+```bash
+printf '%s\n' '[["read-text","--max-chars","1000"],["click","--text","提交"],["wait","network-idle"]]' | pw batch --session bug-a --stdin-json
 pw batch --session bug-a --file ./steps.json
 ```
 
-规则：
+注意：
 
-- 只用 `string[][]`
-- 每个内层数组都是一个稳定子集里的 CLI argv 形状
-- 复用同一个 session
-- 依赖步骤必须在一个 batch 里显式按顺序写出来
-- `open` / `click` / `press` 后，如果下一步依赖导航或网络完成，显式插入 `wait`
-- lifecycle / auth / environment / dialog recovery 不要塞进 batch
-- `--continue-on-error` 只在“部分结果仍然有价值，且后续步骤不依赖前面 mutation”时使用
+- `pw batch --stdin-json` 表示 stdin steps 是 JSON，不表示输出 JSON。
+- 要 JSON 输出：`pw --output json batch --session bug-a --stdin-json`。
+- `batch` 适合单 session 串行动作，不适合 lifecycle/auth/environment/dialog recovery。
+- 超出稳定子集时，直接跑单命令或用 `pw code`。
 
-取舍：
+## 12. 标准任务模板
 
-- `batch` 故意比全 CLI 更窄
-- 当前稳定子集只覆盖确定性的 inspect / action / wait / route / bootstrap
-- 如果需要的命令不在稳定子集里，直接跑单命令，或者转 `pw code`
-
-原因：
-
-- 对 Agent 来说，稳定比“表面上什么都能跑”更重要
-- batch 只会在真实高频工作流证明有必要时再扩
-- batch 返回里的 warning 不是噪音，是 contract 指导
-
-不要再写字符串 step DSL。
-
-## Diagnostics / Mock 决策树
-
-### 只想看一个请求或一类请求
-
-优先用 `network`：
-
-- `--request-id`
-- `--url`
-- `--kind`
-- `--method`
-- `--status`
-- `--resource-type`
-- `--text`
-- `--limit`
-
-### 需要给另一个 Agent 或 code review 一份稳定证据
+探索页面：
 
 ```bash
-pw diagnostics export --session bug-a --section network --text checkout --fields at=timestamp,method,url,status,snippet=responseBodySnippet --out ./diag.json
+pw session create explore-a --headed --open '<url>'
+pw observe status --session explore-a
+pw read-text --session explore-a --max-chars 2000
+pw snapshot --session explore-a
 ```
 
-### 只需要一个简单 mock
+复现 bug：
 
-用 `route add`。
+```bash
+pw session create bug-a --headed --open '<url>'
+pw errors clear --session bug-a
+pw read-text --session bug-a --max-chars 2000
+pw click --session bug-a --text '<action>'
+pw wait --session bug-a network-idle
+pw diagnostics digest --session bug-a
+pw console --session bug-a --level error --limit 20
+pw network --session bug-a --status 500 --limit 20
+```
 
-### 需要多条 mock 或文件化 payload
+验证接口请求：
 
-用 `route load <file>`，保持 JSON 形式。
+```bash
+pw session create api-a --headed --open '<url>'
+pw click --session api-a --text '<action>'
+pw wait --session api-a --response '<api path>' --status 200
+pw network --session api-a --url '<api path>' --limit 10
+```
 
-### 需要浏览器环境变更
+确定性自动化：
 
-用 `environment`。
+```bash
+pw session create test-a --headless --open '<url>'
+pw route load ./routes.json --session test-a
+pw bootstrap apply --session test-a --init-script ./bootstrap.js
+pw click --session test-a --selector '<selector>'
+pw wait --session test-a --text '<expected>'
+pw --output json read-text --session test-a --max-chars 1000
+```
 
-除非用户明确要求你探索缺失能力，否则不要把 HAR 或 stream-based diagnostics 说成答案。
+## 13. 降噪
 
-## 恢复规则
+- 页面内容：`read-text --max-chars <n>`。
+- 观察状态：先 `observe status`，不够再 `--verbose`。
+- console/network/errors：用 `--limit`、`--text`、`--since`。
+- diagnostics export/show/grep：用 `--fields`，支持 `alias=path`。
+- 大页面不要先 `snapshot`。
+- 必须找 ref 时用 `pw snapshot --compact --session <name>`，不够再全量 `snapshot`。
 
-遇到这些情况时，读 [references/failure-recovery.md](./references/failure-recovery.md)：
+## 14. 禁止事项
 
-- 命令失败
-- 出现 session routing error
-- 遇到 modal blockage
-- 需要判断是否该 recreate session
+- 不要把 `open` 当成 session lifecycle。
+- 不要让 `auth` 创建 session。
+- 不要把 `dc2.0` 推断成 `instance=2`。
+- 不要猜不存在的 `developer-p2-*`。
+- 不要在 Forge/DC 场景手填登录表单。
+- 不要把 `pw batch --stdin-json` 当成输出 JSON。
+- 不要忽略 limitation code。
+- 不要把 HAR 热录制、raw CDP substrate 等边界能力包装成稳定支持。
+- 不要为了省命令跳过动作后的 `wait` 和复查。
 
-## 工作流剧本
+## 15. 高代价坑
 
-遇到这些情况时，读 [references/workflows.md](./references/workflows.md)：
+- 新任务默认新 session，不要把旧 session 当入口。见 `references/gotchas.md#new-session`。
+- Forge/DC 登录走 `pw auth dc`，不要手填登录页。见 `references/gotchas.md#forge-dc-auth`。
+- `dc2.0` 是系统名，不是 `instance=2`。见 `references/gotchas.md#dc2-system-name`。
+- `pw code` 是快速路径，不是最后手段。见 `references/gotchas.md#code-fast-path`。
+- 脚本解析用 `--output json`，不要误解 `batch --stdin-json`。见 `references/gotchas.md#output-json`。
+- 大页面先 `read-text`，需要 ref 再 `snapshot`。见 `references/gotchas.md#snapshot-late`。
 
-- 复现 bug
-- 做确定性自动化
-- 复用 auth/state/profile
-- 用 diagnostics export 或 run replay
+## 16. 参考
 
-## 硬约束
-
-- 不要提或使用已经删除的兼容命令。
-- 不要假设隐式全局状态。
-- 不要把 `page dialogs` 当成 authoritative live dialog set。
-- 不要再猜 `pw plugin *` 这类旧心智。
-- 不要让 `open`、`profile`、`auth` 承担 lifecycle mutation。
-- 不要把当前 `session attach` 之外的 raw CDP substrate 当成已支持。
-- 不要把未来规划写得像已经 shipped。
-
-## 快速索引
-
-- 命令细节：[references/command-reference.md](./references/command-reference.md)
-- 真实工作流：[references/workflows.md](./references/workflows.md)
-- 失败恢复：[references/failure-recovery.md](./references/failure-recovery.md)
-- 本地硬规则：[rules/core-usage.md](./rules/core-usage.md)
+- 完整命令：`references/command-reference.md`
+- Forge/DC 登录细节：`references/forge-dc-auth.md`
+- 失败恢复：`references/failure-recovery.md`
+- 已知坑点：`references/gotchas.md`
+- 维护规则：`rules/core-usage.md`

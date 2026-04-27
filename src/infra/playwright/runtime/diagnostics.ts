@@ -480,7 +480,13 @@ export async function managedObserveStatus(options?: { sessionName?: string }) {
 
 export async function managedConsole(
   level?: string,
-  options?: { sessionName?: string; text?: string; limit?: number; since?: string },
+  options?: {
+    sessionName?: string;
+    source?: string;
+    text?: string;
+    limit?: number;
+    since?: string;
+  },
 ) {
   await managedEnsureDiagnosticsHooks({ sessionName: options?.sessionName });
   const result = await managedRunCode({
@@ -492,6 +498,7 @@ export async function managedConsole(
       const order = { error: 3, warning: 2, warn: 2, info: 1, log: 1, debug: 0 };
       const threshold = ${JSON.stringify(level ?? "info")};
       const thresholdRank = order[threshold] ?? 1;
+      const sourceFilter = ${JSON.stringify(options?.source ?? "")};
       const textFilter = ${JSON.stringify(options?.text ?? "")};
       const sinceFilter = ${JSON.stringify(options?.since ?? "")};
       const sinceTime = sinceFilter ? Date.parse(sinceFilter) : NaN;
@@ -504,6 +511,8 @@ export async function managedConsole(
           if (Number.isNaN(recordTime) || recordTime < sinceTime)
             return false;
         }
+        if (sourceFilter && String(record.source || '') !== sourceFilter)
+          return false;
         if (textFilter && !String(record.text || '').includes(textFilter))
           return false;
         return true;
@@ -512,6 +521,7 @@ export async function managedConsole(
         total: filtered.length,
         errors: filtered.filter(record => record.level === 'error').length,
         warnings: filtered.filter(record => record.level === 'warning' || record.level === 'warn').length,
+        source: sourceFilter || null,
         sample: filtered.slice(-Math.max(0, Number(limit || 0) || 20)),
       });
     }`,
@@ -536,7 +546,7 @@ export async function managedNetwork(options?: {
   resourceType?: string;
   text?: string;
   url?: string;
-  kind?: "request" | "response" | "requestfailed";
+  kind?: "request" | "response" | "requestfailed" | "console-resource-error";
   limit?: number;
   since?: string;
 }) {

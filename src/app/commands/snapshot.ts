@@ -9,11 +9,14 @@ import {
 
 export function registerSnapshotCommand(program: Command): void {
   addSessionOption(
-    program.command("snapshot").description("Capture an AI-friendly page snapshot"),
-  ).action(async (options: { session?: string }) => {
+    program
+      .command("snapshot")
+      .description("Capture an AI-friendly page snapshot")
+      .option("--compact", "Return only likely interactive snapshot lines"),
+  ).action(async (options: { session?: string; compact?: boolean }) => {
     try {
       const sessionName = requireSessionName(options);
-      printCommandResult("snapshot", await managedSnapshot({ sessionName }));
+      printCommandResult("snapshot", await managedSnapshot({ sessionName, compact: options.compact }));
     } catch (error) {
       printSessionAwareCommandError("snapshot", error, {
         code: "SNAPSHOT_FAILED",

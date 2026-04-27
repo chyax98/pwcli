@@ -26,7 +26,7 @@ export function registerWaitCommand(program: Command): void {
         "wait",
         await managedWait({
           sessionName,
-          target: target === "networkIdle" || target === "networkidle" ? undefined : target,
+          target: isNetworkIdleTarget(target) ? undefined : target,
           text: typeof options.text === "string" ? options.text : undefined,
           selector: typeof options.selector === "string" ? options.selector : undefined,
           request: typeof options.request === "string" ? options.request : undefined,
@@ -34,7 +34,7 @@ export function registerWaitCommand(program: Command): void {
           method: typeof options.method === "string" ? options.method : undefined,
           status: typeof options.status === "string" ? options.status : undefined,
           networkidle:
-            Boolean(options.networkidle) || target === "networkIdle" || target === "networkidle",
+            Boolean(options.networkidle) || isNetworkIdleTarget(target),
         }),
       );
     } catch (error) {
@@ -49,4 +49,8 @@ export function registerWaitCommand(program: Command): void {
       process.exitCode = 1;
     }
   });
+}
+
+function isNetworkIdleTarget(target: string | undefined) {
+  return target === "networkIdle" || target === "networkidle" || target === "network-idle";
 }

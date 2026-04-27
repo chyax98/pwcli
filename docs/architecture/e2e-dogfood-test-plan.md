@@ -280,7 +280,7 @@ scripts/e2e/
 
 - `bootstrap apply --init-script --headers-file`
 - `code --file`
-- `batch --json`
+- `batch --stdin-json`
 - `batch --file`
 
 ## 6. 故意注入的 bug

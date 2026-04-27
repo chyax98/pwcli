@@ -594,6 +594,8 @@ export async function managedReadText(options?: {
       ...parsed,
       text,
       truncated: text.length !== rawText.length,
+      charCount: text.length,
+      totalCharCount: rawText.length,
       ...maybeRawOutput(result.data.output ?? ""),
     },
   };

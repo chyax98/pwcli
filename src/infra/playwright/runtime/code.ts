@@ -10,7 +10,11 @@ import {
 } from "../output-parsers.js";
 import { isModalStateBlockedMessage, maybeRawOutput } from "./shared.js";
 
-export async function managedSnapshot(options?: { depth?: number; sessionName?: string }) {
+export async function managedSnapshot(options?: {
+  depth?: number;
+  sessionName?: string;
+  compact?: boolean;
+}) {
   const args = ["snapshot"];
   if (options?.depth) {
     args.push(`--depth=${options.depth}`);
@@ -23,6 +27,8 @@ export async function managedSnapshot(options?: { depth?: number; sessionName?: 
       sessionName: options?.sessionName,
     },
   );
+  const snapshot = parseSnapshotYaml(result.text);
+  const compactSnapshot = options?.compact ? compactInteractiveSnapshot(snapshot) : snapshot;
   return {
     session: {
       scope: "managed",
@@ -31,11 +37,28 @@ export async function managedSnapshot(options?: { depth?: number; sessionName?: 
     },
     page: parsePageSummary(result.text),
     data: {
-      mode: "ai",
-      snapshot: parseSnapshotYaml(result.text),
+      mode: options?.compact ? "compact" : "ai",
+      snapshot: compactSnapshot,
+      ...(options?.compact
+        ? {
+            totalCharCount: snapshot.length,
+            charCount: compactSnapshot.length,
+            truncated: compactSnapshot.length !== snapshot.length,
+          }
+        : {}),
       ...maybeRawOutput(result.text),
     },
   };
+}
+
+function compactInteractiveSnapshot(snapshot: string) {
+  const interactivePattern =
+    /\b(button|link|textbox|combobox|checkbox|radio|menuitem|tab|switch|slider|spinbutton|searchbox|option)\b|aria-ref=|ref=/i;
+  return snapshot
+    .split("\n")
+    .filter((line) => interactivePattern.test(line))
+    .join("\n")
+    .trim();
 }
 
 export async function managedRunCode(options: {

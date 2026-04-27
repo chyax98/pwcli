@@ -26,7 +26,7 @@ export function registerNetworkCommand(program: Command): void {
       session?: string;
       requestId?: string;
       url?: string;
-      kind?: "request" | "response" | "requestfailed";
+      kind?: "request" | "response" | "requestfailed" | "console-resource-error";
       method?: string;
       status?: string;
       resourceType?: string;

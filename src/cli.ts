@@ -9,7 +9,8 @@ const program = new Command();
 program
   .name("pw")
   .description("Agent-first Playwright orchestration CLI for internal use")
-  .version(CLI_VERSION);
+  .version(CLI_VERSION)
+  .option("--output <mode>", "Output format: text|json", "text");
 
 registerCommands(program);
 

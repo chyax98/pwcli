@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT_DIR"
 
-CLI=(node dist/cli.js)
+CLI=(node dist/cli.js --output json)
 PORT="${PWCLI_FIXTURE_PORT:-43179}"
 ORIGIN="http://127.0.0.1:${PORT}"
 BLANK_URL="${ORIGIN}/blank"
@@ -120,6 +120,9 @@ log "snapshot"
 snapshot_json="$(run_json snapshot snapshot --session "$SESSION_NAME")"
 assert_json "$snapshot_json" "snapshot contains fixture title" \
   "data.ok === true && typeof data.data.snapshot === 'string' && data.data.snapshot.includes('pwcli deterministic fixture')"
+snapshot_compact_json="$(run_json snapshot-compact snapshot --compact --session "$SESSION_NAME")"
+assert_json "$snapshot_compact_json" "compact snapshot is smaller and keeps interactive refs" \
+  "data.ok === true && data.data.mode === 'compact' && data.data.charCount <= data.data.totalCharCount && typeof data.data.snapshot === 'string'"
 
 log "page current"
 page_json="$(run_json page-current page current --session "$SESSION_NAME")"
@@ -137,7 +140,22 @@ assert_json "$session_list_with_page_json" "session list can include page summar
 log "auth provider discovery"
 auth_list_json="$(run_json auth-list auth list)"
 assert_json "$auth_list_json" "auth list exposes built-in providers" \
-  "data.ok === true && data.data.providers.some(item => item.name === 'dc-login') && data.data.providers.some(item => item.name === 'fixture-auth')"
+  "data.ok === true && data.data.providers.some(item => item.name === 'dc') && data.data.providers.some(item => item.name === 'fixture-auth') && !data.data.providers.some(item => item.name === 'dc-login')"
+auth_info_dc_json="$(run_json auth-info-dc auth info dc)"
+assert_json "$auth_info_dc_json" "auth info exposes dc contract" \
+  "data.ok === true && data.data.name === 'dc' && data.data.args.some(item => item.name === 'targetUrl') && !data.data.args.some(item => item.name === 'instance')"
+node --input-type=module <<'NODE'
+import { getAuthProvider, loadAuthProviderSource } from './dist/infra/auth-providers/registry.js';
+
+const provider = getAuthProvider('dc');
+const source = provider ? loadAuthProviderSource(provider) : '';
+const outerSource = source.split('page.evaluate')[0] ?? source;
+
+if (/\bnew\s+URL\b|\bURLSearchParams\b/.test(outerSource)) {
+  console.error('[smoke] dc auth outer provider source must not depend on URL globals');
+  process.exit(1);
+}
+NODE
 auth_info_json="$(run_json auth-info auth info fixture-auth)"
 assert_json "$auth_info_json" "auth info exposes fixture-auth contract" \
   "data.ok === true && data.data.name === 'fixture-auth' && data.data.args.some(item => item.name === 'marker')"
@@ -219,6 +237,9 @@ log "console delta"
 console_json="$(run_json console console --session "$SESSION_NAME" --text fixture-route-hit-run-1)"
 assert_json "$console_json" "console captured route hit log" \
   "data.ok === true && data.data.summary.total >= 1 && data.data.summary.sample[0].text.includes('fixture-route-hit-run-1')"
+console_source_json="$(run_json console-source console --session "$SESSION_NAME" --source app --text fixture-route-hit-run-1)"
+assert_json "$console_source_json" "console source filter works" \
+  "data.ok === true && data.data.summary.source === 'app' && data.data.summary.total >= 1"
 console_since_zero_json="$(run_json console-since-zero console --session "$SESSION_NAME" --since 2099-01-01T00:00:00.000Z)"
 assert_json "$console_since_zero_json" "console since filter can exclude all rows" \
   "data.ok === true && data.data.summary.total === 0"

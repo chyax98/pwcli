@@ -1,0 +1,69 @@
+# 可控测试参考
+
+主流程以 `SKILL.md` 为准。本文件补充 route、environment、bootstrap 的组合用法。
+
+## Mock
+
+固定响应：
+
+```bash
+pw route add '**/api/**' --session <name> --method GET --status 200 --content-type application/json --body '{"ok":true}'
+pw route list --session <name>
+```
+
+请求体匹配：
+
+```bash
+pw route add '**/api/**' --session <name> --method POST --match-body '<substring>' --status 200 --content-type application/json --body '{"ok":true}'
+```
+
+Patch upstream JSON：
+
+```bash
+pw route add '**/api/**' --session <name> --patch-json-file ./patch.json --patch-status 298
+```
+
+批量加载：
+
+```bash
+pw route load ./routes.json --session <name>
+```
+
+清理：
+
+```bash
+pw route remove '**/api/**' --session <name>
+pw route remove --session <name>
+```
+
+## Environment
+
+```bash
+pw environment offline on --session <name>
+pw environment offline off --session <name>
+pw environment geolocation set --session <name> --lat 37.7749 --lng -122.4194
+pw environment permissions grant geolocation clipboard-read --session <name>
+pw environment permissions clear --session <name>
+pw environment clock install --session <name>
+pw environment clock set --session <name> 2024-12-10T10:00:00.000Z
+pw environment clock resume --session <name>
+```
+
+## Bootstrap
+
+```bash
+pw bootstrap apply --session <name> --init-script ./bootstrap.js
+pw bootstrap apply --session <name> --headers-file ./headers.json
+```
+
+## 组合模板
+
+```bash
+pw session create test-a --headless --open '<url>'
+pw route load ./routes.json --session test-a
+pw environment permissions grant geolocation --session test-a
+pw bootstrap apply --session test-a --init-script ./bootstrap.js
+pw click --session test-a --selector '<selector>'
+pw wait --session test-a --text '<expected>'
+pw --output json read-text --session test-a --max-chars 1000
+```
