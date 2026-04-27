@@ -40,7 +40,22 @@ export function registerClickCommand(program: Command): void {
       if (options.role) {
         source = `async page => { await page.getByRole(${JSON.stringify(options.role)}, ${options.name ? `{ name: ${JSON.stringify(options.name)}, exact: true }` : "undefined"}).nth(${nth}).click(); return 'clicked'; }`;
       } else if (options.text) {
-        source = `async page => { await page.getByText(${JSON.stringify(options.text)}, { exact: true }).nth(${nth}).click(); return 'clicked'; }`;
+        source = `async page => {
+          const text = ${JSON.stringify(options.text)};
+          const locator = page.getByText(text, { exact: true });
+          const count = await locator.count();
+          if (count === 0) {
+            const candidates = await page.getByText(text, { exact: false }).evaluateAll(nodes =>
+              nodes.slice(0, 8).map(node => (node.textContent || '').trim()).filter(Boolean)
+            ).catch(() => []);
+            throw new Error('CLICK_TEXT_NOT_FOUND: text=' + text + (candidates.length ? ' similar=' + JSON.stringify(candidates) : ''));
+          }
+          if (${nth} >= count) {
+            throw new Error('CLICK_TEXT_INDEX_OUT_OF_RANGE: text=' + text + ' count=' + count + ' nth=' + ${nth + 1});
+          }
+          await locator.nth(${nth}).click();
+          return JSON.stringify({ clicked: true, text, count, nth: ${nth + 1} });
+        }`;
       } else if (options.label) {
         source = `async page => { await page.getByLabel(${JSON.stringify(options.label)}, { exact: true }).nth(${nth}).click(); return 'clicked'; }`;
       } else if (options.placeholder) {

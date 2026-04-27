@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import type { Command } from "commander";
 import { runBatch } from "../batch/run-batch.js";
-import { printJson } from "../output.js";
+import { printCommandResult } from "../output.js";
 import {
   addSessionOption,
   printSessionAwareCommandError,
@@ -28,23 +28,26 @@ export function registerBatchCommand(program: Command): void {
       .command("batch")
       .description("Run multiple structured commands against a named managed session")
       .option("--json", "Read a JSON array of argv arrays from stdin")
+      .option("--stdin-json", "Read a JSON array of argv arrays from stdin")
       .option("--file <path>", "Read a JSON array of argv arrays from a file")
       .option("--continue-on-error", "Continue after a failed step"),
   ).action(
     async (options: {
       session?: string;
       json?: boolean;
+      stdinJson?: boolean;
       file?: string;
       continueOnError?: boolean;
     }) => {
       try {
         const sessionName = requireSessionName(options);
-        if (options.json && options.file) {
-          throw new Error("batch accepts either --json or --file, not both");
+        const readsStdin = Boolean(options.json || options.stdinJson);
+        if (readsStdin && options.file) {
+          throw new Error("batch accepts either --stdin-json/--json or --file, not both");
         }
         const input = options.file
           ? await readFile(options.file, "utf8")
-          : options.json
+          : readsStdin
             ? await new Promise<string>((resolve, reject) => {
                 let data = "";
                 process.stdin.setEncoding("utf8");
@@ -56,12 +59,10 @@ export function registerBatchCommand(program: Command): void {
               })
             : "";
         if (!input.trim()) {
-          throw new Error("batch requires --file <path> or --json stdin input");
+          throw new Error("batch requires --file <path> or --stdin-json stdin input");
         }
         const commands = parseBatchCommands(input);
-        printJson({
-          ok: true,
-          command: "batch",
+        printCommandResult("batch", {
           data: await runBatch({
             sessionName,
             commands,
@@ -81,11 +82,11 @@ export function registerBatchCommand(program: Command): void {
             : message.includes("environment mutation")
               ? [
                   "Run environment commands directly before batch",
-                  'Keep batch for stable page/read/action steps such as [["snapshot"],["click","e6"],["wait","networkIdle"]]',
+                  'Keep batch for stable page/read/action steps such as [["snapshot"],["click","e6"],["wait","network-idle"]]',
                 ]
               : [
                   'Pass `--file steps.json` with [["snapshot"],["click","--selector","#fire"]]',
-                  "Or pipe the same JSON into `pw batch --session bug-a --json`",
+                  "Or pipe the same JSON into `pw batch --session bug-a --stdin-json`",
                 ],
         });
         process.exitCode = 1;

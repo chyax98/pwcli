@@ -65,8 +65,9 @@ export function registerAuthCommand(program: Command): void {
       "",
       "Examples:",
       "  pw auth list",
-      "  pw auth info dc-login",
-      "  pw auth dc-login --session dc-forge --arg phone=13800138000 --arg targetUrl='https://developer-192-168-5-18.tap.dev/forge'",
+      "  pw auth info dc",
+      "  pw auth dc --session dc2",
+      "  pw auth dc --session dc2 --arg targetUrl='https://developer-192-168-5-18.tap.dev/forge'",
     ].join("\n"),
   );
   auth.action(() => {
@@ -75,7 +76,7 @@ export function registerAuthCommand(program: Command): void {
       message: "auth requires a provider name or a discovery subcommand",
       suggestions: [
         "Run `pw auth list` to inspect built-in auth providers",
-        "Run `pw auth info dc-login` to inspect provider args and defaults",
+        "Run `pw auth info dc` to inspect provider args and defaults",
       ],
     });
     process.exitCode = 1;

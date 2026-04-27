@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT_DIR"
 
-CLI=(node dist/cli.js)
+CLI=(node dist/cli.js --output json)
 PORT="${PWCLI_FIXTURE_PORT:-43179}"
 ORIGIN="http://127.0.0.1:${PORT}"
 BLANK_URL="${ORIGIN}/blank"
@@ -120,6 +120,18 @@ log "snapshot"
 snapshot_json="$(run_json snapshot snapshot --session "$SESSION_NAME")"
 assert_json "$snapshot_json" "snapshot contains fixture title" \
   "data.ok === true && typeof data.data.snapshot === 'string' && data.data.snapshot.includes('pwcli deterministic fixture')"
+snapshot_compact_json="$(run_json snapshot-compact snapshot --compact --session "$SESSION_NAME")"
+assert_json "$snapshot_compact_json" "compact snapshot is smaller" \
+  "data.ok === true && data.data.mode === 'compact' && data.data.charCount <= data.data.totalCharCount && typeof data.data.snapshot === 'string'"
+snapshot_interactive_json="$(run_json snapshot-interactive snapshot --interactive --session "$SESSION_NAME")"
+assert_json "$snapshot_interactive_json" "interactive snapshot keeps only action-oriented lines" \
+  "data.ok === true && data.data.mode === 'interactive' && data.data.charCount <= data.data.totalCharCount && typeof data.data.snapshot === 'string'"
+overlay_code_json="$(run_json overlay-code code --session "$SESSION_NAME" "async page => { await page.evaluate(() => { const el = document.createElement('div'); el.className = 'ant-dropdown'; el.style.position = 'fixed'; el.style.left = '10px'; el.style.top = '10px'; el.textContent = 'overlay smoke option'; document.body.appendChild(el); }); return 'overlay-ready'; }")"
+assert_json "$overlay_code_json" "overlay fixture installed" \
+  "data.ok === true && data.data.result === 'overlay-ready'"
+overlay_read_json="$(run_json overlay-read read-text --session "$SESSION_NAME" --include-overlay --max-chars 4000)"
+assert_json "$overlay_read_json" "read-text can include overlay text" \
+  "data.ok === true && data.data.source === 'body-visible+overlay' && data.data.overlays.some(item => item.text.includes('overlay smoke option')) && data.data.text.includes('overlay smoke option')"
 
 log "page current"
 page_json="$(run_json page-current page current --session "$SESSION_NAME")"
@@ -137,7 +149,22 @@ assert_json "$session_list_with_page_json" "session list can include page summar
 log "auth provider discovery"
 auth_list_json="$(run_json auth-list auth list)"
 assert_json "$auth_list_json" "auth list exposes built-in providers" \
-  "data.ok === true && data.data.providers.some(item => item.name === 'dc-login') && data.data.providers.some(item => item.name === 'fixture-auth')"
+  "data.ok === true && data.data.providers.some(item => item.name === 'dc') && data.data.providers.some(item => item.name === 'fixture-auth') && !data.data.providers.some(item => item.name === 'dc-login')"
+auth_info_dc_json="$(run_json auth-info-dc auth info dc)"
+assert_json "$auth_info_dc_json" "auth info exposes dc contract" \
+  "data.ok === true && data.data.name === 'dc' && data.data.args.some(item => item.name === 'targetUrl') && !data.data.args.some(item => item.name === 'instance')"
+node --input-type=module <<'NODE'
+import { getAuthProvider, loadAuthProviderSource } from './dist/infra/auth-providers/registry.js';
+
+const provider = getAuthProvider('dc');
+const source = provider ? loadAuthProviderSource(provider) : '';
+const outerSource = source.split('page.evaluate')[0] ?? source;
+
+if (/\bnew\s+URL\b|\bURLSearchParams\b/.test(outerSource)) {
+  console.error('[smoke] dc auth outer provider source must not depend on URL globals');
+  process.exit(1);
+}
+NODE
 auth_info_json="$(run_json auth-info auth info fixture-auth)"
 assert_json "$auth_info_json" "auth info exposes fixture-auth contract" \
   "data.ok === true && data.data.name === 'fixture-auth' && data.data.args.some(item => item.name === 'marker')"
@@ -219,6 +246,12 @@ log "console delta"
 console_json="$(run_json console console --session "$SESSION_NAME" --text fixture-route-hit-run-1)"
 assert_json "$console_json" "console captured route hit log" \
   "data.ok === true && data.data.summary.total >= 1 && data.data.summary.sample[0].text.includes('fixture-route-hit-run-1')"
+console_source_json="$(run_json console-source console --session "$SESSION_NAME" --source app --text fixture-route-hit-run-1)"
+assert_json "$console_source_json" "console source filter works" \
+  "data.ok === true && data.data.summary.source === 'app' && data.data.summary.total >= 1"
+console_resource_code_json="$(run_json console-resource-code code --session "$SESSION_NAME" "async page => { await page.evaluate(() => console.error('Failed to load resource: the server responded with a status of 401 ()')); return 'console-resource-error'; }")"
+assert_json "$console_resource_code_json" "console resource error emitted" \
+  "data.ok === true && data.data.result === 'console-resource-error'"
 console_since_zero_json="$(run_json console-since-zero console --session "$SESSION_NAME" --since 2099-01-01T00:00:00.000Z)"
 assert_json "$console_since_zero_json" "console since filter can exclude all rows" \
   "data.ok === true && data.data.summary.total === 0"
@@ -230,6 +263,9 @@ assert_json "$network_json" "network captured xhr" \
 network_snippet_json="$(run_json network-snippet network --session "$SESSION_NAME" --url '/__pwcli__/diagnostics/xhr' --kind response --limit 5)"
 assert_json "$network_snippet_json" "network response snippet is captured for text responses" \
   "data.ok === true && data.data.summary.sample.some(item => item.responseBodySnippet && item.responseBodySnippet.includes('xhr:1'))"
+network_console_status_json="$(run_json network-console-status network --session "$SESSION_NAME" --status 401 --kind console-resource-error --limit 5)"
+assert_json "$network_console_status_json" "network can bridge console resource status errors" \
+  "data.ok === true && data.data.summary.total >= 1 && data.data.summary.sample.some(item => item.kind === 'console-resource-error' && item.status === 401)"
 network_since_zero_json="$(run_json network-since-zero network --session "$SESSION_NAME" --since 2099-01-01T00:00:00.000Z)"
 assert_json "$network_since_zero_json" "network since filter can exclude all rows" \
   "data.ok === true && data.data.summary.total === 0"

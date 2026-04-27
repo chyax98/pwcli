@@ -9,11 +9,22 @@ import {
 
 export function registerSnapshotCommand(program: Command): void {
   addSessionOption(
-    program.command("snapshot").description("Capture an AI-friendly page snapshot"),
-  ).action(async (options: { session?: string }) => {
+    program
+      .command("snapshot")
+      .description("Capture an AI-friendly page snapshot")
+      .option("-i, --interactive", "Return only likely interactive snapshot lines")
+      .option("-c, --compact", "Remove low-signal structural lines"),
+  ).action(async (options: { session?: string; interactive?: boolean; compact?: boolean }) => {
     try {
       const sessionName = requireSessionName(options);
-      printCommandResult("snapshot", await managedSnapshot({ sessionName }));
+      printCommandResult(
+        "snapshot",
+        await managedSnapshot({
+          sessionName,
+          interactive: options.interactive,
+          compact: options.compact,
+        }),
+      );
     } catch (error) {
       printSessionAwareCommandError("snapshot", error, {
         code: "SNAPSHOT_FAILED",

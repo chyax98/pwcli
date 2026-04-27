@@ -3,7 +3,8 @@
 当前基线：
 
 - 以 `src/app/commands/*` 和 `node dist/cli.js --help` 为准
-- 命令输出默认是 JSON envelope
+- 命令输出默认是 agent-readable text
+- 机器消费旧 JSON envelope 时显式加 `--output json`
 - 浏览器命令默认要求 `--session <name>`
 
 ## 1. 通用 contract
@@ -16,7 +17,13 @@
 - 超长：`SESSION_NAME_TOO_LONG`
 - 非法字符：`SESSION_NAME_INVALID`
 
-### 成功输出
+### 默认 text 输出
+
+默认输出只保留下一步动作需要的事实，例如页面 URL、可见文本、网络状态、错误码和摘要。
+
+### JSON 成功输出
+
+以下 contract 只在 `--output json` 下稳定：
 
 ```json
 {
@@ -28,7 +35,9 @@
 }
 ```
 
-### 失败输出
+### JSON 失败输出
+
+以下 contract 只在 `--output json` 下稳定：
 
 ```json
 {
@@ -157,6 +166,8 @@
 ### `pw snapshot --session <name>`
 
 - 捕获 AI 友好的页面快照
+- 找 ref 首选 `-i, --interactive`，只输出疑似可交互节点
+- 大页面可加 `-c, --compact`，移除低信号结构节点
 
 ### `pw screenshot [ref] --session <name>`
 
@@ -171,6 +182,7 @@
 选项：
 
 - `--selector <selector>`
+- `--include-overlay`
 - `--max-chars <count>`
 
 ### `pw observe status --session <name>`
@@ -289,6 +301,7 @@
 选项：
 
 - `--level info|warning|error`
+- `--source app|api|react|browser`
 - `--text <text>`
 - `--since <iso>`
 - `--limit <n>`
@@ -299,7 +312,7 @@
 
 - `--request-id <id>`
 - `--url <substring>`
-- `--kind request|response|requestfailed`
+- `--kind request|response|requestfailed|console-resource-error`
 - `--method <method>`
 - `--status <code>`
 - `--resource-type <type>`
@@ -504,6 +517,9 @@
 选项：
 
 - `--file <path>`
+- `--retry <count>`
+
+失败时会保留 Playwright 原始错误，并在常见 locator 问题后追加 `PWCLI_HINT`。
 
 ### `pw auth list`
 
@@ -530,6 +546,21 @@
 - `pw auth <provider> --help` 现在会返回 provider-specific 参数说明
 - 冷启动时仍然建议先看 `pw auth list` / `pw auth info <name>`
 
+### `pw auth dc --session <name>`
+
+- Forge/DC 登录 provider
+- 默认 `phone=19545672859`
+- 默认 `smsCode=000000`
+- 传了 `targetUrl` 就使用指定业务 URL
+- 可选：
+  - `--arg phone=<number>`
+  - `--arg smsCode=<code>`
+  - `--arg targetUrl=<url>`
+  - `--arg baseURL=<origin>`
+- 不支持 `instance`
+- 没有 URL 时直接执行默认登录流程
+- 默认登录失败时，显式传 `--arg targetUrl=<url>`
+
 ### `pw bootstrap apply --session <name>`
 
 选项：
@@ -542,10 +573,11 @@
 - 对已存在 session 做 live bootstrap
 - 当前只支持 `apply`
 
-### `pw batch --session <name> --json`
+### `pw batch --session <name> --stdin-json`
 
 选项：
 
+- `--json` 是 `--stdin-json` 的兼容别名
 - `--continue-on-error`
 
 stdin 输入格式：
@@ -571,7 +603,7 @@ stdin 输入格式：
 - `snapshot`
 - `click <ref>`
 - `click --selector <selector>`
-- `wait networkIdle`
+- `wait network-idle`
 - `wait --selector <selector>`
 - `wait --text <text>`
 - `wait --request <url> [--method <method>]`
@@ -638,7 +670,7 @@ stdin 输入格式：
 ## 8. 当前限制
 
 - modal state 会阻断 `page *` / `observe status` 的读取链路
-- `session status` 是 best-effort
-- `session attach --browser-url/--cdp` 依赖本地 attach bridge registry
+- `session status` 只做快速状态检查；页面忙、弹窗阻塞、浏览器断连时可能拿不到完整页面信息，异常时用 `pw doctor --session <name>` 复查
+- `session attach --browser-url/--cdp` 只能接管当前机器上可连接的浏览器调试端口；连接失败时先确认浏览器是否用远程调试参数启动、端口是否可访问
 - `storage local|session` 对无效 origin 返回 `accessible: false`
 - 默认 artifact run 目录尚未落地

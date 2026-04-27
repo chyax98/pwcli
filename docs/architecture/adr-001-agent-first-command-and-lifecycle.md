@@ -55,8 +55,8 @@ Agent 不需要多套同义入口，它需要稳定、窄、可预测的 contrac
 
 ## 已知限制
 
-- `session attach --browser-url/--cdp` 当前仍依赖本地 attach bridge registry
-- `session status` 仍是 best-effort 视图
+- `session attach --browser-url/--cdp` 只能接管当前机器上可连接的浏览器调试端口
+- `session status` 只做快速状态检查，不保证页面忙、弹窗阻塞、浏览器断连时仍能返回完整页面信息
 
 ## 后续扩展原则
 

@@ -36,7 +36,7 @@ src/
 - `app`
   - commander 命令
   - batch 输入
-  - JSON envelope
+  - text / JSON 输出渲染
 - `domain`
   - lifecycle 语义
   - workspace / diagnostics / environment / bootstrap 编排

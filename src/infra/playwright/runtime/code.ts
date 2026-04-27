@@ -10,7 +10,12 @@ import {
 } from "../output-parsers.js";
 import { isModalStateBlockedMessage, maybeRawOutput } from "./shared.js";
 
-export async function managedSnapshot(options?: { depth?: number; sessionName?: string }) {
+export async function managedSnapshot(options?: {
+  depth?: number;
+  sessionName?: string;
+  interactive?: boolean;
+  compact?: boolean;
+}) {
   const args = ["snapshot"];
   if (options?.depth) {
     args.push(`--depth=${options.depth}`);
@@ -23,6 +28,11 @@ export async function managedSnapshot(options?: { depth?: number; sessionName?: 
       sessionName: options?.sessionName,
     },
   );
+  const snapshot = parseSnapshotYaml(result.text);
+  const projectedSnapshot = projectSnapshot(snapshot, {
+    interactive: Boolean(options?.interactive),
+    compact: Boolean(options?.compact),
+  });
   return {
     session: {
       scope: "managed",
@@ -31,17 +41,49 @@ export async function managedSnapshot(options?: { depth?: number; sessionName?: 
     },
     page: parsePageSummary(result.text),
     data: {
-      mode: "ai",
-      snapshot: parseSnapshotYaml(result.text),
+      mode: options?.interactive ? "interactive" : options?.compact ? "compact" : "ai",
+      snapshot: projectedSnapshot,
+      ...(options?.interactive || options?.compact
+        ? {
+          totalCharCount: snapshot.length,
+            charCount: projectedSnapshot.length,
+            truncated: projectedSnapshot.length !== snapshot.length,
+          }
+        : {}),
       ...maybeRawOutput(result.text),
     },
   };
+}
+
+function projectSnapshot(
+  snapshot: string,
+  options: {
+    interactive: boolean;
+    compact: boolean;
+  },
+) {
+  const lines = options.interactive ? interactiveSnapshotLines(snapshot) : snapshot.split("\n");
+  const projected = options.compact ? compactSnapshotLines(lines) : lines;
+  return projected.join("\n").trim();
+}
+
+function interactiveSnapshotLines(snapshot: string) {
+  const interactivePattern =
+    /\b(button|link|textbox|combobox|checkbox|radio|menuitem|tab|switch|slider|spinbutton|searchbox|option)\b|aria-ref=|ref=/i;
+  return snapshot
+    .split("\n")
+    .filter((line) => interactivePattern.test(line));
+}
+
+function compactSnapshotLines(lines: string[]) {
+  return lines.filter((line) => !/^\s*-\s+generic(?:\s+\[ref=[^\]]+\])?:?\s*$/.test(line));
 }
 
 export async function managedRunCode(options: {
   source?: string;
   file?: string;
   sessionName?: string;
+  retry?: number;
 }) {
   const args = ["run-code"];
   let source = options.source;
@@ -53,18 +95,38 @@ export async function managedRunCode(options: {
   if (source) {
     args.push(source);
   }
-  const result = await runManagedSessionCommand(
-    {
-      _: args,
-      ...(filename ? { filename } : {}),
-    },
-    {
-      sessionName: options.sessionName,
-    },
-  );
+  const attempts = Math.max(1, Math.floor(Number(options.retry ?? 0)) + 1);
+  let result: Awaited<ReturnType<typeof runManagedSessionCommand>> | undefined;
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      result = await runManagedSessionCommand(
+        {
+          _: args,
+          ...(filename ? { filename } : {}),
+        },
+        {
+          sessionName: options.sessionName,
+        },
+      );
+      const errorText = parseErrorText(result.text);
+      if (errorText) {
+        throw new Error(enrichRunCodeError(errorText));
+      }
+      break;
+    } catch (error) {
+      lastError = error;
+      if (attempt >= attempts) {
+        throw error;
+      }
+    }
+  }
+  if (!result) {
+    throw lastError instanceof Error ? lastError : new Error(String(lastError ?? "run-code failed"));
+  }
   const errorText = parseErrorText(result.text);
   if (errorText) {
-    throw new Error(isModalStateBlockedMessage(errorText) ? "MODAL_STATE_BLOCKED" : errorText);
+    throw new Error(enrichRunCodeError(errorText));
   }
   const resultText = parseResultText(result.text);
   return {
@@ -81,4 +143,28 @@ export async function managedRunCode(options: {
       ...maybeRawOutput(result.text),
     },
   };
+}
+
+function enrichRunCodeError(errorText: string) {
+  if (isModalStateBlockedMessage(errorText)) {
+    return "MODAL_STATE_BLOCKED";
+  }
+  const hints: string[] = [];
+  if (/not visible|element is not visible/i.test(errorText)) {
+    hints.push(
+      "PWCLI_HINT: element exists but is not visible; check hidden submenu, closed dropdown, CSS display/visibility, offscreen position, or covered overlay.",
+    );
+  }
+  if (/Timeout \d+ms exceeded|timed out/i.test(errorText)) {
+    hints.push(
+      "PWCLI_HINT: operation timed out; verify selector uniqueness, wait for the trigger state, or use `pw snapshot -i` / screenshot before retrying.",
+    );
+  }
+  if (/strict mode violation/i.test(errorText)) {
+    hints.push("PWCLI_HINT: locator matched multiple elements; add --nth, a narrower selector, or role/name constraints.");
+  }
+  if (/intercepts pointer events|element.*covered|receives pointer events/i.test(errorText)) {
+    hints.push("PWCLI_HINT: click target is covered; inspect active overlay/modal or click the visible parent trigger.");
+  }
+  return hints.length > 0 ? `${errorText}\n${hints.join("\n")}` : errorText;
 }

@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT_DIR"
 
-CLI=(node dist/cli.js)
+CLI=(node dist/cli.js --output json)
 PORT="${PWCLI_DOGFOOD_PORT:-43279}"
 ORIGIN="http://127.0.0.1:${PORT}"
 LOGIN_URL="${ORIGIN}/login"

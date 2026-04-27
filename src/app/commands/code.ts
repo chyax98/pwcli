@@ -12,8 +12,13 @@ export function registerCodeCommand(program: Command): void {
     program
       .command("code [source]")
       .description("Run Playwright code in a named managed browser session")
-      .option("--file <path>", "Run code from a local file"),
-  ).action(async (source: string | undefined, options: { session?: string; file?: string }) => {
+      .option("--file <path>", "Run code from a local file")
+      .option("--retry <count>", "Retry failed code execution", "0"),
+  ).action(
+    async (
+      source: string | undefined,
+      options: { session?: string; file?: string; retry?: string },
+    ) => {
     try {
       const sessionName = requireSessionName(options);
       printCommandResult(
@@ -22,6 +27,7 @@ export function registerCodeCommand(program: Command): void {
           sessionName,
           source,
           file: options.file,
+          retry: options.retry ? Number(options.retry) : 0,
         }),
       );
     } catch (error) {

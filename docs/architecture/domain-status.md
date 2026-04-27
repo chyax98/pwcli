@@ -24,8 +24,8 @@
 
 ### 当前限制
 
-- `session status` 是 best-effort
-- `attach --browser-url/--cdp` 依赖本地 attach bridge registry
+- `session status` 只做快速状态检查；页面忙、弹窗阻塞、浏览器断连时可能拿不到完整页面信息，异常时用 `pw doctor --session <name>` 复查
+- `session attach --browser-url/--cdp` 只能接管当前机器上可连接的浏览器调试端口；连接失败时先确认浏览器是否用远程调试参数启动、端口是否可访问
 
 ### 后续扩展
 
@@ -86,11 +86,13 @@
 - `storage local|session`
 - `profile inspect`
 - `auth` 内置 provider 执行 + `save-state`
+- `dc` 是内置 DC/Forge auth provider；默认手机号和验证码内聚在 provider 内，传了 `targetUrl` 就使用指定业务 URL，未传 URL 时执行默认登录流程
 
 ### 当前限制
 
 - `storage local|session` 只读当前页 origin
 - `auth` 不负责 session shape
+- `dc` 不接受 `instance` 参数；不暴露环境参数，RND 固定入口由 skill 引导 agent 显式打开
 - `profile open` 已移除
 
 ### 后续扩展
@@ -101,6 +103,7 @@
 
 ### 当前实现
 
+- 默认 stdout 是 agent-readable text，`--output json` 保留旧 JSON envelope
 - `console`
 - `network`
 - `errors recent|clear`
