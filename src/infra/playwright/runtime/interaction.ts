@@ -566,6 +566,7 @@ export async function managedDownload(options: {
 
 export async function managedReadText(options?: {
   selector?: string;
+  includeOverlay?: boolean;
   maxChars?: number;
   sessionName?: string;
 }) {
@@ -575,8 +576,60 @@ export async function managedReadText(options?: {
       return JSON.stringify({ source: 'selector', selector: ${JSON.stringify(options.selector)}, text });
     }`
     : `async page => {
-      const text = await page.evaluate(() => document.body?.innerText ?? '');
-      return JSON.stringify({ source: 'body-visible', text });
+      const includeOverlay = ${JSON.stringify(Boolean(options?.includeOverlay))};
+      const data = await page.evaluate((includeOverlay) => {
+        const visible = (el) => {
+          if (!(el instanceof HTMLElement))
+            return false;
+          const style = window.getComputedStyle(el);
+          if (
+            style.display === 'none' ||
+            style.visibility === 'hidden' ||
+            style.opacity === '0' ||
+            el.getAttribute('aria-hidden') === 'true'
+          )
+            return false;
+          const rect = el.getBoundingClientRect();
+          return rect.width > 0 && rect.height > 0;
+        };
+        const normalize = (value) => String(value || '').replace(/\\s+/g, ' ').trim();
+        const bodyText = document.body?.innerText ?? '';
+        const overlaySelectors = [
+          '[role="dialog"]',
+          '[role="menu"]',
+          '[role="listbox"]',
+          '[role="tooltip"]',
+          '[role="alertdialog"]',
+          '[aria-modal="true"]',
+          '.modal',
+          '.dropdown',
+          '.popover',
+          '.tooltip',
+          '.ant-modal',
+          '.ant-dropdown',
+          '.ant-select-dropdown',
+          '.ant-popover',
+          '.ant-tooltip',
+          '.el-popper',
+          '.el-dropdown-menu',
+        ];
+        const overlays = includeOverlay
+          ? Array.from(document.querySelectorAll(overlaySelectors.join(',')))
+              .filter(visible)
+              .map((el) => ({
+                selector: overlaySelectors.find((selector) => el.matches(selector)) || '',
+                text: normalize(el.innerText || el.textContent || ''),
+              }))
+              .filter((item) => item.text)
+          : [];
+        const overlayText = overlays.map((item) => item.text).join('\\n');
+        return {
+          source: includeOverlay ? 'body-visible+overlay' : 'body-visible',
+          text: overlayText ? bodyText + '\\n' + overlayText : bodyText,
+          overlays,
+        };
+      }, includeOverlay);
+      return JSON.stringify(data);
     }`;
 
   const result = await managedRunCode({ source, sessionName: options?.sessionName });

@@ -83,6 +83,7 @@ export async function managedRunCode(options: {
   source?: string;
   file?: string;
   sessionName?: string;
+  retry?: number;
 }) {
   const args = ["run-code"];
   let source = options.source;
@@ -94,18 +95,38 @@ export async function managedRunCode(options: {
   if (source) {
     args.push(source);
   }
-  const result = await runManagedSessionCommand(
-    {
-      _: args,
-      ...(filename ? { filename } : {}),
-    },
-    {
-      sessionName: options.sessionName,
-    },
-  );
+  const attempts = Math.max(1, Math.floor(Number(options.retry ?? 0)) + 1);
+  let result: Awaited<ReturnType<typeof runManagedSessionCommand>> | undefined;
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      result = await runManagedSessionCommand(
+        {
+          _: args,
+          ...(filename ? { filename } : {}),
+        },
+        {
+          sessionName: options.sessionName,
+        },
+      );
+      const errorText = parseErrorText(result.text);
+      if (errorText) {
+        throw new Error(enrichRunCodeError(errorText));
+      }
+      break;
+    } catch (error) {
+      lastError = error;
+      if (attempt >= attempts) {
+        throw error;
+      }
+    }
+  }
+  if (!result) {
+    throw lastError instanceof Error ? lastError : new Error(String(lastError ?? "run-code failed"));
+  }
   const errorText = parseErrorText(result.text);
   if (errorText) {
-    throw new Error(isModalStateBlockedMessage(errorText) ? "MODAL_STATE_BLOCKED" : errorText);
+    throw new Error(enrichRunCodeError(errorText));
   }
   const resultText = parseResultText(result.text);
   return {
@@ -122,4 +143,28 @@ export async function managedRunCode(options: {
       ...maybeRawOutput(result.text),
     },
   };
+}
+
+function enrichRunCodeError(errorText: string) {
+  if (isModalStateBlockedMessage(errorText)) {
+    return "MODAL_STATE_BLOCKED";
+  }
+  const hints: string[] = [];
+  if (/not visible|element is not visible/i.test(errorText)) {
+    hints.push(
+      "PWCLI_HINT: element exists but is not visible; check hidden submenu, closed dropdown, CSS display/visibility, offscreen position, or covered overlay.",
+    );
+  }
+  if (/Timeout \d+ms exceeded|timed out/i.test(errorText)) {
+    hints.push(
+      "PWCLI_HINT: operation timed out; verify selector uniqueness, wait for the trigger state, or use `pw snapshot -i` / screenshot before retrying.",
+    );
+  }
+  if (/strict mode violation/i.test(errorText)) {
+    hints.push("PWCLI_HINT: locator matched multiple elements; add --nth, a narrower selector, or role/name constraints.");
+  }
+  if (/intercepts pointer events|element.*covered|receives pointer events/i.test(errorText)) {
+    hints.push("PWCLI_HINT: click target is covered; inspect active overlay/modal or click the visible parent trigger.");
+  }
+  return hints.length > 0 ? `${errorText}\n${hints.join("\n")}` : errorText;
 }

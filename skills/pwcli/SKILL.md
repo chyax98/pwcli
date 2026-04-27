@@ -95,6 +95,7 @@ pw read-text --session bug-a --max-chars 2000
 - `observe status`：页面、dialog、console、network、errors、routes、bootstrap 的 compact 摘要。
 - `page current`：当前 page projection。
 - `read-text`：可见文本，适合快速理解页面。
+- `read-text --include-overlay`：点击 dropdown/modal/popover 后读取浮层文本。
 - `snapshot -i`：只看可交互节点，找 ref 首选。
 - `snapshot`：完整结构树，需要理解页面层级时再用。
 
@@ -180,6 +181,7 @@ pw screenshot --session bug-a --path ./mobile.png --full-page
 - 快速验证 selector、页面假设、业务状态。
 - 执行多步 Playwright 逻辑，拆成多个命令反而慢。
 - 跑本地脚本：`pw code --file <path>`。
+- 临时 flaky 动作：`pw code --retry 1 ...`。
 - 一等命令没有覆盖当前 Playwright 能力。
 
 优先用一等命令：

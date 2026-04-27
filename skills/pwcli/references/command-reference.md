@@ -182,6 +182,7 @@
 选项：
 
 - `--selector <selector>`
+- `--include-overlay`
 - `--max-chars <count>`
 
 ### `pw observe status --session <name>`
@@ -516,6 +517,9 @@
 选项：
 
 - `--file <path>`
+- `--retry <count>`
+
+失败时会保留 Playwright 原始错误，并在常见 locator 问题后追加 `PWCLI_HINT`。
 
 ### `pw auth list`
 
