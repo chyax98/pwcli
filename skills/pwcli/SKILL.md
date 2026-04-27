@@ -1,6 +1,6 @@
 ---
 name: pwcli
-description: Use when an agent needs to drive a browser with `pw` for page exploration, QA, bug reproduction, auth reuse, Forge/DC login, network/console diagnostics, route mock, or controlled browser state. Triggers on "用 pw", "pw session", "打开页面看看", "点一下", "继续探索", "诊断页面", "看 network", "dc2 登录", "Forge 登录", "developer-*.tap.dev/forge", "用浏览器跑", "pw 自动化".
+description: Use this skill for any task that involves driving a browser — opening pages, clicking, filling forms, capturing screenshots, checking network requests or console errors, mocking APIs, saving/restoring login state, or running Forge/DC auth. Invoke immediately whenever the task touches a browser URL, page interaction, API response inspection, or Playwright automation. Do not attempt to use raw Playwright or curl as a substitute. Trigger phrases: "用 pw", "pw session", "打开页面", "点一下", "继续探索", "诊断页面", "看 network", "dc2 登录", "Forge 登录", "developer-*.tap.dev/forge", "用浏览器跑", "pw 自动化".
 ---
 
 # pwcli
@@ -266,27 +266,14 @@ HAR 热录制当前只暴露 substrate 边界，稳定诊断仍优先 `network` 
 
 ## 7. Dialog 和卡死恢复
 
-先看 compact 状态：
-
 ```bash
-pw observe status --session bug-a
-pw doctor --session bug-a
-```
-
-browser dialog 阻塞：
-
-```bash
-pw dialog accept --session bug-a
+pw observe status --session bug-a      # 先看状态
+pw dialog accept --session bug-a       # 解除 modal
 pw dialog dismiss --session bug-a
+pw session recreate bug-a --headed --open '<url>'  # 上面无效再重建
 ```
 
-恢复失败再重建：
-
-```bash
-pw session recreate bug-a --headed --open '<url>'
-```
-
-`page dialogs` 是事件投影，不是 authoritative live dialog set。
+完整升级路径见 `references/failure-recovery.md`。
 
 ## 8. Auth
 
@@ -482,16 +469,7 @@ pw wait --session test-a --text '<expected>'
 pw --output json read-text --session test-a --max-chars 1000
 ```
 
-## 13. 降噪
-
-- 页面内容：`read-text --max-chars <n>`。
-- 观察状态：先 `observe status`，不够再 `--verbose`。
-- console/network/errors：用 `--limit`、`--text`、`--since`。
-- diagnostics export/show/grep：用 `--fields`，支持 `alias=path`。
-- 大页面不要先 `snapshot`。
-- 必须找 ref 时用 `pw snapshot -i --session <name>`，不够再全量 `snapshot`。
-
-## 14. 禁止事项
+## 13. 禁止事项
 
 - 不要把 `open` 当成 session lifecycle。
 - 不要让 `auth` 创建 session。
@@ -503,19 +481,13 @@ pw --output json read-text --session test-a --max-chars 1000
 - 不要把 HAR 热录制、raw CDP substrate 等边界能力包装成稳定支持。
 - 不要为了省命令跳过动作后的 `wait` 和复查。
 
-## 15. 高代价坑
+## 15. 参考
 
-- 新任务默认新 session，不要把旧 session 当入口。见 `references/gotchas.md#new-session`。
-- Forge/DC 登录走 `pw auth dc`，不要手填登录页。见 `references/gotchas.md#forge-dc-auth`。
-- `dc2.0` 是系统名，不是 `instance=2`。见 `references/gotchas.md#dc2-system-name`。
-- `pw code` 是快速路径，不是最后手段。见 `references/gotchas.md#code-fast-path`。
-- 脚本解析用 `--output json`，不要误解 `batch --stdin-json`。见 `references/gotchas.md#output-json`。
-- 大页面先 `read-text`，需要 ref 再 `snapshot`。见 `references/gotchas.md#snapshot-late`。
+需要精确命令参数时按场景查对应文件：
 
-## 16. 参考
-
-- 完整命令：`references/command-reference.md`
-- Forge/DC 登录细节：`references/forge-dc-auth.md`
-- 失败恢复：`references/failure-recovery.md`
-- 已知坑点：`references/gotchas.md`
-- 维护规则：`rules/core-usage.md`
+- `references/command-reference.md` — session 生命周期、页面读取、动作与等待
+- `references/command-reference-diagnostics.md` — 查 bug 时：console / network / errors / diagnostics / route mock / trace
+- `references/command-reference-advanced.md` — 构建自动化时：state / auth / batch / environment / `pw code`
+- `references/forge-dc-auth.md` — Forge/DC 登录失败或需确认步骤时
+- `references/failure-recovery.md` — 遇到错误码时
+- `references/gotchas.md` — 遇到非预期行为时
