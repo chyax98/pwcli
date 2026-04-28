@@ -149,19 +149,29 @@ if (/\btab-close\b/.test(source)) {
 }
 NODE
 tab_second_url="${ORIGIN}/second-tab"
-tab_create_json="$(run_json tab-create code --session "$SESSION_NAME" "async page => { const p = await page.context().newPage(); await p.goto('${tab_second_url}'); return p.url(); }")"
-assert_json "$tab_create_json" "second tab created" \
-  "data.ok === true && data.data.result === '${tab_second_url}'"
+tab_popup_url="${ORIGIN}/popup-tab"
+tab_create_json="$(run_json tab-create code --session "$SESSION_NAME" "async page => { const context = page.context(); const unrelated = await context.newPage(); await unrelated.goto('${tab_second_url}'); await page.bringToFront(); const popupPromise = context.waitForEvent('page'); await page.evaluate(url => window.open(url, '_blank'), '${tab_popup_url}'); const popup = await popupPromise; await popup.waitForLoadState('domcontentloaded'); await popup.bringToFront(); return { openerUrl: page.url(), unrelatedUrl: unrelated.url(), popupUrl: popup.url() }; }")"
+assert_json "$tab_create_json" "unrelated tab and popup created" \
+  "data.ok === true && data.data.result.openerUrl === '${BLANK_URL}' && data.data.result.unrelatedUrl === '${tab_second_url}' && data.data.result.popupUrl === '${tab_popup_url}'"
 tab_list_before_json="$(run_json tab-list-before page list --session "$SESSION_NAME")"
-assert_json "$tab_list_before_json" "page list sees two tabs" \
-  "data.ok === true && data.data.pageCount === 2 && data.data.pages.some(item => item.url === '${BLANK_URL}') && data.data.pages.some(item => item.url === '${tab_second_url}')"
+assert_json "$tab_list_before_json" "page list sees popup opener relationship" \
+  "data.ok === true && data.data.pageCount === 3 && data.data.pages.some(item => item.url === '${BLANK_URL}') && data.data.pages.some(item => item.url === '${tab_second_url}') && data.data.pages.some(item => item.url === '${tab_popup_url}')"
 first_page_id="$(json_field "$tab_list_before_json" "data.data.pages.find(item => item.url === '${BLANK_URL}').pageId")"
 second_page_id="$(json_field "$tab_list_before_json" "data.data.pages.find(item => item.url === '${tab_second_url}').pageId")"
+popup_page_id="$(json_field "$tab_list_before_json" "data.data.pages.find(item => item.url === '${tab_popup_url}').pageId")"
+assert_json "$tab_list_before_json" "popup openerPageId points at opener pageId" \
+  "data.data.pages.find(item => item.url === '${tab_popup_url}').openerPageId === '${first_page_id}'"
 tab_select_json="$(run_json tab-select tab select "$second_page_id" --session "$SESSION_NAME")"
 assert_json "$tab_select_json" "tab select switches by pageId" \
   "data.ok === true && data.data.selected === true && data.data.activePageId === '${second_page_id}' && data.data.currentPage.url === '${tab_second_url}'"
+tab_select_popup_json="$(run_json tab-select-popup tab select "$popup_page_id" --session "$SESSION_NAME")"
+assert_json "$tab_select_popup_json" "tab select switches to popup by pageId" \
+  "data.ok === true && data.data.selected === true && data.data.activePageId === '${popup_page_id}' && data.data.currentPage.url === '${tab_popup_url}'"
+tab_close_popup_json="$(run_json tab-close-popup tab close "$popup_page_id" --session "$SESSION_NAME")"
+assert_json "$tab_close_popup_json" "tab close active popup falls back to opener, not adjacent tab" \
+  "data.ok === true && data.data.closed === true && data.data.closedPageId === '${popup_page_id}' && data.data.fallbackPageId === '${first_page_id}' && data.data.activePageId === '${first_page_id}' && data.data.pageCount === 2 && data.data.currentPage.url === '${BLANK_URL}'"
 tab_close_json="$(run_json tab-close tab close "$second_page_id" --session "$SESSION_NAME")"
-assert_json "$tab_close_json" "tab close removes selected page and falls back" \
+assert_json "$tab_close_json" "tab close removes unrelated page and keeps current opener" \
   "data.ok === true && data.data.closed === true && data.data.closedPageId === '${second_page_id}' && data.data.activePageId === '${first_page_id}' && data.data.pageCount === 1 && data.data.currentPage.url === '${BLANK_URL}'"
 
 log "session list"
