@@ -71,6 +71,18 @@ pnpm build
 pnpm smoke
 ```
 
+## Review guidelines
+
+Codex review 只报告可验证的 P0/P1 问题。详细规则见 [`.codex/review-guidelines.md`](.codex/review-guidelines.md)。
+
+必须优先检查：
+
+1. workspace 写操作是否违反 stable identity contract
+2. session lifecycle / open / auth / batch 边界是否漂移
+3. 命令、flag、错误码、输出、workflow 变化是否同步 `skills/pwcli/`
+4. 领域边界变化是否同步 `docs/architecture/`
+5. 行为变更是否有 `pnpm typecheck`、`pnpm build`、`pnpm smoke` 或等价覆盖
+
 ## 禁忌
 
 - 不要恢复兼容命令

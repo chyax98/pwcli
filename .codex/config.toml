@@ -11,16 +11,12 @@ multi_agent = true
 
 [auto_review]
 policy = """
-Review all pull request changes against AGENTS.md and .codex/skill-maintenance.md.
-Focus on:
-- TypeScript type safety and async error paths.
-- Command contract drift in src/app/commands/**.
-- Boundary drift across src/app, src/domain, and src/infra.
-- Skill/docs synchronization for command, flag, error-code, output, workflow, and limitation changes.
-- Tests or smoke coverage for behavior changes.
+Review all pull request changes against AGENTS.md and .codex/review-guidelines.md.
 
-Report only provable issues. Treat docs issues as blocking only when they change active contract,
-hide a limitation, or create a broken entry point for future agents.
+Report only provable P0/P1 issues. Prioritize workspace mutation identity, session lifecycle
+boundaries, command contract drift, recoverability, skill/docs synchronization, and verification
+coverage. Treat docs issues as blocking only when they change active contract, hide a limitation,
+or create a broken entry point for future agents.
 """
 
 [shell_environment_policy]
