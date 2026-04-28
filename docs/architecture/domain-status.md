@@ -215,3 +215,42 @@
 
 - 新增命令或 limitation 时，优先改 skill
 - Codex review policy 只记录可验证问题，不把文档拼写类问题升级成阻塞问题
+
+## 10. 当前阶段目标（2026-04-28）
+
+### 明确目标
+
+- 把 `pwcli` 稳定在“Agent-first 可恢复自动化执行器”定位：主链稳定、错误可恢复、诊断可追溯。
+
+### 接下来优先级
+
+1. 持续守住 workspace mutation contract（写操作只认 stable identity，不回退 index 语义）。
+2. 让高频交互动作都产出一致的 run evidence（target + diagnosticsDelta + runId），降低回放定位成本。
+3. 维持 skill / architecture / shipped contract 三者同步，避免使用真相漂移。
+4. 在不破坏 lifecycle 边界前提下，按真实需求增量扩 batch 稳定子集。
+
+
+## 11. 后续规划与 Issue 候选（2026-04-28）
+
+> 用于 GitHub issue 拆分的候选清单；优先级按 P0/P1 contract 风险与收益排序。
+
+### I1（P1）批量链路可观测性补齐
+
+- 目标：让 `batch` 子命令失败时输出更稳定的 step-level 证据（步骤索引、命令、错误码、恢复建议）。
+- 验收：`batch` 失败能直接映射到 `failure-recovery` 的恢复路径；skill 有对应示例。
+
+### I2（P1）Modal blocked 恢复链路压测
+
+- 目标：对 `MODAL_STATE_BLOCKED` 在常见动作链路（click/fill/code/page）进行回归矩阵，保证 recover hint 一致。
+- 验收：新增 smoke/dogfood 覆盖；`failure-recovery` 提供最短恢复序列。
+
+### I3（P1）run evidence 字段一致性守护
+
+- 目标：对高频动作（click/fill/type/press）建立 run event schema 快照，防止字段漂移破坏 `diagnostics show/grep`。
+- 验收：字段快照测试 + command reference 同步说明。
+
+### I4（P1）Skill 主链可达性巡检
+
+- 目标：周期性检查主 skill 到 references/workflows 的相对路径路由是否闭环、是否覆盖 70%+ 高频场景。
+- 验收：形成固定 checklist，并在每次命令 contract 变更时执行一次。
+
