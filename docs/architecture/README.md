@@ -76,6 +76,7 @@ session attach -> state/profile/auth provider -> continue
 | 现状 | [domain-status.md](domain-status.md) |
 | ADR | [adr-001-agent-first-command-and-lifecycle.md](adr-001-agent-first-command-and-lifecycle.md)、[adr-002-diagnostics-mock-environment.md](adr-002-diagnostics-mock-environment.md) |
 | Contract | [workspace-mutation-contract.md](workspace-mutation-contract.md) |
+| Analysis | [browser-task-state-model.md](browser-task-state-model.md) |
 | 验证 | [e2e-dogfood-test-plan.md](e2e-dogfood-test-plan.md)、[e2e-dogfood-experience-report.md](e2e-dogfood-experience-report.md) |
 | 技术结论 | [environment-clock-survey.md](environment-clock-survey.md) |
 
