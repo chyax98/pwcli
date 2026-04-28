@@ -5,6 +5,11 @@ dist
 .playwright-cli
 .pwcli
 .tmp*
-.codex
+.codex/*.env
+.codex/*.local.toml
+.codex/*.secret*
+.codex/local/
+.codex/secrets/
+.codex/tmp/
 .claude/
 docs/superpowers/

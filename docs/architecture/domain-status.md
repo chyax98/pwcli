@@ -1,6 +1,6 @@
 # Domain Status
 
-更新时间：2026-04-26
+更新时间：2026-04-28
 
 这份文档记录每个领域的：
 
@@ -117,12 +117,14 @@
 - `doctor` 默认 compact，`--verbose` 返回完整 probe
 - action 结果里的 `diagnosticsDelta`
 - `.pwcli/runs/<runId>/events.jsonl`
+- Playwright substrate 原始产物归档在 `.pwcli/playwright/`，包括 trace、snapshot 附件、console 附件、download 附件
 
 ### 当前限制
 
 - 没有 event stream
 - 不是持久化诊断数据库
 - `har start|stop` 只暴露 substrate 边界
+- 已存在的老 session 仍按启动时 substrate 配置写目录；新建或 recreate 后才使用当前 artifact 根目录
 
 ### 后续扩展
 
@@ -199,6 +201,7 @@
 
 - `skills/pwcli/` 是唯一使用教程真相
 - `docs/architecture/` 只维护设计与现状
+- `.codex/` 维护 Codex 项目配置和 skill 维护规则
 - `.claude/` 只做本地过程归档，不进入 git
 
 ### 当前限制
@@ -208,3 +211,4 @@
 ### 后续扩展
 
 - 新增命令或 limitation 时，优先改 skill
+- Codex review policy 只记录可验证问题，不把文档拼写类问题升级成阻塞问题

@@ -44,7 +44,11 @@
 
 架构、限制和扩展方向单独维护在：
 
-- [docs/architecture/README.md](../../docs/architecture/README.md)
+- [docs/README.md](../../docs/README.md)
+
+Skill 维护规则维护在：
+
+- [.codex/skill-maintenance.md](../../.codex/skill-maintenance.md)
 
 优先内容：
 

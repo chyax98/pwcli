@@ -1,0 +1,27 @@
+# pwcli project Codex config.
+# This repository is maintained through Codex. Keep stable project policy here;
+# keep personal auth/provider settings in ~/.codex/config.toml.
+
+model = "gpt-5.5"
+model_reasoning_effort = "high"
+personality = "pragmatic"
+
+[features]
+multi_agent = true
+
+[auto_review]
+policy = """
+Review all pull request changes against AGENTS.md and .codex/skill-maintenance.md.
+Focus on:
+- TypeScript type safety and async error paths.
+- Command contract drift in src/app/commands/**.
+- Boundary drift across src/app, src/domain, and src/infra.
+- Skill/docs synchronization for command, flag, error-code, output, workflow, and limitation changes.
+- Tests or smoke coverage for behavior changes.
+
+Report only provable issues. Treat docs issues as blocking only when they change active contract,
+hide a limitation, or create a broken entry point for future agents.
+"""
+
+[shell_environment_policy]
+include_only = ["PATH", "HOME", "NODE_ENV", "PNPM_HOME", "COREPACK_HOME"]

@@ -1,6 +1,6 @@
 # Documentation Governance
 
-更新时间：2026-04-26  
+更新时间：2026-04-28
 状态：active
 
 这份文档定义 `pwcli` 的文档边界、真相优先级、归档规则。
@@ -30,6 +30,8 @@
    - `README.md`
 5. **贡献约束**
    - `AGENTS.md`
+6. **Codex 项目配置**
+   - `.codex/`
 
 如果文档和源码冲突，以源码和已通过验证的 shipped contract 为准。
 
@@ -72,6 +74,17 @@
 
 不要在这里重复命令教程。
 
+### `.codex/`
+
+这是项目级 Codex 配置和维护规则。
+
+这里维护：
+
+- `config.toml`
+- `skill-maintenance.md`
+
+不要在这里放个人 provider、token、cookie、session state。
+
 ### `AGENTS.md`
 
 只维护协作规则：
@@ -87,6 +100,10 @@
 
 - `README.md`
 - `AGENTS.md`
+- `.codex/README.md`
+- `.codex/config.toml`
+- `.codex/skill-maintenance.md`
+- `docs/README.md`
 - `skills/pwcli/**`
 - `docs/architecture/README.md`
 - `docs/architecture/documentation-governance.md`
@@ -149,6 +166,10 @@
 
 3. `docs/architecture/domain-status.md`
 
+同时检查：
+
+4. `.codex/skill-maintenance.md`
+
 ### 架构边界变化
 
 先改：
@@ -168,9 +189,20 @@
 2. 删除重复结论
 3. 把过程稿留在 `.claude/` 本地归档或直接删除
 
+### Codex 项目配置变化
+
+只允许进入 `.codex/`：
+
+1. 可共享的项目默认模型 / reasoning / review policy
+2. skill 维护规则
+3. 不含密钥的工具约束
+
+个人配置继续留在 `~/.codex/config.toml`。
+
 ## 8. 当前明确结论
 
 1. `skills/pwcli/` 是唯一使用教程真相
 2. `docs/architecture/` 只放最终架构文档
-3. `.claude/` 只做本地过程归档并 gitignore
-4. 过程文档不再作为 shipped contract 的一部分
+3. `.codex/` 是项目级 Codex 配置和 skill 维护说明
+4. `.claude/` 只做本地过程归档并 gitignore
+5. 过程文档不再作为 shipped contract 的一部分
