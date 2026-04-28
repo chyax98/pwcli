@@ -7,10 +7,11 @@
 1. 执行浏览器任务
 2. 复现、定位、诊断浏览器问题
 
-当前仓库把真相拆成两条：
+当前仓库把真相拆成三条：
 
 - **怎么用**：看 [skills/pwcli/SKILL.md](skills/pwcli/SKILL.md)
-- **为什么这样设计**：看 [docs/architecture/README.md](docs/architecture/README.md)
+- **为什么这样设计**：看 [docs/README.md](docs/README.md)
+- **怎么维护**：看 [.codex/README.md](.codex/README.md)
 
 ## 当前产品规则
 
@@ -20,6 +21,7 @@
 - `session create|attach|recreate` 是唯一 lifecycle 主路
 - `open` 只做导航
 - `auth` 只做内置 auth provider 执行
+- auth provider 只支持内置 registry，没有外部 plugin 加载机制
 - `batch` 走结构化 `string[][]`
 - diagnostics 优先 query/export
 - trace 默认开启
@@ -30,8 +32,10 @@
 pw session create bug-a --open 'https://example.com'
 pw observe status --session bug-a
 pw page current --session bug-a
+pw page list --session bug-a
+pw tab select --session bug-a <pageId>
 pw click e6 --session bug-a
-pw wait networkIdle --session bug-a
+pw wait network-idle --session bug-a
 pw diagnostics digest --session bug-a
 pw diagnostics show --run <runId> --command click --limit 5
 pw diagnostics export --session bug-a --out ./diag.json
@@ -76,7 +80,8 @@ docs/
 - `src/domain`：命令语义与领域编排
 - `src/infra`：Playwright substrate、fs、内置 auth provider / 外部脚本适配
 - `skills/pwcli`：模型使用教程的唯一真相
-- `docs/architecture`：架构决策、领域现状、已知限制、扩展方向
+- `docs`：架构决策、领域现状、已知限制、扩展方向
+- `.codex`：Codex 项目配置和 skill 维护规则
 
 ## 验证
 
@@ -103,9 +108,5 @@ pnpm test:dogfood:e2e
 - 命令参考：[skills/pwcli/references/command-reference.md](skills/pwcli/references/command-reference.md)
 - 工作流：[skills/pwcli/references/workflows.md](skills/pwcli/references/workflows.md)
 - 恢复策略：[skills/pwcli/references/failure-recovery.md](skills/pwcli/references/failure-recovery.md)
-- 架构总览：[docs/architecture/README.md](docs/architecture/README.md)
-- 文档规约：[docs/architecture/documentation-governance.md](docs/architecture/documentation-governance.md)
-- Clock survey：[docs/architecture/environment-clock-survey.md](docs/architecture/environment-clock-survey.md)
-- Workspace mutation contract：[docs/architecture/workspace-mutation-contract.md](docs/architecture/workspace-mutation-contract.md)
-- E2E 计划：[docs/architecture/e2e-dogfood-test-plan.md](docs/architecture/e2e-dogfood-test-plan.md)
-- E2E 体验报告：[docs/architecture/e2e-dogfood-experience-report.md](docs/architecture/e2e-dogfood-experience-report.md)
+- 文档入口：[docs/README.md](docs/README.md)
+- Codex 项目配置：[.codex/README.md](.codex/README.md)

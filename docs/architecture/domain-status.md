@@ -1,6 +1,6 @@
 # Domain Status
 
-更新时间：2026-04-26
+更新时间：2026-04-28
 
 这份文档记录每个领域的：
 
@@ -36,19 +36,20 @@
 ### 当前实现
 
 - `page current|list|frames|dialogs`
+- `tab select|close <pageId>`
 - `observe status`
 - page / frame / dialog projection
 - `observe status` 默认 compact，`--verbose` 返回完整状态载荷
-- future mutation contract 已单独定义在 `workspace-mutation-contract.md`
+- workspace mutation contract 已单独定义在 `workspace-mutation-contract.md`
 
 ### 当前限制
 
 - `page dialogs` 是事件投影
-- 没有 stable workspace mutation contract
+- `tab select|close` 只接受 `pageId`，不接受 index / title / URL substring 作为写操作目标
 
 ### 后续扩展
 
-- 如果要做 `tab select|close`，先定义 stable target identity
+- 如果继续扩 workspace 写操作，仍然先定义 stable target identity
 
 ## 3. Interaction
 
@@ -87,6 +88,7 @@
 - `profile inspect`
 - `auth` 内置 provider 执行 + `save-state`
 - `dc` 是内置 DC/Forge auth provider；默认手机号和验证码内聚在 provider 内，传了 `targetUrl` 就使用指定业务 URL，未传 URL 时执行默认登录流程
+- `fixture-auth` 是内部 contract 测试 provider，用于 smoke 验证 auth 执行链
 
 ### 当前限制
 
@@ -94,6 +96,7 @@
 - `auth` 不负责 session shape
 - `dc` 不接受 `instance` 参数；不暴露环境参数，RND 固定入口由 skill 引导 agent 显式打开
 - `profile open` 已移除
+- 当前没有外部 plugin 加载、安装、发现、生命周期机制
 
 ### 后续扩展
 
@@ -117,12 +120,14 @@
 - `doctor` 默认 compact，`--verbose` 返回完整 probe
 - action 结果里的 `diagnosticsDelta`
 - `.pwcli/runs/<runId>/events.jsonl`
+- Playwright substrate 原始产物归档在 `.pwcli/playwright/`，包括 trace、snapshot 附件、console 附件、download 附件
 
 ### 当前限制
 
 - 没有 event stream
 - 不是持久化诊断数据库
 - `har start|stop` 只暴露 substrate 边界
+- 已存在的老 session 仍按启动时 substrate 配置写目录；新建或 recreate 后才使用当前 artifact 根目录
 
 ### 后续扩展
 
@@ -199,6 +204,7 @@
 
 - `skills/pwcli/` 是唯一使用教程真相
 - `docs/architecture/` 只维护设计与现状
+- `.codex/` 维护 Codex 项目配置和 skill 维护规则
 - `.claude/` 只做本地过程归档，不进入 git
 
 ### 当前限制
@@ -208,3 +214,4 @@
 ### 后续扩展
 
 - 新增命令或 limitation 时，优先改 skill
+- Codex review policy 只记录可验证问题，不把文档拼写类问题升级成阻塞问题

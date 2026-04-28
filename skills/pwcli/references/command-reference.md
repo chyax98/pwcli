@@ -59,6 +59,13 @@ state / auth / batch / environment 命令见 `command-reference-advanced.md`。
 
 - `dialogs` 是事件投影，不是 authoritative live dialog set
 
+### `pw tab select|close <pageId> --session <name>`
+
+- 写操作只接受 `pageId`
+- 先用 `pw page list --session <name>` 获取 `pageId`
+- `tab close` 关闭当前页后按 opener、前一个 page、后一个 page 的顺序回退 active target；没有剩余页面则 workspace 为空
+- 不接受 index、title、URL substring 作为目标
+
 ### `pw read-text --session <name>`
 
 - `--selector <selector>`、`--include-overlay`、`--max-chars <count>`
@@ -123,3 +130,4 @@ state / auth / batch / environment 命令见 `command-reference-advanced.md`。
 - `session attach --browser-url/--cdp` 只接管本机可连接的调试端口
 - `storage local|session` 对无效 origin 返回 `accessible: false`
 - 默认 `trace: true`；显式 `--no-trace` 优先；可用 `.pwcli/config.json` 设默认值
+- pwcli 启动的新 session 会把 Playwright 原始附件写入 `.pwcli/playwright/`；已有 session 需要 recreate 才切换目录

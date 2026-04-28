@@ -1,5 +1,5 @@
 import { createRequire } from "node:module";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 
 const require = createRequire(import.meta.url);
 const playwrightCoreRoot = dirname(require.resolve("playwright-core/package.json"));
@@ -64,6 +64,31 @@ async function withSuppressedConsole<T>(fn: () => Promise<T>) {
   } finally {
     console.log = originalLog;
     console.error = originalError;
+  }
+}
+
+let playwrightOutputEnvLock: Promise<void> = Promise.resolve();
+
+async function withPwcliPlaywrightOutput<T>(outputDir: string, fn: () => Promise<T>) {
+  const previousLock = playwrightOutputEnvLock;
+  let releaseLock!: () => void;
+  playwrightOutputEnvLock = new Promise<void>((resolve) => {
+    releaseLock = resolve;
+  });
+
+  await previousLock;
+
+  const previousOutputDir = process.env.PLAYWRIGHT_MCP_OUTPUT_DIR;
+  process.env.PLAYWRIGHT_MCP_OUTPUT_DIR = outputDir;
+  try {
+    return await fn();
+  } finally {
+    if (previousOutputDir === undefined) {
+      delete process.env.PLAYWRIGHT_MCP_OUTPUT_DIR;
+    } else {
+      process.env.PLAYWRIGHT_MCP_OUTPUT_DIR = previousOutputDir;
+    }
+    releaseLock();
   }
 }
 
@@ -151,15 +176,19 @@ export async function ensureManagedSession(options?: {
   const nextEntry =
     options?.reset || !entry
       ? await (async () => {
-          await withSuppressedConsole(() =>
-            Session.startDaemon(clientInfo, {
-              _: ["open"],
-              headed: Boolean(options?.headed),
-              session: sessionName,
-              ...(options?.profile ? { profile: options.profile } : {}),
-              ...(options?.persistent ? { persistent: true } : {}),
-              ...(options?.endpoint ? { endpoint: options.endpoint } : {}),
-            }),
+          await withPwcliPlaywrightOutput(
+            resolve(clientInfo.workspaceDir ?? process.cwd(), ".pwcli", "playwright"),
+            () =>
+              withSuppressedConsole(() =>
+                Session.startDaemon(clientInfo, {
+                  _: ["open"],
+                  headed: Boolean(options?.headed),
+                  session: sessionName,
+                  ...(options?.profile ? { profile: options.profile } : {}),
+                  ...(options?.persistent ? { persistent: true } : {}),
+                  ...(options?.endpoint ? { endpoint: options.endpoint } : {}),
+                }),
+              ),
           );
           return await registry.loadEntry(clientInfo, sessionName);
         })()

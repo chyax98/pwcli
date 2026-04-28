@@ -1,6 +1,6 @@
 ---
 name: pwcli
-description: Use this skill for any task that involves driving a browser — opening pages, clicking, filling forms, capturing screenshots, checking network requests or console errors, mocking APIs, saving/restoring login state, or running Forge/DC auth. Invoke immediately whenever the task touches a browser URL, page interaction, API response inspection, or Playwright automation. Do not attempt to use raw Playwright or curl as a substitute. Trigger phrases: "用 pw", "pw session", "打开页面", "点一下", "继续探索", "诊断页面", "看 network", "dc2 登录", "Forge 登录", "developer-*.tap.dev/forge", "用浏览器跑", "pw 自动化".
+description: "Use pwcli for browser automation, page exploration, diagnostics, screenshots, network/console inspection, mocks, state reuse, and auth providers."
 ---
 
 # pwcli
@@ -13,10 +13,42 @@ description: Use this skill for any task that involves driving a browser — ope
 - 用户说“继续 / 接着 / 刚才那个页面”：复用原 session。
 - `session create|attach|recreate` 是 lifecycle 主路。
 - `open` 只在已有 session 里导航，不负责创建、profile、state、headed。
-- `auth` 只执行内置 provider，不负责创建 session。
-- 所有浏览器命令显式带 `--session <name>`。
+- `auth` 只执行内置 auth provider，不负责创建 session；没有外部 plugin 机制。
+- 所有浏览器命令显式带 session，实战优先 `-s <name>`，解释 contract 时用 `--session <name>`。
 - session 名最长 16 字符，只用字母、数字、`-`、`_`。
 - 默认 stdout 给 Agent 阅读；脚本解析和字段断言才用 `--output json`。
+
+## 命令风格
+
+- `-s <name>` 等价于 `--session <name>`。
+- 高频探索、动作、诊断链路优先用 `-s`，减少 token 和输入噪声。
+- 第一次解释命令语义、写 reference、写脚本断言时保留 `--session`。
+- 复杂定位参数保留长参数，例如 `--selector`、`--role`、`--text`、`--response`。
+
+推荐组合要按真实页面状态裁剪，不要机械全跑。
+
+```bash
+# 快速理解页面
+pw observe status -s bug-a
+pw read-text -s bug-a --max-chars 2000
+pw snapshot -i -s bug-a
+
+# 动作闭环
+pw click e42 -s bug-a
+pw wait network-idle -s bug-a
+pw diagnostics digest -s bug-a
+
+# 多页面
+pw page list -s bug-a
+pw tab select <pageId> -s bug-a
+pw tab close <pageId> -s bug-a
+
+# 失败复现
+pw errors clear -s bug-a
+pw click e42 -s bug-a
+pw wait network-idle -s bug-a
+pw diagnostics digest -s bug-a
+```
 
 ## 1. 能力地图
 
@@ -26,12 +58,13 @@ description: Use this skill for any task that involves driving a browser — ope
 | 继续当前页面 | `session list/status` | 用户明确说继续旧任务 |
 | 已有 session 导航 | `open` | 只换 URL，不换 browser shape |
 | 页面理解 | `observe status`、`page current`、`read-text` | 默认观察路径 |
+| 多页面切换 | `page list`、`tab select|close` | popup、新开页、OAuth/预览窗口 |
 | 结构定位 | `snapshot -i` / `snapshot` | 需要 aria ref 或页面结构 |
 | 页面动作 | `click/fill/type/press/scroll/drag` | 稳定动作，带 action 记录 |
 | 文件交互 | `upload/download` | 上传文件、验证下载 |
 | 等待状态 | `wait` | 动作后依赖页面变化 |
 | 快速脚本 | `code` | 多状态读取、组合动作、能力未覆盖 |
-| 登录 | `auth <provider>` | 内置 provider，如 `dc` |
+| 登录 | `auth <provider>` | 内置 provider |
 | 状态复用 | `state/cookies/storage` | 保存登录态、检查存储 |
 | 诊断 | `diagnostics/console/network/errors/doctor` | bug 定位和证据导出 |
 | Mock | `route` | 网络请求 mock、patch、abort |
@@ -56,7 +89,7 @@ pw session create bug-a --headless --open 'https://example.com'
 已有 session 内换 URL：
 
 ```bash
-pw open --session bug-a 'https://example.com/next'
+pw open -s bug-a 'https://example.com/next'
 ```
 
 恢复或改变 browser shape：
@@ -85,9 +118,9 @@ pw session close --all
 默认先用低噪声命令，不先打大 snapshot：
 
 ```bash
-pw observe status --session bug-a
-pw page current --session bug-a
-pw read-text --session bug-a --max-chars 2000
+pw observe status -s bug-a
+pw page current -s bug-a
+pw read-text -s bug-a --max-chars 2000
 ```
 
 用途：
@@ -102,73 +135,77 @@ pw read-text --session bug-a --max-chars 2000
 需要 ref 点击或结构定位：
 
 ```bash
-pw snapshot -i --session bug-a
+pw snapshot -i -s bug-a
 ```
 
 截图证据：
 
 ```bash
-pw screenshot --session bug-a --path ./evidence.png --full-page
-pw screenshot --session bug-a --selector '.panel' --path ./panel.png
+pw screenshot -s bug-a --path ./evidence.png --full-page
+pw screenshot -s bug-a --selector '.panel' --path ./panel.png
 ```
 
 查看多页面和 frame：
 
 ```bash
-pw page list --session bug-a
-pw page frames --session bug-a
-pw page dialogs --session bug-a
+pw page list -s bug-a
+pw tab select <pageId> -s bug-a
+pw tab close <pageId> -s bug-a
+pw page frames -s bug-a
+pw page dialogs -s bug-a
 ```
+
+`tab select|close` 只接受 `pageId`。先用 `page list` 找 `pageId`，不要用 index、title 或 URL substring 作为写操作目标。
 
 ## 4. 页面动作
 
 优先 selector 或语义定位；已有 snapshot ref 时用 ref。
 
 ```bash
-pw click --session bug-a --selector 'button[type=submit]'
-pw fill --session bug-a --selector 'input[name=phone]' '19545672859'
-pw click --session bug-a --role button --name '提交'
-pw click --session bug-a --text '继续'
-pw click --session bug-a e42
-pw press --session bug-a Enter
-pw type --session bug-a --selector 'textarea' 'hello'
-pw scroll --session bug-a down 800
-pw drag --session bug-a --from-selector '.source' --to-selector '.target'
+pw click -s bug-a --selector 'button[type=submit]'
+pw fill -s bug-a --selector 'input[name=email]' 'user@example.com'
+pw click -s bug-a --role button --name '提交'
+pw click -s bug-a --text '继续'
+pw click e42 -s bug-a
+pw press Enter -s bug-a
+pw type -s bug-a --selector 'textarea' 'hello'
+pw scroll down 800 -s bug-a
+pw drag -s bug-a --from-selector '.source' --to-selector '.target'
 ```
 
 动作后如果依赖导航、请求、DOM 更新，必须等待：
 
 ```bash
-pw wait --session bug-a network-idle
-pw wait --session bug-a --text '保存成功'
-pw wait --session bug-a --selector '.loaded'
-pw wait --session bug-a --response '/api/app/v2/detail' --status 200
+pw wait network-idle -s bug-a
+pw wait -s bug-a --text '保存成功'
+pw wait -s bug-a --selector '.loaded'
+pw wait -s bug-a --response '/api/items' --status 200
 ```
 
 动作闭环：
 
 ```bash
-pw click --session bug-a --text '提交'
-pw wait --session bug-a network-idle
-pw read-text --session bug-a --max-chars 2000
-pw diagnostics digest --session bug-a
+pw click -s bug-a --text '提交'
+pw wait network-idle -s bug-a
+pw read-text -s bug-a --max-chars 2000
+pw diagnostics digest -s bug-a
 ```
 
 文件上传下载：
 
 ```bash
-pw upload --session bug-a --selector 'input[type=file]' ./fixture.png
-pw download --session bug-a --selector 'a.download' --dir ./downloads
-pw download --session bug-a e42 --path ./downloads/report.csv
+pw upload -s bug-a --selector 'input[type=file]' ./fixture.png
+pw download -s bug-a --selector 'a.download' --dir ./downloads
+pw download e42 -s bug-a --path ./downloads/report.csv
 ```
 
 响应式检查：
 
 ```bash
-pw resize --session bug-a --preset iphone
-pw resize --session bug-a --view 390x844
-pw read-text --session bug-a --max-chars 1200
-pw screenshot --session bug-a --path ./mobile.png --full-page
+pw resize -s bug-a --preset iphone
+pw resize -s bug-a --view 390x844
+pw read-text -s bug-a --max-chars 1200
+pw screenshot -s bug-a --path ./mobile.png --full-page
 ```
 
 ## 5. `pw code` 策略
@@ -193,7 +230,7 @@ pw screenshot --session bug-a --path ./mobile.png --full-page
 示例：
 
 ```bash
-pw code --session bug-a "async page => {
+pw code -s bug-a "async page => {
   return JSON.stringify({
     title: await page.title(),
     url: page.url(),
@@ -212,41 +249,41 @@ pw code --session bug-a "async page => {
 页面异常、白屏、按钮无效、跳转错误、接口失败，按这个顺序查：
 
 ```bash
-pw diagnostics digest --session bug-a
-pw console --session bug-a --level error --limit 20
-pw network --session bug-a --status 400 --limit 20
-pw network --session bug-a --status 500 --limit 20
-pw errors recent --session bug-a --limit 20
+pw diagnostics digest -s bug-a
+pw console -s bug-a --level error --limit 20
+pw network -s bug-a --status 400 --limit 20
+pw network -s bug-a --status 500 --limit 20
+pw errors recent -s bug-a --limit 20
 ```
 
 先清错误基线再复现：
 
 ```bash
-pw errors clear --session bug-a
-pw click --session bug-a --text '提交'
-pw wait --session bug-a network-idle
-pw diagnostics digest --session bug-a
+pw errors clear -s bug-a
+pw click -s bug-a --text '提交'
+pw wait network-idle -s bug-a
+pw diagnostics digest -s bug-a
 ```
 
 查具体接口：
 
 ```bash
-pw network --session bug-a --url '/api/app/v2/detail' --limit 20
-pw network --session bug-a --request-id <id>
-pw network --session bug-a --kind requestfailed --limit 20
-pw network --session bug-a --method POST --text 'developer_id' --limit 20
+pw network -s bug-a --url '/api/items' --limit 20
+pw network -s bug-a --request-id <id>
+pw network -s bug-a --kind requestfailed --limit 20
+pw network -s bug-a --method POST --text 'request_id' --limit 20
 ```
 
 导出证据：
 
 ```bash
-pw diagnostics export --session bug-a --section network --text 'developer_id' --fields at=timestamp,method,url,status,snippet=responseBodySnippet --out ./diag.json
+pw diagnostics export -s bug-a --section network --text 'request_id' --fields at=timestamp,method,url,status,snippet=responseBodySnippet --out ./diag.json
 ```
 
 回放 run：
 
 ```bash
-pw diagnostics runs --session bug-a --limit 20
+pw diagnostics runs -s bug-a --limit 20
 pw diagnostics show --run <runId> --command click --limit 10
 pw diagnostics grep --run <runId> --text 'CHECKOUT_TIMEOUT' --limit 10
 ```
@@ -256,10 +293,10 @@ pw diagnostics grep --run <runId> --text 'CHECKOUT_TIMEOUT' --limit 10
 Trace / HAR：
 
 ```bash
-pw trace start --session bug-a
-pw trace stop --session bug-a
-pw har start ./bug.har --session bug-a
-pw har stop --session bug-a
+pw trace start -s bug-a
+pw trace stop -s bug-a
+pw har start ./bug.har -s bug-a
+pw har stop -s bug-a
 ```
 
 HAR 热录制当前只暴露 substrate 边界，稳定诊断仍优先 `network` 和 `diagnostics export`。
@@ -267,9 +304,9 @@ HAR 热录制当前只暴露 substrate 边界，稳定诊断仍优先 `network` 
 ## 7. Dialog 和卡死恢复
 
 ```bash
-pw observe status --session bug-a      # 先看状态
-pw dialog accept --session bug-a       # 解除 modal
-pw dialog dismiss --session bug-a
+pw observe status -s bug-a             # 先看状态
+pw dialog accept -s bug-a              # 解除 modal
+pw dialog dismiss -s bug-a
 pw session recreate bug-a --headed --open '<url>'  # 上面无效再重建
 ```
 
@@ -277,42 +314,48 @@ pw session recreate bug-a --headed --open '<url>'  # 上面无效再重建
 
 ## 8. Auth
 
-Forge/DC 登录是内置 provider 场景。主路径：
+Auth provider 是内置 registry 能力，不是外部 plugin。`pw auth` 只在已有 session 里执行 provider，不创建 session、不改变 headed/profile/persistent/state shape。
+
+发现 provider：
 
 ```bash
-pw session create dc2 --headed
-pw auth dc --session dc2
-pw read-text --session dc2 --max-chars 1200
+pw auth list
+pw auth info <provider>
 ```
 
-URL 规则：
+通用登录主路径：
 
-- 用户给 URL：先 `pw session create dc2 --headed --open '<url>'`，再 `pw auth dc --session dc2 --arg targetUrl='<url>'`。
-- 用户明确说 RND：`pw session create dc2 --headed --open 'https://developer.xdrnd.cn/forge'`，再 `pw auth dc --session dc2`。
-- 用户没给 URL 且没说 RND：不要问，直接执行主路径。
-- 主路径失败且错误要求 `targetUrl`：让用户给 Forge 链接，再执行 `pw auth dc --session dc2 --arg targetUrl='<url>'`。
+```bash
+pw session create auth-a --headed --open '<url>'
+pw auth list
+pw auth info <provider>
+pw auth <provider> -s auth-a
+pw read-text -s auth-a --max-chars 1200
+```
+
+带 provider 参数：
+
+```bash
+pw auth <provider> -s auth-a --arg key=value
+pw auth <provider> -s auth-a --save-state ./auth.json
+```
 
 硬规则：
 
-- `dc2.0` 是系统名，不是 `instance=2`。
-- 禁止猜 `developer-p2-*`。
-- 禁止手填手机号、短信码、登录表单。
-- 用户给 URL 就作为 `targetUrl` 传给 `pw auth dc`。
-- 用户没给 URL 且没说 RND 时，直接执行默认登录命令，不先问 URL。
+- provider 只使用 `pw auth <provider> -s <name>` / `--session <name>` 执行。
+- provider 参数只用 `--arg key=value`。
+- 外部临时登录脚本走 `pw code --file <path>`，不要挂到 `pw auth`。
+- provider 需要哪些参数，以 `pw auth info <provider>` 为准。
+- provider 失败时，按错误信息补参数后重试。
 
-手机号优先级：
-
-- 用户本轮给的手机号。
-- 默认测试账号：`19545672859`。
-
-更细失败分支见 `references/forge-dc-auth.md`。
+专项 provider 细节不写进主 skill；遇到 provider-specific 失败或参数不确定时，查对应 reference。
 
 ## 9. 状态复用
 
 保存登录态：
 
 ```bash
-pw state save ./auth.json --session bug-a
+pw state save ./auth.json -s bug-a
 ```
 
 用 state 创建新 session：
@@ -324,21 +367,21 @@ pw session create bug-b --state ./auth.json --headed --open 'https://example.com
 已有 session 加载 state：
 
 ```bash
-pw state load ./auth.json --session bug-a
+pw state load ./auth.json -s bug-a
 ```
 
 Cookie / storage 读取：
 
 ```bash
-pw cookies list --session bug-a --domain example.com
-pw storage local --session bug-a
-pw storage session --session bug-a
+pw cookies list -s bug-a --domain example.com
+pw storage local -s bug-a
+pw storage session -s bug-a
 ```
 
 设置 cookie：
 
 ```bash
-pw cookies set --session bug-a --name token --value '<value>' --domain example.com --path /
+pw cookies set -s bug-a --name token --value '<value>' --domain example.com --path /
 ```
 
 Profile 检查：
@@ -353,53 +396,53 @@ pw session create bug-a --profile ./profile --persistent --headed --open 'https:
 Mock 单个接口：
 
 ```bash
-pw route add '**/api/**' --session bug-a --method GET --status 200 --content-type application/json --body '{"ok":true}'
-pw route list --session bug-a
+pw route add '**/api/**' -s bug-a --method GET --status 200 --content-type application/json --body '{"ok":true}'
+pw route list -s bug-a
 ```
 
 按请求体匹配：
 
 ```bash
-pw route add '**/api/**' --session bug-a --method POST --match-body 'fail500' --status 200 --content-type application/json --body '{"ok":true}'
+pw route add '**/api/**' -s bug-a --method POST --match-body 'fail500' --status 200 --content-type application/json --body '{"ok":true}'
 ```
 
 Patch upstream JSON：
 
 ```bash
-pw route add '**/api/**' --session bug-a --patch-json-file ./patch.json --patch-status 298
+pw route add '**/api/**' -s bug-a --patch-json-file ./patch.json --patch-status 298
 ```
 
 批量加载 route：
 
 ```bash
-pw route load ./routes.json --session bug-a
+pw route load ./routes.json -s bug-a
 ```
 
 环境控制：
 
 ```bash
-pw environment offline on --session bug-a
-pw environment offline off --session bug-a
-pw environment geolocation set --session bug-a --lat 37.7749 --lng -122.4194
-pw environment permissions grant geolocation --session bug-a
-pw environment permissions clear --session bug-a
-pw environment clock install --session bug-a
-pw environment clock set --session bug-a 2024-12-10T10:00:00.000Z
-pw environment clock resume --session bug-a
+pw environment offline on -s bug-a
+pw environment offline off -s bug-a
+pw environment geolocation set -s bug-a --lat 37.7749 --lng -122.4194
+pw environment permissions grant geolocation -s bug-a
+pw environment permissions clear -s bug-a
+pw environment clock install -s bug-a
+pw environment clock set -s bug-a 2024-12-10T10:00:00.000Z
+pw environment clock resume -s bug-a
 ```
 
 Bootstrap：
 
 ```bash
-pw bootstrap apply --session bug-a --init-script ./bootstrap.js
-pw bootstrap apply --session bug-a --headers-file ./headers.json
+pw bootstrap apply -s bug-a --init-script ./bootstrap.js
+pw bootstrap apply -s bug-a --headers-file ./headers.json
 ```
 
 清理 route：
 
 ```bash
-pw route remove '**/api/**' --session bug-a
-pw route remove --session bug-a
+pw route remove '**/api/**' -s bug-a
+pw route remove -s bug-a
 ```
 
 ## 11. Batch 和输出
@@ -431,51 +474,48 @@ pw batch --session bug-a --file ./steps.json
 
 ```bash
 pw session create explore-a --headed --open '<url>'
-pw observe status --session explore-a
-pw read-text --session explore-a --max-chars 2000
-pw snapshot -i --session explore-a
+pw observe status -s explore-a
+pw read-text -s explore-a --max-chars 2000
+pw snapshot -i -s explore-a
 ```
 
 复现 bug：
 
 ```bash
 pw session create bug-a --headed --open '<url>'
-pw errors clear --session bug-a
-pw read-text --session bug-a --max-chars 2000
-pw click --session bug-a --text '<action>'
-pw wait --session bug-a network-idle
-pw diagnostics digest --session bug-a
-pw console --session bug-a --level error --limit 20
-pw network --session bug-a --status 500 --limit 20
+pw errors clear -s bug-a
+pw read-text -s bug-a --max-chars 2000
+pw click -s bug-a --text '<action>'
+pw wait network-idle -s bug-a
+pw diagnostics digest -s bug-a
+pw console -s bug-a --level error --limit 20
+pw network -s bug-a --status 500 --limit 20
 ```
 
 验证接口请求：
 
 ```bash
 pw session create api-a --headed --open '<url>'
-pw click --session api-a --text '<action>'
-pw wait --session api-a --response '<api path>' --status 200
-pw network --session api-a --url '<api path>' --limit 10
+pw click -s api-a --text '<action>'
+pw wait -s api-a --response '<api path>' --status 200
+pw network -s api-a --url '<api path>' --limit 10
 ```
 
 确定性自动化：
 
 ```bash
 pw session create test-a --headless --open '<url>'
-pw route load ./routes.json --session test-a
-pw bootstrap apply --session test-a --init-script ./bootstrap.js
-pw click --session test-a --selector '<selector>'
-pw wait --session test-a --text '<expected>'
-pw --output json read-text --session test-a --max-chars 1000
+pw route load ./routes.json -s test-a
+pw bootstrap apply -s test-a --init-script ./bootstrap.js
+pw click -s test-a --selector '<selector>'
+pw wait -s test-a --text '<expected>'
+pw --output json read-text -s test-a --max-chars 1000
 ```
 
 ## 13. 禁止事项
 
 - 不要把 `open` 当成 session lifecycle。
 - 不要让 `auth` 创建 session。
-- 不要把 `dc2.0` 推断成 `instance=2`。
-- 不要猜不存在的 `developer-p2-*`。
-- 不要在 Forge/DC 场景手填登录表单。
 - 不要把 `pw batch --stdin-json` 当成输出 JSON。
 - 不要忽略 limitation code。
 - 不要把 HAR 热录制、raw CDP substrate 等边界能力包装成稳定支持。
@@ -488,6 +528,6 @@ pw --output json read-text --session test-a --max-chars 1000
 - `references/command-reference.md` — session 生命周期、页面读取、动作与等待
 - `references/command-reference-diagnostics.md` — 查 bug 时：console / network / errors / diagnostics / route mock / trace
 - `references/command-reference-advanced.md` — 构建自动化时：state / auth / batch / environment / `pw code`
-- `references/forge-dc-auth.md` — Forge/DC 登录失败或需确认步骤时
+- `references/forge-dc-auth.md` — Forge/DC provider 的参数、失败分支、环境路由
 - `references/failure-recovery.md` — 遇到错误码时
 - `references/gotchas.md` — 遇到非预期行为时

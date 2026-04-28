@@ -454,7 +454,10 @@ function inspectAuthProviderResolution(providerName?: string): DoctorDiagnostic 
     return {
       kind: "auth-provider-resolution",
       status: providers.length > 0 ? "ok" : "warn",
-      summary: providers.length > 0 ? "Built-in auth providers are readable" : "No auth providers discovered",
+      summary:
+        providers.length > 0
+          ? "Built-in auth providers are readable"
+          : "No auth providers discovered",
       details: {
         discoveredCount: providers.length,
         providers,
@@ -466,7 +469,9 @@ function inspectAuthProviderResolution(providerName?: string): DoctorDiagnostic 
   return {
     kind: "auth-provider-resolution",
     status: provider ? "ok" : "warn",
-    summary: provider ? `Auth provider '${providerName}' resolved` : `Auth provider '${providerName}' not found`,
+    summary: provider
+      ? `Auth provider '${providerName}' resolved`
+      : `Auth provider '${providerName}' not found`,
     details: {
       requestedProvider: providerName,
       discoveredCount: providers.length,

@@ -19,27 +19,28 @@ export function registerCodeCommand(program: Command): void {
       source: string | undefined,
       options: { session?: string; file?: string; retry?: string },
     ) => {
-    try {
-      const sessionName = requireSessionName(options);
-      printCommandResult(
-        "code",
-        await managedRunCode({
-          sessionName,
-          source,
-          file: options.file,
-          retry: options.retry ? Number(options.retry) : 0,
-        }),
-      );
-    } catch (error) {
-      printSessionAwareCommandError("code", error, {
-        code: "CODE_EXECUTION_FAILED",
-        message: "code execution failed",
-        suggestions: [
-          "Pass inline code like: pw code --session bug-a \"async page => { await page.goto('https://example.com'); return await page.title(); }\"",
-          "Or pass --file <path> with code that evaluates to a function taking page",
-        ],
-      });
-      process.exitCode = 1;
-    }
-  });
+      try {
+        const sessionName = requireSessionName(options);
+        printCommandResult(
+          "code",
+          await managedRunCode({
+            sessionName,
+            source,
+            file: options.file,
+            retry: options.retry ? Number(options.retry) : 0,
+          }),
+        );
+      } catch (error) {
+        printSessionAwareCommandError("code", error, {
+          code: "CODE_EXECUTION_FAILED",
+          message: "code execution failed",
+          suggestions: [
+            "Pass inline code like: pw code --session bug-a \"async page => { await page.goto('https://example.com'); return await page.title(); }\"",
+            "Or pass --file <path> with code that evaluates to a function taking page",
+          ],
+        });
+        process.exitCode = 1;
+      }
+    },
+  );
 }

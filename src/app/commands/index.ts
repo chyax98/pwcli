@@ -31,6 +31,7 @@ import { registerSkillCommand } from "./skill.js";
 import { registerSnapshotCommand } from "./snapshot.js";
 import { registerStateCommand } from "./state.js";
 import { registerStorageCommand } from "./storage.js";
+import { registerTabCommand } from "./tab.js";
 import { registerTraceCommand } from "./trace.js";
 import { registerTypeCommand } from "./type.js";
 import { registerUploadCommand } from "./upload.js";
@@ -71,6 +72,7 @@ export function registerCommands(program: Command): void {
   registerStateCommand(program);
   registerStorageCommand(program);
   registerProfileCommand(program);
+  registerTabCommand(program);
   registerSessionCommand(program);
   registerSkillCommand(program);
 }

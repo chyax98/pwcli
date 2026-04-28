@@ -48,6 +48,7 @@ state / auth / batch 命令见 `command-reference-advanced.md`。
 - 列出 `.pwcli/runs/` 下的 run 摘要
 - `--limit <n>`、`--session <name>`、`--since <iso>`（按 `lastTimestamp` 过滤）
 - 返回字段：`runId` / `sessionName` / `firstTimestamp` / `lastTimestamp` / `commandCount` / `summary`
+- pwcli 启动的新 session 会把 Playwright 原始附件写入 `.pwcli/playwright/`；已有 session 需要 recreate 才切换
 
 ### `pw diagnostics show --run <runId>`
 
@@ -59,7 +60,7 @@ state / auth / batch 命令见 `command-reference-advanced.md`。
 
 ### `pw doctor --session <name>`
 
-- `--plugin <name>`、`--profile <path>`、`--state <file>`、`--endpoint <url>`
+- `--auth-provider <name>`、`--profile <path>`、`--state <file>`、`--endpoint <url>`
 - `--verbose`：完整 probe 细节
 - 诊断 substrate 健康、探测 endpoint reachability、返回恢复建议
 

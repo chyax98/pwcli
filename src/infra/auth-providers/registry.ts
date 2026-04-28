@@ -1,5 +1,4 @@
 import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
 import { dcAuthProvider } from "./dc.js";
 
 export type AuthProviderArgSpec = {
@@ -21,9 +20,34 @@ export type AuthProviderSpec = {
   resolveArgs?: (args: Record<string, string>) => Promise<Record<string, string>>;
 };
 
-const bundledFixtureAuthPath = fileURLToPath(
-  new URL("../../../plugins/fixture-auth.js", import.meta.url),
-);
+const fixtureAuthProviderSource = String(async (page, args) => {
+  const marker = String(args.marker ?? "fixture-auth").trim() || "fixture-auth";
+  const path = String(args.path ?? "/").trim() || "/";
+
+  await page.evaluate(
+    async ({ nextMarker, cookiePath }) => {
+      localStorage.setItem("pwcli-auth-marker", nextMarker);
+      // biome-ignore lint/suspicious/noDocumentCookie: fixture auth validates cookie-backed state save/load.
+      document.cookie = `pwcli_auth_marker=${encodeURIComponent(nextMarker)}; path=${cookiePath}`;
+      document.body.setAttribute("data-pwcli-auth-marker", nextMarker);
+    },
+    {
+      nextMarker: marker,
+      cookiePath: path,
+    },
+  );
+
+  return {
+    ok: true,
+    pageState: await page.evaluate(() => ({
+      url: window.location.href,
+      title: document.title,
+      readyState: document.readyState,
+      authMarker: localStorage.getItem("pwcli-auth-marker") ?? "",
+      bodyMarker: document.body.getAttribute("data-pwcli-auth-marker") ?? "",
+    })),
+  };
+});
 
 const AUTH_PROVIDERS: AuthProviderSpec[] = [
   dcAuthProvider,
@@ -32,7 +56,7 @@ const AUTH_PROVIDERS: AuthProviderSpec[] = [
     summary: "内部测试 provider，仅用于 auth contract 回归验证",
     description:
       "在当前页面 origin 上写入 cookie 和 localStorage，用于验证 auth provider 执行链与 save-state 行为。",
-    bundledSourcePath: bundledFixtureAuthPath,
+    source: fixtureAuthProviderSource,
     args: [
       {
         name: "marker",

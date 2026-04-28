@@ -138,6 +138,23 @@ page_json="$(run_json page-current page current --session "$SESSION_NAME")"
 assert_json "$page_json" "page current points at fixture" \
   "data.ok === true && data.data.currentPage.url === '${BLANK_URL}' && data.data.pageCount >= 1"
 
+log "tab select and close"
+tab_second_url="${ORIGIN}/second-tab"
+tab_create_json="$(run_json tab-create code --session "$SESSION_NAME" "async page => { const p = await page.context().newPage(); await p.goto('${tab_second_url}'); return p.url(); }")"
+assert_json "$tab_create_json" "second tab created" \
+  "data.ok === true && data.data.result === '${tab_second_url}'"
+tab_list_before_json="$(run_json tab-list-before page list --session "$SESSION_NAME")"
+assert_json "$tab_list_before_json" "page list sees two tabs" \
+  "data.ok === true && data.data.pageCount === 2 && data.data.pages.some(item => item.url === '${BLANK_URL}') && data.data.pages.some(item => item.url === '${tab_second_url}')"
+first_page_id="$(json_field "$tab_list_before_json" "data.data.pages.find(item => item.url === '${BLANK_URL}').pageId")"
+second_page_id="$(json_field "$tab_list_before_json" "data.data.pages.find(item => item.url === '${tab_second_url}').pageId")"
+tab_select_json="$(run_json tab-select tab select "$second_page_id" --session "$SESSION_NAME")"
+assert_json "$tab_select_json" "tab select switches by pageId" \
+  "data.ok === true && data.data.selected === true && data.data.activePageId === '${second_page_id}' && data.data.currentPage.url === '${tab_second_url}'"
+tab_close_json="$(run_json tab-close tab close "$second_page_id" --session "$SESSION_NAME")"
+assert_json "$tab_close_json" "tab close removes selected page and falls back" \
+  "data.ok === true && data.data.closed === true && data.data.closedPageId === '${second_page_id}' && data.data.activePageId === '${first_page_id}' && data.data.pageCount === 1 && data.data.currentPage.url === '${BLANK_URL}'"
+
 log "session list"
 session_list_json="$(run_json session-list session list)"
 assert_json "$session_list_json" "session list is lightweight by default" \

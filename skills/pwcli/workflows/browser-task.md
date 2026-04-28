@@ -22,48 +22,58 @@ pw session create <name> --headless --open '<url>'
 
 ```bash
 pw session list --with-page
-pw observe status --session <name>
-pw page current --session <name>
-pw read-text --session <name> --max-chars 2000
+pw observe status -s <name>
+pw page current -s <name>
+pw read-text -s <name> --max-chars 2000
 ```
 
 ## 观察
 
 ```bash
-pw observe status --session <name>
-pw page current --session <name>
-pw read-text --session <name> --max-chars 2000
+pw observe status -s <name>
+pw page current -s <name>
+pw read-text -s <name> --max-chars 2000
 ```
+
+多页面、popup、新开预览页：
+
+```bash
+pw page list -s <name>
+pw tab select <pageId> -s <name>
+pw tab close <pageId> -s <name>
+```
+
+`tab select|close` 的目标只用 `pageId`。`page list` 里的 index、title、URL 只用于读侧判断。
 
 需要 aria ref：
 
 ```bash
-pw snapshot --session <name>
+pw snapshot -s <name>
 ```
 
 ## 动作
 
 ```bash
-pw click --session <name> --selector '<selector>'
-pw fill --session <name> --selector '<selector>' '<value>'
-pw click --session <name> --role button --name '<name>'
-pw click --session <name> --text '<text>'
-pw click --session <name> e42
+pw click -s <name> --selector '<selector>'
+pw fill -s <name> --selector '<selector>' '<value>'
+pw click -s <name> --role button --name '<name>'
+pw click -s <name> --text '<text>'
+pw click e42 -s <name>
 ```
 
 动作后等待：
 
 ```bash
-pw wait --session <name> network-idle
-pw wait --session <name> --text '<visible text>'
-pw wait --session <name> --selector '<selector>'
+pw wait network-idle -s <name>
+pw wait -s <name> --text '<visible text>'
+pw wait -s <name> --selector '<selector>'
 ```
 
 ## 复查
 
 ```bash
-pw read-text --session <name> --max-chars 2000
-pw diagnostics digest --session <name>
+pw read-text -s <name> --max-chars 2000
+pw diagnostics digest -s <name>
 ```
 
 如果出现错误、白屏、接口失败，按 `SKILL.md` 的 Bug 诊断流程继续。
