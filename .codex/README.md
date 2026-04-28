@@ -10,6 +10,7 @@
 |---|---|
 | `config.toml` | 项目默认模型、reasoning、review policy、环境继承策略 |
 | `skill-maintenance.md` | `skills/pwcli/` 的维护规则和同步检查单 |
+| `skill-writing-standard.md` | `skills/pwcli/` 的写作分层、质量线、坏味道 |
 
 ## 边界
 

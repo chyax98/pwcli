@@ -48,6 +48,7 @@ state / auth / batch 命令见 `command-reference-advanced.md`。
 - 列出 `.pwcli/runs/` 下的 run 摘要
 - `--limit <n>`、`--session <name>`、`--since <iso>`（按 `lastTimestamp` 过滤）
 - 返回字段：`runId` / `sessionName` / `firstTimestamp` / `lastTimestamp` / `commandCount` / `summary`
+- pwcli 启动的新 session 会把 Playwright 原始附件写入 `.pwcli/playwright/`；已有 session 需要 recreate 才切换
 
 ### `pw diagnostics show --run <runId>`
 

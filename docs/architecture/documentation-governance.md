@@ -103,6 +103,7 @@
 - `.codex/README.md`
 - `.codex/config.toml`
 - `.codex/skill-maintenance.md`
+- `.codex/skill-writing-standard.md`
 - `docs/README.md`
 - `skills/pwcli/**`
 - `docs/architecture/README.md`

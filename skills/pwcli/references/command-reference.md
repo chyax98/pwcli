@@ -123,3 +123,4 @@ state / auth / batch / environment 命令见 `command-reference-advanced.md`。
 - `session attach --browser-url/--cdp` 只接管本机可连接的调试端口
 - `storage local|session` 对无效 origin 返回 `accessible: false`
 - 默认 `trace: true`；显式 `--no-trace` 优先；可用 `.pwcli/config.json` 设默认值
+- pwcli 启动的新 session 会把 Playwright 原始附件写入 `.pwcli/playwright/`；已有 session 需要 recreate 才切换目录

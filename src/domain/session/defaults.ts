@@ -72,10 +72,10 @@ export async function resolveTraceEnabled(options: {
   trace?: boolean;
   noTrace?: boolean;
 }): Promise<boolean> {
-  if (options.trace) {
+  if (options.trace === true) {
     return true;
   }
-  if (options.noTrace) {
+  if (options.trace === false || options.noTrace) {
     return false;
   }
   return (await getSessionDefaults()).trace;
