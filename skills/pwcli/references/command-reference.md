@@ -59,6 +59,13 @@ state / auth / batch / environment 命令见 `command-reference-advanced.md`。
 
 - `dialogs` 是事件投影，不是 authoritative live dialog set
 
+### `pw tab select|close <pageId> --session <name>`
+
+- 写操作只接受 `pageId`
+- 先用 `pw page list --session <name>` 获取 `pageId`
+- `tab close` 关闭当前页后按 opener、前一个 page、后一个 page 的顺序回退 active target；没有剩余页面则 workspace 为空
+- 不接受 index、title、URL substring 作为目标
+
 ### `pw read-text --session <name>`
 
 - `--selector <selector>`、`--include-overlay`、`--max-chars <count>`

@@ -35,6 +35,16 @@ pw page current --session <name>
 pw read-text --session <name> --max-chars 2000
 ```
 
+多页面、popup、新开预览页：
+
+```bash
+pw page list --session <name>
+pw tab select --session <name> <pageId>
+pw tab close --session <name> <pageId>
+```
+
+`tab select|close` 的目标只用 `pageId`。`page list` 里的 index、title、URL 只用于读侧判断。
+
 需要 aria ref：
 
 ```bash

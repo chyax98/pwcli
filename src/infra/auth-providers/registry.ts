@@ -27,6 +27,7 @@ const fixtureAuthProviderSource = String(async (page, args) => {
   await page.evaluate(
     async ({ nextMarker, cookiePath }) => {
       localStorage.setItem("pwcli-auth-marker", nextMarker);
+      // biome-ignore lint/suspicious/noDocumentCookie: fixture auth validates cookie-backed state save/load.
       document.cookie = `pwcli_auth_marker=${encodeURIComponent(nextMarker)}; path=${cookiePath}`;
       document.body.setAttribute("data-pwcli-auth-marker", nextMarker);
     },

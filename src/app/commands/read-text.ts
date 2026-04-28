@@ -22,24 +22,25 @@ export function registerReadTextCommand(program: Command): void {
       includeOverlay?: boolean;
       maxChars?: string;
     }) => {
-    try {
-      const sessionName = requireSessionName(options);
-      printCommandResult(
-        "read-text",
-        await managedReadText({
-          sessionName,
-          selector: options.selector,
-          includeOverlay: options.includeOverlay,
-          maxChars: options.maxChars ? Number(options.maxChars) : 2000,
-        }),
-      );
-    } catch (error) {
-      printSessionAwareCommandError("read-text", error, {
-        code: "READ_TEXT_FAILED",
-        message: "read-text failed",
-        suggestions: ["Run `pw session create <name> --open <url>` first"],
-      });
-      process.exitCode = 1;
-    }
-  });
+      try {
+        const sessionName = requireSessionName(options);
+        printCommandResult(
+          "read-text",
+          await managedReadText({
+            sessionName,
+            selector: options.selector,
+            includeOverlay: options.includeOverlay,
+            maxChars: options.maxChars ? Number(options.maxChars) : 2000,
+          }),
+        );
+      } catch (error) {
+        printSessionAwareCommandError("read-text", error, {
+          code: "READ_TEXT_FAILED",
+          message: "read-text failed",
+          suggestions: ["Run `pw session create <name> --open <url>` first"],
+        });
+        process.exitCode = 1;
+      }
+    },
+  );
 }

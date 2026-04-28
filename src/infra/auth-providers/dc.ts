@@ -226,7 +226,9 @@ export const dcAuthProvider: AuthProviderSpec = {
   resolveArgs: resolveDcArgs,
 };
 
-async function resolveDcArgs(providerArgs: Record<string, string>): Promise<Record<string, string>> {
+async function resolveDcArgs(
+  providerArgs: Record<string, string>,
+): Promise<Record<string, string>> {
   if (providerArgs.instance) {
     throw new Error("dc auth no longer accepts --arg instance. Pass --arg targetUrl=<url>.");
   }

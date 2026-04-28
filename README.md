@@ -32,6 +32,8 @@
 pw session create bug-a --open 'https://example.com'
 pw observe status --session bug-a
 pw page current --session bug-a
+pw page list --session bug-a
+pw tab select --session bug-a <pageId>
 pw click e6 --session bug-a
 pw wait network-idle --session bug-a
 pw diagnostics digest --session bug-a

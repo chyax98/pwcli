@@ -178,16 +178,17 @@ export async function ensureManagedSession(options?: {
       ? await (async () => {
           await withPwcliPlaywrightOutput(
             resolve(clientInfo.workspaceDir ?? process.cwd(), ".pwcli", "playwright"),
-            () => withSuppressedConsole(() =>
-              Session.startDaemon(clientInfo, {
-                _: ["open"],
-                headed: Boolean(options?.headed),
-                session: sessionName,
-                ...(options?.profile ? { profile: options.profile } : {}),
-                ...(options?.persistent ? { persistent: true } : {}),
-                ...(options?.endpoint ? { endpoint: options.endpoint } : {}),
-              }),
-            ),
+            () =>
+              withSuppressedConsole(() =>
+                Session.startDaemon(clientInfo, {
+                  _: ["open"],
+                  headed: Boolean(options?.headed),
+                  session: sessionName,
+                  ...(options?.profile ? { profile: options.profile } : {}),
+                  ...(options?.persistent ? { persistent: true } : {}),
+                  ...(options?.endpoint ? { endpoint: options.endpoint } : {}),
+                }),
+              ),
           );
           return await registry.loadEntry(clientInfo, sessionName);
         })()

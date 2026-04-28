@@ -36,19 +36,20 @@
 ### 当前实现
 
 - `page current|list|frames|dialogs`
+- `tab select|close <pageId>`
 - `observe status`
 - page / frame / dialog projection
 - `observe status` 默认 compact，`--verbose` 返回完整状态载荷
-- future mutation contract 已单独定义在 `workspace-mutation-contract.md`
+- workspace mutation contract 已单独定义在 `workspace-mutation-contract.md`
 
 ### 当前限制
 
 - `page dialogs` 是事件投影
-- 没有 stable workspace mutation contract
+- `tab select|close` 只接受 `pageId`，不接受 index / title / URL substring 作为写操作目标
 
 ### 后续扩展
 
-- 如果要做 `tab select|close`，先定义 stable target identity
+- 如果继续扩 workspace 写操作，仍然先定义 stable target identity
 
 ## 3. Interaction
 

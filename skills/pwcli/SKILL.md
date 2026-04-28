@@ -26,6 +26,7 @@ description: "Use pwcli for browser automation, page exploration, diagnostics, s
 | 继续当前页面 | `session list/status` | 用户明确说继续旧任务 |
 | 已有 session 导航 | `open` | 只换 URL，不换 browser shape |
 | 页面理解 | `observe status`、`page current`、`read-text` | 默认观察路径 |
+| 多页面切换 | `page list`、`tab select|close` | popup、新开页、OAuth/预览窗口 |
 | 结构定位 | `snapshot -i` / `snapshot` | 需要 aria ref 或页面结构 |
 | 页面动作 | `click/fill/type/press/scroll/drag` | 稳定动作，带 action 记录 |
 | 文件交互 | `upload/download` | 上传文件、验证下载 |
@@ -116,9 +117,13 @@ pw screenshot --session bug-a --selector '.panel' --path ./panel.png
 
 ```bash
 pw page list --session bug-a
+pw tab select --session bug-a <pageId>
+pw tab close --session bug-a <pageId>
 pw page frames --session bug-a
 pw page dialogs --session bug-a
 ```
+
+`tab select|close` 只接受 `pageId`。先用 `page list` 找 `pageId`，不要用 index、title 或 URL substring 作为写操作目标。
 
 ## 4. 页面动作
 

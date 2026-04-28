@@ -45,7 +45,7 @@ export async function managedSnapshot(options?: {
       snapshot: projectedSnapshot,
       ...(options?.interactive || options?.compact
         ? {
-          totalCharCount: snapshot.length,
+            totalCharCount: snapshot.length,
             charCount: projectedSnapshot.length,
             truncated: projectedSnapshot.length !== snapshot.length,
           }
@@ -70,9 +70,7 @@ function projectSnapshot(
 function interactiveSnapshotLines(snapshot: string) {
   const interactivePattern =
     /\b(button|link|textbox|combobox|checkbox|radio|menuitem|tab|switch|slider|spinbutton|searchbox|option)\b|aria-ref=|ref=/i;
-  return snapshot
-    .split("\n")
-    .filter((line) => interactivePattern.test(line));
+  return snapshot.split("\n").filter((line) => interactivePattern.test(line));
 }
 
 function compactSnapshotLines(lines: string[]) {
@@ -122,7 +120,9 @@ export async function managedRunCode(options: {
     }
   }
   if (!result) {
-    throw lastError instanceof Error ? lastError : new Error(String(lastError ?? "run-code failed"));
+    throw lastError instanceof Error
+      ? lastError
+      : new Error(String(lastError ?? "run-code failed"));
   }
   const errorText = parseErrorText(result.text);
   if (errorText) {
@@ -161,10 +161,14 @@ function enrichRunCodeError(errorText: string) {
     );
   }
   if (/strict mode violation/i.test(errorText)) {
-    hints.push("PWCLI_HINT: locator matched multiple elements; add --nth, a narrower selector, or role/name constraints.");
+    hints.push(
+      "PWCLI_HINT: locator matched multiple elements; add --nth, a narrower selector, or role/name constraints.",
+    );
   }
   if (/intercepts pointer events|element.*covered|receives pointer events/i.test(errorText)) {
-    hints.push("PWCLI_HINT: click target is covered; inspect active overlay/modal or click the visible parent trigger.");
+    hints.push(
+      "PWCLI_HINT: click target is covered; inspect active overlay/modal or click the visible parent trigger.",
+    );
   }
   return hints.length > 0 ? `${errorText}\n${hints.join("\n")}` : errorText;
 }
