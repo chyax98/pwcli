@@ -201,63 +201,128 @@ function pageById(pages: WorkspacePage[], pageId: string) {
   return pages.find((page) => page.pageId === pageId);
 }
 
-function fallbackPageIdAfterClose(
-  pages: WorkspacePage[],
-  target: WorkspacePage,
-  currentPageId: string | null,
-) {
-  if (!target.current && currentPageId && currentPageId !== target.pageId) {
-    return currentPageId;
-  }
+function pageIdRuntimePrelude() {
+  return `
+      const context = page.context();
+      const state = context[${JSON.stringify(DIAGNOSTICS_STATE_KEY)}] ||= {};
+      state.nextPageSeq = Number.isInteger(state.nextPageSeq) ? state.nextPageSeq : 1;
+      state.nextNavigationSeq = Number.isInteger(state.nextNavigationSeq) ? state.nextNavigationSeq : 1;
 
-  if (target.openerPageId) {
-    const opener = pages.find(
-      (page) => page.pageId === target.openerPageId && page.pageId !== target.pageId,
-    );
-    if (opener) {
-      return opener.pageId;
-    }
-  }
-
-  const remaining = pages.filter((page) => page.pageId !== target.pageId);
-  if (remaining.length === 0) {
-    return null;
-  }
-
-  const previous = remaining
-    .filter((page) => page.index < target.index)
-    .sort((a, b) => b.index - a.index)[0];
-  if (previous) {
-    return previous.pageId;
-  }
-
-  const next = remaining
-    .filter((page) => page.index > target.index)
-    .sort((a, b) => a.index - b.index)[0];
-  return next?.pageId ?? null;
+      const ensurePageId = (p) => {
+        if (!p.__pwcliPageId)
+          p.__pwcliPageId = 'p' + state.nextPageSeq++;
+        return p.__pwcliPageId;
+      };
+      const ensureNavigationId = (p) => {
+        if (!p.__pwcliNavigationId)
+          p.__pwcliNavigationId = 'nav-' + state.nextNavigationSeq++;
+        return p.__pwcliNavigationId;
+      };
+      const projectPage = async (p, index) => ({
+        index,
+        pageId: ensurePageId(p),
+        navigationId: ensureNavigationId(p),
+        url: p.url(),
+        title: await p.title().catch(() => ''),
+        current: p === page,
+        openerPageId: p.opener()?.__pwcliPageId || null,
+      });
+      const pageById = (pages, pageId) => pages.find((p) => ensurePageId(p) === pageId);
+    `;
 }
 
-async function selectTabIndex(sessionName: string | undefined, index: number) {
+function fallbackPageIdAfterCloseSource() {
+  return `
+      const fallbackPageIdAfterClose = (pages, target, currentPageId) => {
+        if (!target.current && currentPageId && currentPageId !== target.pageId)
+          return currentPageId;
+
+        if (target.openerPageId) {
+          const opener = pages.find((item) => item.pageId === target.openerPageId && item.pageId !== target.pageId);
+          if (opener)
+            return opener.pageId;
+        }
+
+        const remaining = pages.filter((item) => item.pageId !== target.pageId);
+        if (remaining.length === 0)
+          return null;
+
+        const previous = remaining
+          .filter((item) => item.index < target.index)
+          .sort((a, b) => b.index - a.index)[0];
+        if (previous)
+          return previous.pageId;
+
+        const next = remaining
+          .filter((item) => item.index > target.index)
+          .sort((a, b) => a.index - b.index)[0];
+        return next?.pageId ?? null;
+      };
+    `;
+}
+
+async function selectPageById(sessionName: string | undefined, pageId: string) {
+  const before = await managedWorkspaceProjection({ sessionName });
+  const pages = before.data.workspace.pages as WorkspacePage[];
+  const target = pageById(pages, pageId);
+  if (!target) {
+    throw new Error(`TAB_PAGE_NOT_FOUND:${pageId}`);
+  }
+
   await runManagedSessionCommand(
     {
-      _: ["tab-select", String(index)],
+      _: ["tab-select", String(target.index)],
     },
     {
       sessionName,
     },
   );
+
+  return { selectedPageId: pageId, selectedIndex: target.index };
+}
+
+async function closePageById(sessionName: string | undefined, pageId: string) {
+  const result = await managedRunCode({
+    sessionName,
+    source: `async page => {
+      ${pageIdRuntimePrelude()}
+      ${fallbackPageIdAfterCloseSource()}
+      const targetPageId = ${JSON.stringify(pageId)};
+      const pages = context.pages();
+      const workspacePages = await Promise.all(pages.map((item, index) => projectPage(item, index)));
+      const targetPage = pageById(pages, targetPageId);
+      if (!targetPage)
+        throw new Error('TAB_PAGE_NOT_FOUND:' + targetPageId);
+
+      const target = workspacePages.find((item) => item.pageId === targetPageId);
+      const currentPageId = ensurePageId(page);
+      const fallbackPageId = fallbackPageIdAfterClose(workspacePages, target, currentPageId);
+      const fallbackPage = fallbackPageId ? pageById(pages, fallbackPageId) : null;
+
+      if (fallbackPage && fallbackPage !== targetPage)
+        await fallbackPage.bringToFront();
+      await targetPage.close();
+
+      return JSON.stringify({
+        closedPageId: targetPageId,
+        closedIndex: target.index,
+        fallbackPageId,
+      });
+    }`,
+  });
+  return result.data.result as {
+    closedPageId: string;
+    closedIndex: number;
+    fallbackPageId: string | null;
+  };
 }
 
 export async function managedTabSelect(options: { sessionName?: string; pageId: string }) {
-  const before = await managedWorkspaceProjection({ sessionName: options.sessionName });
-  const pages = before.data.workspace.pages as WorkspacePage[];
-  const target = pageById(pages, options.pageId);
-  if (!target) {
-    throw new Error(`TAB_PAGE_NOT_FOUND:${options.pageId}`);
-  }
-
-  await selectTabIndex(options.sessionName, target.index);
+  const selected = await selectPageById(options.sessionName, options.pageId);
   const after = await managedPageCurrent({ sessionName: options.sessionName });
+  if (after.data.activePageId !== options.pageId) {
+    throw new Error(`TAB_PAGE_SELECTION_RACE:${options.pageId}`);
+  }
 
   return {
     ...after,
@@ -265,41 +330,26 @@ export async function managedTabSelect(options: { sessionName?: string; pageId: 
       ...after.data,
       selected: true,
       selectedPageId: options.pageId,
-      selectedIndex: target.index,
+      selectedIndex: selected.selectedIndex,
     },
   };
 }
 
 export async function managedTabClose(options: { sessionName?: string; pageId: string }) {
-  const before = await managedWorkspaceProjection({ sessionName: options.sessionName });
-  const pages = before.data.workspace.pages as WorkspacePage[];
-  const target = pageById(pages, options.pageId);
-  if (!target) {
-    throw new Error(`TAB_PAGE_NOT_FOUND:${options.pageId}`);
-  }
-
-  const fallbackPageId = fallbackPageIdAfterClose(
-    pages,
-    target,
-    before.data.workspace.currentPageId ?? null,
-  );
-
-  await runManagedSessionCommand(
-    {
-      _: ["tab-close", String(target.index)],
-    },
-    {
-      sessionName: options.sessionName,
-    },
-  );
+  const closed = await closePageById(options.sessionName, options.pageId);
+  const fallbackPageId = closed.fallbackPageId;
 
   if (!fallbackPageId) {
     return {
-      session: before.session,
+      session: {
+        scope: "managed",
+        name: options.sessionName ?? "default",
+        default: !options.sessionName || options.sessionName === "default",
+      },
       data: {
         closed: true,
         closedPageId: options.pageId,
-        closedIndex: target.index,
+        closedIndex: closed.closedIndex,
         activePageId: null,
         currentNavigationId: null,
         pageCount: 0,
@@ -315,13 +365,6 @@ export async function managedTabClose(options: { sessionName?: string; pageId: s
     };
   }
 
-  const afterClose = await managedWorkspaceProjection({ sessionName: options.sessionName });
-  const remainingPages = afterClose.data.workspace.pages as WorkspacePage[];
-  const fallback = pageById(remainingPages, fallbackPageId);
-  if (fallback) {
-    await selectTabIndex(options.sessionName, fallback.index);
-  }
-
   const after = await managedPageCurrent({ sessionName: options.sessionName });
   return {
     ...after,
@@ -329,7 +372,7 @@ export async function managedTabClose(options: { sessionName?: string; pageId: s
       ...after.data,
       closed: true,
       closedPageId: options.pageId,
-      closedIndex: target.index,
+      closedIndex: closed.closedIndex,
       fallbackPageId,
     },
   };
