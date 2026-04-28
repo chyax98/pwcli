@@ -34,15 +34,18 @@ export async function managedWorkspaceProjection(options?: { sessionName?: strin
           p.__pwcliNavigationId = 'nav-' + state.nextNavigationSeq++;
         return p.__pwcliNavigationId;
       };
-      const projectPage = async (p, index) => ({
-        index,
-        pageId: ensurePageId(p),
-        navigationId: ensureNavigationId(p),
-        url: p.url(),
-        title: await p.title().catch(() => ''),
-        current: p === page,
-        openerPageId: p.opener()?.__pwcliPageId || null,
-      });
+      const projectPage = async (p, index) => {
+        const opener = await p.opener().catch(() => null);
+        return {
+          index,
+          pageId: ensurePageId(p),
+          navigationId: ensureNavigationId(p),
+          url: p.url(),
+          title: await p.title().catch(() => ''),
+          current: p === page,
+          openerPageId: opener ? ensurePageId(opener) : null,
+        };
+      };
 
       const pages = context.pages();
       const workspacePages = await Promise.all(pages.map((item, index) => projectPage(item, index)));
@@ -218,15 +221,18 @@ function pageIdRuntimePrelude() {
           p.__pwcliNavigationId = 'nav-' + state.nextNavigationSeq++;
         return p.__pwcliNavigationId;
       };
-      const projectPage = async (p, index) => ({
-        index,
-        pageId: ensurePageId(p),
-        navigationId: ensureNavigationId(p),
-        url: p.url(),
-        title: await p.title().catch(() => ''),
-        current: p === page,
-        openerPageId: p.opener()?.__pwcliPageId || null,
-      });
+      const projectPage = async (p, index) => {
+        const opener = await p.opener().catch(() => null);
+        return {
+          index,
+          pageId: ensurePageId(p),
+          navigationId: ensureNavigationId(p),
+          url: p.url(),
+          title: await p.title().catch(() => ''),
+          current: p === page,
+          openerPageId: opener ? ensurePageId(opener) : null,
+        };
+      };
       const pageById = (pages, pageId) => pages.find((p) => ensurePageId(p) === pageId);
     `;
 }
@@ -299,9 +305,9 @@ async function closePageById(sessionName: string | undefined, pageId: string) {
       const fallbackPageId = fallbackPageIdAfterClose(workspacePages, target, currentPageId);
       const fallbackPage = fallbackPageId ? pageById(pages, fallbackPageId) : null;
 
-      if (fallbackPage && fallbackPage !== targetPage)
-        await fallbackPage.bringToFront();
       await targetPage.close();
+      if (fallbackPage && fallbackPage !== targetPage && !fallbackPage.isClosed())
+        await fallbackPage.bringToFront();
 
       return JSON.stringify({
         closedPageId: targetPageId,
@@ -365,6 +371,7 @@ export async function managedTabClose(options: { sessionName?: string; pageId: s
     };
   }
 
+  await selectPageById(options.sessionName, fallbackPageId);
   const after = await managedPageCurrent({ sessionName: options.sessionName });
   return {
     ...after,
