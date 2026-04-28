@@ -263,6 +263,18 @@ code_json="$(run_json diagnostics-code code --session "$SESSION_NAME" --file ./s
 assert_json "$code_json" "diagnostics fixture ready" \
   "data.ok === true && data.data.result === 'ready'"
 
+log "semantic click evidence"
+semantic_target_json="$(run_json semantic-target code --session "$SESSION_NAME" "async page => { await page.evaluate(() => { const button = document.createElement('button'); button.type = 'button'; button.textContent = 'semantic smoke action'; button.addEventListener('click', () => console.log('semantic-click-smoke')); document.body.appendChild(button); }); return 'semantic-target-ready'; }")"
+assert_json "$semantic_target_json" "semantic click target installed" \
+  "data.ok === true && data.data.result === 'semantic-target-ready'"
+semantic_click_json="$(run_json semantic-click click --session "$SESSION_NAME" --text 'semantic smoke action')"
+assert_json "$semantic_click_json" "semantic click records action evidence" \
+  "data.ok === true && data.data.acted === true && data.page.url === '${BLANK_URL}' && data.data.target.text === 'semantic smoke action' && data.data.target.nth === 1 && data.data.diagnosticsDelta.consoleDelta >= 1 && typeof data.data.run.runId === 'string'"
+SEMANTIC_RUN_ID="$(json_field "$semantic_click_json" "data.data.run.runId")"
+semantic_show_json="$(run_json semantic-click-show diagnostics show --run "$SEMANTIC_RUN_ID" --command click --limit 1)"
+assert_json "$semantic_show_json" "semantic click run preserves locator target" \
+  "data.ok === true && data.data.events.length === 1 && data.data.events[0].target.text === 'semantic smoke action' && data.data.events[0].target.nth === 1"
+
 log "fire diagnostics"
 click_json="$(run_json click-fire click --session "$SESSION_NAME" --selector '#fire')"
 assert_json "$click_json" "click fire acted" \

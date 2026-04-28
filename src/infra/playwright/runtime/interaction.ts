@@ -8,6 +8,13 @@ import { buildDiagnosticsDelta, captureDiagnosticsBaseline } from "./diagnostics
 import { maybeRawOutput, normalizeRef } from "./shared.js";
 import { managedPageCurrent } from "./workspace.js";
 
+type SemanticClickTarget =
+  | { kind: "role"; role: string; name?: string; nth?: number }
+  | { kind: "text"; text: string; nth?: number }
+  | { kind: "label"; label: string; nth?: number }
+  | { kind: "placeholder"; placeholder: string; nth?: number }
+  | { kind: "testid"; testid: string; nth?: number };
+
 async function recordRun(
   command: string,
   sessionName: string | undefined,
@@ -29,14 +36,38 @@ async function recordRun(
 export async function managedClick(options: {
   ref?: string;
   selector?: string;
+  semantic?: SemanticClickTarget;
   button?: string;
   sessionName?: string;
 }) {
-  if (!options.ref && !options.selector) {
-    throw new Error("click requires a ref or selector");
+  if (!options.ref && !options.selector && !options.semantic) {
+    throw new Error("click requires a ref, selector, or semantic locator");
   }
 
   const before = await captureDiagnosticsBaseline(options.sessionName);
+
+  if (options.semantic) {
+    const target = normalizeSemanticClickTarget(options.semantic);
+    const result = await managedRunCode({
+      sessionName: options.sessionName,
+      source: semanticClickSource(target, options.button),
+    });
+    const diagnosticsDelta = await buildDiagnosticsDelta(options.sessionName, before);
+    const run = await recordRun("click", options.sessionName, result.page, {
+      target,
+      diagnosticsDelta,
+    });
+    return {
+      session: result.session,
+      page: result.page,
+      data: {
+        target,
+        acted: true,
+        diagnosticsDelta,
+        run,
+      },
+    };
+  }
 
   if (options.selector) {
     const button = options.button ? JSON.stringify({ button: options.button }) : "undefined";
@@ -101,6 +132,60 @@ export async function managedClick(options: {
       ...maybeRawOutput(result.text),
     },
   };
+}
+
+function normalizeSemanticClickTarget(target: SemanticClickTarget) {
+  return {
+    ...target,
+    nth: Math.max(1, Math.floor(Number(target.nth ?? 1))),
+  };
+}
+
+function semanticClickSource(
+  target: ReturnType<typeof normalizeSemanticClickTarget>,
+  button?: string,
+) {
+  const clickOptions = button ? JSON.stringify({ button }) : "undefined";
+  const nthIndex = target.nth - 1;
+  const targetJson = JSON.stringify(target);
+  const locatorExpression =
+    target.kind === "role"
+      ? `page.getByRole(${JSON.stringify(target.role)}, ${
+          target.name ? `{ name: ${JSON.stringify(target.name)}, exact: true }` : "undefined"
+        })`
+      : target.kind === "text"
+        ? `page.getByText(${JSON.stringify(target.text)}, { exact: true })`
+        : target.kind === "label"
+          ? `page.getByLabel(${JSON.stringify(target.label)}, { exact: true })`
+          : target.kind === "placeholder"
+            ? `page.getByPlaceholder(${JSON.stringify(target.placeholder)}, { exact: true })`
+            : `page.getByTestId(${JSON.stringify(target.testid)})`;
+
+  return `async page => {
+    const target = ${targetJson};
+    const locator = ${locatorExpression};
+    const count = await locator.count();
+    if (count === 0) {
+      let candidates = [];
+      if (target.kind === 'text') {
+        candidates = await page.getByText(target.text, { exact: false }).evaluateAll(nodes =>
+          nodes.slice(0, 8).map(node => (node.textContent || '').trim()).filter(Boolean)
+        ).catch(() => []);
+      }
+      throw new Error(
+        'CLICK_SEMANTIC_NOT_FOUND:' +
+          JSON.stringify({ target, ...(candidates.length ? { candidates } : {}) })
+      );
+    }
+    if (${nthIndex} >= count) {
+      throw new Error(
+        'CLICK_SEMANTIC_INDEX_OUT_OF_RANGE:' +
+          JSON.stringify({ target, count, nth: ${target.nth} })
+      );
+    }
+    await locator.nth(${nthIndex}).click(${clickOptions});
+    return JSON.stringify({ clicked: true, target, count, nth: ${target.nth} });
+  }`;
 }
 
 export async function managedFill(options: {

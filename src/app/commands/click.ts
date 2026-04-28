@@ -1,5 +1,5 @@
 import type { Command } from "commander";
-import { managedClick, managedRunCode } from "../../domain/interaction/service.js";
+import { managedClick } from "../../domain/interaction/service.js";
 import { printCommandResult } from "../output.js";
 import {
   addSessionOption,
@@ -35,44 +35,55 @@ export function registerClickCommand(program: Command): void {
         return;
       }
 
-      const nth = Math.max(1, options.nth ? Number(options.nth) : 1) - 1;
-      let source = "";
+      const nth = Math.max(1, options.nth ? Number(options.nth) : 1);
       if (options.role) {
-        source = `async page => { await page.getByRole(${JSON.stringify(options.role)}, ${options.name ? `{ name: ${JSON.stringify(options.name)}, exact: true }` : "undefined"}).nth(${nth}).click(); return 'clicked'; }`;
+        printCommandResult(
+          "click",
+          await managedClick({
+            semantic: {
+              kind: "role",
+              role: options.role,
+              ...(options.name ? { name: options.name } : {}),
+              nth,
+            },
+            sessionName,
+          }),
+        );
       } else if (options.text) {
-        source = `async page => {
-          const text = ${JSON.stringify(options.text)};
-          const locator = page.getByText(text, { exact: true });
-          const count = await locator.count();
-          if (count === 0) {
-            const candidates = await page.getByText(text, { exact: false }).evaluateAll(nodes =>
-              nodes.slice(0, 8).map(node => (node.textContent || '').trim()).filter(Boolean)
-            ).catch(() => []);
-            throw new Error('CLICK_TEXT_NOT_FOUND: text=' + text + (candidates.length ? ' similar=' + JSON.stringify(candidates) : ''));
-          }
-          if (${nth} >= count) {
-            throw new Error('CLICK_TEXT_INDEX_OUT_OF_RANGE: text=' + text + ' count=' + count + ' nth=' + ${nth + 1});
-          }
-          await locator.nth(${nth}).click();
-          return JSON.stringify({ clicked: true, text, count, nth: ${nth + 1} });
-        }`;
+        printCommandResult(
+          "click",
+          await managedClick({
+            semantic: { kind: "text", text: options.text, nth },
+            sessionName,
+          }),
+        );
       } else if (options.label) {
-        source = `async page => { await page.getByLabel(${JSON.stringify(options.label)}, { exact: true }).nth(${nth}).click(); return 'clicked'; }`;
+        printCommandResult(
+          "click",
+          await managedClick({
+            semantic: { kind: "label", label: options.label, nth },
+            sessionName,
+          }),
+        );
       } else if (options.placeholder) {
-        source = `async page => { await page.getByPlaceholder(${JSON.stringify(options.placeholder)}, { exact: true }).nth(${nth}).click(); return 'clicked'; }`;
+        printCommandResult(
+          "click",
+          await managedClick({
+            semantic: { kind: "placeholder", placeholder: options.placeholder, nth },
+            sessionName,
+          }),
+        );
       } else if (options.testid) {
-        source = `async page => { await page.getByTestId(${JSON.stringify(options.testid)}).nth(${nth}).click(); return 'clicked'; }`;
+        printCommandResult(
+          "click",
+          await managedClick({
+            semantic: { kind: "testid", testid: options.testid, nth },
+            sessionName,
+          }),
+        );
       } else {
         throw new Error("click requires a ref or one semantic locator");
       }
-
-      printCommandResult(
-        "click",
-        await managedRunCode({
-          sessionName,
-          source,
-        }),
-      );
     } catch (error) {
       printSessionAwareCommandError("click", error, {
         code: "CLICK_FAILED",
