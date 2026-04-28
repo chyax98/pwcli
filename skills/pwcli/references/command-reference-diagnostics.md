@@ -60,7 +60,7 @@ state / auth / batch 命令见 `command-reference-advanced.md`。
 
 ### `pw doctor --session <name>`
 
-- `--plugin <name>`、`--profile <path>`、`--state <file>`、`--endpoint <url>`
+- `--auth-provider <name>`、`--profile <path>`、`--state <file>`、`--endpoint <url>`
 - `--verbose`：完整 probe 细节
 - 诊断 substrate 健康、探测 endpoint reachability、返回恢复建议
 

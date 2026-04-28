@@ -83,6 +83,7 @@ session attach -> state/profile/auth provider -> continue
 
 - `open` 只做导航
 - `auth` 只做内置 auth provider 执行
+- auth provider 是内置 registry，不是外部 plugin 系统
 - `batch` 只承诺稳定子集，不追求全 CLI parity
 - diagnostics 优先 query/export，不优先扩新的录制系统
 - mock 已覆盖当前需要的第二层能力，环境控制优先走 Playwright Core 公开能力

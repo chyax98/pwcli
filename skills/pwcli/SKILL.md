@@ -1,6 +1,6 @@
 ---
 name: pwcli
-description: "Use pwcli for browser automation, page exploration, diagnostics, screenshots, network/console inspection, mocks, state reuse, and Forge/DC auth."
+description: "Use pwcli for browser automation, page exploration, diagnostics, screenshots, network/console inspection, mocks, state reuse, and auth providers."
 ---
 
 # pwcli
@@ -13,7 +13,7 @@ description: "Use pwcli for browser automation, page exploration, diagnostics, s
 - 用户说“继续 / 接着 / 刚才那个页面”：复用原 session。
 - `session create|attach|recreate` 是 lifecycle 主路。
 - `open` 只在已有 session 里导航，不负责创建、profile、state、headed。
-- `auth` 只执行内置 provider，不负责创建 session。
+- `auth` 只执行内置 auth provider，不负责创建 session；没有外部 plugin 机制。
 - 所有浏览器命令显式带 `--session <name>`。
 - session 名最长 16 字符，只用字母、数字、`-`、`_`。
 - 默认 stdout 给 Agent 阅读；脚本解析和字段断言才用 `--output json`。
@@ -31,7 +31,7 @@ description: "Use pwcli for browser automation, page exploration, diagnostics, s
 | 文件交互 | `upload/download` | 上传文件、验证下载 |
 | 等待状态 | `wait` | 动作后依赖页面变化 |
 | 快速脚本 | `code` | 多状态读取、组合动作、能力未覆盖 |
-| 登录 | `auth <provider>` | 内置 provider，如 `dc` |
+| 登录 | `auth <provider>` | 内置 provider |
 | 状态复用 | `state/cookies/storage` | 保存登录态、检查存储 |
 | 诊断 | `diagnostics/console/network/errors/doctor` | bug 定位和证据导出 |
 | Mock | `route` | 网络请求 mock、patch、abort |
@@ -126,7 +126,7 @@ pw page dialogs --session bug-a
 
 ```bash
 pw click --session bug-a --selector 'button[type=submit]'
-pw fill --session bug-a --selector 'input[name=phone]' '19545672859'
+pw fill --session bug-a --selector 'input[name=email]' 'user@example.com'
 pw click --session bug-a --role button --name '提交'
 pw click --session bug-a --text '继续'
 pw click --session bug-a e42
@@ -142,7 +142,7 @@ pw drag --session bug-a --from-selector '.source' --to-selector '.target'
 pw wait --session bug-a network-idle
 pw wait --session bug-a --text '保存成功'
 pw wait --session bug-a --selector '.loaded'
-pw wait --session bug-a --response '/api/app/v2/detail' --status 200
+pw wait --session bug-a --response '/api/items' --status 200
 ```
 
 动作闭环：
@@ -231,16 +231,16 @@ pw diagnostics digest --session bug-a
 查具体接口：
 
 ```bash
-pw network --session bug-a --url '/api/app/v2/detail' --limit 20
+pw network --session bug-a --url '/api/items' --limit 20
 pw network --session bug-a --request-id <id>
 pw network --session bug-a --kind requestfailed --limit 20
-pw network --session bug-a --method POST --text 'developer_id' --limit 20
+pw network --session bug-a --method POST --text 'request_id' --limit 20
 ```
 
 导出证据：
 
 ```bash
-pw diagnostics export --session bug-a --section network --text 'developer_id' --fields at=timestamp,method,url,status,snippet=responseBodySnippet --out ./diag.json
+pw diagnostics export --session bug-a --section network --text 'request_id' --fields at=timestamp,method,url,status,snippet=responseBodySnippet --out ./diag.json
 ```
 
 回放 run：
@@ -277,35 +277,41 @@ pw session recreate bug-a --headed --open '<url>'  # 上面无效再重建
 
 ## 8. Auth
 
-Forge/DC 登录是内置 provider 场景。主路径：
+Auth provider 是内置 registry 能力，不是外部 plugin。`pw auth` 只在已有 session 里执行 provider，不创建 session、不改变 headed/profile/persistent/state shape。
+
+发现 provider：
 
 ```bash
-pw session create dc2 --headed
-pw auth dc --session dc2
-pw read-text --session dc2 --max-chars 1200
+pw auth list
+pw auth info <provider>
 ```
 
-URL 规则：
+通用登录主路径：
 
-- 用户给 URL：先 `pw session create dc2 --headed --open '<url>'`，再 `pw auth dc --session dc2 --arg targetUrl='<url>'`。
-- 用户明确说 RND：`pw session create dc2 --headed --open 'https://developer.xdrnd.cn/forge'`，再 `pw auth dc --session dc2`。
-- 用户没给 URL 且没说 RND：不要问，直接执行主路径。
-- 主路径失败且错误要求 `targetUrl`：让用户给 Forge 链接，再执行 `pw auth dc --session dc2 --arg targetUrl='<url>'`。
+```bash
+pw session create auth-a --headed --open '<url>'
+pw auth list
+pw auth info <provider>
+pw auth <provider> --session auth-a
+pw read-text --session auth-a --max-chars 1200
+```
+
+带 provider 参数：
+
+```bash
+pw auth <provider> --session auth-a --arg key=value
+pw auth <provider> --session auth-a --save-state ./auth.json
+```
 
 硬规则：
 
-- `dc2.0` 是系统名，不是 `instance=2`。
-- 禁止猜 `developer-p2-*`。
-- 禁止手填手机号、短信码、登录表单。
-- 用户给 URL 就作为 `targetUrl` 传给 `pw auth dc`。
-- 用户没给 URL 且没说 RND 时，直接执行默认登录命令，不先问 URL。
+- provider 只使用 `pw auth <provider> --session <name>` 执行。
+- provider 参数只用 `--arg key=value`。
+- 外部临时登录脚本走 `pw code --file <path>`，不要挂到 `pw auth`。
+- provider 需要哪些参数，以 `pw auth info <provider>` 为准。
+- provider 失败时，按错误信息补参数后重试。
 
-手机号优先级：
-
-- 用户本轮给的手机号。
-- 默认测试账号：`19545672859`。
-
-更细失败分支见 `references/forge-dc-auth.md`。
+专项 provider 细节不写进主 skill；遇到 provider-specific 失败或参数不确定时，查对应 reference。
 
 ## 9. 状态复用
 
@@ -473,9 +479,6 @@ pw --output json read-text --session test-a --max-chars 1000
 
 - 不要把 `open` 当成 session lifecycle。
 - 不要让 `auth` 创建 session。
-- 不要把 `dc2.0` 推断成 `instance=2`。
-- 不要猜不存在的 `developer-p2-*`。
-- 不要在 Forge/DC 场景手填登录表单。
 - 不要把 `pw batch --stdin-json` 当成输出 JSON。
 - 不要忽略 limitation code。
 - 不要把 HAR 热录制、raw CDP substrate 等边界能力包装成稳定支持。
@@ -488,6 +491,6 @@ pw --output json read-text --session test-a --max-chars 1000
 - `references/command-reference.md` — session 生命周期、页面读取、动作与等待
 - `references/command-reference-diagnostics.md` — 查 bug 时：console / network / errors / diagnostics / route mock / trace
 - `references/command-reference-advanced.md` — 构建自动化时：state / auth / batch / environment / `pw code`
-- `references/forge-dc-auth.md` — Forge/DC 登录失败或需确认步骤时
+- `references/forge-dc-auth.md` — Forge/DC provider 的参数、失败分支、环境路由
 - `references/failure-recovery.md` — 遇到错误码时
 - `references/gotchas.md` — 遇到非预期行为时

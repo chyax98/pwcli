@@ -21,6 +21,7 @@
 - `session create|attach|recreate` 是唯一 lifecycle 主路
 - `open` 只做导航
 - `auth` 只做内置 auth provider 执行
+- auth provider 只支持内置 registry，没有外部 plugin 加载机制
 - `batch` 走结构化 `string[][]`
 - diagnostics 优先 query/export
 - trace 默认开启

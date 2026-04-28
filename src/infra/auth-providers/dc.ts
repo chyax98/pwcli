@@ -226,18 +226,18 @@ export const dcAuthProvider: AuthProviderSpec = {
   resolveArgs: resolveDcArgs,
 };
 
-async function resolveDcArgs(pluginArgs: Record<string, string>): Promise<Record<string, string>> {
-  if (pluginArgs.instance) {
+async function resolveDcArgs(providerArgs: Record<string, string>): Promise<Record<string, string>> {
+  if (providerArgs.instance) {
     throw new Error("dc auth no longer accepts --arg instance. Pass --arg targetUrl=<url>.");
   }
 
-  const phone = pickFirst(pluginArgs.phone) ?? DEFAULT_PHONE;
-  const smsCode = pickFirst(pluginArgs.smsCode) ?? DEFAULT_SMS_CODE;
-  const explicitTargetUrl = pickFirst(pluginArgs.targetUrl);
-  const explicitBaseURL = pickFirst(pluginArgs.baseURL);
+  const phone = pickFirst(providerArgs.phone) ?? DEFAULT_PHONE;
+  const smsCode = pickFirst(providerArgs.smsCode) ?? DEFAULT_SMS_CODE;
+  const explicitTargetUrl = pickFirst(providerArgs.targetUrl);
+  const explicitBaseURL = pickFirst(providerArgs.baseURL);
 
   const resolved: Record<string, string> = {
-    ...pluginArgs,
+    ...providerArgs,
     phone,
     smsCode,
   };

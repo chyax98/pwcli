@@ -2,11 +2,13 @@
 
 目标：让 Agent 只读 `skills/pwcli/SKILL.md` 就能稳定完成高频任务；需要精确参数时再跳到 reference。不要把 skill 写成散乱命令百科。
 
+核心原则：skill 只讲当下如何使用。不要放项目历史、迁移过程、调研结论、业务项目内容、内部环境细节。专项 provider 或业务场景细节下沉到 reference。
+
 ## 1. 文档分层
 
 | 文件 | 放什么 | 不放什么 |
 |---|---|---|
-| `skills/pwcli/SKILL.md` | 高频主路、决策规则、硬限制、最短可执行模板 | 全量参数表、历史背景、未来计划 |
+| `skills/pwcli/SKILL.md` | 高频主路、决策规则、硬限制、最短可执行模板 | 全量参数表、历史背景、未来计划、项目内容、内部环境细节 |
 | `skills/pwcli/references/command-reference.md` | lifecycle、页面读取、动作、等待的完整 shipped command surface | 诊断、auth、batch 深细节 |
 | `skills/pwcli/references/command-reference-diagnostics.md` | diagnostics、console、network、errors、route、trace/HAR | 普通页面动作教程 |
 | `skills/pwcli/references/command-reference-advanced.md` | state、auth、batch、environment、bootstrap、code | bug 诊断流程 |
@@ -87,6 +89,7 @@ workflow 必须是任务链路，不是教程散文。
 
 - 主文档只剩目录，Agent 第一次读完仍不知道下一条命令。
 - README、docs、skill 同时维护同一套使用教程。
+- 主文档出现项目历史、迁移记录、业务域名、内部环境、测试账号等项目内容。
 - limitation 被写成“已支持”。
 - 示例不带 `--session`。
 - auth 被写成会创建 session。

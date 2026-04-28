@@ -87,6 +87,7 @@
 - `profile inspect`
 - `auth` 内置 provider 执行 + `save-state`
 - `dc` 是内置 DC/Forge auth provider；默认手机号和验证码内聚在 provider 内，传了 `targetUrl` 就使用指定业务 URL，未传 URL 时执行默认登录流程
+- `fixture-auth` 是内部 contract 测试 provider，用于 smoke 验证 auth 执行链
 
 ### 当前限制
 
@@ -94,6 +95,7 @@
 - `auth` 不负责 session shape
 - `dc` 不接受 `instance` 参数；不暴露环境参数，RND 固定入口由 skill 引导 agent 显式打开
 - `profile open` 已移除
+- 当前没有外部 plugin 加载、安装、发现、生命周期机制
 
 ### 后续扩展
 

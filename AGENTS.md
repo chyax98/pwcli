@@ -44,7 +44,7 @@ docs/
 
 - `session create|attach|recreate` 是唯一 lifecycle 主路
 - `open` 只做导航
-- `auth` 只做 plugin 执行
+- `auth` 只做内置 auth provider 执行
 - `batch` 只走结构化 `string[][]`
 - skill 是唯一教程真相
 - docs 只维护架构、限制、扩展方向

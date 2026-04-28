@@ -101,6 +101,7 @@
 - `README.md`
 - `AGENTS.md`
 - `.codex/README.md`
+- `.codex/auth-provider-authoring.md`
 - `.codex/config.toml`
 - `.codex/skill-maintenance.md`
 - `.codex/skill-writing-standard.md`
