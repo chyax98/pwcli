@@ -139,6 +139,15 @@ assert_json "$page_json" "page current points at fixture" \
   "data.ok === true && data.data.currentPage.url === '${BLANK_URL}' && data.data.pageCount >= 1"
 
 log "tab select and close"
+node --input-type=module <<'NODE'
+import { readFileSync } from 'node:fs';
+
+const source = readFileSync('./dist/infra/playwright/runtime/workspace.js', 'utf8');
+if (/\btab-close\b/.test(source)) {
+  console.error('[smoke] workspace pageId close must not call index-based tab-close primitive');
+  process.exit(1);
+}
+NODE
 tab_second_url="${ORIGIN}/second-tab"
 tab_create_json="$(run_json tab-create code --session "$SESSION_NAME" "async page => { const p = await page.context().newPage(); await p.goto('${tab_second_url}'); return p.url(); }")"
 assert_json "$tab_create_json" "second tab created" \
