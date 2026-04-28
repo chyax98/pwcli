@@ -89,6 +89,8 @@ state / auth / batch / environment 命令见 `command-reference-advanced.md`。
 
 定位：aria ref / `--selector` / `--role <role> --name <name>` / `--text` / `--label` / `--placeholder` / `--testid`；附加 `--nth <n>`（1-based）
 
+所有 click 定位方式都会记录 action evidence：`target`、`diagnosticsDelta`、`run`。需要追踪动作后信号时用 `diagnostics runs/show/grep` 查对应 run。
+
 ### `pw fill [parts...] --session <name>`
 
 - `--selector <selector>`
