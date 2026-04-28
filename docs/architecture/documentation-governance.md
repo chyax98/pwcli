@@ -103,6 +103,7 @@
 - `.codex/README.md`
 - `.codex/auth-provider-authoring.md`
 - `.codex/config.toml`
+- `.codex/review-guidelines.md`
 - `.codex/skill-maintenance.md`
 - `.codex/skill-writing-standard.md`
 - `docs/README.md`
