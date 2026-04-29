@@ -30,6 +30,15 @@
 - 读取当前页 origin 的 `localStorage` / `sessionStorage`
 - 无效 origin 返回 `accessible: false`
 
+### `pw storage local|session get|set|delete|clear --session <name>`
+
+- `get <key>`：读取当前页 origin 的单个 storage 值
+- `set <key> <value>`：写入当前页 origin 的单个 storage 值
+- `delete <key>`：删除当前页 origin 的单个 storage 值
+- `clear`：清空当前页 origin 的对应 storage
+
+这只是受控测试状态操作，不替代 `state save|load`、cookies 或 auth provider。不会跨 origin 修改 storage，也不支持 IndexedDB。
+
 ### `pw profile inspect <path>`
 
 - 检查 profile 路径是否存在、可写、可用

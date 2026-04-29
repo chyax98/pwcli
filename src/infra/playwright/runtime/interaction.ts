@@ -473,6 +473,175 @@ export async function managedPress(key: string, options?: { sessionName?: string
   };
 }
 
+async function managedBooleanControlAction(
+  command: "check" | "uncheck",
+  options: {
+    ref?: string;
+    selector?: string;
+    sessionName?: string;
+  },
+) {
+  if (!options.ref && !options.selector) {
+    throw new Error(`${command} requires a ref or selector`);
+  }
+
+  const before = await captureDiagnosticsBaseline(options.sessionName);
+
+  if (options.selector) {
+    const result = await managedActionRunCode({
+      command,
+      sessionName: options.sessionName,
+      source: `async page => {
+        await page.locator(${JSON.stringify(options.selector)}).${command}();
+        return JSON.stringify({ acted: true, checked: ${command === "check" ? "true" : "false"} });
+      }`,
+    });
+    const diagnosticsDelta = await buildDiagnosticsDelta(options.sessionName, before);
+    const run = await recordRun(command, options.sessionName, result.page, {
+      target: { selector: options.selector },
+      diagnosticsDelta,
+    });
+    return {
+      session: result.session,
+      page: result.page,
+      data: {
+        selector: options.selector,
+        acted: true,
+        checked: command === "check",
+        diagnosticsDelta,
+        run,
+      },
+    };
+  }
+
+  const ref = normalizeRef(options.ref ?? "");
+  const result = await runManagedSessionCommand(
+    {
+      _: [command, ref],
+    },
+    {
+      sessionName: options.sessionName,
+    },
+  );
+  throwIfManagedActionError(result.text, { command, sessionName: options.sessionName });
+
+  const diagnosticsDelta = await buildDiagnosticsDelta(options.sessionName, before);
+  const run = await recordRun(command, options.sessionName, parsePageSummary(result.text), {
+    target: { ref },
+    diagnosticsDelta,
+  });
+  return {
+    session: {
+      scope: "managed",
+      name: result.sessionName,
+      default: result.sessionName === "default",
+    },
+    page: parsePageSummary(result.text),
+    data: {
+      ref,
+      acted: true,
+      checked: command === "check",
+      diagnosticsDelta,
+      run,
+      ...maybeRawOutput(result.text),
+    },
+  };
+}
+
+export async function managedCheck(options: {
+  ref?: string;
+  selector?: string;
+  sessionName?: string;
+}) {
+  return managedBooleanControlAction("check", options);
+}
+
+export async function managedUncheck(options: {
+  ref?: string;
+  selector?: string;
+  sessionName?: string;
+}) {
+  return managedBooleanControlAction("uncheck", options);
+}
+
+export async function managedSelect(options: {
+  ref?: string;
+  selector?: string;
+  sessionName?: string;
+  value: string;
+}) {
+  if (!options.ref && !options.selector) {
+    throw new Error("select requires a ref or selector");
+  }
+
+  const before = await captureDiagnosticsBaseline(options.sessionName);
+
+  if (options.selector) {
+    const result = await managedActionRunCode({
+      command: "select",
+      sessionName: options.sessionName,
+      source: `async page => {
+        const values = await page.locator(${JSON.stringify(options.selector)}).selectOption(${JSON.stringify(options.value)});
+        return JSON.stringify({ selected: true, values });
+      }`,
+    });
+    const parsed =
+      typeof result.data.result === "object" && result.data.result ? result.data.result : {};
+    const diagnosticsDelta = await buildDiagnosticsDelta(options.sessionName, before);
+    const run = await recordRun("select", options.sessionName, result.page, {
+      target: { selector: options.selector },
+      value: options.value,
+      diagnosticsDelta,
+    });
+    return {
+      session: result.session,
+      page: result.page,
+      data: {
+        selector: options.selector,
+        value: options.value,
+        values: Array.isArray(parsed.values) ? parsed.values : [options.value],
+        selected: true,
+        diagnosticsDelta,
+        run,
+      },
+    };
+  }
+
+  const ref = normalizeRef(options.ref ?? "");
+  const result = await runManagedSessionCommand(
+    {
+      _: ["select", ref, options.value],
+    },
+    {
+      sessionName: options.sessionName,
+    },
+  );
+  throwIfManagedActionError(result.text, { command: "select", sessionName: options.sessionName });
+
+  const diagnosticsDelta = await buildDiagnosticsDelta(options.sessionName, before);
+  const run = await recordRun("select", options.sessionName, parsePageSummary(result.text), {
+    target: { ref },
+    value: options.value,
+    diagnosticsDelta,
+  });
+  return {
+    session: {
+      scope: "managed",
+      name: result.sessionName,
+      default: result.sessionName === "default",
+    },
+    page: parsePageSummary(result.text),
+    data: {
+      ref,
+      value: options.value,
+      selected: true,
+      diagnosticsDelta,
+      run,
+      ...maybeRawOutput(result.text),
+    },
+  };
+}
+
 export async function managedDialog(
   action: "accept" | "dismiss",
   options?: { prompt?: string; sessionName?: string },

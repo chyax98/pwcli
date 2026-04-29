@@ -66,6 +66,7 @@
 - `upload`
 - `download`
 - `drag`
+- `check|uncheck|select`
 - `wait`
 - `code`
 
@@ -86,7 +87,7 @@
 
 - `state save|load`
 - `cookies list|set`
-- `storage local|session`
+- `storage local|session` read + current-origin `get|set|delete|clear`
 - `profile inspect`
 - `auth` 内置 provider 执行 + `save-state`
 - `dc` 是内置 DC/Forge auth provider；默认手机号和验证码内聚在 provider 内，传了 `targetUrl` 就使用指定业务 URL，未传 URL 时执行默认登录流程
@@ -94,7 +95,7 @@
 
 ### 当前限制
 
-- `storage local|session` 只读当前页 origin
+- `storage local|session get|set|delete|clear` 只作用于当前页 origin，不做跨 origin storage 编辑
 - `auth` 不负责 session shape
 - `dc` 不接受 `instance` 参数；不暴露环境参数，RND 固定入口由 skill 引导 agent 显式打开
 - `profile open` 已移除
@@ -102,7 +103,7 @@
 
 ### 后续扩展
 
-- 如果 Agent 真实需要，再补 richer cookie/storage mutation
+- 如果 Agent 真实需要，再补 richer cookie mutation 或 IndexedDB 读取；当前 storage mutation 不替代 auth/state 主路
 
 ## 5. Diagnostics
 

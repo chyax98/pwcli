@@ -60,6 +60,11 @@ const server = createServer((request, response) => {
     <main>
       <h1>pwcli deterministic fixture</h1>
       <p id="status">ready</p>
+      <label><input id="smoke-checkbox" type="checkbox" /> Smoke checkbox</label>
+      <select id="smoke-select">
+        <option value="a">Alpha</option>
+        <option value="b">Beta</option>
+      </select>
     </main>
   </body>
 </html>`);

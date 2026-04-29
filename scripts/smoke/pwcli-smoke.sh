@@ -487,6 +487,28 @@ semantic_fill_missing_json="$(run_fail_json semantic-fill-missing fill --session
 assert_json "$semantic_fill_missing_json" "semantic fill missing target preserves action failure envelope" \
   "data.ok === false && data.error.code === 'ACTION_TARGET_NOT_FOUND' && data.error.retryable === true && data.error.details.command === 'fill'"
 
+log "control interaction primitives"
+check_json="$(run_json check-box check --session "$SESSION_NAME" --selector '#smoke-checkbox')"
+assert_json "$check_json" "check returns action evidence" \
+  "data.ok === true && data.data.acted === true && data.data.checked === true && typeof data.data.run.runId === 'string'"
+uncheck_json="$(run_json uncheck-box uncheck --session "$SESSION_NAME" --selector '#smoke-checkbox')"
+assert_json "$uncheck_json" "uncheck returns action evidence" \
+  "data.ok === true && data.data.acted === true && data.data.checked === false && typeof data.data.run.runId === 'string'"
+select_json="$(run_json select-option select --session "$SESSION_NAME" --selector '#smoke-select' b)"
+assert_json "$select_json" "select returns selected value" \
+  "data.ok === true && data.data.selected === true && data.data.value === 'b' && data.data.values.includes('b') && typeof data.data.run.runId === 'string'"
+
+log "storage mutation"
+storage_set_json="$(run_json storage-set storage local set --session "$SESSION_NAME" smokeFlag enabled)"
+assert_json "$storage_set_json" "storage local set reports origin" \
+  "data.ok === true && data.data.operation === 'set' && data.data.key === 'smokeFlag' && data.data.value === 'enabled' && data.data.origin.startsWith('http')"
+storage_get_json="$(run_json storage-get storage local get --session "$SESSION_NAME" smokeFlag)"
+assert_json "$storage_get_json" "storage local get sees value" \
+  "data.ok === true && data.data.operation === 'get' && data.data.value === 'enabled'"
+storage_delete_json="$(run_json storage-delete storage local delete --session "$SESSION_NAME" smokeFlag)"
+assert_json "$storage_delete_json" "storage local delete reports deleted" \
+  "data.ok === true && data.data.operation === 'delete' && data.data.deleted === true"
+
 log "fire diagnostics"
 click_json="$(run_json click-fire click --session "$SESSION_NAME" --selector '#fire')"
 assert_json "$click_json" "click fire acted" \

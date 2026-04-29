@@ -186,6 +186,8 @@ pw type -s bug-a --role textbox --name 'Comment' 'hello'
 pw click e42 -s bug-a
 pw press Enter -s bug-a
 pw type -s bug-a --selector 'textarea' 'hello'
+pw check -s bug-a --selector '#agree'
+pw select -s bug-a --selector '#country' jp
 pw scroll down 800 -s bug-a
 pw drag -s bug-a --from-selector '.source' --to-selector '.target'
 ```
@@ -393,6 +395,8 @@ Cookie / storage 读取：
 pw cookies list -s bug-a --domain example.com
 pw storage local -s bug-a
 pw storage session -s bug-a
+pw storage local set -s bug-a featureFlag enabled
+pw storage local delete -s bug-a featureFlag
 ```
 
 设置 cookie：
@@ -400,6 +404,8 @@ pw storage session -s bug-a
 ```bash
 pw cookies set -s bug-a --name token --value '<value>' --domain example.com --path /
 ```
+
+Storage mutation 只改当前页 origin，适合临时 feature flag / 复现状态；登录态复用继续用 `state save|load` 或 auth provider。
 
 Profile 检查：
 

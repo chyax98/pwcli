@@ -1,4 +1,5 @@
 export {
+  managedCheck,
   managedClick,
   managedDialog,
   managedDownload,
@@ -9,8 +10,10 @@ export {
   managedRunCode,
   managedScreenshot,
   managedScroll,
+  managedSelect,
   managedSnapshot,
   managedType,
+  managedUncheck,
   managedUpload,
   managedWait,
 } from "../../infra/playwright/runtime.js";

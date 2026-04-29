@@ -105,6 +105,21 @@ state / auth / batch / environment 命令见 `command-reference-advanced.md`。
 
 ### `pw press <key> --session <name>`
 
+### `pw check [ref] --session <name>`
+
+- `--selector <selector>`
+- 支持 checkbox / radio；输出复用 action evidence：`diagnosticsDelta`、`run`
+
+### `pw uncheck [ref] --session <name>`
+
+- `--selector <selector>`
+- 支持 checkbox；输出复用 action evidence：`diagnosticsDelta`、`run`
+
+### `pw select [ref] <value> --session <name>`
+
+- `--selector <selector>`
+- `value` 是 option value；输出包含 `value` / `values` 和 action evidence
+
 ### `pw scroll <direction> [distance] --session <name>`
 
 ### `pw drag --session <name>`
