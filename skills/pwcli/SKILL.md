@@ -83,6 +83,7 @@ pw diagnostics digest -s bug-a
 | 浏览器环境 | `environment` | 离线、地理位置、权限、时钟 |
 | 注入启动项 | `bootstrap` | init script、headers |
 | 串行编排 | `batch` | 单 session 稳定子集 |
+| 人类观察多 session | `dashboard open` | 需要观察/接管多个 Playwright managed sessions，不是 Agent 主执行链 |
 
 ## 2. Session
 
@@ -491,6 +492,15 @@ pw observe status -s explore-a
 pw read-text -s explore-a --max-chars 2000
 pw snapshot -i -s explore-a
 ```
+
+人类观察 / 接管：
+
+```bash
+pw dashboard open
+pw session list --with-page
+```
+
+Dashboard 只用于 human observation。不要把 `pw dashboard open` 放进常规 Agent 自动化循环；只有人需要检查多个 session、实时预览或接管状态时再打开。
 
 复现 bug：
 

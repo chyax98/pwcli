@@ -13,6 +13,7 @@
 ### 当前实现
 
 - `session create|attach|recreate|list|status|close`
+- `dashboard open` exposes Playwright-core's bundled session dashboard as a thin wrapper.
 - session 名硬限制：
   - 最长 16 字符
   - 只允许字母、数字、`-`、`_`
@@ -26,6 +27,7 @@
 
 - `session status` 只做快速状态检查；页面忙、弹窗阻塞、浏览器断连时可能拿不到完整页面信息，异常时用 `pw doctor --session <name>` 复查
 - `session attach --browser-url/--cdp` 只能接管当前机器上可连接的浏览器调试端口；连接失败时先确认浏览器是否用远程调试参数启动、端口是否可访问
+- `dashboard open` relies on an internal/hidden Playwright CLI surface and must fail as `DASHBOARD_UNAVAILABLE` if the entrypoint disappears.
 
 ### 后续扩展
 

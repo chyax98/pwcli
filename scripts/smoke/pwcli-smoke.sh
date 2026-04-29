@@ -194,6 +194,11 @@ try {
 }
 NODE
 
+log "dashboard dry run"
+dashboard_json="$(run_json dashboard-dry-run dashboard open --dry-run)"
+assert_json "$dashboard_json" "dashboard entrypoint is available" \
+  "data.ok === true && data.data.available === true && data.data.launched === false && data.data.entrypoint.includes('playwright-core')"
+
 log "session create"
 create_json="$(run_json session-create session create "$SESSION_NAME" --open "$BLANK_URL")"
 assert_json "$create_json" "session create ok" \
