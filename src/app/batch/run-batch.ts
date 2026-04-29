@@ -101,18 +101,19 @@ function unsupportedBatchStepMessage(tokens: string[]) {
   return `unsupported batch step '${command}'`;
 }
 
-function validateBatchPlan(commands: string[][]) {
-  for (const tokens of commands) {
+function findInvalidBatchStep(commands: string[][]) {
+  for (const [index, tokens] of commands.entries()) {
     const [command] = tokens;
     if (!command) {
-      throw new Error("batch step is empty");
+      return { index, tokens, message: "batch step is empty" };
     }
     if (
       !SUPPORTED_BATCH_TOP_LEVEL.includes(command as (typeof SUPPORTED_BATCH_TOP_LEVEL)[number])
     ) {
-      throw new Error(unsupportedBatchStepMessage(tokens));
+      return { index, tokens, message: unsupportedBatchStepMessage(tokens) };
     }
   }
+  return null;
 }
 
 function analyzeBatchPlan(commands: string[][], continueOnError?: boolean) {
@@ -793,12 +794,58 @@ export async function runBatch(options: {
   commands: string[][];
   continueOnError?: boolean;
   includeResults?: boolean;
+  summaryOnly?: boolean;
 }) {
   if (!options.commands.length) {
     throw new Error("batch requires at least one step");
   }
-  validateBatchPlan(options.commands);
   const analysis = analyzeBatchPlan(options.commands, options.continueOnError);
+  const invalidStep = findInvalidBatchStep(options.commands);
+
+  if (invalidStep) {
+    const reasonCode = extractReasonCode(invalidStep.message);
+    const suggestions = buildBatchStepSuggestions(invalidStep.message);
+    return {
+      completed: true,
+      analysis,
+      summary: {
+        stepCount: options.commands.length,
+        successCount: 0,
+        failedCount: 1,
+        firstFailedStep: invalidStep.index + 1,
+        firstFailedCommand: invalidStep.tokens[0] ?? null,
+        firstFailureReasonCode: reasonCode ?? null,
+        firstFailureMessage: invalidStep.message,
+        firstFailureSuggestions: suggestions ?? null,
+        failedSteps: [
+          {
+            step: invalidStep.index + 1,
+            command: invalidStep.tokens[0] ?? null,
+            reasonCode: reasonCode ?? null,
+          },
+        ],
+        continueOnError: Boolean(options.continueOnError),
+      },
+      ...(!options.summaryOnly
+        ? {
+            results: [
+              {
+                ok: false,
+                index: invalidStep.index,
+                argv: invalidStep.tokens,
+                step: formatBatchArgv(invalidStep.tokens),
+                error: {
+                  code: "BATCH_STEP_FAILED",
+                  message: invalidStep.message,
+                  ...(reasonCode ? { reasonCode } : {}),
+                  ...(suggestions ? { suggestions } : {}),
+                },
+              },
+            ],
+          }
+        : {}),
+    };
+  }
 
   const results = [];
   const failedSteps: Array<{
@@ -822,7 +869,7 @@ export async function runBatch(options: {
         step: formatBatchArgv(argv),
         ...(await executeBatchStep(argv, options.sessionName)),
       };
-      if (options.includeResults) {
+      if (!options.summaryOnly) {
         results.push(stepResult);
       }
       successCount += 1;
@@ -843,7 +890,7 @@ export async function runBatch(options: {
         command: argv[0] ?? null,
         reasonCode: reasonCode ?? null,
       });
-      if (options.includeResults) {
+      if (!options.summaryOnly) {
         results.push({
           ok: false,
           index,
@@ -879,6 +926,6 @@ export async function runBatch(options: {
       failedSteps,
       continueOnError: Boolean(options.continueOnError),
     },
-    ...(options.includeResults ? { results } : {}),
+    ...(!options.summaryOnly ? { results } : {}),
   };
 }

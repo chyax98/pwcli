@@ -246,7 +246,7 @@ if ! printf '[["observe","status"],["page","dialogs"]]' | "${CLI[@]}" batch --se
 fi
 batch_json="$batch_out"
 assert_json "$batch_json" "batch completed" \
-  "data.ok === true && data.data.completed === true && data.data.results === undefined"
+  "data.ok === true && data.data.completed === true && Array.isArray(data.data.results) && data.data.results.length === 2 && data.data.results.every(item => item.ok === true)"
 assert_json "$batch_json" "batch summary reflects successful execution" \
   "data.ok === true && data.data.summary.stepCount === 2 && data.data.summary.successCount === 2 && data.data.summary.failedCount === 0 && data.data.summary.firstFailedStep === null"
 
@@ -258,7 +258,7 @@ if ! printf '[ [\"session\",\"list\"] ]' | "${CLI[@]}" --output json batch --ses
 fi
 batch_fail_json="$batch_fail_out"
 assert_json "$batch_fail_json" "batch failed step exposes summary and reason code" \
-  "data.ok === true && data.data.summary.stepCount === 1 && data.data.summary.successCount === 0 && data.data.summary.failedCount === 1 && data.data.summary.firstFailedStep === 1 && data.data.summary.firstFailedCommand === 'session' && data.data.summary.failedSteps.length === 1 && data.data.summary.failedSteps[0].step === 1 && data.data.summary.failedSteps[0].command === 'session' && data.data.results === undefined"
+  "data.ok === true && data.data.summary.stepCount === 1 && data.data.summary.successCount === 0 && data.data.summary.failedCount === 1 && data.data.summary.firstFailedStep === 1 && data.data.summary.firstFailedCommand === 'session' && data.data.summary.failedSteps.length === 1 && data.data.summary.failedSteps[0].step === 1 && data.data.summary.failedSteps[0].command === 'session' && Array.isArray(data.data.results) && data.data.results.length === 1 && data.data.results[0].ok === false"
 
 batch_verbose_out="${TMP_DIR}/batch-verbose.json"
 if ! printf '[["observe","status"],["page","dialogs"]]' | "${CLI[@]}" --output json batch --session "$SESSION_NAME" --stdin-json --include-results >"$batch_verbose_out"; then
@@ -269,6 +269,16 @@ fi
 batch_verbose_json="$batch_verbose_out"
 assert_json "$batch_verbose_json" "batch include-results keeps full step outputs when requested" \
   "data.ok === true && Array.isArray(data.data.results) && data.data.results.length === 2 && data.data.results.every(item => item.ok === true)"
+
+batch_summary_only_out="${TMP_DIR}/batch-summary-only.json"
+if ! printf '[["observe","status"],["page","dialogs"]]' | "${CLI[@]}" --output json batch --session "$SESSION_NAME" --stdin-json --summary-only >"$batch_summary_only_out"; then
+  log "command failed: ${CLI[*]} --output json batch --session ${SESSION_NAME} --stdin-json --summary-only"
+  cat "$batch_summary_only_out" >&2 || true
+  exit 1
+fi
+batch_summary_only_json="$batch_summary_only_out"
+assert_json "$batch_summary_only_json" "batch summary-only omits full step outputs when requested" \
+  "data.ok === true && data.data.completed === true && data.data.summary.stepCount === 2 && data.data.results === undefined"
 
 log "bootstrap apply"
 bootstrap_json="$(run_json bootstrap-apply bootstrap apply --session "$SESSION_NAME" --init-script ./scripts/manual/bootstrap-fixture.js --headers-file "$HEADERS_FILE")"
