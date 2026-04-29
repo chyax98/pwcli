@@ -488,7 +488,8 @@ pw batch --session bug-a --file ./steps.json
 - `pw batch --stdin-json` 表示 stdin steps 是 JSON，不表示输出 JSON。
 - 要 JSON 输出：`pw --output json batch --session bug-a --stdin-json`。
 - `batch` 适合单 session 串行动作，不适合 lifecycle/auth/environment/dialog recovery。
-- batch `click` 只支持 ref 或 `--selector`，不支持 `--text`/`--role`/`--label` 等语义定位；需要语义定位时拆出单命令。
+- batch `click` 支持 ref、`--selector`、`--text`、`--role --name`；`--text` 和 `--role` 可带 `--nth`。
+- batch `click` 不支持 `--label`/`--placeholder`/`--testid` 等完整 CLI parity；需要时拆出单命令。
 - 默认 text 输出是轻量摘要：step 数、成功/失败数、首个失败、warnings；不倾倒嵌套 `results`。
 - 脚本解析、字段断言、完整 envelope 消费必须加 `--output json`。
 - JSON envelope 保持 `data.summary` 和 `data.results`；只需要 JSON 汇总时加 `--summary-only`。

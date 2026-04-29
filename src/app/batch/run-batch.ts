@@ -193,6 +193,93 @@ function buildBatchStepSuggestions(message: string) {
   return undefined;
 }
 
+function parseBatchClickArgs(args: string[]) {
+  let ref: string | undefined;
+  let selector: string | undefined;
+  let text: string | undefined;
+  let role: string | undefined;
+  let name: string | undefined;
+  let nth: number | undefined;
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    if (arg === "--selector") {
+      selector = args[index + 1];
+      index += 1;
+      continue;
+    }
+    if (arg === "--text") {
+      text = args[index + 1];
+      index += 1;
+      continue;
+    }
+    if (arg === "--role") {
+      role = args[index + 1];
+      index += 1;
+      continue;
+    }
+    if (arg === "--name") {
+      name = args[index + 1];
+      index += 1;
+      continue;
+    }
+    if (arg === "--nth") {
+      nth = args[index + 1] ? Number(args[index + 1]) : undefined;
+      index += 1;
+      continue;
+    }
+    if (!arg.startsWith("--") && !ref) {
+      ref = arg;
+      continue;
+    }
+    throw new Error(
+      `unsupported click batch argument '${arg}'; run the single pw click command outside batch for unsupported flags`,
+    );
+  }
+
+  const targetCount = [ref, selector, text, role].filter(Boolean).length;
+  if (targetCount > 1) {
+    throw new Error("batch click accepts exactly one target: ref, --selector, --text, or --role");
+  }
+  if (args.includes("--selector") && !selector) {
+    throw new Error("batch click requires a selector after --selector");
+  }
+  if (args.includes("--text") && !text) {
+    throw new Error("batch click requires text after --text");
+  }
+  if (args.includes("--role") && !role) {
+    throw new Error("batch click requires a role after --role");
+  }
+  if (args.includes("--name") && !name) {
+    throw new Error("batch click requires a name after --name");
+  }
+  if (args.includes("--nth") && (!Number.isInteger(nth) || nth < 1)) {
+    throw new Error("batch click requires a positive integer after --nth");
+  }
+  if (name && !role) {
+    throw new Error("batch click supports --name only with --role");
+  }
+  if (nth && !text && !role) {
+    throw new Error("batch click supports --nth only with --text or --role");
+  }
+
+  if (text) {
+    return { semantic: { kind: "text" as const, text, ...(nth ? { nth } : {}) } };
+  }
+  if (role) {
+    return {
+      semantic: { kind: "role" as const, role, ...(name ? { name } : {}), ...(nth ? { nth } : {}) },
+    };
+  }
+  if (selector) {
+    return { selector };
+  }
+  if (ref) {
+    return { ref };
+  }
+  throw new Error("batch click requires a ref, --selector, --text, or --role");
+}
+
 async function executeBatchStep(tokens: string[], sessionName: string) {
   const [command, ...args] = tokens;
   const rawStep = formatBatchArgv(tokens);
@@ -604,28 +691,14 @@ async function executeBatchStep(tokens: string[], sessionName: string) {
         }),
       };
     }
-    case "click":
-      if (args[0] === "--selector") {
-        const selector = args[1];
-        if (!selector) {
-          throw new Error(`batch step '${rawStep}' requires a selector after --selector`);
-        }
-        return {
-          ok: true,
-          command: "click",
-          data: await managedClick({ selector, sessionName }),
-        };
-      }
-      if (args.length !== 1) {
-        throw new Error(
-          `batch step '${rawStep}' requires exactly one ref or --selector <selector>`,
-        );
-      }
+    case "click": {
+      const target = parseBatchClickArgs(args);
       return {
         ok: true,
         command: "click",
-        data: await managedClick({ ref: args[0], sessionName }),
+        data: await managedClick({ sessionName, ...target }),
       };
+    }
     case "fill": {
       if (args[0] === "--selector") {
         const selector = args[1];

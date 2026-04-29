@@ -92,7 +92,7 @@
 稳定 argv 子集：
 
 - `snapshot`、`snapshot -i`、`snapshot -c`
-- `click <ref>`、`click --selector <selector>`（不支持 `--text`/`--role` 等语义定位）
+- `click <ref>`、`click --selector <selector>`、`click --text <text>`、`click --role <role> --name <name>`
 - `fill <ref> <value>`、`fill --selector <selector> <value>`
 - `press <key>`、`scroll <direction> [distance]`、`type [ref] <value>`
 - `open <url>`
@@ -101,6 +101,17 @@
 - `screenshot ...`、`observe status`、`errors recent|clear`
 - `route list|add|load|remove ...`、`bootstrap apply ...`
 - `state save|load`、`page current|list|frames|dialogs`
+
+Supported batch click targets:
+
+- `["click", "e12"]`
+- `["click", "--selector", "#submit"]`
+- `["click", "--text", "Submit"]`
+- `["click", "--text", "Submit", "--nth", "2"]`
+- `["click", "--role", "button", "--name", "Submit"]`
+- `["click", "--role", "button", "--name", "Submit", "--nth", "2"]`
+
+Other semantic click flags stay outside batch. Run the single `pw click ...` command when you need them.
 
 注意：
 

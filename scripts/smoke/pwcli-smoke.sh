@@ -424,6 +424,78 @@ if ! grep -q 'steps:' "$batch_text_verbose_out"; then
   exit 1
 fi
 
+log "batch semantic click"
+semantic_setup_source="$(cat <<'NODE'
+async page => {
+  await page.evaluate(() => {
+    document.body.innerHTML = '<main><h1>pwcli deterministic fixture</h1><p id="batch-status">ready</p></main>';
+    const textFirst = document.createElement('button');
+    textFirst.type = 'button';
+    textFirst.textContent = 'Batch Text Target';
+    textFirst.addEventListener('click', () => {
+      document.querySelector('#batch-status').textContent = 'wrong-text-clicked';
+    });
+    const textSecond = document.createElement('button');
+    textSecond.type = 'button';
+    textSecond.textContent = 'Batch Text Target';
+    textSecond.addEventListener('click', () => {
+      document.querySelector('#batch-status').textContent = 'batch-text-clicked';
+    });
+    const roleFirst = document.createElement('button');
+    roleFirst.type = 'button';
+    roleFirst.textContent = 'Batch Role Target';
+    roleFirst.addEventListener('click', () => {
+      document.querySelector('#batch-status').textContent = 'wrong-role-clicked';
+    });
+    const roleSecond = document.createElement('button');
+    roleSecond.type = 'button';
+    roleSecond.textContent = 'Batch Role Target';
+    roleSecond.addEventListener('click', () => {
+      document.querySelector('#batch-status').textContent = 'batch-role-clicked';
+    });
+    document.body.append(textFirst, textSecond, roleFirst, roleSecond);
+  });
+  return 'batch-semantic-targets-ready';
+}
+NODE
+)"
+semantic_setup_json="$(run_json batch-semantic-setup code --session "$SESSION_NAME" "$semantic_setup_source")"
+assert_json "$semantic_setup_json" "batch semantic targets installed" \
+  "data.ok === true && data.data.result === 'batch-semantic-targets-ready'"
+semantic_batch="$(node --input-type=module <<'NODE'
+console.log(JSON.stringify([
+  ["click", "--text", "Batch Text Target", "--nth", "2"],
+  ["wait", "--text", "batch-text-clicked"],
+  ["click", "--role", "button", "--name", "Batch Role Target", "--nth", "2"],
+  ["wait", "--text", "batch-role-clicked"]
+]));
+NODE
+)"
+batch_semantic_out="${TMP_DIR}/batch-semantic.json"
+if ! printf '%s' "$semantic_batch" | "${CLI[@]}" batch --session "$SESSION_NAME" --stdin-json >"$batch_semantic_out"; then
+  log "command failed: ${CLI[*]} batch --session ${SESSION_NAME} --stdin-json"
+  cat "$batch_semantic_out" >&2 || true
+  exit 1
+fi
+batch_semantic_json="$batch_semantic_out"
+assert_json "$batch_semantic_json" "batch supports semantic role/text click" \
+  "data.ok === true && data.data.summary.failedCount === 0 && data.data.summary.successCount === 4"
+
+bad_semantic_batch='[["click","--label","Email"]]'
+bad_semantic_out="${TMP_DIR}/batch-bad-semantic.json"
+set +e
+printf '%s' "$bad_semantic_batch" | "${CLI[@]}" batch --session "$SESSION_NAME" --stdin-json >"$bad_semantic_out"
+bad_semantic_code=$?
+set -e
+if [ "$bad_semantic_code" -ne 0 ]; then
+  log "command failed before producing batch failure envelope: ${CLI[*]} batch --session ${SESSION_NAME} --stdin-json"
+  cat "$bad_semantic_out" >&2 || true
+  exit 1
+fi
+bad_semantic_json="$bad_semantic_out"
+assert_json "$bad_semantic_json" "unsupported batch semantic flag fails" \
+  "data.ok === true && data.data.summary.failedCount === 1 && String(data.data.summary.firstFailureMessage).includes('unsupported click batch argument') && String(data.data.summary.firstFailureMessage).includes('outside batch')"
+
 log "bootstrap apply"
 bootstrap_json="$(run_json bootstrap-apply bootstrap apply --session "$SESSION_NAME" --init-script ./scripts/manual/bootstrap-fixture.js --headers-file "$HEADERS_FILE")"
 assert_json "$bootstrap_json" "bootstrap applied" \
