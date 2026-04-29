@@ -7,7 +7,11 @@ type ManagedActionErrorContext = {
 };
 
 function isTargetNotFoundError(errorText: string) {
-  if (/No element matches selector/i.test(errorText) || /Unable to find/i.test(errorText)) {
+  if (
+    /No element matches selector/i.test(errorText) ||
+    /Unable to find/i.test(errorText) ||
+    /CLICK_SEMANTIC_NOT_FOUND/i.test(errorText)
+  ) {
     return true;
   }
 
@@ -24,6 +28,13 @@ export function throwIfManagedActionError(text: string, context: ManagedActionEr
     return;
   }
 
+  throwManagedActionErrorText(errorText, context);
+}
+
+export function throwManagedActionErrorText(
+  errorText: string,
+  context: ManagedActionErrorContext,
+) {
   const session = context.sessionName ?? null;
   const refMatch = errorText.match(
     /Ref\s+([A-Za-z0-9_-]+)\s+not found in the current page snapshot/i,
@@ -51,6 +62,20 @@ export function throwIfManagedActionError(text: string, context: ManagedActionEr
         "Narrow the locator so it resolves to one target",
         "Pass --nth when multiple matching targets are expected",
         `Inspect the current snapshot with \`pw snapshot -i --session ${context.sessionName ?? "<name>"}\``,
+      ],
+      details: { command: context.command, session },
+    });
+  }
+
+  if (/CLICK_SEMANTIC_INDEX_OUT_OF_RANGE|INDEX_OUT_OF_RANGE/i.test(errorText)) {
+    throw new ActionFailure({
+      code: "ACTION_TARGET_INDEX_OUT_OF_RANGE",
+      message: errorText,
+      retryable: true,
+      suggestions: [
+        "Pass an --nth value within the available target count",
+        `Inspect the current snapshot with \`pw snapshot -i --session ${context.sessionName ?? "<name>"}\``,
+        "Use a narrower selector or semantic locator when possible",
       ],
       details: { command: context.command, session },
     });
