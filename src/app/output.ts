@@ -138,14 +138,23 @@ function stringifyValue(value: unknown): string {
   return JSON.stringify(value, null, 2);
 }
 
+function formatRunPointer(value: unknown): string | null {
+  const run = asRecord(value);
+  const runId = asString(run.runId);
+  const runDir = asString(run.runDir);
+  if (!runId && !runDir) {
+    return null;
+  }
+  return `run ${[runId ? `id=${runId}` : null, runDir ? `dir=${runDir}` : null]
+    .filter(Boolean)
+    .join(" ")}`;
+}
+
 function formatDiagnosticsDelta(value: unknown): string[] {
   const delta = asRecord(value);
   const consoleDelta = asNumber(delta.consoleDelta) ?? 0;
   const networkDelta = asNumber(delta.networkDelta) ?? 0;
   const pageErrorDelta = asNumber(delta.pageErrorDelta) ?? 0;
-  if (consoleDelta === 0 && networkDelta === 0 && pageErrorDelta === 0) {
-    return [];
-  }
   const lines = [
     `delta console=${consoleDelta} network=${networkDelta} pageError=${pageErrorDelta}`,
   ];
@@ -306,6 +315,10 @@ function formatAction(command: string, result: CommandResult): string {
   const lines = [`${command}${facts.length > 0 ? ` ${facts.join(" ")}` : " ok"}`];
   if (page) {
     lines.push(`page ${page}`);
+  }
+  const runPointer = formatRunPointer(result.data.run);
+  if (runPointer) {
+    lines.push(runPointer);
   }
   lines.push(...formatDiagnosticsDelta(result.data.diagnosticsDelta));
   return lines.join("\n");
