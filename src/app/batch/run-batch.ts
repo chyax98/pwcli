@@ -162,6 +162,36 @@ function analyzeBatchPlan(commands: string[][], continueOnError?: boolean) {
   };
 }
 
+function extractReasonCode(message: string) {
+  const matched = message.match(/^([A-Z][A-Z0-9_]+)(?::|$)/);
+  if (!matched) {
+    return undefined;
+  }
+  return matched[1];
+}
+
+function buildBatchStepSuggestions(message: string) {
+  if (message === "MODAL_STATE_BLOCKED") {
+    return [
+      "Recover the dialog outside batch with `pw dialog accept --session <name>` or `pw dialog dismiss --session <name>`",
+      "Then rerun the batch from the blocked step",
+    ];
+  }
+  if (message.includes("session lifecycle")) {
+    return [
+      "Create or attach the session first with `pw session create|attach`",
+      "Keep batch for dependent steps inside one existing session only",
+    ];
+  }
+  if (message.includes("environment mutation")) {
+    return [
+      "Run environment commands directly before batch",
+      "Keep batch for deterministic page/read/action steps",
+    ];
+  }
+  return undefined;
+}
+
 async function executeBatchStep(tokens: string[], sessionName: string) {
   const [command, ...args] = tokens;
   const rawStep = formatBatchArgv(tokens);
@@ -762,6 +792,7 @@ export async function runBatch(options: {
   sessionName: string;
   commands: string[][];
   continueOnError?: boolean;
+  includeResults?: boolean;
 }) {
   if (!options.commands.length) {
     throw new Error("batch requires at least one step");
@@ -770,44 +801,62 @@ export async function runBatch(options: {
   const analysis = analyzeBatchPlan(options.commands, options.continueOnError);
 
   const results = [];
+  const failedSteps: Array<{
+    step: number;
+    command: string | null;
+    reasonCode: string | null;
+  }> = [];
+  let successCount = 0;
+  let failedCount = 0;
+  let firstFailedStep: number | null = null;
+  let firstFailedCommand: string | null = null;
+  let firstFailureReasonCode: string | null = null;
+  let firstFailureMessage: string | null = null;
+  let firstFailureSuggestions: string[] | null = null;
 
   for (const [index, argv] of options.commands.entries()) {
     try {
-      results.push({
+      const stepResult = {
         index,
         argv,
         step: formatBatchArgv(argv),
         ...(await executeBatchStep(argv, options.sessionName)),
-      });
+      };
+      if (options.includeResults) {
+        results.push(stepResult);
+      }
+      successCount += 1;
     } catch (error) {
       const message = error instanceof Error ? error.message : "batch step failed";
-      results.push({
-        ok: false,
-        index,
-        argv,
-        step: formatBatchArgv(argv),
-        error: {
-          code: "BATCH_STEP_FAILED",
-          message,
-          suggestions:
-            message === "MODAL_STATE_BLOCKED"
-              ? [
-                  "Recover the dialog outside batch with `pw dialog accept --session <name>` or `pw dialog dismiss --session <name>`",
-                  "Then rerun the batch from the blocked step",
-                ]
-              : message.includes("session lifecycle")
-                ? [
-                    "Create or attach the session first with `pw session create|attach`",
-                    "Keep batch for dependent steps inside one existing session only",
-                  ]
-                : message.includes("environment mutation")
-                  ? [
-                      "Run environment commands directly before batch",
-                      "Keep batch for deterministic page/read/action steps",
-                    ]
-                  : undefined,
-        },
+      const reasonCode = extractReasonCode(message);
+      const suggestions = buildBatchStepSuggestions(message);
+      failedCount += 1;
+      if (firstFailedStep === null) {
+        firstFailedStep = index + 1;
+        firstFailedCommand = argv[0] ?? null;
+        firstFailureReasonCode = reasonCode ?? null;
+        firstFailureMessage = message;
+        firstFailureSuggestions = suggestions ?? null;
+      }
+      failedSteps.push({
+        step: index + 1,
+        command: argv[0] ?? null,
+        reasonCode: reasonCode ?? null,
       });
+      if (options.includeResults) {
+        results.push({
+          ok: false,
+          index,
+          argv,
+          step: formatBatchArgv(argv),
+          error: {
+            code: "BATCH_STEP_FAILED",
+            message,
+            ...(reasonCode ? { reasonCode } : {}),
+            ...(suggestions ? { suggestions } : {}),
+          },
+        });
+      }
 
       if (!options.continueOnError) {
         break;
@@ -818,6 +867,18 @@ export async function runBatch(options: {
   return {
     completed: true,
     analysis,
-    results,
+    summary: {
+      stepCount: options.commands.length,
+      successCount,
+      failedCount,
+      firstFailedStep,
+      firstFailedCommand,
+      firstFailureReasonCode,
+      firstFailureMessage,
+      firstFailureSuggestions,
+      failedSteps,
+      continueOnError: Boolean(options.continueOnError),
+    },
+    ...(options.includeResults ? { results } : {}),
   };
 }

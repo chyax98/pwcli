@@ -5,7 +5,19 @@ description: "Use pwcli for browser automation, page exploration, diagnostics, s
 
 # pwcli
 
-`pwcli` 是 Agent-first Playwright CLI。用它完成页面探索、动作执行、bug 定位、全链路诊断、受控自动化测试。不要临时绕过到裸 Playwright，除非你明确选择 `pw code` 作为快速执行通道。
+`pwcli` 是 Agent-first Playwright CLI，定位是**工具型执行器**：优先给出可执行命令链路，不展开原理教学。用它完成页面探索、动作执行、bug 定位、全链路诊断、受控自动化测试。不要临时绕过到裸 Playwright，除非你明确选择 `pw code` 作为快速执行通道。
+
+主 skill 目标是覆盖约 70%~80% 的高频任务；超出主链时，按本文件末尾的相对路径路由到 `references/` 与 `workflows/`。
+
+
+## 快速路由（先看这里）
+
+- 你只需要完成常规浏览器任务（探索、点击、等待、取证）：继续读本文件即可。
+- 你需要精确参数口径：跳转 `references/command-reference.md`。
+- 你在做 bug 诊断与证据导出：跳转 `references/command-reference-diagnostics.md` 与 `workflows/diagnostics.md`。
+- 你在做 auth/state/batch/environment：跳转 `references/command-reference-advanced.md`。
+- 你遇到错误码或阻断态：跳转 `references/failure-recovery.md`。
+- 你需要任务链路模板：跳转 `references/workflows.md`（再按索引进入 `workflows/*.md`）。
 
 ## 总原则
 
@@ -466,6 +478,7 @@ pw batch --session bug-a --file ./steps.json
 - 要 JSON 输出：`pw --output json batch --session bug-a --stdin-json`。
 - `batch` 适合单 session 串行动作，不适合 lifecycle/auth/environment/dialog recovery。
 - batch `click` 只支持 ref 或 `--selector`，不支持 `--text`/`--role`/`--label` 等语义定位；需要语义定位时拆出单命令。
+- 默认输出只给 `data.summary`（减少重复信息和 token 消耗）；排障时再加 `--include-results` 看 step 明细。
 - 超出稳定子集时，直接跑单命令或用 `pw code`。
 
 ## 12. 标准任务模板
@@ -521,7 +534,7 @@ pw --output json read-text -s test-a --max-chars 1000
 - 不要把 HAR 热录制、raw CDP substrate 等边界能力包装成稳定支持。
 - 不要为了省命令跳过动作后的 `wait` 和复查。
 
-## 15. 参考
+## 14. 参考
 
 需要精确命令参数时按场景查对应文件：
 
@@ -531,3 +544,7 @@ pw --output json read-text -s test-a --max-chars 1000
 - `references/forge-dc-auth.md` — Forge/DC provider 的参数、失败分支、环境路由
 - `references/failure-recovery.md` — 遇到错误码时
 - `references/gotchas.md` — 遇到非预期行为时
+- `references/workflows.md` — 工作流路由入口（浏览器探索 / 诊断 / 受控测试）
+- `workflows/browser-task.md` — 页面探索与动作闭环
+- `workflows/diagnostics.md` — 复现与诊断闭环
+- `workflows/controlled-testing.md` — mock + environment + bootstrap 的确定性链路
