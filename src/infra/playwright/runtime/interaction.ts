@@ -2,12 +2,8 @@ import { copyFile, mkdir } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { appendRunEvent, ensureRunDir } from "../../fs/run-artifacts.js";
 import { runManagedSessionCommand } from "../cli-client.js";
-import {
-  parseDownloadEvent,
-  parseErrorText,
-  parsePageSummary,
-  stripQuotes,
-} from "../output-parsers.js";
+import { parseDownloadEvent, parsePageSummary, stripQuotes } from "../output-parsers.js";
+import { throwIfManagedActionError } from "./action-failure-classifier.js";
 import { managedRunCode } from "./code.js";
 import { buildDiagnosticsDelta, captureDiagnosticsBaseline } from "./diagnostics.js";
 import { maybeRawOutput, normalizeRef } from "./shared.js";
@@ -36,13 +32,6 @@ async function recordRun(
     ...details,
   });
   return run;
-}
-
-function throwIfManagedCommandError(text: string) {
-  const errorText = parseErrorText(text);
-  if (errorText) {
-    throw new Error(errorText);
-  }
 }
 
 export async function managedClick(options: {
@@ -123,7 +112,7 @@ export async function managedClick(options: {
       sessionName: options.sessionName,
     },
   );
-  throwIfManagedCommandError(result.text);
+  throwIfManagedActionError(result.text, { command: "click", sessionName: options.sessionName });
 
   const diagnosticsDelta = await buildDiagnosticsDelta(options.sessionName, before);
   const run = await recordRun("click", options.sessionName, parsePageSummary(result.text), {
@@ -248,7 +237,7 @@ export async function managedFill(options: {
       sessionName: options.sessionName,
     },
   );
-  throwIfManagedCommandError(result.text);
+  throwIfManagedActionError(result.text, { command: "fill", sessionName: options.sessionName });
 
   const diagnosticsDelta = await buildDiagnosticsDelta(options.sessionName, before);
   const run = await recordRun("fill", options.sessionName, parsePageSummary(result.text), {
@@ -290,7 +279,7 @@ export async function managedType(options: {
         sessionName: options.sessionName,
       },
     );
-    throwIfManagedCommandError(result.text);
+    throwIfManagedActionError(result.text, { command: "type", sessionName: options.sessionName });
     const diagnosticsDelta = await buildDiagnosticsDelta(options.sessionName, before);
     const run = await recordRun("type", options.sessionName, parsePageSummary(result.text), {
       diagnosticsDelta,
@@ -347,7 +336,7 @@ export async function managedPress(key: string, options?: { sessionName?: string
       sessionName: options?.sessionName,
     },
   );
-  throwIfManagedCommandError(result.text);
+  throwIfManagedActionError(result.text, { command: "press", sessionName: options?.sessionName });
 
   const diagnosticsDelta = await buildDiagnosticsDelta(options?.sessionName, before);
   const run = await recordRun("press", options?.sessionName, parsePageSummary(result.text), {
@@ -385,7 +374,7 @@ export async function managedDialog(
       sessionName: options?.sessionName,
     },
   );
-  throwIfManagedCommandError(result.text);
+  throwIfManagedActionError(result.text, { command: "dialog", sessionName: options?.sessionName });
 
   return {
     session: {
