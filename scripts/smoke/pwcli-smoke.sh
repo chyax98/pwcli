@@ -610,6 +610,9 @@ assert_json "$semantic_fill_missing_json" "semantic fill missing target preserve
   "data.ok === false && data.error.code === 'ACTION_TARGET_NOT_FOUND' && data.error.retryable === true && data.error.details.command === 'fill'"
 
 log "control interaction primitives"
+control_fixture_json="$(run_json control-fixture-reset open --session "$SESSION_NAME" "$BLANK_URL")"
+assert_json "$control_fixture_json" "control fixture reset restored form controls" \
+  "data.ok === true && data.data.navigated === true"
 check_json="$(run_json check-box check --session "$SESSION_NAME" --selector '#smoke-checkbox')"
 assert_json "$check_json" "check returns action evidence" \
   "data.ok === true && data.data.acted === true && data.data.checked === true && typeof data.data.run.runId === 'string'"
@@ -639,6 +642,9 @@ assert_json "$pdf_json" "pdf export returns path" \
 test -s "$pdf_path"
 
 log "fire diagnostics"
+diagnostics_restore_json="$(run_json diagnostics-restore code --session "$SESSION_NAME" --file ./scripts/manual/diagnostics-fixture.js)"
+assert_json "$diagnostics_restore_json" "diagnostics fixture restored after control reset" \
+  "data.ok === true && data.data.result === 'ready'"
 click_json="$(run_json click-fire click --session "$SESSION_NAME" --selector '#fire')"
 assert_json "$click_json" "click fire acted" \
   "data.ok === true && data.data.acted === true"
