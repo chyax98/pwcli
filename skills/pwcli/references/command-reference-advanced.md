@@ -103,6 +103,14 @@
 - 只需要 JSON 汇总时加 `--summary-only`；失败信息看 `firstFailure*` 和 `failedSteps`
 - text 输出需要紧凑 step 明细时加 `--include-results`
 
+## Dashboard
+
+### `pw dashboard open`
+
+Opens Playwright-core's bundled session dashboard. This is a thin wrapper around Playwright's internal `playwright cli show` surface.
+
+Use for human observation or takeover. Do not use as a required Agent workflow step.
+
 ## Environment
 
 ### `pw environment offline on|off --session <name>`
