@@ -111,6 +111,77 @@ if ! curl -sf "$BLANK_URL" >/dev/null; then
   exit 1
 fi
 
+log "action failure classifier contract"
+node --input-type=module <<'NODE'
+import { ActionFailure } from './dist/domain/interaction/action-failure.js';
+import { throwManagedActionErrorText } from './dist/infra/playwright/runtime/action-failure-classifier.js';
+
+function expectActionFailure(label, message, expectedCode) {
+  try {
+    throwManagedActionErrorText(message, { command: 'click', sessionName: 'smoke-a' });
+  } catch (error) {
+    if (!(error instanceof ActionFailure)) {
+      console.error(`[smoke] ${label}: expected ActionFailure, got ${error?.constructor?.name ?? typeof error}`);
+      process.exit(1);
+    }
+    if (error.code !== expectedCode) {
+      console.error(`[smoke] ${label}: expected ${expectedCode}, got ${error.code}`);
+      process.exit(1);
+    }
+    if (!error.retryable) {
+      console.error(`[smoke] ${label}: expected retryable failure`);
+      process.exit(1);
+    }
+    if (!Array.isArray(error.suggestions) || error.suggestions.length === 0) {
+      console.error(`[smoke] ${label}: expected suggestions`);
+      process.exit(1);
+    }
+    return;
+  }
+  console.error(`[smoke] ${label}: expected classifier to throw`);
+  process.exit(1);
+}
+
+expectActionFailure(
+  'stale ref',
+  'Ref e17 not found in the current page snapshot',
+  'REF_STALE',
+);
+expectActionFailure(
+  'semantic not found',
+  'CLICK_SEMANTIC_NOT_FOUND:{"target":{"kind":"text","text":"missing semantic smoke action"}}',
+  'ACTION_TARGET_NOT_FOUND',
+);
+expectActionFailure(
+  'semantic nth out of range',
+  'CLICK_SEMANTIC_INDEX_OUT_OF_RANGE:{"target":{"kind":"text","text":"nth smoke action","nth":2},"count":1,"nth":2}',
+  'ACTION_TARGET_INDEX_OUT_OF_RANGE',
+);
+expectActionFailure(
+  'strict ambiguous target',
+  "locator.click: Error: strict mode violation: locator('.strict-smoke-target') resolved to 2 elements",
+  'ACTION_TARGET_AMBIGUOUS',
+);
+expectActionFailure(
+  'timeout not actionable',
+  "locator.click: Timeout 25000ms exceeded.\nCall log:\n  - waiting for locator('#hidden-smoke-target')\n  - element is not visible",
+  'ACTION_TIMEOUT_OR_NOT_ACTIONABLE',
+);
+
+try {
+  throwManagedActionErrorText('No dialog visible', { command: 'dialog', sessionName: 'smoke-a' });
+} catch (error) {
+  if (error instanceof ActionFailure) {
+    console.error('[smoke] unknown dialog error must not become ActionFailure');
+    process.exit(1);
+  }
+  if (!(error instanceof Error) || error.message !== 'No dialog visible') {
+    console.error('[smoke] unknown dialog error should preserve raw message');
+    process.exit(1);
+  }
+}
+NODE
+
 log "session create"
 create_json="$(run_json session-create session create "$SESSION_NAME" --open "$BLANK_URL")"
 assert_json "$create_json" "session create ok" \
