@@ -51,6 +51,18 @@ run_json() {
   printf '%s\n' "$out"
 }
 
+run_fail_json() {
+  local name="$1"
+  shift
+  local out="${TMP_DIR}/${name}.json"
+  if "${CLI[@]}" "$@" >"$out"; then
+    log "command unexpectedly succeeded: ${CLI[*]} $*"
+    cat "$out" >&2 || true
+    return 1
+  fi
+  printf '%s\n' "$out"
+}
+
 assert_json() {
   local file="$1"
   local label="$2"
@@ -110,6 +122,77 @@ if ! curl -sf "$BLANK_URL" >/dev/null; then
   cat "$SERVER_LOG" >&2 || true
   exit 1
 fi
+
+log "action failure classifier contract"
+node --input-type=module <<'NODE'
+import { ActionFailure } from './dist/domain/interaction/action-failure.js';
+import { throwManagedActionErrorText } from './dist/infra/playwright/runtime/action-failure-classifier.js';
+
+function expectActionFailure(label, message, expectedCode) {
+  try {
+    throwManagedActionErrorText(message, { command: 'click', sessionName: 'smoke-a' });
+  } catch (error) {
+    if (!(error instanceof ActionFailure)) {
+      console.error(`[smoke] ${label}: expected ActionFailure, got ${error?.constructor?.name ?? typeof error}`);
+      process.exit(1);
+    }
+    if (error.code !== expectedCode) {
+      console.error(`[smoke] ${label}: expected ${expectedCode}, got ${error.code}`);
+      process.exit(1);
+    }
+    if (!error.retryable) {
+      console.error(`[smoke] ${label}: expected retryable failure`);
+      process.exit(1);
+    }
+    if (!Array.isArray(error.suggestions) || error.suggestions.length === 0) {
+      console.error(`[smoke] ${label}: expected suggestions`);
+      process.exit(1);
+    }
+    return;
+  }
+  console.error(`[smoke] ${label}: expected classifier to throw`);
+  process.exit(1);
+}
+
+expectActionFailure(
+  'stale ref',
+  'Ref e17 not found in the current page snapshot',
+  'REF_STALE',
+);
+expectActionFailure(
+  'semantic not found',
+  'CLICK_SEMANTIC_NOT_FOUND:{"target":{"kind":"text","text":"missing semantic smoke action"}}',
+  'ACTION_TARGET_NOT_FOUND',
+);
+expectActionFailure(
+  'semantic nth out of range',
+  'CLICK_SEMANTIC_INDEX_OUT_OF_RANGE:{"target":{"kind":"text","text":"nth smoke action","nth":2},"count":1,"nth":2}',
+  'ACTION_TARGET_INDEX_OUT_OF_RANGE',
+);
+expectActionFailure(
+  'strict ambiguous target',
+  "locator.click: Error: strict mode violation: locator('.strict-smoke-target') resolved to 2 elements",
+  'ACTION_TARGET_AMBIGUOUS',
+);
+expectActionFailure(
+  'timeout not actionable',
+  "locator.click: Timeout 25000ms exceeded.\nCall log:\n  - waiting for locator('#hidden-smoke-target')\n  - element is not visible",
+  'ACTION_TIMEOUT_OR_NOT_ACTIONABLE',
+);
+
+try {
+  throwManagedActionErrorText('No dialog visible', { command: 'dialog', sessionName: 'smoke-a' });
+} catch (error) {
+  if (error instanceof ActionFailure) {
+    console.error('[smoke] unknown dialog error must not become ActionFailure');
+    process.exit(1);
+  }
+  if (!(error instanceof Error) || error.message !== 'No dialog visible') {
+    console.error('[smoke] unknown dialog error should preserve raw message');
+    process.exit(1);
+  }
+}
+NODE
 
 log "session create"
 create_json="$(run_json session-create session create "$SESSION_NAME" --open "$BLANK_URL")"
@@ -316,6 +399,9 @@ SEMANTIC_RUN_ID="$(json_field "$semantic_click_json" "data.data.run.runId")"
 semantic_show_json="$(run_json semantic-click-show diagnostics show --run "$SEMANTIC_RUN_ID" --command click --limit 1)"
 assert_json "$semantic_show_json" "semantic click run preserves locator target" \
   "data.ok === true && data.data.events.length === 1 && data.data.events[0].target.text === 'semantic smoke action' && data.data.events[0].target.nth === 1"
+semantic_missing_json="$(run_fail_json semantic-missing click --session "$SESSION_NAME" --text 'missing semantic smoke action')"
+assert_json "$semantic_missing_json" "semantic missing target preserves action failure envelope" \
+  "data.ok === false && data.error.code === 'ACTION_TARGET_NOT_FOUND' && data.error.retryable === true && data.error.message.includes('CLICK_SEMANTIC_NOT_FOUND') && data.error.suggestions.some(item => item.includes('snapshot -i')) && data.error.details.command === 'click'"
 
 log "fire diagnostics"
 click_json="$(run_json click-fire click --session "$SESSION_NAME" --selector '#fire')"
