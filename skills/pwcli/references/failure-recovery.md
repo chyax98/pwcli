@@ -30,6 +30,22 @@ pw session create bug-a --open 'https://example.com'
 
 ## Modal blockage
 
+### Action failure with `Ref ... not found in the current page snapshot`
+
+Meaning:
+
+- the ref came from an older snapshot
+- the page navigated, re-rendered, switched tab, or otherwise changed after the ref was captured
+
+Recovery:
+
+```bash
+pw snapshot -i --session bug-a
+pw click <fresh-ref> --session bug-a
+```
+
+Do not retry the old ref after a page transition. Use a semantic locator such as `--role` or `--text` when the target must survive navigation or re-rendering.
+
 ### `MODAL_STATE_BLOCKED`
 
 Meaning:
