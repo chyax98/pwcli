@@ -43,6 +43,9 @@ description: "Use pwcli for browser automation, page exploration, diagnostics, s
 # 快速理解页面
 pw observe status -s bug-a
 pw read-text -s bug-a --max-chars 2000
+pw locate -s bug-a --text '保存成功'
+pw get count -s bug-a --selector '.row'
+pw is visible -s bug-a --selector '#submit'
 pw snapshot -i -s bug-a
 
 # 动作闭环
@@ -70,6 +73,7 @@ pw diagnostics digest -s bug-a
 | 继续当前页面 | `session list/status` | 用户明确说继续旧任务 |
 | 已有 session 导航 | `open` | 只换 URL，不换 browser shape |
 | 页面理解 | `observe status`、`page current`、`read-text` | 默认观察路径 |
+| 状态读取 | `locate`、`get`、`is` | 低噪声检查元素是否存在、读取事实或布尔状态 |
 | 多页面切换 | `page list`、`tab select|close` | popup、新开页、OAuth/预览窗口 |
 | 结构定位 | `snapshot -i` / `snapshot` | 需要 aria ref 或页面结构 |
 | 页面动作 | `click/fill/type/press/scroll/drag` | 稳定动作，带 action 记录 |
@@ -134,6 +138,9 @@ pw session close --all
 pw observe status -s bug-a
 pw page current -s bug-a
 pw read-text -s bug-a --max-chars 2000
+pw locate -s bug-a --text '提交'
+pw get text -s bug-a --selector '#result'
+pw is enabled -s bug-a --role button --name '提交'
 ```
 
 用途：
@@ -142,8 +149,11 @@ pw read-text -s bug-a --max-chars 2000
 - `page current`：当前 page projection。
 - `read-text`：可见文本，适合快速理解页面。
 - `read-text --include-overlay`：点击 dropdown/modal/popover 后读取浮层文本。
+- `locate/get/is`：窄状态检查；只返回候选、事实或布尔值，不生成动作计划。
 - `snapshot -i`：只看可交互节点，找 ref 首选。
 - `snapshot`：完整结构树，需要理解页面层级时再用。
+
+`locate/get/is` 适合脚本断言和低噪声状态读取。需要 fresh ref 或页面结构时继续用 `snapshot -i`；不要把这些命令当 action planner。
 
 需要 ref 点击或结构定位：
 

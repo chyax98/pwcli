@@ -107,6 +107,23 @@ Modal and browser-dialog blockage is currently reported through `MODAL_STATE_BLO
 
 These codes do not auto-heal selectors and do not pick among candidates. They tell the Agent which next command to run.
 
+### `STATE_TARGET_NOT_FOUND`
+
+Meaning:
+
+- `pw get text|value` matched zero elements
+- the command did not choose a fallback target
+
+Recovery:
+
+```bash
+pw locate --session bug-a --selector '<selector>'
+pw get count --session bug-a --selector '<selector>'
+pw snapshot -i --session bug-a
+```
+
+`locate` and `get count` are the low-noise checks when zero matches is acceptable. Use `snapshot -i` only when you need fresh refs or structural context.
+
 ### `MODAL_STATE_BLOCKED`
 
 Meaning:

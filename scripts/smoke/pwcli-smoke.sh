@@ -276,6 +276,20 @@ overlay_read_json="$(run_json overlay-read read-text --session "$SESSION_NAME" -
 assert_json "$overlay_read_json" "read-text can include overlay text" \
   "data.ok === true && data.data.source === 'body-visible+overlay' && data.data.overlays.some(item => item.text.includes('overlay smoke option')) && data.data.text.includes('overlay smoke option')"
 
+log "state check primitives"
+locate_json="$(run_json locate-text locate --session "$SESSION_NAME" --text "pwcli deterministic fixture")"
+assert_json "$locate_json" "locate text returns candidates" \
+  "data.ok === true && data.data.count >= 1 && Array.isArray(data.data.candidates)"
+count_json="$(run_json get-count get count --session "$SESSION_NAME" --selector "body")"
+assert_json "$count_json" "get count returns number" \
+  "data.ok === true && typeof data.data.value === 'number' && data.data.value >= 1"
+visible_json="$(run_json is-visible is visible --session "$SESSION_NAME" --selector "body")"
+assert_json "$visible_json" "is visible returns boolean" \
+  "data.ok === true && data.data.value === true"
+missing_get_json="$(run_fail_json get-missing get text --session "$SESSION_NAME" --selector ".missing-state-target")"
+assert_json "$missing_get_json" "get missing target returns stable code" \
+  "data.ok === false && data.error.code === 'STATE_TARGET_NOT_FOUND' && data.error.retryable === true"
+
 log "page current"
 page_json="$(run_json page-current page current --session "$SESSION_NAME")"
 assert_json "$page_json" "page current points at fixture" \

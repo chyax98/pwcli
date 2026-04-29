@@ -5,6 +5,9 @@ export {
   managedDownload,
   managedDrag,
   managedFill,
+  managedGetFact,
+  managedIsState,
+  managedLocate,
   managedPdf,
   managedPress,
   managedReadText,
@@ -17,4 +20,5 @@ export {
   managedUncheck,
   managedUpload,
   managedWait,
+  type StateTarget,
 } from "../../infra/playwright/runtime.js";

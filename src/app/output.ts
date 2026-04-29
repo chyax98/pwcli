@@ -344,6 +344,48 @@ function formatAction(command: string, result: CommandResult): string {
   return lines.join("\n");
 }
 
+function formatStateTarget(value: unknown): string {
+  const target = asRecord(value);
+  if (typeof target.selector === "string") {
+    return `selector=${target.selector}`;
+  }
+  if (typeof target.text === "string") {
+    return `text=${JSON.stringify(target.text)}`;
+  }
+  if (typeof target.role === "string") {
+    const name = typeof target.name === "string" ? ` name=${JSON.stringify(target.name)}` : "";
+    return `role=${target.role}${name}`;
+  }
+  if (typeof target.testid === "string") {
+    return `testid=${target.testid}`;
+  }
+  return stringifyValue(target);
+}
+
+function formatStateCheck(command: string, result: CommandResult): string {
+  const target = formatStateTarget(result.data.target);
+  const count = asNumber(result.data.count) ?? 0;
+  if (command === "locate") {
+    const candidates = asArray(result.data.candidates);
+    const lines = [`locate count=${count} ${target}`];
+    for (const candidate of candidates) {
+      const item = asRecord(candidate);
+      const index = asNumber(item.index) ?? "?";
+      const tagName = asString(item.tagName) ?? "node";
+      const visible = Boolean(item.visible);
+      const text = asString(item.text) ?? "";
+      lines.push(
+        `${index}. ${tagName} visible=${visible}${text ? ` text=${JSON.stringify(text)}` : ""}`,
+      );
+    }
+    return lines.join("\n");
+  }
+  if (command === "get") {
+    return `get ${asString(result.data.fact) ?? "fact"}=${stringifyValue(result.data.value)} count=${count} ${target}`;
+  }
+  return `is ${asString(result.data.state) ?? "state"}=${String(Boolean(result.data.value))} count=${count} ${target}`;
+}
+
 function hasOutputFlag(name: string): boolean {
   return process.argv.includes(name);
 }
@@ -400,6 +442,9 @@ function formatCommandText(command: string, result: CommandResult): string {
   }
   if (command === "read-text") {
     return formatReadText(result);
+  }
+  if (command === "locate" || command === "get" || command === "is") {
+    return formatStateCheck(command, result);
   }
   if (command === "snapshot") {
     return formatSnapshot(result);

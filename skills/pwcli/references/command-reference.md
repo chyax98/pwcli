@@ -70,6 +70,39 @@ state / auth / batch / environment 命令见 `command-reference-advanced.md`。
 
 - `--selector <selector>`、`--include-overlay`、`--max-chars <count>`
 
+### `pw locate --session <name>`
+
+低噪声定位，返回 `count` 和最多 10 个候选摘要；不返回 ref，不生成动作计划。
+
+目标（一次只传一个）：
+
+- `--selector <selector>`
+- `--text <text>`
+- `--role <role> --name <name>`
+- `--testid <id>`
+
+### `pw get <fact> --session <name>`
+
+支持 facts：
+
+- `text`：目标首个匹配节点的 `textContent`
+- `value`：目标首个匹配表单控件的 `inputValue()`
+- `count`：匹配数量，目标不存在时返回 `0`
+
+目标同 `locate`。`get text|value` 要求目标至少存在一个；需要先探测数量时用 `get count` 或 `locate`。
+
+### `pw is <state> --session <name>`
+
+支持 states：
+
+- `visible`
+- `enabled`
+- `checked`
+
+目标同 `locate`。目标不存在时返回 `value: false` 和 `count: 0`。`checked` 只适合 checkbox/radio 等可检查控件。
+
+Use `locate/get/is` for narrow state checks. Use `snapshot -i` when you need fresh refs. Do not use these commands as an action planner.
+
 ### `pw snapshot --session <name>`
 
 - `-i, --interactive`：只输出可交互节点（找 ref 首选）
