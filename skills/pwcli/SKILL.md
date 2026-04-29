@@ -478,6 +478,7 @@ pw batch --session bug-a --file ./steps.json
 - 要 JSON 输出：`pw --output json batch --session bug-a --stdin-json`。
 - `batch` 适合单 session 串行动作，不适合 lifecycle/auth/environment/dialog recovery。
 - batch `click` 只支持 ref 或 `--selector`，不支持 `--text`/`--role`/`--label` 等语义定位；需要语义定位时拆出单命令。
+- 默认输出只给 `data.summary`（减少重复信息和 token 消耗）；排障时再加 `--include-results` 看 step 明细。
 - 超出稳定子集时，直接跑单命令或用 `pw code`。
 
 ## 12. 标准任务模板

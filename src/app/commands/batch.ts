@@ -30,7 +30,8 @@ export function registerBatchCommand(program: Command): void {
       .option("--json", "Read a JSON array of argv arrays from stdin")
       .option("--stdin-json", "Read a JSON array of argv arrays from stdin")
       .option("--file <path>", "Read a JSON array of argv arrays from a file")
-      .option("--continue-on-error", "Continue after a failed step"),
+      .option("--continue-on-error", "Continue after a failed step")
+      .option("--include-results", "Include full step-by-step results in output"),
   ).action(
     async (options: {
       session?: string;
@@ -38,6 +39,7 @@ export function registerBatchCommand(program: Command): void {
       stdinJson?: boolean;
       file?: string;
       continueOnError?: boolean;
+      includeResults?: boolean;
     }) => {
       try {
         const sessionName = requireSessionName(options);
@@ -67,6 +69,7 @@ export function registerBatchCommand(program: Command): void {
             sessionName,
             commands,
             continueOnError: options.continueOnError,
+            includeResults: options.includeResults,
           }),
         });
       } catch (error) {
