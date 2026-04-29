@@ -1,5 +1,6 @@
 import { copyFile, mkdir } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
+import { ActionFailure } from "../../../domain/interaction/action-failure.js";
 import { appendRunEvent, ensureRunDir } from "../../fs/run-artifacts.js";
 import { runManagedSessionCommand } from "../cli-client.js";
 import { parseDownloadEvent, parsePageSummary, stripQuotes } from "../output-parsers.js";
@@ -9,7 +10,7 @@ import {
 } from "./action-failure-classifier.js";
 import { managedRunCode } from "./code.js";
 import { buildDiagnosticsDelta, captureDiagnosticsBaseline } from "./diagnostics.js";
-import { maybeRawOutput, normalizeRef } from "./shared.js";
+import { DIAGNOSTICS_STATE_KEY, maybeRawOutput, normalizeRef } from "./shared.js";
 import { managedPageCurrent } from "./workspace.js";
 
 type SemanticTarget =
@@ -18,6 +19,27 @@ type SemanticTarget =
   | { kind: "label"; label: string; nth?: number }
   | { kind: "placeholder"; placeholder: string; nth?: number }
   | { kind: "testid"; testid: string; nth?: number };
+
+type RefEpochValidation =
+  | {
+      ok: true;
+      ref: string;
+      snapshotId: string;
+      pageId: string | null;
+      navigationId: string | null;
+    }
+  | {
+      ok: false;
+      code: "REF_STALE";
+      ref: string;
+      reason: "missing-snapshot" | "missing-ref" | "page-changed" | "navigation-changed";
+      snapshotId?: string;
+      snapshotPageId?: string | null;
+      snapshotNavigationId?: string | null;
+      currentPageId?: string | null;
+      currentNavigationId?: string | null;
+      currentUrl?: string;
+    };
 
 async function recordRun(
   command: string,
@@ -53,6 +75,120 @@ async function managedActionRunCode(options: {
     }
     throw error;
   }
+}
+
+async function validateRefEpoch(options: {
+  sessionName?: string;
+  ref: string;
+}): Promise<RefEpochValidation> {
+  const result = await managedRunCode({
+    sessionName: options.sessionName,
+    source: `async page => {
+      const context = page.context();
+      const state = context[${JSON.stringify(DIAGNOSTICS_STATE_KEY)}] ||= {};
+      state.nextPageSeq = Number.isInteger(state.nextPageSeq) ? state.nextPageSeq : 1;
+      state.nextNavigationSeq = Number.isInteger(state.nextNavigationSeq) ? state.nextNavigationSeq : 1;
+      const ensurePageId = (p) => {
+        if (!p.__pwcliPageId)
+          p.__pwcliPageId = 'p' + state.nextPageSeq++;
+        return p.__pwcliPageId;
+      };
+      const ensureNavigationId = (p) => {
+        if (!p.__pwcliNavigationId)
+          p.__pwcliNavigationId = 'nav-' + state.nextNavigationSeq++;
+        return p.__pwcliNavigationId;
+      };
+
+      const epoch = state.lastSnapshotRefEpoch || null;
+      const currentPageId = ensurePageId(page) || null;
+      const currentNavigationId = ensureNavigationId(page) || null;
+      const ref = ${JSON.stringify(options.ref)};
+
+      if (!epoch) {
+        return JSON.stringify({
+          ok: false,
+          code: 'REF_STALE',
+          ref,
+          reason: 'missing-snapshot',
+          currentPageId,
+          currentNavigationId,
+          currentUrl: page.url(),
+        });
+      }
+
+      if (!Array.isArray(epoch.refs) || !epoch.refs.includes(ref)) {
+        return JSON.stringify({
+          ok: false,
+          code: 'REF_STALE',
+          ref,
+          reason: 'missing-ref',
+          snapshotId: epoch.snapshotId,
+          snapshotPageId: epoch.pageId || null,
+          snapshotNavigationId: epoch.navigationId || null,
+          currentPageId,
+          currentNavigationId,
+          currentUrl: page.url(),
+        });
+      }
+
+      if (epoch.pageId && currentPageId && epoch.pageId !== currentPageId) {
+        return JSON.stringify({
+          ok: false,
+          code: 'REF_STALE',
+          ref,
+          reason: 'page-changed',
+          snapshotId: epoch.snapshotId,
+          snapshotPageId: epoch.pageId,
+          snapshotNavigationId: epoch.navigationId || null,
+          currentPageId,
+          currentNavigationId,
+          currentUrl: page.url(),
+        });
+      }
+
+      if (epoch.navigationId && currentNavigationId && epoch.navigationId !== currentNavigationId) {
+        return JSON.stringify({
+          ok: false,
+          code: 'REF_STALE',
+          ref,
+          reason: 'navigation-changed',
+          snapshotId: epoch.snapshotId,
+          snapshotPageId: epoch.pageId || null,
+          snapshotNavigationId: epoch.navigationId,
+          currentPageId,
+          currentNavigationId,
+          currentUrl: page.url(),
+        });
+      }
+
+      return JSON.stringify({
+        ok: true,
+        ref,
+        snapshotId: epoch.snapshotId,
+        pageId: currentPageId,
+        navigationId: currentNavigationId,
+      });
+    }`,
+  });
+  return result.data.result as RefEpochValidation;
+}
+
+async function assertFreshRefEpoch(options: { sessionName?: string; ref: string }) {
+  const validation = await validateRefEpoch(options);
+  if (validation.ok) {
+    return;
+  }
+
+  throw new ActionFailure({
+    code: "REF_STALE",
+    message: `Ref ${options.ref} is stale for the current page snapshot`,
+    retryable: false,
+    details: validation as unknown as Record<string, unknown>,
+    suggestions: [
+      `Refresh refs with \`pw snapshot -i --session ${options.sessionName ?? "<name>"}\``,
+      "Retry the action with a fresh ref from the new snapshot",
+    ],
+  });
 }
 
 export async function managedClick(options: {
@@ -122,6 +258,7 @@ export async function managedClick(options: {
   }
 
   const ref = normalizeRef(options.ref ?? "");
+  await assertFreshRefEpoch({ sessionName: options.sessionName, ref });
   const args = ["click", ref];
   if (options.button) {
     args.push(options.button);
@@ -311,6 +448,10 @@ export async function managedFill(options: {
     };
   }
 
+  await assertFreshRefEpoch({
+    sessionName: options.sessionName,
+    ref: normalizeRef(options.ref ?? ""),
+  });
   const result = await runManagedSessionCommand(
     {
       _: ["fill", normalizeRef(options.ref ?? ""), options.value],
@@ -411,6 +552,9 @@ export async function managedType(options: {
   }
 
   const target = options.ref ? normalizeRef(options.ref) : options.selector;
+  if (options.ref) {
+    await assertFreshRefEpoch({ sessionName: options.sessionName, ref: target ?? "" });
+  }
   const source = options.ref
     ? `async page => { await page.locator(${JSON.stringify(`aria-ref=${target}`)}).type(${JSON.stringify(options.value)}); return 'typed'; }`
     : `async page => { await page.locator(${JSON.stringify(options.selector)}).type(${JSON.stringify(options.value)}); return 'typed'; }`;

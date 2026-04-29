@@ -12,6 +12,7 @@ BLANK_URL="${ORIGIN}/blank"
 RUN_ID="$(date +%H%M%S)$((RANDOM % 100))"
 SESSION_NAME="sm${RUN_ID}"
 AUTH_SESSION="${SESSION_NAME}a"
+STALE_SESSION="stale${RUN_ID}"
 TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/pwcli-smoke.XXXXXX")"
 HEADERS_FILE="${TMP_DIR}/headers.json"
 ROUTE_INJECT_HEADERS_FILE="${TMP_DIR}/route-inject-headers.json"
@@ -20,6 +21,7 @@ SERVER_LOG="${TMP_DIR}/fixture-server.log"
 SERVER_PID=""
 SESSION_CLOSED="0"
 AUTH_SESSION_CLOSED="0"
+STALE_SESSION_CLOSED="0"
 
 cleanup() {
   if [[ "$SESSION_CLOSED" != "1" ]]; then
@@ -27,6 +29,9 @@ cleanup() {
   fi
   if [[ "$AUTH_SESSION_CLOSED" != "1" ]]; then
     "${CLI[@]}" session close "$AUTH_SESSION" >/dev/null 2>&1 || true
+  fi
+  if [[ "$STALE_SESSION_CLOSED" != "1" ]]; then
+    "${CLI[@]}" session close "$STALE_SESSION" >/dev/null 2>&1 || true
   fi
   if [[ -n "$SERVER_PID" ]]; then
     kill "$SERVER_PID" >/dev/null 2>&1 || true
@@ -236,6 +241,34 @@ assert_json "$snapshot_compact_json" "compact snapshot is smaller" \
 snapshot_interactive_json="$(run_json snapshot-interactive snapshot --interactive --session "$SESSION_NAME")"
 assert_json "$snapshot_interactive_json" "interactive snapshot keeps only action-oriented lines" \
   "data.ok === true && data.data.mode === 'interactive' && data.data.charCount <= data.data.totalCharCount && typeof data.data.snapshot === 'string'"
+
+log "stale ref epoch contract"
+stale_create_json="$(run_json stale-create session create "$STALE_SESSION" --open "$BLANK_URL")"
+assert_json "$stale_create_json" "stale ref session created" \
+  "data.ok === true && data.data.created === true"
+stale_button_json="$(run_json stale-button code --session "$STALE_SESSION" "async page => { await page.evaluate(() => { const button = document.createElement('button'); button.type = 'button'; button.textContent = 'stale ref smoke action'; document.body.appendChild(button); }); return 'stale-button-ready'; }")"
+assert_json "$stale_button_json" "stale ref target installed" \
+  "data.ok === true && data.data.result === 'stale-button-ready'"
+stale_snapshot_json="$(run_json stale-snapshot snapshot -i --session "$STALE_SESSION")"
+stale_ref="$(node - "$stale_snapshot_json" <<'NODE'
+const fs = require('node:fs');
+
+const payload = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+const match = String(payload.data.snapshot || '').match(/\[ref=(e[0-9]+)\]/);
+if (!match) {
+  console.error('[smoke] could not find interactive ref in fixture snapshot');
+  process.exit(1);
+}
+process.stdout.write(match[1]);
+NODE
+)"
+run_json stale-navigate open --session "$STALE_SESSION" "${BLANK_URL}?stale-ref=1" >/dev/null
+stale_reuse_json="$(run_fail_json stale-reuse click "$stale_ref" --session "$STALE_SESSION")"
+assert_json "$stale_reuse_json" "stale ref reuse returns REF_STALE" \
+  "data.ok === false && data.error.code === 'REF_STALE' && data.error.retryable === false && data.error.details.reason === 'navigation-changed' && data.error.suggestions.some(item => item.includes('snapshot -i'))"
+run_json stale-close session close "$STALE_SESSION" >/dev/null
+STALE_SESSION_CLOSED="1"
+
 overlay_code_json="$(run_json overlay-code code --session "$SESSION_NAME" "async page => { await page.evaluate(() => { const el = document.createElement('div'); el.className = 'ant-dropdown'; el.style.position = 'fixed'; el.style.left = '10px'; el.style.top = '10px'; el.textContent = 'overlay smoke option'; document.body.appendChild(el); }); return 'overlay-ready'; }")"
 assert_json "$overlay_code_json" "overlay fixture installed" \
   "data.ok === true && data.data.result === 'overlay-ready'"

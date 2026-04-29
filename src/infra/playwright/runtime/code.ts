@@ -8,7 +8,63 @@ import {
   parseResultText,
   parseSnapshotYaml,
 } from "../output-parsers.js";
-import { isModalStateBlockedMessage, maybeRawOutput } from "./shared.js";
+import { DIAGNOSTICS_STATE_KEY, isModalStateBlockedMessage, maybeRawOutput } from "./shared.js";
+
+function extractSnapshotRefs(snapshot: string) {
+  return [...snapshot.matchAll(/\[ref=(e[0-9]+)\]/g)].map((match) => match[1]);
+}
+
+async function recordSnapshotRefEpoch(options: { sessionName?: string; snapshot: string }) {
+  const refs = extractSnapshotRefs(options.snapshot);
+  const result = await managedRunCode({
+    sessionName: options.sessionName,
+    source: `async page => {
+      const context = page.context();
+      const state = context[${JSON.stringify(DIAGNOSTICS_STATE_KEY)}] ||= {};
+      state.nextPageSeq = Number.isInteger(state.nextPageSeq) ? state.nextPageSeq : 1;
+      state.nextNavigationSeq = Number.isInteger(state.nextNavigationSeq) ? state.nextNavigationSeq : 1;
+      state.nextSnapshotSeq = Number.isInteger(state.nextSnapshotSeq) ? state.nextSnapshotSeq : 1;
+
+      const ensurePageId = (p) => {
+        if (!p.__pwcliPageId)
+          p.__pwcliPageId = 'p' + state.nextPageSeq++;
+        return p.__pwcliPageId;
+      };
+      const ensureNavigationId = (p) => {
+        if (!p.__pwcliNavigationId)
+          p.__pwcliNavigationId = 'nav-' + state.nextNavigationSeq++;
+        return p.__pwcliNavigationId;
+      };
+      const installRefEpochNavigationListener = (p) => {
+        ensurePageId(p);
+        ensureNavigationId(p);
+        if (p.__pwcliRefEpochNavigationInstalled || p.__pwcliDiagnosticsInstalled)
+          return;
+        p.__pwcliRefEpochNavigationInstalled = true;
+        p.on('framenavigated', frame => {
+          if (frame === p.mainFrame())
+            p.__pwcliNavigationId = 'nav-' + state.nextNavigationSeq++;
+        });
+      };
+
+      for (const current of context.pages())
+        installRefEpochNavigationListener(current);
+
+      const snapshotId = 'snap-' + state.nextSnapshotSeq++;
+      const epoch = {
+        snapshotId,
+        pageId: ensurePageId(page),
+        navigationId: ensureNavigationId(page),
+        url: page.url(),
+        capturedAt: new Date().toISOString(),
+        refs: ${JSON.stringify(refs)},
+      };
+      state.lastSnapshotRefEpoch = epoch;
+      return JSON.stringify(epoch);
+    }`,
+  });
+  return result.data.result;
+}
 
 export async function managedSnapshot(options?: {
   depth?: number;
@@ -33,6 +89,7 @@ export async function managedSnapshot(options?: {
     interactive: Boolean(options?.interactive),
     compact: Boolean(options?.compact),
   });
+  await recordSnapshotRefEpoch({ sessionName: options?.sessionName, snapshot: projectedSnapshot });
   return {
     session: {
       scope: "managed",

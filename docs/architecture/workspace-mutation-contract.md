@@ -21,6 +21,7 @@
 
 - `tab select <pageId>`
 - `tab close <pageId>`
+- ref-backed interaction writes (`click` / `fill` / `type`) guarded by snapshot epoch
 
 运行时里已经存在这些 identity：
 
@@ -87,6 +88,20 @@ popup / opener 关系继续通过：
 - modal blockage 是 interaction / recovery 问题
 - 不是 workspace target routing 问题
 
+### 6. Snapshot ref epoch
+
+Ref-backed writes require a fresh snapshot epoch for the active page identity. A ref is not a stable cross-navigation identifier.
+
+`snapshot` records the latest ref epoch in the managed browser context with:
+
+- `snapshotId`
+- `pageId`
+- `navigationId`
+- `url`
+- captured refs
+
+`click` / `fill` / `type` ref paths must validate the ref against that latest epoch before reporting `acted` / `filled` / `typed` success. Missing snapshot, missing ref, page switch, and navigation change all fail as `REF_STALE`.
+
 ## 当前结论
 
 `tab select|close` 已进入主线实现。
@@ -97,3 +112,4 @@ popup / opener 关系继续通过：
 2. index / title / URL substring 只做读侧辅助信息
 3. 关闭 active target 后按 opener、前一个 page、后一个 page 的顺序回退
 4. browser dialog 不改变 active `pageId`
+5. ref-backed writes only accept refs from the latest snapshot epoch of the active page/navigation identity

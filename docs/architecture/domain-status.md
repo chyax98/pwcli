@@ -69,11 +69,14 @@
 - `check|uncheck|select`
 - `wait`
 - `code`
+- `snapshot` records the latest ref epoch for the active page/navigation identity
+- ref-backed `click` / `fill` / `type` validate against the latest snapshot epoch before reporting success
 
 ### 当前限制
 
 - `MODAL_STATE_BLOCKED` 会阻断 run-code-backed 路径
 - `batch` 当前只承诺稳定子集；click 覆盖 ref、selector、text、role/name，不追求完整 click flag parity
+- snapshot refs are not stable cross-navigation identifiers; after navigation, tab switch, or a new snapshot, old refs fail as `REF_STALE`
 - `batch` 当前只做单 session 串行执行，不做 lifecycle / environment / diagnostics query 容器
 - dialog 恢复当前只覆盖 browser dialog handle，不覆盖更复杂的页面级阻断控件
 

@@ -68,6 +68,8 @@ Meaning:
 
 - the ref came from an older snapshot
 - the page navigated, re-rendered, switched tab, or otherwise changed after the ref was captured
+- the ref was not produced by the latest snapshot epoch recorded for the session/page
+- the current `pageId` or `navigationId` no longer matches the page state that produced the ref
 
 Recovery:
 
@@ -76,7 +78,7 @@ pw snapshot -i --session bug-a
 pw click <fresh-ref> --session bug-a
 ```
 
-Do not retry the old ref after a page transition. Use a semantic locator such as `--role` or `--text` when the target must survive navigation or re-rendering.
+Do not retry the old ref after a page transition. `ref` values are only valid for the latest snapshot epoch of the active page identity. Use a semantic locator such as `--role` or `--text` when the target must survive navigation or re-rendering.
 
 Typical output:
 
