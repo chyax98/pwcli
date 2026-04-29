@@ -51,6 +51,18 @@ run_json() {
   printf '%s\n' "$out"
 }
 
+run_fail_json() {
+  local name="$1"
+  shift
+  local out="${TMP_DIR}/${name}.json"
+  if "${CLI[@]}" "$@" >"$out"; then
+    log "command unexpectedly succeeded: ${CLI[*]} $*"
+    cat "$out" >&2 || true
+    return 1
+  fi
+  printf '%s\n' "$out"
+}
+
 assert_json() {
   local file="$1"
   local label="$2"
@@ -387,6 +399,9 @@ SEMANTIC_RUN_ID="$(json_field "$semantic_click_json" "data.data.run.runId")"
 semantic_show_json="$(run_json semantic-click-show diagnostics show --run "$SEMANTIC_RUN_ID" --command click --limit 1)"
 assert_json "$semantic_show_json" "semantic click run preserves locator target" \
   "data.ok === true && data.data.events.length === 1 && data.data.events[0].target.text === 'semantic smoke action' && data.data.events[0].target.nth === 1"
+semantic_missing_json="$(run_fail_json semantic-missing click --session "$SESSION_NAME" --text 'missing semantic smoke action')"
+assert_json "$semantic_missing_json" "semantic missing target preserves action failure envelope" \
+  "data.ok === false && data.error.code === 'ACTION_TARGET_NOT_FOUND' && data.error.retryable === true && data.error.message.includes('CLICK_SEMANTIC_NOT_FOUND') && data.error.suggestions.some(item => item.includes('snapshot -i')) && data.error.details.command === 'click'"
 
 log "fire diagnostics"
 click_json="$(run_json click-fire click --session "$SESSION_NAME" --selector '#fire')"
