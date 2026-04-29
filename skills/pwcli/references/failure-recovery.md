@@ -68,7 +68,8 @@ Stable codes:
 | `ACTION_TARGET_AMBIGUOUS` | locator matched more than one target | use a narrower locator or `--nth` |
 | `ACTION_TARGET_INDEX_OUT_OF_RANGE` | requested `--nth` is greater than match count | inspect candidates and choose a valid index |
 | `ACTION_TIMEOUT_OR_NOT_ACTIONABLE` | Playwright could not act before timeout or target was not actionable | `pw wait --session <name> --selector <selector>` then retry |
-| `ACTION_BLOCKED_BY_MODAL` | reserved for browser dialog or modal state that blocks the action lane | `pw page dialogs --session <name>` then `pw dialog accept|dismiss` |
+
+Modal and browser-dialog blockage is currently reported through `MODAL_STATE_BLOCKED`, not a separate action target code.
 
 These codes do not auto-heal selectors and do not pick among candidates. They tell the Agent which next command to run.
 

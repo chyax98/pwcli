@@ -3,8 +3,7 @@ export type ActionFailureCode =
   | "ACTION_TARGET_NOT_FOUND"
   | "ACTION_TARGET_AMBIGUOUS"
   | "ACTION_TARGET_INDEX_OUT_OF_RANGE"
-  | "ACTION_TIMEOUT_OR_NOT_ACTIONABLE"
-  | "ACTION_BLOCKED_BY_MODAL";
+  | "ACTION_TIMEOUT_OR_NOT_ACTIONABLE";
 
 export type ActionFailureInput = {
   code: ActionFailureCode;
