@@ -1,8 +1,11 @@
 import { writeFile } from "node:fs/promises";
+import { mkdir } from "node:fs/promises";
+import { resolve } from "node:path";
 import type { Command } from "commander";
 import {
   listDiagnosticsRuns,
   managedDiagnosticsDigest,
+  managedDiagnosticsBundle,
   managedDiagnosticsExport,
   managedDiagnosticsExportFiltered,
   readDiagnosticsRunView,
@@ -101,6 +104,60 @@ export function registerDiagnosticsCommand(program: Command): void {
           suggestions: [
             "Run `pw session create <name> --open <url>` first",
             "Pass `--out <file>` to save exported diagnostics",
+          ],
+        });
+        process.exitCode = 1;
+      }
+    },
+  );
+
+  addSessionOption(
+    diagnostics
+      .command("bundle")
+      .description("Export a compact failure bundle for one session")
+      .requiredOption("--out <dir>", "Output directory")
+      .option("--limit <n>", "Limit records per section", "20"),
+  ).action(
+    async (
+      options: {
+        session?: string;
+        out?: string;
+        limit?: string;
+      },
+      command: Command,
+    ) => {
+      try {
+        const sessionName = requireSessionName(options, command);
+        const out = options.out?.trim();
+        if (!out) {
+          throw new Error("diagnostics bundle requires --out <dir>");
+        }
+        const limit = options.limit ? Number(options.limit) : 20;
+        if (!Number.isFinite(limit) || limit <= 0) {
+          throw new Error("diagnostics bundle requires a positive integer for --limit");
+        }
+        const result = await managedDiagnosticsBundle({ sessionName, limit });
+        const bundleDir = resolve(out);
+        await mkdir(bundleDir, { recursive: true });
+        await writeFile(resolve(bundleDir, "manifest.json"), JSON.stringify(result.data, null, 2), "utf8");
+        printCommandResult("diagnostics bundle", {
+          session: result.session,
+          page: result.page,
+          data: {
+            bundled: true,
+            out: bundleDir,
+            limit,
+            latestRunId: result.data.latestRunId,
+            auditConclusion: result.data.auditConclusion,
+          },
+        });
+      } catch (error) {
+        printSessionAwareCommandError("diagnostics bundle", error, {
+          code: "DIAGNOSTICS_BUNDLE_FAILED",
+          message: "diagnostics bundle failed",
+          suggestions: [
+            "Run `pw diagnostics bundle --session <name> --out <dir>`",
+            "Create or attach a session first with `pw session create|attach`",
           ],
         });
         process.exitCode = 1;

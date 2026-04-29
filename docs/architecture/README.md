@@ -79,6 +79,7 @@ session attach -> state/profile/auth provider -> continue
 | Analysis | [browser-task-state-model.md](browser-task-state-model.md) |
 | 验证 | [e2e-dogfood-test-plan.md](e2e-dogfood-test-plan.md)、[e2e-dogfood-experience-report.md](e2e-dogfood-experience-report.md) |
 | 技术结论 | [environment-clock-survey.md](environment-clock-survey.md) |
+| 外部基准调研 | [browserbase-browser-trace-survey.md](browserbase-browser-trace-survey.md) |
 
 ## 明确边界
 

@@ -307,6 +307,8 @@ pw network -s bug-a --method POST --text 'request_id' --limit 20
 
 ```bash
 pw diagnostics export -s bug-a --section network --text 'request_id' --fields at=timestamp,method,url,status,snippet=responseBodySnippet --out ./diag.json
+pw diagnostics bundle -s bug-a --out ./bundle-bug-a --limit 20
+# Agent 先消费 bundle.auditConclusion 并执行闭环：归因 -> 定位 -> 修复 -> 复验
 ```
 
 回放 run：
