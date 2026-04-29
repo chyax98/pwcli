@@ -28,6 +28,38 @@ pw session list
 pw session create bug-a --open 'https://example.com'
 ```
 
+## Dashboard launch failures
+
+### `DASHBOARD_UNAVAILABLE`
+
+Meaning:
+
+- the installed `playwright-core` package does not expose the bundled dashboard entrypoint expected by `pw dashboard open`
+
+Recovery:
+
+```bash
+pnpm install
+pw dashboard open --dry-run
+pw session list --with-page
+```
+
+### `DASHBOARD_LAUNCH_FAILED`
+
+Meaning:
+
+- `pw dashboard open` found the bundled Playwright entrypoint, but the dashboard subprocess failed during startup
+- the command has not successfully launched a dashboard process
+
+Recovery:
+
+```bash
+pw dashboard open --dry-run
+pw session list --with-page
+```
+
+Use `session list --with-page` as the CLI-only fallback. Do not treat `DASHBOARD_LAUNCH_FAILED` as a launched dashboard.
+
 ## Modal blockage
 
 ### `REF_STALE`
