@@ -5,6 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT_DIR"
 
 CLI=(node dist/cli.js --output json)
+TEXT_CLI=(node dist/cli.js)
 PORT="${PWCLI_FIXTURE_PORT:-43179}"
 ORIGIN="http://127.0.0.1:${PORT}"
 BLANK_URL="${ORIGIN}/blank"
@@ -362,6 +363,40 @@ fi
 batch_summary_only_json="$batch_summary_only_out"
 assert_json "$batch_summary_only_json" "batch summary-only omits full step outputs when requested" \
   "data.ok === true && data.data.completed === true && data.data.summary.stepCount === 2 && data.data.results === undefined"
+
+batch_text_out="${TMP_DIR}/batch-text.txt"
+printf '[["observe","status"],["page","dialogs"]]' | "${TEXT_CLI[@]}" batch --session "$SESSION_NAME" --stdin-json >"$batch_text_out"
+if ! grep -q 'batch completed=true steps=2 success=2 failed=0' "$batch_text_out"; then
+  log "batch text summary missing"
+  cat "$batch_text_out" >&2
+  exit 1
+fi
+if grep -q '"results"' "$batch_text_out"; then
+  log "batch default text should not dump nested results"
+  cat "$batch_text_out" >&2
+  exit 1
+fi
+
+batch_text_fail_out="${TMP_DIR}/batch-text-fail.txt"
+printf '[["session","list"]]' | "${TEXT_CLI[@]}" batch --session "$SESSION_NAME" --stdin-json >"$batch_text_fail_out"
+if ! grep -q 'first failure step=1 command=session' "$batch_text_fail_out"; then
+  log "batch text first failure summary missing"
+  cat "$batch_text_fail_out" >&2
+  exit 1
+fi
+if ! grep -q 'batch does not support session lifecycle' "$batch_text_fail_out"; then
+  log "batch text failure message missing"
+  cat "$batch_text_fail_out" >&2
+  exit 1
+fi
+
+batch_text_verbose_out="${TMP_DIR}/batch-text-verbose.txt"
+printf '[["observe","status"],["page","dialogs"]]' | "${TEXT_CLI[@]}" batch --session "$SESSION_NAME" --stdin-json --include-results >"$batch_text_verbose_out"
+if ! grep -q 'steps:' "$batch_text_verbose_out"; then
+  log "batch include-results text should show compact steps"
+  cat "$batch_text_verbose_out" >&2
+  exit 1
+fi
 
 log "bootstrap apply"
 bootstrap_json="$(run_json bootstrap-apply bootstrap apply --session "$SESSION_NAME" --init-script ./scripts/manual/bootstrap-fixture.js --headers-file "$HEADERS_FILE")"

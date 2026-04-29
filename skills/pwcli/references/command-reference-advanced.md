@@ -98,9 +98,10 @@
 - `batch --stdin-json` 表示 stdin steps 是 JSON，不表示输出 JSON；要 JSON 输出加 `pw --output json batch ...`
 - `session` / `auth` / `environment` / `dialog` / diagnostics query 不属于稳定子集
 - `data.analysis.warnings` 是串行依赖提示
-- 默认返回 `data.results` 和 `data.summary`，兼容既有自动化消费
-- 只需要汇总时加 `--summary-only`；失败信息看 `firstFailure*` 和 `failedSteps`
-- `--include-results` 保持可用，适合显式声明脚本依赖 step 明细
+- 默认 text 输出是轻量摘要，包含 step 数、成功/失败数、首个失败和 warnings，不倾倒嵌套 JSON
+- 脚本解析和字段断言必须加 `--output json`；JSON envelope 保持 `data.summary` 和 `data.results`
+- 只需要 JSON 汇总时加 `--summary-only`；失败信息看 `firstFailure*` 和 `failedSteps`
+- text 输出需要紧凑 step 明细时加 `--include-results`
 
 ## Environment
 

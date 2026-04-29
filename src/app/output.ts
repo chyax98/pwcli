@@ -324,7 +324,60 @@ function formatAction(command: string, result: CommandResult): string {
   return lines.join("\n");
 }
 
+function hasOutputFlag(name: string): boolean {
+  return process.argv.includes(name);
+}
+
+function formatBatch(result: CommandResult): string {
+  const summary = asRecord(result.data.summary);
+  const analysis = asRecord(result.data.analysis);
+  const warnings = asArray(analysis.warnings).map(String);
+  const lines = [
+    `batch completed=${String(result.data.completed ?? true)} steps=${asNumber(summary.stepCount) ?? 0} success=${asNumber(summary.successCount) ?? 0} failed=${asNumber(summary.failedCount) ?? 0} continueOnError=${String(summary.continueOnError ?? false)}`,
+  ];
+  const firstFailedStep = asNumber(summary.firstFailedStep);
+  if (firstFailedStep !== null) {
+    lines.push(
+      `first failure step=${firstFailedStep} command=${asString(summary.firstFailedCommand) ?? "-"} reason=${asString(summary.firstFailureReasonCode) ?? "-"}`,
+    );
+    const message = asString(summary.firstFailureMessage);
+    if (message) {
+      lines.push(message);
+    }
+    const suggestions = asArray(summary.firstFailureSuggestions).map(String);
+    if (suggestions.length > 0) {
+      lines.push("Try:");
+      lines.push(...suggestions.map((item) => `- ${item}`));
+    }
+  }
+  if (warnings.length > 0) {
+    lines.push("warnings:");
+    lines.push(...warnings.map((item) => `- ${item}`));
+  }
+  if (hasOutputFlag("--include-results")) {
+    const results = asArray(result.data.results);
+    if (results.length > 0) {
+      lines.push("steps:");
+      for (const entry of results) {
+        const step = asRecord(entry);
+        const ok = Boolean(step.ok);
+        const error = asRecord(step.error);
+        const index = asNumber(step.index);
+        const command = asString(step.command) ?? asString(step.step) ?? "-";
+        const message = asString(error.message);
+        lines.push(
+          `${index !== null ? index + 1 : "?"}. ${ok ? "ok" : "failed"} ${command}${ok || !message ? "" : ` ${message}`}`.trim(),
+        );
+      }
+    }
+  }
+  return lines.join("\n");
+}
+
 function formatCommandText(command: string, result: CommandResult): string {
+  if (command === "batch") {
+    return formatBatch(result);
+  }
   if (command === "read-text") {
     return formatReadText(result);
   }
