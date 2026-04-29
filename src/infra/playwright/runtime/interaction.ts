@@ -12,7 +12,7 @@ import { buildDiagnosticsDelta, captureDiagnosticsBaseline } from "./diagnostics
 import { maybeRawOutput, normalizeRef } from "./shared.js";
 import { managedPageCurrent } from "./workspace.js";
 
-type SemanticClickTarget =
+type SemanticTarget =
   | { kind: "role"; role: string; name?: string; nth?: number }
   | { kind: "text"; text: string; nth?: number }
   | { kind: "label"; label: string; nth?: number }
@@ -58,7 +58,7 @@ async function managedActionRunCode(options: {
 export async function managedClick(options: {
   ref?: string;
   selector?: string;
-  semantic?: SemanticClickTarget;
+  semantic?: SemanticTarget;
   button?: string;
   sessionName?: string;
 }) {
@@ -69,7 +69,7 @@ export async function managedClick(options: {
   const before = await captureDiagnosticsBaseline(options.sessionName);
 
   if (options.semantic) {
-    const target = normalizeSemanticClickTarget(options.semantic);
+    const target = normalizeSemanticTarget(options.semantic);
     const result = await managedActionRunCode({
       command: "click",
       sessionName: options.sessionName,
@@ -159,32 +159,32 @@ export async function managedClick(options: {
   };
 }
 
-function normalizeSemanticClickTarget(target: SemanticClickTarget) {
+function normalizeSemanticTarget(target: SemanticTarget) {
   return {
     ...target,
     nth: Math.max(1, Math.floor(Number(target.nth ?? 1))),
   };
 }
 
-function semanticClickSource(
-  target: ReturnType<typeof normalizeSemanticClickTarget>,
-  button?: string,
-) {
+function semanticLocatorExpression(target: ReturnType<typeof normalizeSemanticTarget>) {
+  return target.kind === "role"
+    ? `page.getByRole(${JSON.stringify(target.role)}, ${
+        target.name ? `{ name: ${JSON.stringify(target.name)}, exact: true }` : "undefined"
+      })`
+    : target.kind === "text"
+      ? `page.getByText(${JSON.stringify(target.text)}, { exact: true })`
+      : target.kind === "label"
+        ? `page.getByLabel(${JSON.stringify(target.label)}, { exact: true })`
+        : target.kind === "placeholder"
+          ? `page.getByPlaceholder(${JSON.stringify(target.placeholder)}, { exact: true })`
+          : `page.getByTestId(${JSON.stringify(target.testid)})`;
+}
+
+function semanticClickSource(target: ReturnType<typeof normalizeSemanticTarget>, button?: string) {
   const clickOptions = button ? JSON.stringify({ button }) : "undefined";
   const nthIndex = target.nth - 1;
   const targetJson = JSON.stringify(target);
-  const locatorExpression =
-    target.kind === "role"
-      ? `page.getByRole(${JSON.stringify(target.role)}, ${
-          target.name ? `{ name: ${JSON.stringify(target.name)}, exact: true }` : "undefined"
-        })`
-      : target.kind === "text"
-        ? `page.getByText(${JSON.stringify(target.text)}, { exact: true })`
-        : target.kind === "label"
-          ? `page.getByLabel(${JSON.stringify(target.label)}, { exact: true })`
-          : target.kind === "placeholder"
-            ? `page.getByPlaceholder(${JSON.stringify(target.placeholder)}, { exact: true })`
-            : `page.getByTestId(${JSON.stringify(target.testid)})`;
+  const locatorExpression = semanticLocatorExpression(target);
 
   return `async page => {
     const target = ${targetJson};
@@ -213,17 +213,75 @@ function semanticClickSource(
   }`;
 }
 
+function semanticInputSource(
+  errorPrefix: "FILL" | "TYPE",
+  target: ReturnType<typeof normalizeSemanticTarget>,
+  action: "fill" | "type",
+  value: string,
+) {
+  const nthIndex = target.nth - 1;
+  const targetJson = JSON.stringify(target);
+  const locatorExpression = semanticLocatorExpression(target);
+
+  return `async page => {
+    const target = ${targetJson};
+    const locator = ${locatorExpression};
+    const count = await locator.count();
+    if (count === 0) {
+      throw new Error(
+        '${errorPrefix}_SEMANTIC_NOT_FOUND:' +
+          JSON.stringify({ target })
+      );
+    }
+    if (${nthIndex} >= count) {
+      throw new Error(
+        '${errorPrefix}_SEMANTIC_INDEX_OUT_OF_RANGE:' +
+          JSON.stringify({ target, count, nth: ${target.nth} })
+      );
+    }
+    await locator.nth(${nthIndex}).${action}(${JSON.stringify(value)});
+    return JSON.stringify({ ${action === "fill" ? "filled" : "typed"}: true });
+  }`;
+}
+
 export async function managedFill(options: {
   ref?: string;
   selector?: string;
+  semantic?: SemanticTarget;
   value: string;
   sessionName?: string;
 }) {
-  if (!options.ref && !options.selector) {
-    throw new Error("fill requires a ref or selector");
+  if (!options.ref && !options.selector && !options.semantic) {
+    throw new Error("fill requires a ref, selector, or semantic locator");
   }
 
   const before = await captureDiagnosticsBaseline(options.sessionName);
+
+  if (options.semantic) {
+    const target = normalizeSemanticTarget(options.semantic);
+    const result = await managedActionRunCode({
+      command: "fill",
+      sessionName: options.sessionName,
+      source: semanticInputSource("FILL", target, "fill", options.value),
+    });
+
+    const diagnosticsDelta = await buildDiagnosticsDelta(options.sessionName, before);
+    const run = await recordRun("fill", options.sessionName, result.page, {
+      target,
+      diagnosticsDelta,
+    });
+    return {
+      session: result.session,
+      page: result.page,
+      data: {
+        target,
+        value: options.value,
+        filled: true,
+        diagnosticsDelta,
+        run,
+      },
+    };
+  }
 
   if (options.selector) {
     const result = await managedActionRunCode({
@@ -289,10 +347,37 @@ export async function managedFill(options: {
 export async function managedType(options: {
   ref?: string;
   selector?: string;
+  semantic?: SemanticTarget;
   value: string;
   sessionName?: string;
 }) {
   const before = await captureDiagnosticsBaseline(options.sessionName);
+
+  if (options.semantic) {
+    const target = normalizeSemanticTarget(options.semantic);
+    const result = await managedActionRunCode({
+      command: "type",
+      sessionName: options.sessionName,
+      source: semanticInputSource("TYPE", target, "type", options.value),
+    });
+
+    const diagnosticsDelta = await buildDiagnosticsDelta(options.sessionName, before);
+    const run = await recordRun("type", options.sessionName, result.page, {
+      target,
+      diagnosticsDelta,
+    });
+    return {
+      session: result.session,
+      page: result.page,
+      data: {
+        target,
+        value: options.value,
+        typed: true,
+        diagnosticsDelta,
+        run,
+      },
+    };
+  }
 
   if (!options.ref && !options.selector) {
     const result = await runManagedSessionCommand(

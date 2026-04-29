@@ -178,6 +178,10 @@ pw click -s bug-a --selector 'button[type=submit]'
 pw fill -s bug-a --selector 'input[name=email]' 'user@example.com'
 pw click -s bug-a --role button --name '提交'
 pw click -s bug-a --text '继续'
+pw fill -s bug-a --label 'Email' 'user@example.com'
+pw fill -s bug-a --placeholder 'Search' 'keyword'
+pw fill -s bug-a --testid email-input 'user@example.com'
+pw type -s bug-a --role textbox --name 'Comment' 'hello'
 pw click e42 -s bug-a
 pw press Enter -s bug-a
 pw type -s bug-a --selector 'textarea' 'hello'

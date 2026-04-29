@@ -10,7 +10,7 @@ function isTargetNotFoundError(errorText: string) {
   if (
     /No element matches selector/i.test(errorText) ||
     /Unable to find/i.test(errorText) ||
-    /CLICK_SEMANTIC_NOT_FOUND/i.test(errorText)
+    /(CLICK|FILL|TYPE)_SEMANTIC_NOT_FOUND/i.test(errorText)
   ) {
     return true;
   }
@@ -64,7 +64,7 @@ export function throwManagedActionErrorText(errorText: string, context: ManagedA
     });
   }
 
-  if (/CLICK_SEMANTIC_INDEX_OUT_OF_RANGE|INDEX_OUT_OF_RANGE/i.test(errorText)) {
+  if (/(CLICK|FILL|TYPE)_SEMANTIC_INDEX_OUT_OF_RANGE|INDEX_OUT_OF_RANGE/i.test(errorText)) {
     throw new ActionFailure({
       code: "ACTION_TARGET_INDEX_OUT_OF_RANGE",
       message: errorText,

@@ -7,18 +7,63 @@ import {
   requireSessionName,
 } from "./session-options.js";
 
+type FillOptions = {
+  session?: string;
+  selector?: string;
+  role?: string;
+  name?: string;
+  text?: string;
+  label?: string;
+  placeholder?: string;
+  testid?: string;
+  nth?: string;
+};
+
+function buildSemanticTarget(options: FillOptions) {
+  const nth = Math.max(1, options.nth ? Number(options.nth) : 1);
+  if (options.role) {
+    return {
+      kind: "role" as const,
+      role: options.role,
+      ...(options.name ? { name: options.name } : {}),
+      nth,
+    };
+  }
+  if (options.text) {
+    return { kind: "text" as const, text: options.text, nth };
+  }
+  if (options.label) {
+    return { kind: "label" as const, label: options.label, nth };
+  }
+  if (options.placeholder) {
+    return { kind: "placeholder" as const, placeholder: options.placeholder, nth };
+  }
+  if (options.testid) {
+    return { kind: "testid" as const, testid: options.testid, nth };
+  }
+  return undefined;
+}
+
 export function registerFillCommand(program: Command): void {
   addSessionOption(
     program
       .command("fill [parts...]")
-      .description("Fill an input by aria ref or selector")
-      .option("--selector <selector>", "Selector target when no ref is provided"),
-  ).action(async (parts: string[], options: { session?: string; selector?: string }) => {
+      .description("Fill an input by aria ref, selector, or semantic locator")
+      .option("--selector <selector>", "Selector target when no ref is provided")
+      .option("--role <role>", "Role locator")
+      .option("--name <name>", "Accessible name for --role")
+      .option("--text <text>", "Exact text locator")
+      .option("--label <label>", "Exact label locator")
+      .option("--placeholder <text>", "Exact placeholder locator")
+      .option("--testid <id>", "Test id locator")
+      .option("--nth <number>", "1-based match index", "1"),
+  ).action(async (parts: string[], options: FillOptions) => {
     try {
       const sessionName = requireSessionName(options);
       const values = Array.isArray(parts) ? parts : [];
-      const ref = options.selector ? undefined : values[0];
-      const value = options.selector ? values.join(" ") : values.slice(1).join(" ");
+      const semantic = buildSemanticTarget(options);
+      const ref = options.selector || semantic ? undefined : values[0];
+      const value = options.selector || semantic ? values.join(" ") : values.slice(1).join(" ");
       if (!value) {
         throw new Error("fill requires a value");
       }
@@ -27,6 +72,7 @@ export function registerFillCommand(program: Command): void {
         await managedFill({
           ref,
           selector: options.selector,
+          semantic,
           value,
           sessionName,
         }),
@@ -35,7 +81,11 @@ export function registerFillCommand(program: Command): void {
       printSessionAwareCommandError("fill", error, {
         code: "FILL_FAILED",
         message: "fill failed",
-        suggestions: ["Use `pw fill --session bug-a e3 value` or selector mode"],
+        suggestions: [
+          "Use `pw fill --session bug-a e3 value` for a fresh ref",
+          "Use `pw fill --session bug-a --selector 'input[name=email]' value`",
+          "Use semantic locators such as `pw fill --session bug-a --label Email user@example.com`",
+        ],
       });
       process.exitCode = 1;
     }

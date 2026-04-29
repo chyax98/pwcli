@@ -93,11 +93,15 @@ state / auth / batch / environment 命令见 `command-reference-advanced.md`。
 
 ### `pw fill [parts...] --session <name>`
 
-- `--selector <selector>`
+定位：aria ref / `--selector` / `--role <role> --name <name>` / `--text` / `--label` / `--placeholder` / `--testid`；附加 `--nth <n>`（1-based）
+
+有 `--selector` 或语义定位参数时，所有 `parts` 拼成填充值；否则第一个 part 是 ref，后续 parts 拼成填充值。
 
 ### `pw type [parts...] --session <name>`
 
-- `--selector <selector>`
+定位：focused element / aria ref / `--selector` / `--role <role> --name <name>` / `--text` / `--label` / `--placeholder` / `--testid`；附加 `--nth <n>`（1-based）
+
+无 `--selector` 和语义定位时：单个 part 输入到当前 focused element；多个 parts 时第一个 part 是 ref，后续 parts 拼成输入值。有 `--selector` 或语义定位参数时，所有 `parts` 拼成输入值。
 
 ### `pw press <key> --session <name>`
 

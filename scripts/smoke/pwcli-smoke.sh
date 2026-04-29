@@ -165,8 +165,18 @@ expectActionFailure(
   'ACTION_TARGET_NOT_FOUND',
 );
 expectActionFailure(
+  'semantic fill not found',
+  'FILL_SEMANTIC_NOT_FOUND:{"target":{"kind":"label","label":"missing semantic smoke field"}}',
+  'ACTION_TARGET_NOT_FOUND',
+);
+expectActionFailure(
   'semantic nth out of range',
   'CLICK_SEMANTIC_INDEX_OUT_OF_RANGE:{"target":{"kind":"text","text":"nth smoke action","nth":2},"count":1,"nth":2}',
+  'ACTION_TARGET_INDEX_OUT_OF_RANGE',
+);
+expectActionFailure(
+  'semantic type nth out of range',
+  'TYPE_SEMANTIC_INDEX_OUT_OF_RANGE:{"target":{"kind":"role","role":"textbox","nth":3},"count":1,"nth":3}',
   'ACTION_TARGET_INDEX_OUT_OF_RANGE',
 );
 expectActionFailure(
@@ -402,6 +412,29 @@ assert_json "$semantic_show_json" "semantic click run preserves locator target" 
 semantic_missing_json="$(run_fail_json semantic-missing click --session "$SESSION_NAME" --text 'missing semantic smoke action')"
 assert_json "$semantic_missing_json" "semantic missing target preserves action failure envelope" \
   "data.ok === false && data.error.code === 'ACTION_TARGET_NOT_FOUND' && data.error.retryable === true && data.error.message.includes('CLICK_SEMANTIC_NOT_FOUND') && data.error.suggestions.some(item => item.includes('snapshot -i')) && data.error.details.command === 'click'"
+
+log "semantic fill and type evidence"
+semantic_form_json="$(run_json semantic-form code --session "$SESSION_NAME" "async page => { await page.evaluate(() => { const root = document.createElement('form'); root.innerHTML = '<label>Email <input id=\"semantic-email\" data-testid=\"semantic-email\" placeholder=\"Email address\" /></label><label>Comment <textarea aria-label=\"Comment box\" placeholder=\"Comment body\"></textarea></label><input data-testid=\"semantic-search\" placeholder=\"Search terms\" />'; document.body.appendChild(root); }); return 'semantic-form-ready'; }")"
+assert_json "$semantic_form_json" "semantic form target installed" \
+  "data.ok === true && data.data.result === 'semantic-form-ready'"
+semantic_fill_label_json="$(run_json semantic-fill-label fill --session "$SESSION_NAME" --label Email 'agent@example.com')"
+assert_json "$semantic_fill_label_json" "semantic fill by label records action evidence" \
+  "data.ok === true && data.data.filled === true && data.data.target.label === 'Email' && data.data.target.nth === 1 && typeof data.data.run.runId === 'string'"
+semantic_fill_value_json="$(run_json semantic-fill-value code --session "$SESSION_NAME" "async page => page.locator('#semantic-email').inputValue()")"
+assert_json "$semantic_fill_value_json" "semantic fill by label changed value" \
+  "data.ok === true && data.data.result === 'agent@example.com'"
+semantic_fill_testid_json="$(run_json semantic-fill-testid fill --session "$SESSION_NAME" --testid semantic-search 'pwcli search')"
+assert_json "$semantic_fill_testid_json" "semantic fill by testid records target" \
+  "data.ok === true && data.data.filled === true && data.data.target.testid === 'semantic-search'"
+semantic_type_role_json="$(run_json semantic-type-role type --session "$SESSION_NAME" --role textbox --name 'Comment box' ' typed comment')"
+assert_json "$semantic_type_role_json" "semantic type by role records target" \
+  "data.ok === true && data.data.typed === true && data.data.target.role === 'textbox' && data.data.target.name === 'Comment box'"
+semantic_type_value_json="$(run_json semantic-type-value code --session "$SESSION_NAME" "async page => page.getByLabel('Comment box').inputValue()")"
+assert_json "$semantic_type_value_json" "semantic type by role changed value" \
+  "data.ok === true && data.data.result === ' typed comment'"
+semantic_fill_missing_json="$(run_fail_json semantic-fill-missing fill --session "$SESSION_NAME" --label 'Missing Email' 'x')"
+assert_json "$semantic_fill_missing_json" "semantic fill missing target preserves action failure envelope" \
+  "data.ok === false && data.error.code === 'ACTION_TARGET_NOT_FOUND' && data.error.retryable === true && data.error.details.command === 'fill'"
 
 log "fire diagnostics"
 click_json="$(run_json click-fire click --session "$SESSION_NAME" --selector '#fire')"
