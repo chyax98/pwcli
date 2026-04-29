@@ -78,7 +78,7 @@
 
 输入：`--stdin-json` / `--json`（别名）/ `--file <path>`，格式均为 `string[][]`。
 
-选项：`--continue-on-error`、`--include-results`
+选项：`--continue-on-error`、`--include-results`、`--summary-only`
 
 稳定 argv 子集：
 
@@ -98,8 +98,9 @@
 - `batch --stdin-json` 表示 stdin steps 是 JSON，不表示输出 JSON；要 JSON 输出加 `pw --output json batch ...`
 - `session` / `auth` / `environment` / `dialog` / diagnostics query 不属于稳定子集
 - `data.analysis.warnings` 是串行依赖提示
-- 默认只返回 `data.summary`（避免结果重复和 token 噪声）；失败信息看 `firstFailure*` 和 `failedSteps`
-- 需要完整 step 明细时再加 `--include-results`
+- 默认返回 `data.results` 和 `data.summary`，兼容既有自动化消费
+- 只需要汇总时加 `--summary-only`；失败信息看 `firstFailure*` 和 `failedSteps`
+- `--include-results` 保持可用，适合显式声明脚本依赖 step 明细
 
 ## Environment
 

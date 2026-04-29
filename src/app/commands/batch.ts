@@ -31,7 +31,8 @@ export function registerBatchCommand(program: Command): void {
       .option("--stdin-json", "Read a JSON array of argv arrays from stdin")
       .option("--file <path>", "Read a JSON array of argv arrays from a file")
       .option("--continue-on-error", "Continue after a failed step")
-      .option("--include-results", "Include full step-by-step results in output"),
+      .option("--include-results", "Include full step-by-step results in output")
+      .option("--summary-only", "Omit full step-by-step results from output"),
   ).action(
     async (options: {
       session?: string;
@@ -40,9 +41,13 @@ export function registerBatchCommand(program: Command): void {
       file?: string;
       continueOnError?: boolean;
       includeResults?: boolean;
+      summaryOnly?: boolean;
     }) => {
       try {
         const sessionName = requireSessionName(options);
+        if (options.includeResults && options.summaryOnly) {
+          throw new Error("batch accepts either --include-results or --summary-only, not both");
+        }
         const readsStdin = Boolean(options.json || options.stdinJson);
         if (readsStdin && options.file) {
           throw new Error("batch accepts either --stdin-json/--json or --file, not both");
@@ -70,6 +75,7 @@ export function registerBatchCommand(program: Command): void {
             commands,
             continueOnError: options.continueOnError,
             includeResults: options.includeResults,
+            summaryOnly: options.summaryOnly,
           }),
         });
       } catch (error) {
