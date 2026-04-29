@@ -31,10 +31,7 @@ export function throwIfManagedActionError(text: string, context: ManagedActionEr
   throwManagedActionErrorText(errorText, context);
 }
 
-export function throwManagedActionErrorText(
-  errorText: string,
-  context: ManagedActionErrorContext,
-) {
+export function throwManagedActionErrorText(errorText: string, context: ManagedActionErrorContext) {
   const session = context.sessionName ?? null;
   const refMatch = errorText.match(
     /Ref\s+([A-Za-z0-9_-]+)\s+not found in the current page snapshot/i,
