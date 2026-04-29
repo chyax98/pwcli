@@ -314,9 +314,14 @@ Trace / HAR：
 ```bash
 pw trace start -s bug-a
 pw trace stop -s bug-a
+pw trace inspect .pwcli/playwright/traces/trace.zip --section actions
+pw trace inspect .pwcli/playwright/traces/trace.zip --section requests --failed
+pw trace inspect .pwcli/playwright/traces/trace.zip --section console --level error
 pw har start ./bug.har -s bug-a
 pw har stop -s bug-a
 ```
+
+`trace inspect` 是离线 trace zip 查询，适合回看 actions / requests / console / errors；它不替代 live `network` / `console` / `diagnostics export`。
 
 HAR 热录制当前只暴露 substrate 边界，稳定诊断仍优先 `network` 和 `diagnostics export`。
 

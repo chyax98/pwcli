@@ -710,6 +710,11 @@ assert_json "$export_text_json" "diagnostics export accepts text and aliased fie
 assert_json "${TMP_DIR}/diag-text.json" "diagnostics export text filters projected network rows" \
   "data.section === 'network' && Array.isArray(data.network) && data.network.length >= 1 && data.network.every(item => item.kind === 'response' && typeof item.snippet === 'string' && item.snippet.includes('xhr:1') && item.url === undefined)"
 
+log "trace inspect unavailable file"
+trace_missing_json="$(run_fail_json trace-inspect-missing trace inspect .pwcli/missing-trace.zip --section actions)"
+assert_json "$trace_missing_json" "trace inspect missing file fails clearly" \
+  "data.ok === false && String(data.error.code).includes('TRACE')"
+
 log "route inject continue"
 route_remove_json="$(run_json route-remove route remove '**/__pwcli__/diagnostics/route-hit**' --session "$SESSION_NAME")"
 assert_json "$route_remove_json" "route removed before inject scenario" \

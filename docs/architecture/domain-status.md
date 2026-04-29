@@ -124,11 +124,13 @@
 - `--text` on `diagnostics export`
 - `alias=path` field projection on `diagnostics export|show|grep`
 - `--session|--since` filters on `diagnostics runs`
+- `trace inspect <trace.zip> --section actions|requests|console|errors`
 - `doctor` 默认 compact，`--verbose` 返回完整 probe
 - action 结果里的 `diagnosticsDelta`
 - `.pwcli/runs/<runId>/events.jsonl`
 - Playwright substrate 原始产物归档在 `.pwcli/playwright/`，包括 trace、snapshot 附件、console 附件、download 附件
 - `pdf` 是低频 active-page archive evidence，不做报告生成、合并或批量归档
+- Trace CLI 是离线 trace zip 查询面；Trace Viewer 是人类可视化重放；Playwright Test HTML report / UI mode 不属于 pwcli diagnostics；`.pwcli/runs/<runId>/events.jsonl` 是轻量动作事件，不替代 trace zip
 
 ### 当前限制
 
@@ -136,6 +138,7 @@
 - 不是持久化诊断数据库
 - `har start|stop` 只暴露 substrate 边界
 - 已存在的老 session 仍按启动时 substrate 配置写目录；新建或 recreate 后才使用当前 artifact 根目录
+- `trace inspect --level` 受 Playwright trace CLI console 过滤能力限制，当前只稳定映射 `error` / `warning`
 
 ### 后续扩展
 

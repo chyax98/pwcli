@@ -261,6 +261,26 @@ function formatDiagnosticsDigest(result: CommandResult): string {
   return lines.join("\n");
 }
 
+function formatTraceInspect(result: CommandResult): string {
+  const output = asString(result.data.output) ?? "";
+  const limitations = asArray(result.data.limitations).map(String);
+  const lines = [
+    `section=${asString(result.data.section) ?? "-"} trace=${asString(result.data.tracePath) ?? "-"}`,
+    `command=${asString(result.data.command) ?? "-"}`,
+  ];
+  if (limitations.length > 0) {
+    lines.push("limitations:");
+    lines.push(...limitations.map((item) => `- ${item}`));
+  }
+  if (result.data.truncated) {
+    lines.push(
+      `output truncated at ${output.length}/${asNumber(result.data.outputCharCount) ?? output.length} chars`,
+    );
+  }
+  lines.push(output || "(empty trace CLI output)");
+  return lines.join("\n");
+}
+
 function formatPage(result: CommandResult): string {
   const current = asRecord(result.data.currentPage);
   const pages = asArray(result.data.pages);
@@ -392,6 +412,9 @@ function formatCommandText(command: string, result: CommandResult): string {
   }
   if (command === "diagnostics digest") {
     return formatDiagnosticsDigest(result);
+  }
+  if (command === "trace inspect") {
+    return formatTraceInspect(result);
   }
   if (command.startsWith("page ")) {
     return formatPage(result);

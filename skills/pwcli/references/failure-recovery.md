@@ -213,3 +213,39 @@ pw diagnostics runs
 ```
 
 Then re-run with a valid `runId`.
+
+## Trace inspect failures
+
+### `TRACE_FILE_NOT_FOUND`
+
+Recovery:
+
+1. Pass an existing trace zip path.
+2. Check `.pwcli/playwright/` for Playwright substrate artifacts from a new or recreated session.
+
+### `TRACE_CLI_UNAVAILABLE`
+
+Recovery:
+
+1. Run `pnpm install`.
+2. Verify `node_modules/playwright-core/cli.js` exists.
+3. Re-run `pw trace inspect <trace.zip> --section actions`.
+
+### `TRACE_CLI_FAILED`
+
+Recovery:
+
+1. Verify the file is a Playwright trace zip.
+2. Re-run with a narrower section, for example `--section actions`.
+3. If Playwright trace CLI output is too large, use the bounded pwcli output as the first triage layer and open Trace Viewer for human replay.
+
+### `TRACE_SECTION_REQUIRED` / `TRACE_SECTION_INVALID`
+
+Recovery:
+
+```bash
+pw trace inspect <trace.zip> --section actions
+pw trace inspect <trace.zip> --section requests --failed
+pw trace inspect <trace.zip> --section console --level error
+pw trace inspect <trace.zip> --section errors
+```

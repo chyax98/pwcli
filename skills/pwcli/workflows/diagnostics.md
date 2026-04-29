@@ -85,7 +85,25 @@ pw diagnostics show --run <runId> --command click --limit 10
 pw diagnostics grep --run <runId> --text '<substring>' --limit 10
 ```
 
-## 7. 卡住时恢复
+## 7. 离线 trace triage
+
+已有 trace zip 时，用 Trace CLI 查重放证据包，不要把它当 `.pwcli/runs` 事件日志：
+
+```bash
+pw trace inspect .pwcli/playwright/traces/trace.zip --section actions
+pw trace inspect .pwcli/playwright/traces/trace.zip --section requests --failed
+pw trace inspect .pwcli/playwright/traces/trace.zip --section console --level error
+pw trace inspect .pwcli/playwright/traces/trace.zip --section errors
+```
+
+使用边界：
+
+- Trace CLI：Agent 离线查询 actions / requests / console / errors。
+- Trace Viewer：人类可视化重放。
+- HTML report / UI mode：Playwright Test 展示面，不是 pwcli diagnostics。
+- `.pwcli/runs/<runId>/events.jsonl`：轻量动作事件，不替代 trace zip。
+
+## 8. 卡住时恢复
 
 ```bash
 pw doctor --session <name>
