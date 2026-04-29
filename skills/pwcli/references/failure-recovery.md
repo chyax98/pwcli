@@ -30,7 +30,7 @@ pw session create bug-a --open 'https://example.com'
 
 ## Modal blockage
 
-### Action failure with `Ref ... not found in the current page snapshot`
+### `REF_STALE`
 
 Meaning:
 
@@ -45,6 +45,32 @@ pw click <fresh-ref> --session bug-a
 ```
 
 Do not retry the old ref after a page transition. Use a semantic locator such as `--role` or `--text` when the target must survive navigation or re-rendering.
+
+Typical output:
+
+```text
+ERROR REF_STALE
+Ref e17 not found in the current page snapshot
+Try:
+- Refresh refs with `pw snapshot -i --session bug-a`
+- Retry with a fresh ref from the new snapshot
+```
+
+`REF_STALE` means the old ref is no longer a safe write target. Do not retry the same ref.
+
+### Action target failures
+
+Stable codes:
+
+| Code | Meaning | First recovery |
+|---|---|---|
+| `ACTION_TARGET_NOT_FOUND` | target is not present in the current page state | `pw snapshot -i --session <name>` |
+| `ACTION_TARGET_AMBIGUOUS` | locator matched more than one target | use a narrower locator or `--nth` |
+| `ACTION_TARGET_INDEX_OUT_OF_RANGE` | requested `--nth` is greater than match count | inspect candidates and choose a valid index |
+| `ACTION_TIMEOUT_OR_NOT_ACTIONABLE` | Playwright could not act before timeout or target was not actionable | `pw wait --session <name> --selector <selector>` then retry |
+| `ACTION_BLOCKED_BY_MODAL` | reserved for browser dialog or modal state that blocks the action lane | `pw page dialogs --session <name>` then `pw dialog accept|dismiss` |
+
+These codes do not auto-heal selectors and do not pick among candidates. They tell the Agent which next command to run.
 
 ### `MODAL_STATE_BLOCKED`
 

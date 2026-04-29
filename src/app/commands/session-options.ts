@@ -1,4 +1,5 @@
 import type { Command } from "commander";
+import { isActionFailure } from "../../domain/interaction/action-failure.js";
 import { sessionRoutingError } from "../../domain/session/routing.js";
 import { MAX_SESSION_NAME_LENGTH } from "../../infra/playwright/cli-client.js";
 import { printCommandError } from "../output.js";
@@ -39,6 +40,17 @@ export function printSessionAwareCommandError(
   const routing = sessionRoutingError(message);
   if (routing) {
     printCommandError(command, routing);
+    return;
+  }
+
+  if (isActionFailure(error)) {
+    printCommandError(command, {
+      code: error.code,
+      message: error.message,
+      retryable: error.retryable,
+      suggestions: error.suggestions,
+      details: error.details,
+    });
     return;
   }
 
