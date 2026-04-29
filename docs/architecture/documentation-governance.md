@@ -114,6 +114,7 @@
 - `docs/architecture/adr-*.md`
 - `docs/architecture/environment-clock-survey.md`
 - `docs/architecture/workspace-mutation-contract.md`
+- `docs/architecture/browser-task-state-model.md`
 - `docs/architecture/e2e-dogfood-test-plan.md`
 - `docs/architecture/e2e-dogfood-experience-report.md`
 
