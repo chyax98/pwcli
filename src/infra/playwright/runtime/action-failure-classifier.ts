@@ -6,6 +6,18 @@ type ManagedActionErrorContext = {
   sessionName?: string;
 };
 
+function isTargetNotFoundError(errorText: string) {
+  if (/No element matches selector/i.test(errorText) || /Unable to find/i.test(errorText)) {
+    return true;
+  }
+
+  if (/not found/i.test(errorText) && !/\b(dialog|modal)\b/i.test(errorText)) {
+    return true;
+  }
+
+  return false;
+}
+
 export function throwIfManagedActionError(text: string, context: ManagedActionErrorContext) {
   const errorText = parseErrorText(text);
   if (!errorText) {
@@ -61,15 +73,19 @@ export function throwIfManagedActionError(text: string, context: ManagedActionEr
     });
   }
 
-  throw new ActionFailure({
-    code: "ACTION_TARGET_NOT_FOUND",
-    message: errorText,
-    retryable: true,
-    suggestions: [
-      `Refresh refs with \`pw snapshot -i --session ${context.sessionName ?? "<name>"}\``,
-      "Use an existing selector from the current page",
-      "Use a semantic locator such as --role or --text when possible",
-    ],
-    details: { command: context.command, session },
-  });
+  if (isTargetNotFoundError(errorText)) {
+    throw new ActionFailure({
+      code: "ACTION_TARGET_NOT_FOUND",
+      message: errorText,
+      retryable: true,
+      suggestions: [
+        `Refresh refs with \`pw snapshot -i --session ${context.sessionName ?? "<name>"}\``,
+        "Use an existing selector from the current page",
+        "Use a semantic locator such as --role or --text when possible",
+      ],
+      details: { command: context.command, session },
+    });
+  }
+
+  throw new Error(errorText);
 }
