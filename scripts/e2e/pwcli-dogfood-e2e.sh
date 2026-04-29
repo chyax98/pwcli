@@ -168,8 +168,8 @@ if "${CLI[@]}" click --session "$SESSION_NAME" "$login_submit_ref" >"$stale_ref_
   cat "$stale_ref_out" >&2 || true
   exit 1
 fi
-assert_json "$stale_ref_out" "stale login ref surfaces refresh recovery" \
-  "data.ok === false && data.error.code === 'CLICK_FAILED' && data.error.message.includes('Ref ${login_submit_ref} not found in the current page snapshot') && data.error.suggestions.some(item => item.includes('snapshot -i'))"
+assert_json "$stale_ref_out" "stale login ref surfaces structured recovery" \
+  "data.ok === false && data.error.code === 'REF_STALE' && data.error.retryable === true && data.error.message.includes('Ref ${login_submit_ref} not found in the current page snapshot') && data.error.suggestions.some(item => item.includes('snapshot -i')) && data.error.details.ref === '${login_submit_ref}'"
 
 log "save auth state"
 state_save_json="$(run_json state-save state save "$STATE_FILE" --session "$SESSION_NAME")"
