@@ -200,3 +200,88 @@ export async function managedStorageRead(
     },
   };
 }
+
+export async function managedStorageMutation(
+  kind: "local" | "session",
+  operation: "get" | "set" | "delete" | "clear",
+  options?: { key?: string; sessionName?: string; value?: string },
+) {
+  if (operation !== "clear" && !options?.key) {
+    throw new Error(`storage ${operation} requires a key`);
+  }
+  if (operation === "set" && options?.value === undefined) {
+    throw new Error("storage set requires a value");
+  }
+
+  const result = await managedRunCode({
+    sessionName: options?.sessionName,
+    source: `async page => {
+      return await page.evaluate(() => {
+        const kind = ${JSON.stringify(kind)};
+        const operation = ${JSON.stringify(operation)};
+        const key = ${JSON.stringify(options?.key ?? "")};
+        const value = ${JSON.stringify(options?.value ?? "")};
+        const origin = globalThis.location?.origin ?? "";
+        const href = globalThis.location?.href ?? "";
+        if (!origin || origin === "null") {
+          throw new Error("STORAGE_ORIGIN_UNAVAILABLE");
+        }
+        const store = kind === "local" ? localStorage : sessionStorage;
+        if (operation === "get") {
+          return {
+            kind,
+            operation,
+            origin,
+            href,
+            key,
+            value: store.getItem(key),
+          };
+        }
+        if (operation === "set") {
+          store.setItem(key, value);
+          return {
+            kind,
+            operation,
+            origin,
+            href,
+            key,
+            value: store.getItem(key),
+            changed: true,
+          };
+        }
+        if (operation === "delete") {
+          const deleted = store.getItem(key) !== null;
+          store.removeItem(key);
+          return {
+            kind,
+            operation,
+            origin,
+            href,
+            key,
+            deleted,
+          };
+        }
+        store.clear();
+        return {
+          kind,
+          operation,
+          origin,
+          href,
+          cleared: true,
+        };
+      });
+    }`,
+  });
+  const parsed =
+    typeof result.data.result === "object" && result.data.result ? result.data.result : {};
+  return {
+    session: result.session,
+    page: result.page,
+    data: {
+      kind,
+      operation,
+      ...parsed,
+      ...maybeRawOutput(result.rawText ?? ""),
+    },
+  };
+}

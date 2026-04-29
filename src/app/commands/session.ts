@@ -9,6 +9,7 @@ import {
   getManagedSessionEntry,
   getManagedSessionStatus,
   getSessionDefaults,
+  listAttachableBrowserServers,
   listManagedSessions,
   managedOpen,
   resolveLifecycleHeaded,
@@ -40,7 +41,8 @@ export function registerSessionCommand(program: Command): void {
     .command("list")
     .description("List managed sessions in the current workspace")
     .option("--with-page", "Include best-effort page summaries for live sessions")
-    .action(async (options: { withPage?: boolean }) => {
+    .option("--attachable", "Include Playwright browser servers available for attach")
+    .action(async (options: { withPage?: boolean; attachable?: boolean }) => {
       try {
         const sessions = await listManagedSessions();
         const enriched = options.withPage
@@ -58,6 +60,7 @@ export function registerSessionCommand(program: Command): void {
             count: enriched.length,
             withPage: Boolean(options.withPage),
             sessions: enriched,
+            ...(options.attachable ? { attachable: await listAttachableBrowserServers() } : {}),
           },
         });
       } catch (error) {

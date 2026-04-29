@@ -7,4 +7,5 @@ export * from "./runtime/identity-state.js";
 export * from "./runtime/interaction.js";
 export * from "./runtime/session.js";
 export * from "./runtime/shared.js";
+export * from "./runtime/state-checks.js";
 export * from "./runtime/workspace.js";

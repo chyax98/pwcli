@@ -34,6 +34,7 @@ state / auth / batch / environment 命令见 `command-reference-advanced.md`。
 ### `pw session list`
 
 - `--with-page`：为 live session 补 best-effort 页面摘要
+- `--attachable`：列出当前 workspace 内 Playwright server registry 中可供接管的 browser servers；只做 discovery，不自动 attach
 
 ### `pw session status <name>`
 
@@ -70,6 +71,39 @@ state / auth / batch / environment 命令见 `command-reference-advanced.md`。
 
 - `--selector <selector>`、`--include-overlay`、`--max-chars <count>`
 
+### `pw locate --session <name>`
+
+低噪声定位，返回 `count` 和最多 10 个候选摘要；不返回 ref，不生成动作计划。
+
+目标（一次只传一个）：
+
+- `--selector <selector>`
+- `--text <text>`
+- `--role <role> --name <name>`
+- `--testid <id>`
+
+### `pw get <fact> --session <name>`
+
+支持 facts：
+
+- `text`：目标首个匹配节点的 `textContent`
+- `value`：目标首个匹配表单控件的 `inputValue()`
+- `count`：匹配数量，目标不存在时返回 `0`
+
+目标同 `locate`。`get text|value` 要求目标至少存在一个；需要先探测数量时用 `get count` 或 `locate`。
+
+### `pw is <state> --session <name>`
+
+支持 states：
+
+- `visible`
+- `enabled`
+- `checked`
+
+目标同 `locate`。目标不存在时返回 `value: false` 和 `count: 0`。`checked` 只适合 checkbox/radio 等可检查控件。
+
+Use `locate/get/is` for narrow state checks. Use `snapshot -i` when you need fresh refs. Do not use these commands as an action planner.
+
 ### `pw snapshot --session <name>`
 
 - `-i, --interactive`：只输出可交互节点（找 ref 首选）
@@ -78,6 +112,12 @@ state / auth / batch / environment 命令见 `command-reference-advanced.md`。
 ### `pw screenshot [ref] --session <name>`
 
 - `--selector <selector>`、`--path <path>`、`--full-page`
+
+### `pw pdf --session <name> --path <path>`
+
+- 将 active page 导出为 PDF
+- 低频页面归档证据；不做报告模板、合并或批量归档
+- 依赖当前 Playwright substrate 的 Chromium PDF 能力
 
 ### `pw dialog accept [prompt]|dismiss --session <name>`
 
@@ -104,6 +144,21 @@ state / auth / batch / environment 命令见 `command-reference-advanced.md`。
 无 `--selector` 和语义定位时：单个 part 输入到当前 focused element；多个 parts 时第一个 part 是 ref，后续 parts 拼成输入值。有 `--selector` 或语义定位参数时，所有 `parts` 拼成输入值。
 
 ### `pw press <key> --session <name>`
+
+### `pw check [ref] --session <name>`
+
+- `--selector <selector>`
+- 支持 checkbox / radio；输出复用 action evidence：`diagnosticsDelta`、`run`
+
+### `pw uncheck [ref] --session <name>`
+
+- `--selector <selector>`
+- 支持 checkbox；输出复用 action evidence：`diagnosticsDelta`、`run`
+
+### `pw select [ref] <value> --session <name>`
+
+- `--selector <selector>`
+- `value` 是 option value；输出包含 `value` / `values` 和 action evidence
 
 ### `pw scroll <direction> [distance] --session <name>`
 

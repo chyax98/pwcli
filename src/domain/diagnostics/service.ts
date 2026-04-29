@@ -8,6 +8,7 @@ import {
   managedObserveStatus,
   managedRoute,
   managedTrace,
+  managedTraceInspect,
 } from "../../infra/playwright/runtime.js";
 
 type SignalRecord = {
@@ -580,4 +581,5 @@ export {
   managedObserveStatus,
   managedRoute,
   managedTrace,
+  managedTraceInspect,
 };

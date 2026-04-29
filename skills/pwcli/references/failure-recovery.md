@@ -68,6 +68,8 @@ Meaning:
 
 - the ref came from an older snapshot
 - the page navigated, re-rendered, switched tab, or otherwise changed after the ref was captured
+- the ref was not produced by the latest snapshot epoch recorded for the session/page
+- the current `pageId` or `navigationId` no longer matches the page state that produced the ref
 
 Recovery:
 
@@ -76,7 +78,7 @@ pw snapshot -i --session bug-a
 pw click <fresh-ref> --session bug-a
 ```
 
-Do not retry the old ref after a page transition. Use a semantic locator such as `--role` or `--text` when the target must survive navigation or re-rendering.
+Do not retry the old ref after a page transition. `ref` values are only valid for the latest snapshot epoch of the active page identity. Use a semantic locator such as `--role` or `--text` when the target must survive navigation or re-rendering.
 
 Typical output:
 
@@ -104,6 +106,23 @@ Stable codes:
 Modal and browser-dialog blockage is currently reported through `MODAL_STATE_BLOCKED`, not a separate action target code.
 
 These codes do not auto-heal selectors and do not pick among candidates. They tell the Agent which next command to run.
+
+### `STATE_TARGET_NOT_FOUND`
+
+Meaning:
+
+- `pw get text|value` matched zero elements
+- the command did not choose a fallback target
+
+Recovery:
+
+```bash
+pw locate --session bug-a --selector '<selector>'
+pw get count --session bug-a --selector '<selector>'
+pw snapshot -i --session bug-a
+```
+
+`locate` and `get count` are the low-noise checks when zero matches is acceptable. Use `snapshot -i` only when you need fresh refs or structural context.
 
 ### `MODAL_STATE_BLOCKED`
 
@@ -211,3 +230,39 @@ pw diagnostics runs
 ```
 
 Then re-run with a valid `runId`.
+
+## Trace inspect failures
+
+### `TRACE_FILE_NOT_FOUND`
+
+Recovery:
+
+1. Pass an existing trace zip path.
+2. Check `.pwcli/playwright/` for Playwright substrate artifacts from a new or recreated session.
+
+### `TRACE_CLI_UNAVAILABLE`
+
+Recovery:
+
+1. Run `pnpm install`.
+2. Verify `node_modules/playwright-core/cli.js` exists.
+3. Re-run `pw trace inspect <trace.zip> --section actions`.
+
+### `TRACE_CLI_FAILED`
+
+Recovery:
+
+1. Verify the file is a Playwright trace zip.
+2. Re-run with a narrower section, for example `--section actions`.
+3. If Playwright trace CLI output is too large, use the bounded pwcli output as the first triage layer and open Trace Viewer for human replay.
+
+### `TRACE_SECTION_REQUIRED` / `TRACE_SECTION_INVALID`
+
+Recovery:
+
+```bash
+pw trace inspect <trace.zip> --section actions
+pw trace inspect <trace.zip> --section requests --failed
+pw trace inspect <trace.zip> --section console --level error
+pw trace inspect <trace.zip> --section errors
+```

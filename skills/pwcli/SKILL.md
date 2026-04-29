@@ -43,6 +43,9 @@ description: "Use pwcli for browser automation, page exploration, diagnostics, s
 # 快速理解页面
 pw observe status -s bug-a
 pw read-text -s bug-a --max-chars 2000
+pw locate -s bug-a --text '保存成功'
+pw get count -s bug-a --selector '.row'
+pw is visible -s bug-a --selector '#submit'
 pw snapshot -i -s bug-a
 
 # 动作闭环
@@ -70,6 +73,7 @@ pw diagnostics digest -s bug-a
 | 继续当前页面 | `session list/status` | 用户明确说继续旧任务 |
 | 已有 session 导航 | `open` | 只换 URL，不换 browser shape |
 | 页面理解 | `observe status`、`page current`、`read-text` | 默认观察路径 |
+| 状态读取 | `locate`、`get`、`is` | 低噪声检查元素是否存在、读取事实或布尔状态 |
 | 多页面切换 | `page list`、`tab select|close` | popup、新开页、OAuth/预览窗口 |
 | 结构定位 | `snapshot -i` / `snapshot` | 需要 aria ref 或页面结构 |
 | 页面动作 | `click/fill/type/press/scroll/drag` | 稳定动作，带 action 记录 |
@@ -134,6 +138,9 @@ pw session close --all
 pw observe status -s bug-a
 pw page current -s bug-a
 pw read-text -s bug-a --max-chars 2000
+pw locate -s bug-a --text '提交'
+pw get text -s bug-a --selector '#result'
+pw is enabled -s bug-a --role button --name '提交'
 ```
 
 用途：
@@ -142,8 +149,11 @@ pw read-text -s bug-a --max-chars 2000
 - `page current`：当前 page projection。
 - `read-text`：可见文本，适合快速理解页面。
 - `read-text --include-overlay`：点击 dropdown/modal/popover 后读取浮层文本。
+- `locate/get/is`：窄状态检查；只返回候选、事实或布尔值，不生成动作计划。
 - `snapshot -i`：只看可交互节点，找 ref 首选。
 - `snapshot`：完整结构树，需要理解页面层级时再用。
+
+`locate/get/is` 适合脚本断言和低噪声状态读取。需要 fresh ref 或页面结构时继续用 `snapshot -i`；不要把这些命令当 action planner。
 
 需要 ref 点击或结构定位：
 
@@ -186,6 +196,8 @@ pw type -s bug-a --role textbox --name 'Comment' 'hello'
 pw click e42 -s bug-a
 pw press Enter -s bug-a
 pw type -s bug-a --selector 'textarea' 'hello'
+pw check -s bug-a --selector '#agree'
+pw select -s bug-a --selector '#country' jp
 pw scroll down 800 -s bug-a
 pw drag -s bug-a --from-selector '.source' --to-selector '.target'
 ```
@@ -312,9 +324,14 @@ Trace / HAR：
 ```bash
 pw trace start -s bug-a
 pw trace stop -s bug-a
+pw trace inspect .pwcli/playwright/traces/trace.zip --section actions
+pw trace inspect .pwcli/playwright/traces/trace.zip --section requests --failed
+pw trace inspect .pwcli/playwright/traces/trace.zip --section console --level error
 pw har start ./bug.har -s bug-a
 pw har stop -s bug-a
 ```
+
+`trace inspect` 是离线 trace zip 查询，适合回看 actions / requests / console / errors；它不替代 live `network` / `console` / `diagnostics export`。
 
 HAR 热录制当前只暴露 substrate 边界，稳定诊断仍优先 `network` 和 `diagnostics export`。
 
@@ -393,6 +410,8 @@ Cookie / storage 读取：
 pw cookies list -s bug-a --domain example.com
 pw storage local -s bug-a
 pw storage session -s bug-a
+pw storage local set -s bug-a featureFlag enabled
+pw storage local delete -s bug-a featureFlag
 ```
 
 设置 cookie：
@@ -400,6 +419,8 @@ pw storage session -s bug-a
 ```bash
 pw cookies set -s bug-a --name token --value '<value>' --domain example.com --path /
 ```
+
+Storage mutation 只改当前页 origin，适合临时 feature flag / 复现状态；登录态复用继续用 `state save|load` 或 auth provider。
 
 Profile 检查：
 
@@ -482,7 +503,8 @@ pw batch --session bug-a --file ./steps.json
 - `pw batch --stdin-json` 表示 stdin steps 是 JSON，不表示输出 JSON。
 - 要 JSON 输出：`pw --output json batch --session bug-a --stdin-json`。
 - `batch` 适合单 session 串行动作，不适合 lifecycle/auth/environment/dialog recovery。
-- batch `click` 只支持 ref 或 `--selector`，不支持 `--text`/`--role`/`--label` 等语义定位；需要语义定位时拆出单命令。
+- batch `click` 支持 ref、`--selector`、`--text`、`--role --name`；`--text` 和 `--role` 可带 `--nth`。
+- batch `click` 不支持 `--label`/`--placeholder`/`--testid` 等完整 CLI parity；需要时拆出单命令。
 - 默认 text 输出是轻量摘要：step 数、成功/失败数、首个失败、warnings；不倾倒嵌套 `results`。
 - 脚本解析、字段断言、完整 envelope 消费必须加 `--output json`。
 - JSON envelope 保持 `data.summary` 和 `data.results`；只需要 JSON 汇总时加 `--summary-only`。

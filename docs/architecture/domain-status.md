@@ -14,6 +14,7 @@
 
 - `session create|attach|recreate|list|status|close`
 - `dashboard open` exposes Playwright-core's bundled session dashboard as a thin wrapper.
+- `session list --attachable` exposes Playwright server-registry discovery as read-only attach candidates.
 - session 名硬限制：
   - 最长 16 字符
   - 只允许字母、数字、`-`、`_`
@@ -27,6 +28,7 @@
 
 - `session status` 只做快速状态检查；页面忙、弹窗阻塞、浏览器断连时可能拿不到完整页面信息，异常时用 `pw doctor --session <name>` 复查
 - `session attach --browser-url/--cdp` 只能接管当前机器上可连接的浏览器调试端口；连接失败时先确认浏览器是否用远程调试参数启动、端口是否可访问
+- `session list --attachable` 只发现 Playwright-core 已登记的 browser servers，不做进程扫描、不自动 attach、不替代 `session create|attach|recreate` 主路
 - `dashboard open` relies on an internal/hidden Playwright CLI surface and must fail as `DASHBOARD_UNAVAILABLE` if the entrypoint disappears, or `DASHBOARD_LAUNCH_FAILED` if the subprocess exits during startup.
 
 ### 后续扩展
@@ -65,20 +67,29 @@
 - `scroll`
 - `upload`
 - `download`
+- `pdf`
 - `drag`
+- `check|uncheck|select`
 - `wait`
 - `code`
+- `snapshot` records the latest ref epoch for the active page/navigation identity
+- ref-backed `click` / `fill` / `type` validate against the latest snapshot epoch before reporting success
+- `locate|get|is` state-check primitives for compact read-only target checks
 
 ### 当前限制
 
 - `MODAL_STATE_BLOCKED` 会阻断 run-code-backed 路径
-- `batch` 当前只承诺稳定子集
+- `batch` 当前只承诺稳定子集；click 覆盖 ref、selector、text、role/name，不追求完整 click flag parity
+- snapshot refs are not stable cross-navigation identifiers; after navigation, tab switch, or a new snapshot, old refs fail as `REF_STALE`
 - `batch` 当前只做单 session 串行执行，不做 lifecycle / environment / diagnostics query 容器
 - dialog 恢复当前只覆盖 browser dialog handle，不覆盖更复杂的页面级阻断控件
+- `locate|get|is` 只做 read-only state check；不返回 ref、不规划动作、不包含 `verify`
+- `get value` 依赖 Playwright `inputValue()`，只适合 input/textarea/select 等表单控件
 
 ### 后续扩展
 
 - batch 只在真实高频场景下增量扩命令，不追求全量 parity
+- `verify` 留在 #23 后续切片，不进入当前 MVP
 
 ## 4. Identity State
 
@@ -86,7 +97,7 @@
 
 - `state save|load`
 - `cookies list|set`
-- `storage local|session`
+- `storage local|session` read + current-origin `get|set|delete|clear`
 - `profile inspect`
 - `auth` 内置 provider 执行 + `save-state`
 - `dc` 是内置 DC/Forge auth provider；默认手机号和验证码内聚在 provider 内，传了 `targetUrl` 就使用指定业务 URL，未传 URL 时执行默认登录流程
@@ -94,7 +105,7 @@
 
 ### 当前限制
 
-- `storage local|session` 只读当前页 origin
+- `storage local|session get|set|delete|clear` 只作用于当前页 origin，不做跨 origin storage 编辑
 - `auth` 不负责 session shape
 - `dc` 不接受 `instance` 参数；不暴露环境参数，RND 固定入口由 skill 引导 agent 显式打开
 - `profile open` 已移除
@@ -102,7 +113,7 @@
 
 ### 后续扩展
 
-- 如果 Agent 真实需要，再补 richer cookie/storage mutation
+- 如果 Agent 真实需要，再补 richer cookie mutation 或 IndexedDB 读取；当前 storage mutation 不替代 auth/state 主路
 
 ## 5. Diagnostics
 
@@ -119,10 +130,13 @@
 - `--text` on `diagnostics export`
 - `alias=path` field projection on `diagnostics export|show|grep`
 - `--session|--since` filters on `diagnostics runs`
+- `trace inspect <trace.zip> --section actions|requests|console|errors`
 - `doctor` 默认 compact，`--verbose` 返回完整 probe
 - action 结果里的 `diagnosticsDelta`
 - `.pwcli/runs/<runId>/events.jsonl`
 - Playwright substrate 原始产物归档在 `.pwcli/playwright/`，包括 trace、snapshot 附件、console 附件、download 附件
+- `pdf` 是低频 active-page archive evidence，不做报告生成、合并或批量归档
+- Trace CLI 是离线 trace zip 查询面；Trace Viewer 是人类可视化重放；Playwright Test HTML report / UI mode 不属于 pwcli diagnostics；`.pwcli/runs/<runId>/events.jsonl` 是轻量动作事件，不替代 trace zip
 
 ### 当前限制
 
@@ -130,6 +144,7 @@
 - 不是持久化诊断数据库
 - `har start|stop` 只暴露 substrate 边界
 - 已存在的老 session 仍按启动时 substrate 配置写目录；新建或 recreate 后才使用当前 artifact 根目录
+- `trace inspect --level` 受 Playwright trace CLI console 过滤能力限制，当前只稳定映射 `error` / `warning`
 
 ### 后续扩展
 

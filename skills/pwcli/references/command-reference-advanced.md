@@ -30,6 +30,15 @@
 - 读取当前页 origin 的 `localStorage` / `sessionStorage`
 - 无效 origin 返回 `accessible: false`
 
+### `pw storage local|session get|set|delete|clear --session <name>`
+
+- `get <key>`：读取当前页 origin 的单个 storage 值
+- `set <key> <value>`：写入当前页 origin 的单个 storage 值
+- `delete <key>`：删除当前页 origin 的单个 storage 值
+- `clear`：清空当前页 origin 的对应 storage
+
+这只是受控测试状态操作，不替代 `state save|load`、cookies 或 auth provider。不会跨 origin 修改 storage，也不支持 IndexedDB。
+
 ### `pw profile inspect <path>`
 
 - 检查 profile 路径是否存在、可写、可用
@@ -83,7 +92,7 @@
 稳定 argv 子集：
 
 - `snapshot`、`snapshot -i`、`snapshot -c`
-- `click <ref>`、`click --selector <selector>`（不支持 `--text`/`--role` 等语义定位）
+- `click <ref>`、`click --selector <selector>`、`click --text <text>`、`click --role <role> --name <name>`
 - `fill <ref> <value>`、`fill --selector <selector> <value>`
 - `press <key>`、`scroll <direction> [distance]`、`type [ref] <value>`
 - `open <url>`
@@ -92,6 +101,17 @@
 - `screenshot ...`、`observe status`、`errors recent|clear`
 - `route list|add|load|remove ...`、`bootstrap apply ...`
 - `state save|load`、`page current|list|frames|dialogs`
+
+Supported batch click targets:
+
+- `["click", "e12"]`
+- `["click", "--selector", "#submit"]`
+- `["click", "--text", "Submit"]`
+- `["click", "--text", "Submit", "--nth", "2"]`
+- `["click", "--role", "button", "--name", "Submit"]`
+- `["click", "--role", "button", "--name", "Submit", "--nth", "2"]`
+
+Other semantic click flags stay outside batch. Run the single `pw click ...` command when you need them.
 
 注意：
 

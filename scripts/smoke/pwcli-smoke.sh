@@ -12,6 +12,7 @@ BLANK_URL="${ORIGIN}/blank"
 RUN_ID="$(date +%H%M%S)$((RANDOM % 100))"
 SESSION_NAME="sm${RUN_ID}"
 AUTH_SESSION="${SESSION_NAME}a"
+STALE_SESSION="stale${RUN_ID}"
 TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/pwcli-smoke.XXXXXX")"
 HEADERS_FILE="${TMP_DIR}/headers.json"
 ROUTE_INJECT_HEADERS_FILE="${TMP_DIR}/route-inject-headers.json"
@@ -20,6 +21,7 @@ SERVER_LOG="${TMP_DIR}/fixture-server.log"
 SERVER_PID=""
 SESSION_CLOSED="0"
 AUTH_SESSION_CLOSED="0"
+STALE_SESSION_CLOSED="0"
 
 cleanup() {
   if [[ "$SESSION_CLOSED" != "1" ]]; then
@@ -27,6 +29,9 @@ cleanup() {
   fi
   if [[ "$AUTH_SESSION_CLOSED" != "1" ]]; then
     "${CLI[@]}" session close "$AUTH_SESSION" >/dev/null 2>&1 || true
+  fi
+  if [[ "$STALE_SESSION_CLOSED" != "1" ]]; then
+    "${CLI[@]}" session close "$STALE_SESSION" >/dev/null 2>&1 || true
   fi
   if [[ -n "$SERVER_PID" ]]; then
     kill "$SERVER_PID" >/dev/null 2>&1 || true
@@ -236,12 +241,54 @@ assert_json "$snapshot_compact_json" "compact snapshot is smaller" \
 snapshot_interactive_json="$(run_json snapshot-interactive snapshot --interactive --session "$SESSION_NAME")"
 assert_json "$snapshot_interactive_json" "interactive snapshot keeps only action-oriented lines" \
   "data.ok === true && data.data.mode === 'interactive' && data.data.charCount <= data.data.totalCharCount && typeof data.data.snapshot === 'string'"
+
+log "stale ref epoch contract"
+stale_create_json="$(run_json stale-create session create "$STALE_SESSION" --open "$BLANK_URL")"
+assert_json "$stale_create_json" "stale ref session created" \
+  "data.ok === true && data.data.created === true"
+stale_button_json="$(run_json stale-button code --session "$STALE_SESSION" "async page => { await page.evaluate(() => { const button = document.createElement('button'); button.type = 'button'; button.textContent = 'stale ref smoke action'; document.body.appendChild(button); }); return 'stale-button-ready'; }")"
+assert_json "$stale_button_json" "stale ref target installed" \
+  "data.ok === true && data.data.result === 'stale-button-ready'"
+stale_snapshot_json="$(run_json stale-snapshot snapshot -i --session "$STALE_SESSION")"
+stale_ref="$(node - "$stale_snapshot_json" <<'NODE'
+const fs = require('node:fs');
+
+const payload = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+const match = String(payload.data.snapshot || '').match(/\[ref=(e[0-9]+)\]/);
+if (!match) {
+  console.error('[smoke] could not find interactive ref in fixture snapshot');
+  process.exit(1);
+}
+process.stdout.write(match[1]);
+NODE
+)"
+run_json stale-navigate open --session "$STALE_SESSION" "${BLANK_URL}?stale-ref=1" >/dev/null
+stale_reuse_json="$(run_fail_json stale-reuse click "$stale_ref" --session "$STALE_SESSION")"
+assert_json "$stale_reuse_json" "stale ref reuse returns REF_STALE" \
+  "data.ok === false && data.error.code === 'REF_STALE' && data.error.retryable === false && data.error.details.reason === 'navigation-changed' && data.error.suggestions.some(item => item.includes('snapshot -i'))"
+run_json stale-close session close "$STALE_SESSION" >/dev/null
+STALE_SESSION_CLOSED="1"
+
 overlay_code_json="$(run_json overlay-code code --session "$SESSION_NAME" "async page => { await page.evaluate(() => { const el = document.createElement('div'); el.className = 'ant-dropdown'; el.style.position = 'fixed'; el.style.left = '10px'; el.style.top = '10px'; el.textContent = 'overlay smoke option'; document.body.appendChild(el); }); return 'overlay-ready'; }")"
 assert_json "$overlay_code_json" "overlay fixture installed" \
   "data.ok === true && data.data.result === 'overlay-ready'"
 overlay_read_json="$(run_json overlay-read read-text --session "$SESSION_NAME" --include-overlay --max-chars 4000)"
 assert_json "$overlay_read_json" "read-text can include overlay text" \
   "data.ok === true && data.data.source === 'body-visible+overlay' && data.data.overlays.some(item => item.text.includes('overlay smoke option')) && data.data.text.includes('overlay smoke option')"
+
+log "state check primitives"
+locate_json="$(run_json locate-text locate --session "$SESSION_NAME" --text "pwcli deterministic fixture")"
+assert_json "$locate_json" "locate text returns candidates" \
+  "data.ok === true && data.data.count >= 1 && Array.isArray(data.data.candidates)"
+count_json="$(run_json get-count get count --session "$SESSION_NAME" --selector "body")"
+assert_json "$count_json" "get count returns number" \
+  "data.ok === true && typeof data.data.value === 'number' && data.data.value >= 1"
+visible_json="$(run_json is-visible is visible --session "$SESSION_NAME" --selector "body")"
+assert_json "$visible_json" "is visible returns boolean" \
+  "data.ok === true && data.data.value === true"
+missing_get_json="$(run_fail_json get-missing get text --session "$SESSION_NAME" --selector ".missing-state-target")"
+assert_json "$missing_get_json" "get missing target returns stable code" \
+  "data.ok === false && data.error.code === 'STATE_TARGET_NOT_FOUND' && data.error.retryable === true"
 
 log "page current"
 page_json="$(run_json page-current page current --session "$SESSION_NAME")"
@@ -291,6 +338,9 @@ assert_json "$session_list_json" "session list is lightweight by default" \
 session_list_with_page_json="$(run_json session-list-with-page session list --with-page)"
 assert_json "$session_list_with_page_json" "session list can include page summaries on demand" \
   "data.ok === true && data.data.withPage === true && data.data.sessions.some(item => item.name === '${SESSION_NAME}' && item.page && item.page.url === '${BLANK_URL}')"
+session_list_attachable_json="$(run_json session-list-attachable session list --attachable)"
+assert_json "$session_list_attachable_json" "session list exposes attachable discovery shape" \
+  "data.ok === true && data.data.attachable && typeof data.data.attachable.supported === 'boolean' && Array.isArray(data.data.attachable.servers) && Number.isInteger(data.data.attachable.count)"
 
 log "auth provider discovery"
 auth_list_json="$(run_json auth-list auth list)"
@@ -424,6 +474,78 @@ if ! grep -q 'steps:' "$batch_text_verbose_out"; then
   exit 1
 fi
 
+log "batch semantic click"
+semantic_setup_source="$(cat <<'NODE'
+async page => {
+  await page.evaluate(() => {
+    document.body.innerHTML = '<main><h1>pwcli deterministic fixture</h1><p id="batch-status">ready</p></main>';
+    const textFirst = document.createElement('button');
+    textFirst.type = 'button';
+    textFirst.textContent = 'Batch Text Target';
+    textFirst.addEventListener('click', () => {
+      document.querySelector('#batch-status').textContent = 'wrong-text-clicked';
+    });
+    const textSecond = document.createElement('button');
+    textSecond.type = 'button';
+    textSecond.textContent = 'Batch Text Target';
+    textSecond.addEventListener('click', () => {
+      document.querySelector('#batch-status').textContent = 'batch-text-clicked';
+    });
+    const roleFirst = document.createElement('button');
+    roleFirst.type = 'button';
+    roleFirst.textContent = 'Batch Role Target';
+    roleFirst.addEventListener('click', () => {
+      document.querySelector('#batch-status').textContent = 'wrong-role-clicked';
+    });
+    const roleSecond = document.createElement('button');
+    roleSecond.type = 'button';
+    roleSecond.textContent = 'Batch Role Target';
+    roleSecond.addEventListener('click', () => {
+      document.querySelector('#batch-status').textContent = 'batch-role-clicked';
+    });
+    document.body.append(textFirst, textSecond, roleFirst, roleSecond);
+  });
+  return 'batch-semantic-targets-ready';
+}
+NODE
+)"
+semantic_setup_json="$(run_json batch-semantic-setup code --session "$SESSION_NAME" "$semantic_setup_source")"
+assert_json "$semantic_setup_json" "batch semantic targets installed" \
+  "data.ok === true && data.data.result === 'batch-semantic-targets-ready'"
+semantic_batch="$(node --input-type=module <<'NODE'
+console.log(JSON.stringify([
+  ["click", "--text", "Batch Text Target", "--nth", "2"],
+  ["wait", "--text", "batch-text-clicked"],
+  ["click", "--role", "button", "--name", "Batch Role Target", "--nth", "2"],
+  ["wait", "--text", "batch-role-clicked"]
+]));
+NODE
+)"
+batch_semantic_out="${TMP_DIR}/batch-semantic.json"
+if ! printf '%s' "$semantic_batch" | "${CLI[@]}" batch --session "$SESSION_NAME" --stdin-json >"$batch_semantic_out"; then
+  log "command failed: ${CLI[*]} batch --session ${SESSION_NAME} --stdin-json"
+  cat "$batch_semantic_out" >&2 || true
+  exit 1
+fi
+batch_semantic_json="$batch_semantic_out"
+assert_json "$batch_semantic_json" "batch supports semantic role/text click" \
+  "data.ok === true && data.data.summary.failedCount === 0 && data.data.summary.successCount === 4"
+
+bad_semantic_batch='[["click","--label","Email"]]'
+bad_semantic_out="${TMP_DIR}/batch-bad-semantic.json"
+set +e
+printf '%s' "$bad_semantic_batch" | "${CLI[@]}" batch --session "$SESSION_NAME" --stdin-json >"$bad_semantic_out"
+bad_semantic_code=$?
+set -e
+if [ "$bad_semantic_code" -ne 0 ]; then
+  log "command failed before producing batch failure envelope: ${CLI[*]} batch --session ${SESSION_NAME} --stdin-json"
+  cat "$bad_semantic_out" >&2 || true
+  exit 1
+fi
+bad_semantic_json="$bad_semantic_out"
+assert_json "$bad_semantic_json" "unsupported batch semantic flag fails" \
+  "data.ok === true && data.data.summary.failedCount === 1 && String(data.data.summary.firstFailureMessage).includes('unsupported click batch argument') && String(data.data.summary.firstFailureMessage).includes('outside batch')"
+
 log "bootstrap apply"
 bootstrap_json="$(run_json bootstrap-apply bootstrap apply --session "$SESSION_NAME" --init-script ./scripts/manual/bootstrap-fixture.js --headers-file "$HEADERS_FILE")"
 assert_json "$bootstrap_json" "bootstrap applied" \
@@ -487,7 +609,42 @@ semantic_fill_missing_json="$(run_fail_json semantic-fill-missing fill --session
 assert_json "$semantic_fill_missing_json" "semantic fill missing target preserves action failure envelope" \
   "data.ok === false && data.error.code === 'ACTION_TARGET_NOT_FOUND' && data.error.retryable === true && data.error.details.command === 'fill'"
 
+log "control interaction primitives"
+control_fixture_json="$(run_json control-fixture-reset open --session "$SESSION_NAME" "$BLANK_URL")"
+assert_json "$control_fixture_json" "control fixture reset restored form controls" \
+  "data.ok === true && data.data.navigated === true"
+check_json="$(run_json check-box check --session "$SESSION_NAME" --selector '#smoke-checkbox')"
+assert_json "$check_json" "check returns action evidence" \
+  "data.ok === true && data.data.acted === true && data.data.checked === true && typeof data.data.run.runId === 'string'"
+uncheck_json="$(run_json uncheck-box uncheck --session "$SESSION_NAME" --selector '#smoke-checkbox')"
+assert_json "$uncheck_json" "uncheck returns action evidence" \
+  "data.ok === true && data.data.acted === true && data.data.checked === false && typeof data.data.run.runId === 'string'"
+select_json="$(run_json select-option select --session "$SESSION_NAME" --selector '#smoke-select' b)"
+assert_json "$select_json" "select returns selected value" \
+  "data.ok === true && data.data.selected === true && data.data.value === 'b' && data.data.values.includes('b') && typeof data.data.run.runId === 'string'"
+
+log "storage mutation"
+storage_set_json="$(run_json storage-set storage local set --session "$SESSION_NAME" smokeFlag enabled)"
+assert_json "$storage_set_json" "storage local set reports origin" \
+  "data.ok === true && data.data.operation === 'set' && data.data.key === 'smokeFlag' && data.data.value === 'enabled' && data.data.origin.startsWith('http')"
+storage_get_json="$(run_json storage-get storage local get --session "$SESSION_NAME" smokeFlag)"
+assert_json "$storage_get_json" "storage local get sees value" \
+  "data.ok === true && data.data.operation === 'get' && data.data.value === 'enabled'"
+storage_delete_json="$(run_json storage-delete storage local delete --session "$SESSION_NAME" smokeFlag)"
+assert_json "$storage_delete_json" "storage local delete reports deleted" \
+  "data.ok === true && data.data.operation === 'delete' && data.data.deleted === true"
+
+log "pdf export"
+pdf_path=".pwcli/smoke/page.pdf"
+pdf_json="$(run_json pdf-export pdf --session "$SESSION_NAME" --path "$pdf_path")"
+assert_json "$pdf_json" "pdf export returns path" \
+  "data.ok === true && data.data.path.endsWith('page.pdf') && data.data.saved === true && typeof data.data.run.runId === 'string'"
+test -s "$pdf_path"
+
 log "fire diagnostics"
+diagnostics_restore_json="$(run_json diagnostics-restore code --session "$SESSION_NAME" --file ./scripts/manual/diagnostics-fixture.js)"
+assert_json "$diagnostics_restore_json" "diagnostics fixture restored after control reset" \
+  "data.ok === true && data.data.result === 'ready'"
 click_json="$(run_json click-fire click --session "$SESSION_NAME" --selector '#fire')"
 assert_json "$click_json" "click fire acted" \
   "data.ok === true && data.data.acted === true"
@@ -575,6 +732,11 @@ assert_json "$export_text_json" "diagnostics export accepts text and aliased fie
   "data.ok === true && data.data.exported === true && data.data.text === 'xhr:1'"
 assert_json "${TMP_DIR}/diag-text.json" "diagnostics export text filters projected network rows" \
   "data.section === 'network' && Array.isArray(data.network) && data.network.length >= 1 && data.network.every(item => item.kind === 'response' && typeof item.snippet === 'string' && item.snippet.includes('xhr:1') && item.url === undefined)"
+
+log "trace inspect unavailable file"
+trace_missing_json="$(run_fail_json trace-inspect-missing trace inspect .pwcli/missing-trace.zip --section actions)"
+assert_json "$trace_missing_json" "trace inspect missing file fails clearly" \
+  "data.ok === false && String(data.error.code).includes('TRACE')"
 
 log "route inject continue"
 route_remove_json="$(run_json route-remove route remove '**/__pwcli__/diagnostics/route-hit**' --session "$SESSION_NAME")"

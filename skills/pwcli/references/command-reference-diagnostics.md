@@ -94,6 +94,21 @@ state / auth / batch 命令见 `command-reference-advanced.md`。
 
 - 管理 trace recording
 
+### `pw trace inspect <trace.zip> --section <section>`
+
+- `--section actions|requests|console|errors`
+- `--failed`：只对 `--section requests` 传给 Playwright trace CLI
+- `--level <level>`：只对 `--section console` 生效；当前 Playwright trace CLI 可稳定映射 `error` / `warning`，其他 level 会在输出里保留 `TRACE_CONSOLE_LEVEL_FILTER_LIMITED`
+- 输出来自 Playwright bundled trace CLI，pwcli 只做薄封装和 50000 字符上限裁剪，不手工解析 trace zip
+- trace CLI/path/file 不可用时返回显式 `TRACE_*` 错误码
+
+边界：
+
+- Trace CLI：离线查询 trace zip 的 actions / requests / console / errors
+- Trace Viewer：面向人的可视化重放，使用 Playwright `show-trace`
+- HTML report / UI mode：Playwright Test 展示面，不属于 pwcli diagnostics
+- `.pwcli/runs/<runId>/events.jsonl`：pwcli 轻量动作事件，不替代 trace replay 证据包
+
 ### `pw har start [path]|stop --session <name>`
 
 - 当前只暴露 HAR substrate 边界，热录制未形成稳定 contract
