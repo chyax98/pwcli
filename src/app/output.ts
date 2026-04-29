@@ -328,6 +328,9 @@ function formatAction(command: string, result: CommandResult): string {
     "navigated",
     "uploaded",
     "downloaded",
+    "checked",
+    "selected",
+    "saved",
   ];
   const facts = keys
     .filter((key) => key in result.data)
@@ -479,6 +482,10 @@ function formatCommandText(command: string, result: CommandResult): string {
       "upload",
       "download",
       "drag",
+      "check",
+      "uncheck",
+      "select",
+      "pdf",
     ].includes(command)
   ) {
     return formatAction(command, result);
