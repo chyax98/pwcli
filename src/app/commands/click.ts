@@ -90,6 +90,7 @@ export function registerClickCommand(program: Command): void {
         message: "click failed",
         suggestions: [
           "Pass a valid aria ref from `pw snapshot`",
+          "If the page changed, refresh refs with `pw snapshot -i --session <name>`",
           "Or use one semantic locator: --selector/--role/--text/--label/--placeholder/--testid",
         ],
       });

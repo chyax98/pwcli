@@ -148,6 +148,7 @@ log "login page inspection"
 snapshot_json="$(run_json login-snapshot snapshot --session "$SESSION_NAME")"
 assert_json "$snapshot_json" "login snapshot has title" \
   "data.ok === true && typeof data.data.snapshot === 'string' && data.data.snapshot.includes('pwcli dogfood login')"
+login_submit_ref="$(json_field "$snapshot_json" "data.data.snapshot.match(/Sign in[^\\n]*\\[ref=([^\\]]+)\\]/)?.[1]")"
 read_login_json="$(run_json login-read read-text --session "$SESSION_NAME" --max-chars 800)"
 assert_json "$read_login_json" "login read text sees remember me" \
   "data.ok === true && data.data.text.includes('Remember me')"
@@ -161,6 +162,14 @@ click_login_json="$(run_json login-click click --session "$SESSION_NAME" --selec
 assert_json "$click_login_json" "login clicked" "data.ok === true && data.data.acted === true"
 wait_projects_json="$(run_json wait-projects wait --session "$SESSION_NAME" --selector '#project-alpha')"
 assert_json "$wait_projects_json" "projects page visible" "data.ok === true && data.data.matched === true"
+stale_ref_out="${TMP_DIR}/stale-login-ref.json"
+if "${CLI[@]}" click --session "$SESSION_NAME" "$login_submit_ref" >"$stale_ref_out"; then
+  log "expected stale login ref to fail after navigation"
+  cat "$stale_ref_out" >&2 || true
+  exit 1
+fi
+assert_json "$stale_ref_out" "stale login ref surfaces refresh recovery" \
+  "data.ok === false && data.error.code === 'CLICK_FAILED' && data.error.message.includes('Ref ${login_submit_ref} not found in the current page snapshot') && data.error.suggestions.some(item => item.includes('snapshot -i'))"
 
 log "save auth state"
 state_save_json="$(run_json state-save state save "$STATE_FILE" --session "$SESSION_NAME")"
