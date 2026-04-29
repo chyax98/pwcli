@@ -34,6 +34,7 @@ state / auth / batch / environment 命令见 `command-reference-advanced.md`。
 ### `pw session list`
 
 - `--with-page`：为 live session 补 best-effort 页面摘要
+- `--attachable`：列出当前 workspace 内 Playwright server registry 中可供接管的 browser servers；只做 discovery，不自动 attach
 
 ### `pw session status <name>`
 

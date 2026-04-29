@@ -338,6 +338,9 @@ assert_json "$session_list_json" "session list is lightweight by default" \
 session_list_with_page_json="$(run_json session-list-with-page session list --with-page)"
 assert_json "$session_list_with_page_json" "session list can include page summaries on demand" \
   "data.ok === true && data.data.withPage === true && data.data.sessions.some(item => item.name === '${SESSION_NAME}' && item.page && item.page.url === '${BLANK_URL}')"
+session_list_attachable_json="$(run_json session-list-attachable session list --attachable)"
+assert_json "$session_list_attachable_json" "session list exposes attachable discovery shape" \
+  "data.ok === true && data.data.attachable && typeof data.data.attachable.supported === 'boolean' && Array.isArray(data.data.attachable.servers) && Number.isInteger(data.data.attachable.count)"
 
 log "auth provider discovery"
 auth_list_json="$(run_json auth-list auth list)"

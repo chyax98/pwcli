@@ -6,9 +6,11 @@ const playwrightCoreRoot = dirname(require.resolve("playwright-core/package.json
 
 const sessionModule = require(join(playwrightCoreRoot, "lib/tools/cli-client/session.js"));
 const registryModule = require(join(playwrightCoreRoot, "lib/tools/cli-client/registry.js"));
+const serverRegistryModule = require(join(playwrightCoreRoot, "lib/serverRegistry.js"));
 
 const { Session } = sessionModule;
 const { Registry, createClientInfo, resolveSessionName } = registryModule;
+const { serverRegistry } = serverRegistryModule;
 
 export const DEFAULT_SESSION_NAME = "default";
 export const MAX_SESSION_NAME_LENGTH = 16;
@@ -33,6 +35,39 @@ type ManagedSessionEntry = {
   file: string;
   daemonDir: string;
   config: ManagedSessionConfig;
+};
+
+type PlaywrightBrowserServerDescriptor = {
+  title?: string;
+  playwrightVersion?: string;
+  workspaceDir?: string;
+  canConnect?: boolean;
+  endpoint?: string;
+  pipeName?: string;
+  browser?: {
+    guid?: string;
+    browserName?: string;
+    userDataDir?: string;
+  };
+};
+
+export type AttachableBrowserServer = {
+  id: string;
+  title: string;
+  browserName?: string;
+  workspaceDir?: string;
+  userDataDir?: string;
+  endpoint?: string;
+  pipeName?: string;
+  canConnect: boolean;
+  playwrightVersion?: string;
+};
+
+export type AttachableBrowserServerList = {
+  supported: boolean;
+  count: number;
+  servers: AttachableBrowserServer[];
+  limitation?: string;
 };
 
 function normalizeSessionName(name?: string) {
@@ -134,6 +169,48 @@ export async function listManagedSessions() {
       };
     }),
   );
+}
+
+export async function listAttachableBrowserServers(): Promise<AttachableBrowserServerList> {
+  if (!serverRegistry || typeof serverRegistry.list !== "function") {
+    return {
+      supported: false,
+      count: 0,
+      servers: [],
+      limitation: "Playwright server registry is not available in this playwright-core build.",
+    };
+  }
+
+  const clientInfo = createClientInfo();
+  const currentWorkspaceDir = clientInfo.workspaceDir ?? process.cwd();
+  const entries = (await serverRegistry.list()) as Map<string, PlaywrightBrowserServerDescriptor[]>;
+  const servers: AttachableBrowserServer[] = [];
+
+  for (const [workspaceDir, descriptors] of entries) {
+    if (workspaceDir && workspaceDir !== currentWorkspaceDir) {
+      continue;
+    }
+    for (const descriptor of descriptors) {
+      const title = descriptor.title ?? descriptor.browser?.guid ?? "unknown";
+      servers.push({
+        id: descriptor.browser?.guid ?? title,
+        title,
+        browserName: descriptor.browser?.browserName,
+        workspaceDir: descriptor.workspaceDir ?? (workspaceDir || undefined),
+        userDataDir: descriptor.browser?.userDataDir,
+        endpoint: descriptor.endpoint,
+        pipeName: descriptor.pipeName,
+        canConnect: Boolean(descriptor.canConnect),
+        playwrightVersion: descriptor.playwrightVersion,
+      });
+    }
+  }
+
+  return {
+    supported: true,
+    count: servers.length,
+    servers,
+  };
 }
 
 export async function getManagedSessionStatus(sessionName?: string) {

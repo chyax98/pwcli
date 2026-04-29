@@ -3,6 +3,7 @@ export {
   ensureManagedSession,
   getManagedSessionEntry,
   getManagedSessionStatus,
+  listAttachableBrowserServers,
   listManagedSessions,
   runManagedSessionCommand,
   stopAllManagedSessions,
