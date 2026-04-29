@@ -921,6 +921,38 @@ export async function managedScreenshot(options?: {
   };
 }
 
+export async function managedPdf(options: { path: string; sessionName?: string }) {
+  const path = resolve(options.path);
+  await mkdir(dirname(path), { recursive: true });
+  const result = await managedRunCode({
+    sessionName: options.sessionName,
+    source: `async page => {
+      await page.pdf({ path: ${JSON.stringify(path)} });
+      return JSON.stringify({
+        path: ${JSON.stringify(path)},
+        saved: true,
+        url: page.url(),
+      });
+    }`,
+  });
+  const parsed =
+    typeof result.data.result === "object" && result.data.result ? result.data.result : {};
+  const run = await recordRun("pdf", options.sessionName, result.page, {
+    path,
+    url: typeof parsed.url === "string" ? parsed.url : undefined,
+  });
+  return {
+    session: result.session,
+    page: result.page,
+    data: {
+      path,
+      saved: true,
+      url: parsed.url ?? result.page?.url,
+      run,
+    },
+  };
+}
+
 export async function managedUpload(options: {
   ref?: string;
   selector?: string;

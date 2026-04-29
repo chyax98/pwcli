@@ -614,6 +614,13 @@ storage_delete_json="$(run_json storage-delete storage local delete --session "$
 assert_json "$storage_delete_json" "storage local delete reports deleted" \
   "data.ok === true && data.data.operation === 'delete' && data.data.deleted === true"
 
+log "pdf export"
+pdf_path=".pwcli/smoke/page.pdf"
+pdf_json="$(run_json pdf-export pdf --session "$SESSION_NAME" --path "$pdf_path")"
+assert_json "$pdf_json" "pdf export returns path" \
+  "data.ok === true && data.data.path.endsWith('page.pdf') && data.data.saved === true && typeof data.data.run.runId === 'string'"
+test -s "$pdf_path"
+
 log "fire diagnostics"
 click_json="$(run_json click-fire click --session "$SESSION_NAME" --selector '#fire')"
 assert_json "$click_json" "click fire acted" \

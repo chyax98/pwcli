@@ -5,6 +5,7 @@ export {
   managedDownload,
   managedDrag,
   managedFill,
+  managedPdf,
   managedPress,
   managedReadText,
   managedRunCode,

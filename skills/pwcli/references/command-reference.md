@@ -79,6 +79,12 @@ state / auth / batch / environment 命令见 `command-reference-advanced.md`。
 
 - `--selector <selector>`、`--path <path>`、`--full-page`
 
+### `pw pdf --session <name> --path <path>`
+
+- 将 active page 导出为 PDF
+- 低频页面归档证据；不做报告模板、合并或批量归档
+- 依赖当前 Playwright substrate 的 Chromium PDF 能力
+
 ### `pw dialog accept [prompt]|dismiss --session <name>`
 
 - `MODAL_STATE_BLOCKED` 后的原地恢复；`prompt` 只在 prompt dialog 需要显式文本时传

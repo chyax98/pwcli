@@ -65,6 +65,7 @@
 - `scroll`
 - `upload`
 - `download`
+- `pdf`
 - `drag`
 - `check|uncheck|select`
 - `wait`
@@ -127,6 +128,7 @@
 - action 结果里的 `diagnosticsDelta`
 - `.pwcli/runs/<runId>/events.jsonl`
 - Playwright substrate 原始产物归档在 `.pwcli/playwright/`，包括 trace、snapshot 附件、console 附件、download 附件
+- `pdf` 是低频 active-page archive evidence，不做报告生成、合并或批量归档
 
 ### 当前限制
 

@@ -21,6 +21,7 @@ import { registerNetworkCommand } from "./network.js";
 import { registerObserveCommand } from "./observe.js";
 import { registerOpenCommand } from "./open.js";
 import { registerPageCommand } from "./page.js";
+import { registerPdfCommand } from "./pdf.js";
 import { registerPressCommand } from "./press.js";
 import { registerProfileCommand } from "./profile.js";
 import { registerReadTextCommand } from "./read-text.js";
@@ -54,6 +55,7 @@ export function registerCommands(program: Command): void {
   registerEnvironmentCommand(program);
   registerErrorsCommand(program);
   registerPageCommand(program);
+  registerPdfCommand(program);
   registerResizeCommand(program);
   registerSnapshotCommand(program);
   registerScreenshotCommand(program);
