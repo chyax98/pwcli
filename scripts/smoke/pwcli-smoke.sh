@@ -209,6 +209,17 @@ log "dashboard dry run"
 dashboard_json="$(run_json dashboard-dry-run dashboard open --dry-run)"
 assert_json "$dashboard_json" "dashboard entrypoint is available" \
   "data.ok === true && data.data.available === true && data.data.launched === false && data.data.entrypoint.includes('playwright-core')"
+node --input-type=module <<'NODE'
+import { spawn } from 'node:child_process';
+import { observeDashboardLaunch } from './dist/app/commands/dashboard.js';
+
+const child = spawn(process.execPath, ['-e', 'process.exit(42)'], { stdio: 'ignore' });
+const failure = await observeDashboardLaunch(child, 1_000);
+if (!failure || failure.phase !== 'early-exit' || failure.code !== 42) {
+  console.error('[smoke] dashboard open must classify early subprocess launch failures');
+  process.exit(1);
+}
+NODE
 
 log "session create"
 create_json="$(run_json session-create session create "$SESSION_NAME" --open "$BLANK_URL")"

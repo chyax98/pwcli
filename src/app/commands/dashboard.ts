@@ -1,9 +1,15 @@
-import { spawn } from "node:child_process";
+import { type ChildProcess, spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Command } from "commander";
 import { printCommandError, printCommandResult } from "../output.js";
+
+const DASHBOARD_LAUNCH_OBSERVE_MS = 1_000;
+
+type DashboardLaunchFailure =
+  | { error: Error; phase: "spawn" }
+  | { code: number | null; phase: "early-exit"; signal: NodeJS.Signals | null };
 
 function packageRoot() {
   return resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
@@ -23,6 +29,39 @@ function playwrightDashboardPaths() {
     ),
     entrypoint: resolve(root, "node_modules", "playwright-core", "cli.js"),
   };
+}
+
+export function observeDashboardLaunch(
+  child: ChildProcess,
+  observeMs = DASHBOARD_LAUNCH_OBSERVE_MS,
+): Promise<DashboardLaunchFailure | null> {
+  return new Promise((resolve) => {
+    let settled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    const onError = (error: Error) => {
+      finish({ error, phase: "spawn" });
+    };
+    const onExit = (code: number | null, signal: NodeJS.Signals | null) => {
+      finish({ code, phase: "early-exit", signal });
+    };
+    const finish = (result: DashboardLaunchFailure | null) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      if (timer) {
+        clearTimeout(timer);
+      }
+      child.off("error", onError);
+      child.off("exit", onExit);
+      resolve(result);
+    };
+
+    timer = setTimeout(() => finish(null), observeMs);
+    child.once("error", onError);
+    child.once("exit", onExit);
+  });
 }
 
 export function registerDashboardCommand(program: Command): void {
@@ -75,6 +114,30 @@ export function registerDashboardCommand(program: Command): void {
         detached: true,
         stdio: "ignore",
       });
+      const launchFailure = await observeDashboardLaunch(child);
+      if (launchFailure) {
+        printCommandError("dashboard open", {
+          code: "DASHBOARD_LAUNCH_FAILED",
+          message: "Playwright dashboard subprocess failed during startup",
+          details: {
+            command: "playwright cli show",
+            dashboardApp: paths.dashboardApp,
+            entrypoint: paths.entrypoint,
+            observeMs: DASHBOARD_LAUNCH_OBSERVE_MS,
+            phase: launchFailure.phase,
+            ...(launchFailure.phase === "spawn"
+              ? { errorMessage: launchFailure.error.message }
+              : { exitCode: launchFailure.code, signal: launchFailure.signal }),
+          },
+          retryable: false,
+          suggestions: [
+            "Run `pw dashboard open --dry-run` to validate the bundled Playwright dashboard entrypoint",
+            "Use `pw session list --with-page` for a CLI-only session overview",
+          ],
+        });
+        process.exitCode = 1;
+        return;
+      }
       child.unref();
 
       printCommandResult("dashboard open", {
