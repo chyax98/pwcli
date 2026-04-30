@@ -55,12 +55,19 @@ function parseArgs(argv) {
 }
 
 function renderSummaryMarkdown(summary) {
+  const familyLines = Object.entries(summary.failureFamilies)
+    .map(([family, count]) => `- ${family}: ${count}`)
+    .join("\n");
   const lines = [
     "# Benchmark Summary",
     "",
     `Total: ${summary.totals.total}`,
     `Passed: ${summary.totals.passed}`,
     `Failed: ${summary.totals.failed}`,
+    "",
+    "## Failure Families",
+    "",
+    familyLines || "- none",
     "",
     "| Task | Status | Failure Family |",
     "|---|---|---|",
@@ -91,10 +98,18 @@ export async function runSuite(input) {
     passed: tasks.filter((task) => task.status === "passed").length,
     failed: tasks.filter((task) => task.status !== "passed").length,
   };
+  const failureFamilies = {};
+  for (const task of tasks) {
+    if (!task.failureFamily) {
+      continue;
+    }
+    failureFamilies[task.failureFamily] = (failureFamilies[task.failureFamily] ?? 0) + 1;
+  }
 
   const summary = {
     generatedAt: new Date().toISOString(),
     totals,
+    failureFamilies,
     tasks,
   };
 

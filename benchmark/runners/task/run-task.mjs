@@ -60,12 +60,23 @@ function createSessionName() {
   );
 }
 
+function createClosureSessionName(prefix) {
+  return `${prefix}${Date.now().toString(36).slice(-5)}${Math.random().toString(36).slice(2, 4)}`.slice(
+    0,
+    16,
+  );
+}
+
 function asArray(value) {
   return Array.isArray(value) ? value : [];
 }
 
 function asString(value) {
   return typeof value === "string" ? value : null;
+}
+
+function asNumber(value) {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
 function assertAllowed(task, family) {
@@ -75,27 +86,16 @@ function assertAllowed(task, family) {
   }
 }
 
-function buildPerceptionPlan(task, sessionName, screenshotPath) {
+function buildPerceptionPlan(task, sessionName, screenshotPath, options = {}) {
+  const expected = task.benchmark?.expectations ?? {};
   assertAllowed(task, "session");
-  assertAllowed(task, "observe");
   assertAllowed(task, "page");
   assertAllowed(task, "read-text");
-  assertAllowed(task, "snapshot");
   assertAllowed(task, "locate");
   assertAllowed(task, "screenshot");
   assertAllowed(task, "diagnostics");
-
   return [
-    {
-      family: "session",
-      label: "session create",
-      args: ["session", "create", sessionName, "--headless", "--open", task.site.startUrl],
-    },
-    {
-      family: "observe",
-      label: "observe status",
-      args: ["observe", "status", "--session", sessionName],
-    },
+    navigationStep(task, sessionName, options.manageLifecycle),
     {
       family: "page",
       label: "page current",
@@ -107,14 +107,9 @@ function buildPerceptionPlan(task, sessionName, screenshotPath) {
       args: ["read-text", "--session", sessionName, "--max-chars", "4000"],
     },
     {
-      family: "snapshot",
-      label: "snapshot -i",
-      args: ["snapshot", "-i", "--session", sessionName],
-    },
-    {
       family: "locate",
       label: "locate cta",
-      args: ["locate", "--session", sessionName, "--text", "Primary CTA Marker"],
+      args: ["locate", "--session", sessionName, "--text", expected.cta],
     },
     {
       family: "screenshot",
@@ -124,57 +119,190 @@ function buildPerceptionPlan(task, sessionName, screenshotPath) {
     {
       family: "diagnostics",
       label: "diagnostics digest",
-      args: ["diagnostics", "digest", "--session", sessionName, "--limit", "10"],
+      args: ["diagnostics", "digest", "--session", sessionName, "--limit", "5"],
     },
   ];
 }
 
-function planForTask(task, sessionName, screenshotPath) {
-  if (task.id === "fixture-perception-basic-001") {
-    return buildPerceptionPlan(task, sessionName, screenshotPath);
+function buildDiagnosticsPlan(task, sessionName, screenshotPath, options = {}) {
+  const expected = task.benchmark?.expectations ?? {};
+  assertAllowed(task, "session");
+  assertAllowed(task, "wait");
+  assertAllowed(task, "network");
+  assertAllowed(task, "diagnostics");
+  assertAllowed(task, "screenshot");
+  return [
+    navigationStep(task, sessionName, options.manageLifecycle),
+    {
+      family: "wait",
+      label: "wait ready",
+      args: ["wait", "--session", sessionName, "--text", expected.readyText],
+    },
+    {
+      family: "network",
+      label: "network 500",
+      args: ["network", "--session", sessionName, "--status", String(expected.status), "--limit", "10"],
+    },
+    {
+      family: "diagnostics",
+      label: "diagnostics digest",
+      args: ["diagnostics", "digest", "--session", sessionName, "--limit", "5"],
+    },
+    {
+      family: "screenshot",
+      label: "screenshot",
+      args: ["screenshot", "--session", sessionName, "--path", screenshotPath],
+    },
+  ];
+}
+
+function buildAuthPlan(task, sessionName, options = {}) {
+  assertAllowed(task, "session");
+  assertAllowed(task, "auth");
+  assertAllowed(task, "page");
+  assertAllowed(task, "open");
+  return [
+    navigationStep(task, sessionName, options.manageLifecycle),
+    {
+      family: "page",
+      label: "page current",
+      args: ["page", "current", "--session", sessionName],
+    },
+    {
+      family: "auth",
+      label: "auth probe",
+      args: ["auth", "probe", "--session", sessionName],
+    },
+  ];
+}
+
+function buildExtractionPlan(task, sessionName, artifactPath, options = {}) {
+  const recipePath = task.benchmark?.recipePath;
+  if (typeof recipePath !== "string" || recipePath.length === 0) {
+    throw new Error(`task ${task.id} is missing benchmark.recipePath`);
   }
-  throw new Error(`RUNNER_UNSUPPORTED_TASK:${task.id}`);
+  assertAllowed(task, "session");
+  assertAllowed(task, "extract");
+  assertAllowed(task, "open");
+  return [
+    navigationStep(task, sessionName, options.manageLifecycle),
+    {
+      family: "extract",
+      label: "extract run",
+      args: [
+        "extract",
+        "run",
+        "--session",
+        sessionName,
+        "--recipe",
+        resolve(repoRoot, recipePath),
+        "--out",
+        artifactPath,
+      ],
+    },
+  ];
+}
+
+function navigationStep(task, sessionName, manageLifecycle = true) {
+  return manageLifecycle
+    ? {
+        family: "session",
+        label: "session create",
+        args: ["session", "create", sessionName, "--headless", "--open", task.site.startUrl],
+      }
+    : {
+        family: "open",
+        label: "open",
+        args: ["open", task.site.startUrl, "--session", sessionName],
+      };
+}
+
+function planForTask(task, sessionName, screenshotPath, extractionArtifactPath, options = {}) {
+  switch (task.benchmark?.planKind) {
+    case "perception-article":
+      return buildPerceptionPlan(task, sessionName, screenshotPath, options);
+    case "diagnostics-api500":
+      return buildDiagnosticsPlan(task, sessionName, screenshotPath, options);
+    case "auth-state":
+      return buildAuthPlan(task, sessionName, options);
+    case "extraction-list":
+      return buildExtractionPlan(task, sessionName, extractionArtifactPath, options);
+    default:
+      throw new Error(`RUNNER_UNSUPPORTED_TASK:${task.id}`);
+  }
 }
 
 function evaluatePerceptionTask(task, commandOutputs) {
+  const expected = task.benchmark?.expectations ?? {};
   const pageCurrent = commandOutputs["page current"];
   const readText = commandOutputs["read-text excerpt"];
   const locate = commandOutputs["locate cta"];
-  const diagnostics = commandOutputs["diagnostics digest"];
-
   const pageTitle = asString(pageCurrent?.page?.title) ?? asString(pageCurrent?.data?.title) ?? "";
   const readTextValue = asString(readText?.data?.text) ?? "";
   const ctaCount = Number(locate?.data?.count ?? 0);
-  const diagnosticsOk = diagnostics?.ok === true;
-
   const checks = [
-    {
-      id: "title-visible",
-      passed: pageTitle.includes("Fixture Article"),
-      detail: pageTitle,
-    },
+    { id: "title-visible", passed: pageTitle.includes(expected.title), detail: pageTitle },
     {
       id: "body-visible",
-      passed: readTextValue.includes("Stable body marker paragraph"),
-      detail: readTextValue.slice(0, 120),
+      passed: readTextValue.includes(expected.body),
+      detail: readTextValue.slice(0, 160),
     },
+    { id: "cta-visible", passed: ctaCount === 1, detail: `count=${ctaCount}` },
+  ];
+  return finalizeEvaluation(task, commandOutputs, checks, "VERIFY_FAILED");
+}
+
+function evaluateDiagnosticsTask(task, commandOutputs) {
+  const expected = task.benchmark?.expectations ?? {};
+  const network = commandOutputs["network 500"];
+  const digest = commandOutputs["diagnostics digest"];
+  const sample = asArray(network?.data?.summary?.sample);
+  const status = expected.status;
+  const seenMatch = sample.some((record) => Number(record?.status ?? 0) === status);
+  const digestOk = digest?.ok === true;
+  const checks = [
+    { id: "api-500-observed", passed: seenMatch, detail: `records=${sample.length}` },
+    { id: "diagnostics-readable", passed: digestOk, detail: digestOk ? "ok" : "missing" },
+  ];
+  return finalizeEvaluation(task, commandOutputs, checks, "API_5XX");
+}
+
+function evaluateAuthTask(task, commandOutputs) {
+  const expected = task.benchmark?.expectations ?? {};
+  const probe = commandOutputs["auth probe"];
+  const pageCurrent = commandOutputs["page current"];
+  const status = asString(probe?.data?.status) ?? "";
+  const pageTitle = asString(pageCurrent?.page?.title) ?? "";
+  const checks = [
+    { id: "auth-status", passed: status === expected.status, detail: status },
+    { id: "heading-visible", passed: pageTitle.includes(expected.heading), detail: pageTitle },
+  ];
+  return finalizeEvaluation(task, commandOutputs, checks, "AUTH_NOT_REUSED");
+}
+
+function evaluateExtractionTask(task, commandOutputs) {
+  const expected = task.benchmark?.expectations ?? {};
+  const extractResult = commandOutputs["extract run"];
+  const recordCount = asNumber(extractResult?.data?.recordCount) ?? -1;
+  const records = asArray(extractResult?.data?.records);
+  const firstTitle = asString(records[0]?.title) ?? "";
+  const checks = [
+    { id: "record-count", passed: recordCount === expected.count, detail: `count=${recordCount}` },
     {
-      id: "cta-visible",
-      passed: ctaCount === 1,
-      detail: `count=${ctaCount}`,
-    },
-    {
-      id: "diagnostics-readable",
-      passed: diagnosticsOk,
-      detail: diagnosticsOk ? "ok" : "missing",
+      id: "first-title",
+      passed: firstTitle === expected.firstTitle,
+      detail: firstTitle,
     },
   ];
+  return finalizeEvaluation(task, commandOutputs, checks, "EXTRACTION_INCOMPLETE");
+}
 
+function finalizeEvaluation(task, commandOutputs, checks, failureFamily) {
   const passed = checks.every((check) => check.passed);
   return {
     passed,
     checks,
-    failureFamily: passed ? null : "VERIFY_FAILED",
+    failureFamily: passed ? null : failureFamily,
     evidenceSummary: {
       required: asArray(task.evidenceRequired),
       captured: Object.keys(commandOutputs),
@@ -183,18 +311,26 @@ function evaluatePerceptionTask(task, commandOutputs) {
 }
 
 function evaluateTask(task, commandOutputs) {
-  if (task.id === "fixture-perception-basic-001") {
-    return evaluatePerceptionTask(task, commandOutputs);
+  switch (task.benchmark?.planKind) {
+    case "perception-article":
+      return evaluatePerceptionTask(task, commandOutputs);
+    case "diagnostics-api500":
+      return evaluateDiagnosticsTask(task, commandOutputs);
+    case "auth-state":
+      return evaluateAuthTask(task, commandOutputs);
+    case "extraction-list":
+      return evaluateExtractionTask(task, commandOutputs);
+    default:
+      return {
+        passed: false,
+        checks: [],
+        failureFamily: "RUNNER_UNSUPPORTED_TASK",
+        evidenceSummary: {
+          required: asArray(task.evidenceRequired),
+          captured: Object.keys(commandOutputs),
+        },
+      };
   }
-  return {
-    passed: false,
-    checks: [],
-    failureFamily: "RUNNER_UNSUPPORTED_TASK",
-    evidenceSummary: {
-      required: asArray(task.evidenceRequired),
-      captured: Object.keys(commandOutputs),
-    },
-  };
 }
 
 async function resolveCliInvocation() {
@@ -255,12 +391,13 @@ async function recordCommand(logPath, commandRecord) {
   await appendFile(logPath, `${JSON.stringify(commandRecord)}\n`, "utf8");
 }
 
-export async function runTask(input) {
-  const { task } = await loadTask(input.task, { port: input.port });
+export async function runLoadedTask(input) {
+  const task = input.task;
   const runId = createRunId();
-  const sessionName = createSessionName();
+  const sessionName = input.sessionName ?? createSessionName();
   const artifactDir = resolve(input.artifactsDir, task.id, runId);
   const screenshotPath = resolve(artifactDir, "page.png");
+  const extractionArtifactPath = resolve(artifactDir, "extract.json");
   const commandLogPath = resolve(artifactDir, "commands.jsonl");
   const stdoutPath = resolve(artifactDir, "stdout.json");
 
@@ -269,7 +406,9 @@ export async function runTask(input) {
 
   const commandOutputs = {};
   const stdoutRecords = [];
-  const plan = planForTask(task, sessionName, screenshotPath);
+  const plan = planForTask(task, sessionName, screenshotPath, extractionArtifactPath, {
+    manageLifecycle: input.manageLifecycle !== false,
+  });
   let taskError = null;
 
   try {
@@ -297,27 +436,29 @@ export async function runTask(input) {
   } catch (error) {
     taskError = error instanceof Error ? error.message : String(error);
   } finally {
-    const closeResult = await spawnPw(["session", "close", sessionName], input.workspaceDir).catch(
-      (error) => ({
-        code: 1,
-        stdout: "",
-        stderr: error instanceof Error ? error.message : String(error),
-        parsed: null,
-      }),
-    );
-    stdoutRecords.push({
-      label: "session close",
-      stdout: closeResult.stdout,
-      stderr: closeResult.stderr,
-    });
-    await recordCommand(commandLogPath, {
-      label: "session close",
-      args: ["session", "close", sessionName],
-      code: closeResult.code,
-      ok: closeResult.parsed?.ok === true,
-      output: closeResult.parsed,
-      stderr: closeResult.stderr.trim(),
-    });
+    if (input.manageLifecycle !== false) {
+      const closeResult = await spawnPw(["session", "close", sessionName], input.workspaceDir).catch(
+        (error) => ({
+          code: 1,
+          stdout: "",
+          stderr: error instanceof Error ? error.message : String(error),
+          parsed: null,
+        }),
+      );
+      stdoutRecords.push({
+        label: "session close",
+        stdout: closeResult.stdout,
+        stderr: closeResult.stderr,
+      });
+      await recordCommand(commandLogPath, {
+        label: "session close",
+        args: ["session", "close", sessionName],
+        code: closeResult.code,
+        ok: closeResult.parsed?.ok === true,
+        output: closeResult.parsed,
+        stderr: closeResult.stderr.trim(),
+      });
+    }
   }
 
   await writeFile(stdoutPath, JSON.stringify(stdoutRecords, null, 2));
@@ -341,7 +482,7 @@ export async function runTask(input) {
     category: task.category,
     status: evaluation.passed ? "passed" : "failed",
     runId,
-    taskPath: input.task,
+    taskPath: input.taskPath,
     artifactDir,
     sessionName,
     requestedUrl: task.site?.startUrl ?? null,
@@ -354,6 +495,18 @@ export async function runTask(input) {
   await writeFile(resolve(artifactDir, "task-summary.json"), JSON.stringify(summary, null, 2));
   return summary;
 }
+
+export async function runTask(input) {
+  const { task, taskPath } = await loadTask(input.task, { port: input.port });
+  return await runLoadedTask({
+    task,
+    taskPath,
+    artifactsDir: input.artifactsDir,
+    workspaceDir: input.workspaceDir,
+  });
+}
+
+export { createClosureSessionName, spawnPw };
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const options = parseArgs(process.argv.slice(2));

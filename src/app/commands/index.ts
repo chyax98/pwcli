@@ -15,6 +15,7 @@ import { registerDownloadCommand } from "./download.js";
 import { registerDragCommand } from "./drag.js";
 import { registerEnvironmentCommand } from "./environment.js";
 import { registerErrorsCommand } from "./errors.js";
+import { registerExtractCommand } from "./extract.js";
 import { registerFillCommand } from "./fill.js";
 import { registerGetCommand } from "./get.js";
 import { registerHarCommand } from "./har.js";
@@ -59,6 +60,7 @@ export function registerCommands(program: Command): void {
   registerDoctorCommand(program);
   registerEnvironmentCommand(program);
   registerErrorsCommand(program);
+  registerExtractCommand(program);
   registerPageCommand(program);
   registerPdfCommand(program);
   registerResizeCommand(program);

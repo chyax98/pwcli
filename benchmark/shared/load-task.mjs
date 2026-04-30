@@ -50,12 +50,21 @@ export async function discoverTaskPaths(inputPaths) {
       results.push(absolutePath);
       continue;
     }
-    const entries = await readdir(absolutePath, { withFileTypes: true });
-    for (const entry of entries) {
-      if (entry.isFile() && entry.name.endsWith(".json")) {
-        results.push(resolve(absolutePath, entry.name));
-      }
-    }
+    await collectTaskPaths(absolutePath, results);
   }
   return results.sort();
+}
+
+async function collectTaskPaths(directoryPath, results) {
+  const entries = await readdir(directoryPath, { withFileTypes: true });
+  for (const entry of entries) {
+    const absolutePath = resolve(directoryPath, entry.name);
+    if (entry.isDirectory()) {
+      await collectTaskPaths(absolutePath, results);
+      continue;
+    }
+    if (entry.isFile() && entry.name.endsWith(".json")) {
+      results.push(absolutePath);
+    }
+  }
 }

@@ -1,6 +1,6 @@
 # Domain Status
 
-更新时间：2026-04-28
+更新时间：2026-05-01
 
 这份文档记录每个领域的：
 
@@ -98,6 +98,30 @@
 - batch 只在真实高频场景下增量扩命令，不追求全量 parity
 - `verify` 后续只补真实场景断言覆盖，不扩大成动作规划器
 
+## 3.5 Extraction
+
+### 当前实现
+
+- `extract run`
+- bounded recipe-driven extraction lane
+- `kind: "list"` visible DOM list extraction
+- `kind: "article"` single-container extraction
+- optional dotted-path `runtimeGlobal` probe
+- optional artifact write via `--out`
+
+### 当前限制
+
+- 只读，不做 mutation
+- `runtimeGlobal` 只允许 dotted path，不允许任意表达式
+- 当前只输出 JSON artifact
+- 不做自动分页、跨页抓取、site pack marketplace
+- 不替代 `pw code` 的 ad-hoc 调试能力，也不替代 `bootstrap apply --init-script` 的 preload/runtime patch lane
+
+### 后续扩展
+
+- 如果 extraction lane 真实高频，再补 recipe pack、CSV/Markdown 输出、分页 driver
+- 不把 extraction lane 扩成任意脚本平台
+
 ## 4. Identity State
 
 ### 当前实现
@@ -166,6 +190,32 @@
 - query 深化
 - mock 第二层
 - stream / heavier substrate survey
+
+## 5.5 Benchmark
+
+### 当前实现
+
+- `benchmark/` deterministic scaffold
+- fixture server
+- recursive task discovery
+- task runner
+- suite runner
+- machine-readable taxonomy
+- generated deterministic task matrix
+- closure suite script
+
+### 当前限制
+
+- 当前 benchmark 主体是 deterministic fixture suite，不是 real-site automation
+- runner 串行执行，不做并发调度
+- summary 目前输出 `summary.json` / `summary.md`，不做 HTML 报告
+- 任务 corpus 通过 generator 产出，不承诺每个 JSON 都手工维护
+
+### 后续扩展
+
+- real-site manual dogfood pack
+- richer scoring / category aggregation
+- selective rerun / flake policy
 
 ## 6. Bootstrap
 

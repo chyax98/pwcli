@@ -1,6 +1,6 @@
 # Benchmark Runners
 
-`benchmark/runners/` 现在已经有一个最小可执行 runner。
+`benchmark/runners/` 现在已经有一个可批量跑 deterministic matrix 的 runner。
 
 ## 任务边界
 
@@ -43,23 +43,33 @@ benchmark/artifacts/<taskId>/<runId>/
 - 不把 runner 写成第二个 `pwcli`
 - 不在这一版 runner 里支持所有 task category
 
-## 当前 MVP 边界
+## 当前实现边界
 
-当前 shipped runner 只稳定支持：
+当前 runner 已支持的 deterministic families：
 
-- `fixture-perception-basic-001`
+- `perception-article`
+- `diagnostics-api500`
+- `auth-state`
+- `extraction-list`
 
-MVP 结构：
+当前结构：
 
 - `benchmark/shared/load-task.mjs`
   - 读取 task spec
   - 做 `<port>` placeholder replacement
+  - 递归发现 tasks dir 下的 JSON task
 - `benchmark/runners/task/run-task.mjs`
-  - 跑单 task
+  - 按 `planKind` 跑单 task
   - 写 `commands.jsonl`、`stdout.json`、`task-summary.json`
 - `benchmark/runners/suite/run-suite.mjs`
   - 聚合一个或多个 task
   - 写 `summary.json`、`summary.md`
+  - 聚合 failure family 计数
+- `benchmark/scripts/generate-matrix.mjs`
+  - 生成 deterministic task matrix
+- `benchmark/scripts/run-closure-suite.mjs`
+  - 启动 fixture server
+  - 执行 closure suite
 
 ## 未来 runner 输出约定
 
@@ -73,7 +83,7 @@ benchmark/artifacts/<taskId>/<runId>/stdout.json
 benchmark/artifacts/<taskId>/<runId>/commands.jsonl
 ```
 
-当前 MVP 已经稳定写出：
+当前实现已经稳定写出：
 
 ```text
 benchmark/reports/latest/summary.json
@@ -82,3 +92,15 @@ benchmark/artifacts/<taskId>/<runId>/stdout.json
 benchmark/artifacts/<taskId>/<runId>/commands.jsonl
 benchmark/artifacts/<taskId>/<runId>/task-summary.json
 ```
+
+## 300+ suite 策略
+
+当前 closure suite 不手写 300+ JSON。
+
+采用：
+
+- 少量 fixture 页面/接口
+- 少量 family evaluator
+- generator 产出 320 deterministic tasks
+
+这样任务是真跑，同时不会把 benchmark 维护成本推到不可控。

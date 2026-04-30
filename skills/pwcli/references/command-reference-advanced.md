@@ -179,6 +179,62 @@
 - 失败保留 Playwright 原始错误，常见 locator 问题后追加 `PWCLI_HINT`
 - modal 阻塞时可能返回 `MODAL_STATE_BLOCKED`，先恢复 dialog
 
+## Extract
+
+### `pw extract run --session <name> --recipe <file>`
+
+- 运行 bounded extraction lane，把当前页面里的结构化数据导出成 JSON
+- 可选：
+  - `--out <file>`：把 artifact 额外写盘
+- 当前 MVP 支持两类 recipe：
+  - `kind: "list"`：可见 DOM 列表提取
+  - `kind: "article"`：单篇文章容器提取
+- recipe 例子：
+
+```json
+{
+  "kind": "list",
+  "itemSelector": ".post-card",
+  "fields": {
+    "title": "h2 a",
+    "url": { "selector": "h2 a", "attr": "href" },
+    "summary": ".summary"
+  },
+  "runtimeGlobal": "__PWCLI_RUNTIME__"
+}
+```
+
+返回：
+
+- `format: "json"`
+- `recipe`
+- `recordCount`
+- `records[]`
+- `runtimeProbe`
+- `recipePath`
+- `artifactPath`（仅 `--out`）
+
+限制：
+
+- 只读，不做 DOM mutation
+- `runtimeGlobal` 只允许点路径，例如 `__NEXT_DATA__`、`app.state`
+- 不允许函数调用、括号访问、任意表达式
+- 不替代 `pw code` 的 ad-hoc 调试能力
+
+### `pw code` / `bootstrap apply --init-script` / `pw extract run` 的边界
+
+- `pw code`
+  - ad-hoc escape hatch
+  - 适合一次性调试、快速验证、临时探针
+- `pw bootstrap apply --init-script`
+  - preload/runtime patch lane
+  - 适合给 session 提前注入 hook、header、初始化逻辑
+- `pw extract run`
+  - repeatable structured extraction lane
+  - 适合固定 recipe、固定 artifact、固定验证
+
+不要把 `pw extract run` 包装成 planner、userscript installer 或任意脚本执行器。
+
 ## Batch
 
 ### `pw batch --session <name>`

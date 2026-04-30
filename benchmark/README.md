@@ -19,11 +19,14 @@ session -> observe/read/snapshot -> act -> wait/verify -> diagnostics/evidence
 当前已经落到第一版可执行 MVP：
 
 - `tasks/`
-  - task spec 样例，定义 benchmark 任务格式
+  - task spec 样例 + generated deterministic matrix
 - `fixtures/`
   - fixture 归属和确定性规则
 - `runners/`
-  - runner MVP（单 task / suite 聚合）
+  - runner MVP（single task / suite / closure suite）
+- `scripts/`
+  - task matrix generator
+  - closure suite launcher
 - `scoring/`
   - machine-readable taxonomy 和后续 scoring 资产
 - `reports/`
@@ -53,7 +56,7 @@ benchmark/
 - `tasks/controlled-testing/`
 - `tasks/script-injection/`
 - `tasks/extraction/`
-- `tasks/real-sites/`
+- `tasks/real-sites/`（当前先是 manual pack）
 
 ## 任务 spec 原则
 
@@ -79,9 +82,12 @@ benchmark/
 - 能为单 task 落 artifact
 - 能为 suite 写 `summary.json` 和 `summary.md`
 
-当前 shipped MVP 只稳定支持：
+当前 deterministic family 支持：
 
-- `benchmark/tasks/perception/fixture-perception-basic-001.json`
+- `perception-article`
+- `diagnostics-api500`
+- `auth-state`
+- `extraction-list`
 
 其他 task spec 还属于后续 tranche，不要包装成“当前已支持完整 suite”。
 
@@ -101,6 +107,13 @@ suite 聚合：
 node benchmark/runners/suite/run-suite.mjs \
   --task benchmark/tasks/perception/fixture-perception-basic-001.json \
   --port 43210
+```
+
+生成并跑 closure suite：
+
+```bash
+node benchmark/scripts/generate-matrix.mjs
+node benchmark/scripts/run-closure-suite.mjs
 ```
 
 可选参数：

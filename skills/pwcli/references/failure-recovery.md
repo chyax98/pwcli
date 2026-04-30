@@ -99,6 +99,59 @@ pw storage indexeddb export --session bug-a --database '<expected-db>'
 
 If the target site truly stores state outside cookies/localStorage/sessionStorage but IndexedDB export is unavailable, fall back to page/runtime/network evidence instead of treating this as automatic auth failure.
 
+### `EXTRACT_RECIPE_INVALID`
+
+Meaning:
+
+- `pw extract run` 的 recipe 文件结构不合法
+- 常见原因是 `kind` 不支持、缺少 `itemSelector|containerSelector`、或者 `fields` 不是对象
+
+Recovery:
+
+```bash
+pw extract run --session bug-a --recipe ./recipe.json
+```
+
+先检查：
+
+- `kind` 是否是 `list` 或 `article`
+- `fields` 是否是对象，而不是数组
+- `list` recipe 是否提供了 `itemSelector`
+- `article` recipe 是否提供了 `containerSelector`
+
+### `EXTRACT_RUNTIME_GLOBAL_INVALID`
+
+Meaning:
+
+- `runtimeGlobal` 不是受限的 dotted path
+- 当前 structured extraction lane 不允许任意 JS 表达式
+
+Recovery:
+
+```bash
+pw code --session bug-a --file ./debug-runtime.js
+```
+
+在 `extract run` 中只保留类似 `__NEXT_DATA__`、`app.state` 这样的 dotted path。需要更复杂 runtime 读取时，退回 `pw code` 做 ad-hoc 调试。
+
+### `EXTRACT_RESULT_INVALID`
+
+Meaning:
+
+- `pw extract run` 底层返回的 payload 不完整
+- 常见原因是页面结构波动过大、selector 过宽，或 recipe 和页面不匹配
+
+Recovery:
+
+```bash
+pw page current --session bug-a
+pw read-text --session bug-a --max-chars 2000
+pw snapshot -i --session bug-a
+pw extract run --session bug-a --recipe ./recipe.json
+```
+
+先确认页面确实落在预期内容上，再收窄 recipe selectors。不要在 structured extraction lane 里塞任意脚本补丁。
+
 ### `STATE_DIFF_BEFORE_REQUIRED`
 
 Meaning:
