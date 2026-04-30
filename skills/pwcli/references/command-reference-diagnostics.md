@@ -83,6 +83,8 @@ state / auth / batch 命令见 `command-reference-advanced.md`。
 
 - `--abort`
 - `--method <method>`、`--match-body <text>`
+- `--match-query <key=value>`：可重复；要求请求 URL query 精确命中
+- `--match-header <key=value>`：可重复；要求请求 header 精确命中
 - fulfill：`--body <text>` / `--body-file <path>`、`--status <code>`、`--content-type <type>`、`--headers-file <path>`
 - patch：`--patch-json <json>` / `--patch-json-file <path>`、`--patch-status <code>`、`--inject-headers-file <path>`
 - patch 模式先拿 upstream response 再做 JSON merge patch，只适用于 upstream `application/json`
@@ -91,7 +93,7 @@ state / auth / batch 命令见 `command-reference-advanced.md`。
 ### `pw route load <file> --session <name>`
 
 - 从 JSON 文件批量加载 route specs
-- spec 字段：`pattern`（必填）/ `matchBody` / `body` / `bodyFile` / `status` / `contentType` / `headers` / `headersFile` / `injectHeaders` / `injectHeadersFile` / `patchJson` / `patchJsonFile` / `patchStatus` / `abort`
+- spec 字段：`pattern`（必填）/ `matchBody` / `matchQuery[]` / `matchHeaders[]` / `body` / `bodyFile` / `status` / `contentType` / `headers` / `headersFile` / `injectHeaders` / `injectHeadersFile` / `patchJson` / `patchJsonFile` / `patchStatus` / `abort`
 
 ### `pw route remove [pattern] --session <name>`
 

@@ -29,6 +29,7 @@ state / auth / batch / environment 命令见 `command-reference-advanced.md`。
 ### `pw session attach <name>`
 
 - `--ws-endpoint <url>` / `--browser-url <url>` / `--cdp <port>`（三选一）
+- `--attachable-id <id>`：用 `pw session list --attachable` 返回的 server id/title 直接接管当前 workspace 里的现成 browser server
 - `--trace` / `--no-trace`
 
 ### `pw session recreate <name>`

@@ -22,6 +22,7 @@ import { registerHarCommand } from "./har.js";
 import { registerHoverCommand } from "./hover.js";
 import { registerIsCommand } from "./is.js";
 import { registerLocateCommand } from "./locate.js";
+import { registerMcpCommand } from "./mcp.js";
 import { registerNetworkCommand } from "./network.js";
 import { registerObserveCommand } from "./observe.js";
 import { registerOpenCommand } from "./open.js";
@@ -69,6 +70,7 @@ export function registerCommands(program: Command): void {
   registerReadTextCommand(program);
   registerCheckCommand(program);
   registerLocateCommand(program);
+  registerMcpCommand(program);
   registerGetCommand(program);
   registerIsCommand(program);
   registerVerifyCommand(program);

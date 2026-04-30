@@ -335,6 +335,8 @@ export async function managedRoute(
     contentType?: string;
     headers?: Record<string, string>;
     matchBody?: string;
+    matchQuery?: Record<string, string>;
+    matchHeaders?: Record<string, string>;
     injectHeaders?: Record<string, string>;
     patchJson?: unknown;
     patchStatus?: number;
@@ -367,6 +369,8 @@ export async function managedRoute(
     contentType: options.contentType,
     headers: options.headers,
     matchBody: options.matchBody,
+    matchQuery: options.matchQuery,
+    matchHeaders: options.matchHeaders,
     injectHeaders: options.injectHeaders,
     patchJson: options.patchJson,
     patchStatus: options.patchStatus,
@@ -417,6 +421,22 @@ export async function managedRoute(
         if (config.matchBody) {
           const postData = request.postData();
           if (typeof postData !== 'string' || !postData.includes(config.matchBody)) {
+            await route.fallback();
+            return;
+          }
+        }
+        if (config.matchQuery) {
+          const url = new URL(request.url());
+          const queryMatched = Object.entries(config.matchQuery).every(([key, value]) => url.searchParams.get(key) === value);
+          if (!queryMatched) {
+            await route.fallback();
+            return;
+          }
+        }
+        if (config.matchHeaders) {
+          const headers = await request.allHeaders();
+          const headersMatched = Object.entries(config.matchHeaders).every(([key, value]) => String(headers[key] || '') === value);
+          if (!headersMatched) {
             await route.fallback();
             return;
           }
@@ -501,6 +521,10 @@ export async function managedRoute(
         routeRecord.method = config.method;
       if (config.matchBody)
         routeRecord.matchBody = config.matchBody;
+      if (config.matchQuery)
+        routeRecord.matchQuery = config.matchQuery;
+      if (config.matchHeaders)
+        routeRecord.matchHeaders = config.matchHeaders;
       if (config.headers)
         routeRecord.headers = config.headers;
       if (config.injectHeaders)

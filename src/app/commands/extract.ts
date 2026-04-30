@@ -1,5 +1,9 @@
 import type { Command } from "commander";
 import { managedExtractRun } from "../../domain/extraction/service.js";
+import {
+  listPackagedExtractRecipes,
+  resolvePackagedExtractRecipe,
+} from "../../infra/fs/skill-path.js";
 import { printCommandError, printCommandResult } from "../output.js";
 import {
   addSessionOption,
@@ -11,6 +15,38 @@ export function registerExtractCommand(program: Command): void {
   const extract = addSessionOption(
     program.command("extract").description("Run bounded structured extraction in a managed session"),
   );
+
+  extract
+    .command("recipes")
+    .description("List bundled extraction recipe templates")
+    .action(() => {
+      printCommandResult("extract recipes", {
+        data: {
+          count: listPackagedExtractRecipes().length,
+          recipes: listPackagedExtractRecipes(),
+        },
+      });
+    });
+
+  extract
+    .command("recipe-path <name>")
+    .description("Show the absolute path of one bundled extraction recipe")
+    .action((name: string) => {
+      try {
+        printCommandResult("extract recipe-path", {
+          data: resolvePackagedExtractRecipe(name),
+        });
+      } catch (error) {
+        printCommandError("extract recipe-path", {
+          code: "EXTRACT_RECIPE_NOT_FOUND",
+          message: error instanceof Error ? error.message : "extract recipe-path failed",
+          suggestions: [
+            "Run `pw extract recipes` to inspect bundled recipe names",
+          ],
+        });
+        process.exitCode = 1;
+      }
+    });
 
   addSessionOption(
     extract

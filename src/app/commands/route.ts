@@ -40,6 +40,24 @@ export function registerRouteCommand(program: Command): void {
       .description("Add a route using the current BrowserContext")
       .option("--abort", "Abort matching requests")
       .option("--match-body <text>", "Only match when request postData contains the substring")
+      .option(
+        "--match-query <key=value>",
+        "Only match when the request URL query contains the exact key/value pair",
+        (value, acc) => {
+          acc.push(value);
+          return acc;
+        },
+        [] as string[],
+      )
+      .option(
+        "--match-header <key=value>",
+        "Only match when the request headers contain the exact key/value pair",
+        (value, acc) => {
+          acc.push(value);
+          return acc;
+        },
+        [] as string[],
+      )
       .option("--patch-json <json>", "Fetch upstream response and apply a JSON merge patch")
       .option(
         "--patch-json-file <path>",
@@ -66,6 +84,8 @@ export function registerRouteCommand(program: Command): void {
         session?: string;
         abort?: boolean;
         matchBody?: string;
+        matchQuery?: string[];
+        matchHeader?: string[];
         patchJson?: string;
         patchJsonFile?: string;
         patchStatus?: string;
@@ -112,6 +132,8 @@ export function registerRouteCommand(program: Command): void {
             pattern,
             abort: options.abort,
             matchBody: options.matchBody,
+            matchQuery: parseKeyValuePairs(options.matchQuery),
+            matchHeaders: parseKeyValuePairs(options.matchHeader),
             patchJson,
             patchStatus: options.patchStatus ? Number(options.patchStatus) : undefined,
             body,
@@ -186,6 +208,12 @@ export function registerRouteCommand(program: Command): void {
           pattern: spec.pattern,
           abort: Boolean(spec.abort),
           matchBody: typeof spec.matchBody === "string" ? spec.matchBody : undefined,
+          matchQuery: Array.isArray(spec.matchQuery)
+            ? parseKeyValuePairs(spec.matchQuery as string[])
+            : undefined,
+          matchHeaders: Array.isArray(spec.matchHeaders)
+            ? parseKeyValuePairs(spec.matchHeaders as string[])
+            : undefined,
           patchJson,
           patchStatus: spec.patchStatus !== undefined ? Number(spec.patchStatus) : undefined,
           body,
@@ -247,4 +275,19 @@ export function registerRouteCommand(program: Command): void {
       process.exitCode = 1;
     }
   });
+}
+
+function parseKeyValuePairs(values?: string[]) {
+  if (!values?.length) {
+    return undefined;
+  }
+  return Object.fromEntries(
+    values.map((value) => {
+      const index = value.indexOf("=");
+      if (index <= 0) {
+        throw new Error(`invalid key=value pair: ${value}`);
+      }
+      return [value.slice(0, index).trim().toLowerCase(), value.slice(index + 1).trim()];
+    }),
+  );
 }

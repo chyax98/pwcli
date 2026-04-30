@@ -15,6 +15,7 @@
 - `session create|attach|recreate|list|status|close`
 - `dashboard open` exposes Playwright-core's bundled session dashboard as a thin wrapper.
 - `session list --attachable` exposes Playwright server-registry discovery as read-only attach candidates.
+- `session attach --attachable-id <id>` attaches to one connectable server returned by `session list --attachable`
 - session 名硬限制：
   - 最长 16 字符
   - 只允许字母、数字、`-`、`_`
@@ -31,11 +32,13 @@
 - `session status` 只做快速状态检查；页面忙、弹窗阻塞、浏览器断连时可能拿不到完整页面信息，异常时用 `pw doctor --session <name>` 复查
 - `session attach --browser-url/--cdp` 只能接管当前机器上可连接的浏览器调试端口；连接失败时先确认浏览器是否用远程调试参数启动、端口是否可访问
 - `session list --attachable` 只发现 Playwright-core 已登记的 browser servers，不做进程扫描、不自动 attach、不替代 `session create|attach|recreate` 主路
+- `--attachable-id` 只接管当前 workspace registry 里仍可连接的 browser server；它不是 extension bridge，也不做跨 workspace 发现
 - `dashboard open` relies on an internal/hidden Playwright CLI surface and must fail as `DASHBOARD_UNAVAILABLE` if the entrypoint disappears, or `DASHBOARD_LAUNCH_FAILED` if the subprocess exits during startup.
 
 ### 后续扩展
 
 - 只有出现真实跨工具接管场景，再评估 raw CDP named-session substrate
+- 当前 existing-browser enhancement 先停在 attachable server one-hop attach，不扩成 extension/native-host bridge
 
 ## 2. Workspace
 
@@ -103,11 +106,13 @@
 ### 当前实现
 
 - `extract run`
+- `extract recipes` / `extract recipe-path`
 - bounded recipe-driven extraction lane
 - `kind: "list"` visible DOM list extraction
 - `kind: "article"` single-container extraction
 - optional dotted-path `runtimeGlobal` probe
 - optional artifact write via `--out`
+- bundled recipe pack for GitHub issue/PR lists and generic table rows
 
 ### 当前限制
 
@@ -120,7 +125,27 @@
 ### 后续扩展
 
 - 如果 extraction lane 真实高频，再补 recipe pack、CSV/Markdown 输出、分页 driver
+- recipe pack 当前是模板级资产，不是站点强契约
 - 不把 extraction lane 扩成任意脚本平台
+
+## 3.6 MCP
+
+### 当前实现
+
+- `mcp schema`
+- `mcp serve`
+- stdio MCP server
+- thin tool surface over session/read/extract/diagnostics lanes
+
+### 当前限制
+
+- 当前不是全量 command parity
+- 只暴露高频 tools：session create/list/status/attachable list、open、page assess、auth probe、read text、interactive snapshot、diagnostics digest、extract run
+- CLI 仍然是主入口，MCP 是第二出口
+
+### 后续扩展
+
+- 只有真实 MCP client 消费稳定后，再扩更多 tool surface
 
 ## 4. Identity State
 
@@ -238,6 +263,8 @@
 
 - `route list`
 - `route add`
+- `route add --match-query <key=value>`
+- `route add --match-header <key=value>`
 - `route load`
 - `route remove`
 - `--abort`
@@ -254,6 +281,7 @@
 ### 当前限制
 
 - richer matching 当前只到 body substring
+- richer matching 现在扩到 query exact match 和 request header exact match；还不做 JSON body schema match
 - inject 当前只到 request header merge + continue
 - response patch 当前只到 upstream JSON merge patch + status override
 

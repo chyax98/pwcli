@@ -208,6 +208,7 @@ export function registerSessionCommand(program: Command): void {
     .option("--ws-endpoint <url>", "Playwright browser websocket endpoint")
     .option("--browser-url <url>", "CDP browser URL, for example http://127.0.0.1:9222")
     .option("--cdp <port>", "CDP port, resolved to http://127.0.0.1:<port>")
+    .option("--attachable-id <id>", "Attach using one server id returned by `pw session list --attachable`")
     .option("--trace", "Enable tracing for the attached session")
     .option("--no-trace", "Disable tracing for the attached session")
     .action(
@@ -218,6 +219,7 @@ export function registerSessionCommand(program: Command): void {
           wsEndpoint?: string;
           browserUrl?: string;
           cdp?: string;
+          attachableId?: string;
           trace?: boolean;
           noTrace?: boolean;
         },
@@ -231,12 +233,24 @@ export function registerSessionCommand(program: Command): void {
           }
           const defaults = await getSessionDefaults();
           const traceEnabled = await resolveTraceEnabled(options);
-          const target = await resolveAttachTarget(endpoint, options);
+          if (
+            options.attachableId &&
+            (endpoint || options.wsEndpoint || options.browserUrl || options.cdp)
+          ) {
+            throw new Error(
+              "session attach accepts exactly one target source; do not mix --attachable-id with endpoint flags",
+            );
+          }
+          const target = options.attachableId?.trim()
+            ? await resolveAttachableServer(options.attachableId.trim())
+            : await resolveAttachTarget(endpoint, options);
           const result = await attachManagedSession({
             sessionName: name,
             endpoint: target.endpoint,
             resolvedVia: target.resolvedVia,
-            ...("browserURL" in target ? { browserURL: target.browserURL } : {}),
+            ...("browserURL" in target && typeof target.browserURL === "string"
+              ? { browserURL: target.browserURL }
+              : {}),
           });
           const appliedDefaults = await applySessionDefaults({
             sessionName: name,
@@ -264,6 +278,7 @@ export function registerSessionCommand(program: Command): void {
             message,
             suggestions: [
               "Pass exactly one attach source: positional endpoint, --ws-endpoint, --browser-url, or --cdp",
+              "Or use `--attachable-id <id>` from `pw session list --attachable` for one-step workspace attach",
               "For a local verification target, start `node scripts/manual/attach-target.js` and use any printed attach source",
               "If the browser only exposes CDP, resolve or publish a Playwright ws endpoint and attach with `--ws-endpoint`",
             ],
@@ -505,4 +520,33 @@ export function registerSessionCommand(program: Command): void {
         process.exitCode = 1;
       }
     });
+}
+
+async function resolveAttachableServer(attachableId: string) {
+  const attachable = await listAttachableBrowserServers();
+  if (!attachable.supported) {
+    throw new Error(
+      attachable.limitation || "attachable server discovery is not available in this playwright-core build",
+    );
+  }
+  const server = attachable.servers.find(
+    (entry) => entry.id === attachableId || entry.title === attachableId,
+  );
+  if (!server) {
+    throw new Error(
+      `attachable server '${attachableId}' not found; run \`pw session list --attachable\` first`,
+    );
+  }
+  if (!server.canConnect) {
+    throw new Error(`attachable server '${attachableId}' is not connectable`);
+  }
+  if (!server.endpoint) {
+    throw new Error(
+      `attachable server '${attachableId}' does not expose a websocket endpoint; attach with a direct endpoint instead`,
+    );
+  }
+  return {
+    endpoint: server.endpoint,
+    resolvedVia: "attachable-id",
+  };
 }

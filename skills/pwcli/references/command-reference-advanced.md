@@ -181,6 +181,15 @@
 
 ## Extract
 
+### `pw extract recipes`
+
+- 列出随包分发的 recipe 模板
+
+### `pw extract recipe-path <name>`
+
+- 返回一个 bundled recipe 的绝对路径
+- 适合先拿模板，再复制到本地修改
+
 ### `pw extract run --session <name> --recipe <file>`
 
 - 运行 bounded extraction lane，把当前页面里的结构化数据导出成 JSON
@@ -234,6 +243,34 @@
   - 适合固定 recipe、固定 artifact、固定验证
 
 不要把 `pw extract run` 包装成 planner、userscript installer 或任意脚本执行器。
+
+## MCP
+
+### `pw mcp schema`
+
+- 返回 `pwcli` MCP server 的 transport 和入口信息
+
+### `pw mcp serve`
+
+- 启动 stdio MCP server
+- 当前内置 tools：
+  - `session_create`
+  - `session_list`
+  - `session_status`
+  - `session_attachable_list`
+  - `open`
+  - `page_assess`
+  - `auth_probe`
+  - `read_text`
+  - `snapshot_interactive`
+  - `diagnostics_digest`
+  - `extract_run`
+
+限制：
+
+- 当前是 thin MCP surface，不覆盖全部 `pw` 命令
+- 当前只暴露最常用的 session/read/extract/diagnostics lanes
+- 仍然保留 CLI 为主，MCP 只是第二出口
 
 ## Batch
 

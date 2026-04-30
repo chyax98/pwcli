@@ -46,6 +46,22 @@ pw wait --session bug-a --selector '<expected-ready-state>'
 
 Then retry the original command. Keep dependent steps sequential, do not issue concurrent `session create|recreate|close` for the same name, or put stable same-session steps in `pw batch --session <name>`. Concurrent same-name `session create` is expected to fail fast as `SESSION_BUSY`; do not treat that as a raw Playwright startup failure.
 
+### `SESSION_ATTACH_FAILED`
+
+Meaning:
+
+- the attach source is missing, invalid, or not connectable
+- or `--attachable-id` does not point to a live browser server in the current workspace
+
+Recovery:
+
+```bash
+pw session list --attachable
+pw session attach bug-a --attachable-id <id>
+```
+
+If the attachable entry has no usable endpoint, fall back to an explicit attach source such as `--ws-endpoint`, `--browser-url`, or `--cdp`.
+
 ## Identity-state recovery
 
 ### `auth probe` returned `status=uncertain`
@@ -194,6 +210,23 @@ pw state diff --session bug-a --before before.json --after after.json
 ```
 
 Recreate the snapshot files with `pw state diff` and compare again. Do not point the command at arbitrary JSON files.
+
+## MCP recovery
+
+### `MCP_SERVER_FAILED`
+
+Meaning:
+
+- `pw mcp serve` failed while starting or serving the stdio MCP surface
+
+Recovery:
+
+```bash
+pw mcp schema
+pw mcp serve
+```
+
+Make sure the MCP client is speaking stdio framing with `Content-Length` headers, then re-check the tool arguments being sent.
 
 ## System Chrome profile failures
 
