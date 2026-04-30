@@ -80,7 +80,10 @@ state / auth / batch / environment 命令见 `command-reference-advanced.md`。
 - `--selector <selector>`
 - `--text <text>`
 - `--role <role> --name <name>`
+- `--label <label>`
+- `--placeholder <text>`
 - `--testid <id>`
+- `--nth <n>`：1-based disambiguation
 
 ### `pw get <fact> --session <name>`
 
@@ -102,7 +105,30 @@ state / auth / batch / environment 命令见 `command-reference-advanced.md`。
 
 目标同 `locate`。目标不存在时返回 `value: false` 和 `count: 0`。`checked` 只适合 checkbox/radio 等可检查控件。
 
-Use `locate/get/is` for narrow state checks. Use `snapshot -i` when you need fresh refs. Do not use these commands as an action planner.
+### `pw verify <assertion> --session <name>`
+
+Read-only assertion command for agent loops after actions and waits. Success returns `{ assertion, passed: true, actual, expected, target?, count?, retryable: false, suggestions: [] }`. Failure exits non-zero with `VERIFY_FAILED` and the same assertion result under `error.details`.
+
+Assertions:
+
+- `text` / `text-absent` with a target, usually `--text <text>`
+- `url` with exactly one of `--contains <text>` / `--equals <url>` / `--matches <regex>`
+- `visible` / `hidden`
+- `enabled` / `disabled`
+- `checked` / `unchecked`
+- `count` with `--equals <n>` / `--min <n>` / `--max <n>`
+
+Examples:
+
+```bash
+pw verify text --session bug-a --text '保存成功'
+pw verify visible --session bug-a --selector '#submit'
+pw verify enabled --session bug-a --role button --name '提交'
+pw verify url --session bug-a --contains '/dashboard'
+pw verify count --session bug-a --selector '.row' --equals 3
+```
+
+Use `locate/get/is/verify` for narrow state checks. Use `snapshot -i` when you need fresh refs. Do not use these commands as an action planner.
 
 ### `pw snapshot --session <name>`
 

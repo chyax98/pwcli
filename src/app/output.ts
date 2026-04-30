@@ -349,18 +349,26 @@ function formatAction(command: string, result: CommandResult): string {
 
 function formatStateTarget(value: unknown): string {
   const target = asRecord(value);
+  const nth = asNumber(target.nth);
+  const nthSuffix = nth !== null ? ` nth=${nth}` : "";
   if (typeof target.selector === "string") {
-    return `selector=${target.selector}`;
+    return `selector=${target.selector}${nthSuffix}`;
   }
   if (typeof target.text === "string") {
-    return `text=${JSON.stringify(target.text)}`;
+    return `text=${JSON.stringify(target.text)}${nthSuffix}`;
   }
   if (typeof target.role === "string") {
     const name = typeof target.name === "string" ? ` name=${JSON.stringify(target.name)}` : "";
-    return `role=${target.role}${name}`;
+    return `role=${target.role}${name}${nthSuffix}`;
+  }
+  if (typeof target.label === "string") {
+    return `label=${JSON.stringify(target.label)}${nthSuffix}`;
+  }
+  if (typeof target.placeholder === "string") {
+    return `placeholder=${JSON.stringify(target.placeholder)}${nthSuffix}`;
   }
   if (typeof target.testid === "string") {
-    return `testid=${target.testid}`;
+    return `testid=${target.testid}${nthSuffix}`;
   }
   return stringifyValue(target);
 }
@@ -387,6 +395,17 @@ function formatStateCheck(command: string, result: CommandResult): string {
     return `get ${asString(result.data.fact) ?? "fact"}=${stringifyValue(result.data.value)} count=${count} ${target}`;
   }
   return `is ${asString(result.data.state) ?? "state"}=${String(Boolean(result.data.value))} count=${count} ${target}`;
+}
+
+function formatVerify(result: CommandResult): string {
+  const assertion = asString(result.data.assertion) ?? "assertion";
+  const passed = Boolean(result.data.passed);
+  const target = result.data.target ? ` ${formatStateTarget(result.data.target)}` : "";
+  const actual = "actual" in result.data ? ` actual=${stringifyValue(result.data.actual)}` : "";
+  const expected =
+    "expected" in result.data ? ` expected=${stringifyValue(result.data.expected)}` : "";
+  const count = asNumber(result.data.count);
+  return `verify ${assertion} passed=${passed}${target}${count !== null ? ` count=${count}` : ""}${actual}${expected}`;
 }
 
 function hasOutputFlag(name: string): boolean {
@@ -448,6 +467,9 @@ function formatCommandText(command: string, result: CommandResult): string {
   }
   if (command === "locate" || command === "get" || command === "is") {
     return formatStateCheck(command, result);
+  }
+  if (command === "verify") {
+    return formatVerify(result);
   }
   if (command === "snapshot") {
     return formatSnapshot(result);

@@ -124,6 +124,31 @@ pw snapshot -i --session bug-a
 
 `locate` and `get count` are the low-noise checks when zero matches is acceptable. Use `snapshot -i` only when you need fresh refs or structural context.
 
+### `VERIFY_FAILED`
+
+Meaning:
+
+- `pw verify` ran a read-only assertion and the assertion did not pass
+- the command did not mutate page state
+- `error.details` includes `assertion`, `passed: false`, `actual`, `expected`, and `target` / `count` when relevant
+
+Recovery depends on the assertion:
+
+```bash
+pw read-text --session bug-a --include-overlay --max-chars 4000
+pw locate --session bug-a --text '<expected text>'
+pw snapshot -i --session bug-a
+pw page current --session bug-a
+```
+
+If `VERIFY_FAILED` follows an action and the page state is unexpectedly wrong, collect the compact handoff bundle:
+
+```bash
+pw diagnostics bundle --session bug-a --limit 20
+```
+
+Do not treat `VERIFY_FAILED` as an action failure. It means the check completed and the observed state did not match the expectation.
+
 ### `MODAL_STATE_BLOCKED`
 
 Meaning:

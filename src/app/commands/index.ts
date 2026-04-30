@@ -43,6 +43,7 @@ import { registerTraceCommand } from "./trace.js";
 import { registerTypeCommand } from "./type.js";
 import { registerUncheckCommand } from "./uncheck.js";
 import { registerUploadCommand } from "./upload.js";
+import { registerVerifyCommand } from "./verify.js";
 import { registerWaitCommand } from "./wait.js";
 
 export function registerCommands(program: Command): void {
@@ -67,6 +68,7 @@ export function registerCommands(program: Command): void {
   registerLocateCommand(program);
   registerGetCommand(program);
   registerIsCommand(program);
+  registerVerifyCommand(program);
   registerFillCommand(program);
   registerTypeCommand(program);
   registerPressCommand(program);
