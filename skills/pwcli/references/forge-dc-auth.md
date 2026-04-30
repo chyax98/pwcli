@@ -2,20 +2,47 @@
 
 本文件只讲 Forge/DC 登录细节。核心命令已写在 `SKILL.md`。
 
-## 登录步骤
+## 主路径
 
-1. 确定 Forge URL。
+本文件只处理 Forge/DC auth 的专项细节和排障。日常判断逻辑先看主 `SKILL.md`。
 
-用户给 URL，创建 session 时打开该 URL，执行 auth 时也作为 `targetUrl` 传入。
+`auth dc` 负责解析目标 URL、执行登录、把登录态落到当前 session，并最终导航回业务目标。
 
-用户明确说 RND 环境：
+### 用户给了具体 Forge/DC URL
+
+不要要求先 open。直接创建 session，把 URL 传给 provider：
 
 ```bash
-pw session create dc2 --headed --open 'https://developer.xdrnd.cn/forge'
+pw session create dc2 --headed
+pw auth dc --session dc2 --arg targetUrl='https://developer.xdrnd.cn/forge'
+```
+
+### 用户没给 URL
+
+不要猜本机 IP。直接创建 session，让 provider 使用默认本地 Forge：
+
+```bash
+pw session create dc2 --headed
 pw auth dc --session dc2
 ```
 
-用户没给 URL 且没说 RND：不要问，直接执行默认登录命令。
+### 已有 session 当前页是 Forge/DC
+
+直接 auth，provider 会使用当前 Forge 页面作为目标：
+
+```bash
+pw auth dc --session dc2
+```
+
+## 登录步骤
+
+1. 确定目标来源。
+
+优先级：
+
+1. `--arg targetUrl=<url>`
+2. 当前 session 的 Forge 页面 URL
+3. 默认本地 Forge URL
 
 默认登录失败且错误要求 `targetUrl`：让用户给 Forge 链接，再重试。
 
@@ -39,12 +66,6 @@ pw session create dc2 --headed
 
 ```bash
 pw session create dc2
-```
-
-如果用户给了 URL 或明确 RND：
-
-```bash
-pw session create dc2 --headed --open '<forge-url>'
 ```
 
 4. 执行内置 provider。
@@ -86,7 +107,6 @@ pw auth dc --session dc2 --arg phone=19545672859 --arg targetUrl='<forge-url>'
 打开了错误域名：
 
 ```bash
-pw open --session dc2 '<correct-forge-url>'
 pw auth dc --session dc2 --arg phone='<phone>' --arg targetUrl='<correct-forge-url>'
 ```
 

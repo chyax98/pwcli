@@ -223,6 +223,7 @@ export async function managedTrace(action: "start" | "stop", options?: { session
   })
     .then((traceResult) => traceResult.data.result)
     .catch(() => undefined);
+  const traceArtifactPath = parseTraceArtifactPath(result.text);
 
   return {
     session: {
@@ -235,10 +236,23 @@ export async function managedTrace(action: "start" | "stop", options?: { session
       action,
       started: action === "start" ? true : undefined,
       stopped: action === "stop" ? true : undefined,
+      ...(traceArtifactPath ? { traceArtifactPath } : {}),
+      ...(action === "stop" && traceArtifactPath
+        ? {
+            nextStep: `pw trace inspect ${JSON.stringify(traceArtifactPath)} --section actions`,
+            inspectHint:
+              "Use `pw trace inspect <traceArtifactPath> --section actions|requests|console|errors` to inspect the saved trace artifact.",
+          }
+        : {}),
       ...(traceState ? { trace: traceState } : {}),
       ...maybeRawOutput(result.text),
     },
   };
+}
+
+function parseTraceArtifactPath(text: string) {
+  const match = text.match(/^- \[Trace\]\(([^)]+)\)$/m);
+  return match?.[1];
 }
 
 export async function managedErrors(

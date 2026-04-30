@@ -159,6 +159,12 @@ export function registerAuthCommand(program: Command): void {
             : providerResult?.page && typeof providerResult.page === "object"
               ? (providerResult.page as Record<string, unknown>)
               : undefined;
+        const resolvedTargetUrl =
+          typeof providerResult?.resolvedTargetUrl === "string"
+            ? providerResult.resolvedTargetUrl
+            : undefined;
+        const resolvedBy =
+          typeof providerResult?.resolvedBy === "string" ? providerResult.resolvedBy : undefined;
 
         if (options.saveState) {
           await managedStateSave(options.saveState, { sessionName });
@@ -169,7 +175,8 @@ export function registerAuthCommand(program: Command): void {
           page: result.page,
           data: {
             provider: provider.name,
-            args,
+            ...(resolvedTargetUrl ? { resolvedTargetUrl } : {}),
+            ...(resolvedBy ? { resolvedBy } : {}),
             pageState,
             ...(options.saveState ? { stateSaved: options.saveState } : {}),
             result: result.data.result,

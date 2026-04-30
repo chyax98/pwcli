@@ -7,20 +7,30 @@ import {
   requireSessionName,
 } from "./session-options.js";
 
+function parseNth(value?: string) {
+  const nth = Number(value ?? "1");
+  if (!Number.isInteger(nth) || nth < 1) {
+    throw new Error("--nth requires a positive integer");
+  }
+  return nth;
+}
+
 export function registerSelectCommand(program: Command): void {
   addSessionOption(
     program
       .command("select <targetOrValue> [value]")
       .description("Select an option value by ref or selector")
-      .option("--selector <selector>", "Selector target"),
+      .option("--selector <selector>", "Selector target")
+      .option("--nth <number>", "1-based match index", "1"),
   ).action(
     async (
       targetOrValue: string,
       value: string | undefined,
-      options: { selector?: string; session?: string },
+      options: { selector?: string; nth?: string; session?: string },
     ) => {
       try {
         const sessionName = requireSessionName(options);
+        const nth = parseNth(options.nth);
         const ref = options.selector ? undefined : targetOrValue;
         const selectedValue = options.selector ? targetOrValue : value;
         if (!selectedValue) {
@@ -32,6 +42,7 @@ export function registerSelectCommand(program: Command): void {
             ref,
             selector: options.selector,
             sessionName,
+            nth: options.selector ? nth : undefined,
             value: selectedValue,
           }),
         );

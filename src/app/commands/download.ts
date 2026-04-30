@@ -14,16 +14,30 @@ export function registerDownloadCommand(program: Command): void {
       .description("Trigger a download from an aria ref or selector")
       .option("--selector <selector>", "Selector target")
       .option("--path <path>", "Output file path")
-      .option("--dir <dir>", "Output directory; saved filename uses the browser suggested name"),
+      .option("--dir <dir>", "Output directory; saved filename uses the browser suggested name")
+      .option(
+        "--download-dir <dir>",
+        "Alias for --dir; saved filename uses the browser suggested name",
+      ),
   ).action(
     async (
       ref: string | undefined,
-      options: { session?: string; selector?: string; path?: string; dir?: string },
+      options: {
+        session?: string;
+        selector?: string;
+        path?: string;
+        dir?: string;
+        downloadDir?: string;
+      },
     ) => {
       try {
         const sessionName = requireSessionName(options);
-        if (options.path && options.dir) {
-          throw new Error("download accepts either --path or --dir, not both");
+        if (options.dir && options.downloadDir) {
+          throw new Error("download accepts either --dir or --download-dir, not both");
+        }
+        const dir = options.dir ?? options.downloadDir;
+        if (options.path && dir) {
+          throw new Error("download accepts either --path or --dir/--download-dir, not both");
         }
         printCommandResult(
           "download",
@@ -31,7 +45,7 @@ export function registerDownloadCommand(program: Command): void {
             ref,
             selector: options.selector,
             path: options.path,
-            dir: options.dir,
+            dir,
             sessionName,
           }),
         );
@@ -42,6 +56,7 @@ export function registerDownloadCommand(program: Command): void {
           suggestions: [
             "Use `pw download --session bug-a e6 --path ./.tmp-downloads/file.bin` for an exact file path",
             "Use `pw download --session bug-a e6 --dir ./.tmp-downloads` to keep the suggested filename",
+            "Use `pw download --session bug-a e6 --download-dir ./.tmp-downloads` as an alias for --dir",
           ],
         });
         process.exitCode = 1;

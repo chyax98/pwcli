@@ -41,6 +41,12 @@ type StateCandidate = {
   text: string;
   tagName: string;
   visible: boolean;
+  href?: string;
+  role?: string;
+  name?: string;
+  ancestor?: string;
+  region?: string;
+  selectorHint?: string;
 };
 
 function targetExpression(target: StateTarget) {
@@ -104,6 +110,12 @@ function parsedCandidates(value: unknown): StateCandidate[] {
           text: typeof record.text === "string" ? record.text : "",
           tagName: typeof record.tagName === "string" ? record.tagName : "",
           visible: Boolean(record.visible),
+          href: typeof record.href === "string" ? record.href : undefined,
+          role: typeof record.role === "string" ? record.role : undefined,
+          name: typeof record.name === "string" ? record.name : undefined,
+          ancestor: typeof record.ancestor === "string" ? record.ancestor : undefined,
+          region: typeof record.region === "string" ? record.region : undefined,
+          selectorHint: typeof record.selectorHint === "string" ? record.selectorHint : undefined,
         };
       })
     : [];
@@ -118,13 +130,114 @@ export async function managedLocate(options: { sessionName?: string; target: Sta
       const nth = typeof target.nth === 'number' ? Math.max(1, Math.floor(target.nth)) : null;
       const count = await locator.count();
       const candidates = await locator.evaluateAll((nodes, nth) => {
+        const cleanText = value => (value || '').replace(/\\s+/g, ' ').trim();
+        const cssEscape = value =>
+          globalThis.CSS && typeof globalThis.CSS.escape === 'function'
+            ? globalThis.CSS.escape(value)
+            : String(value).replace(/[^a-zA-Z0-9_-]/g, '\\\\$&');
+        const attr = (node, name) => node.getAttribute(name) || '';
+        const roleOf = node => {
+          const explicit = attr(node, 'role');
+          if (explicit) return explicit;
+          const tag = node.tagName.toLowerCase();
+          if (tag === 'a' && attr(node, 'href')) return 'link';
+          if (tag === 'button') return 'button';
+          if (tag === 'select') return 'combobox';
+          if (tag === 'textarea') return 'textbox';
+          if (tag === 'img') return 'img';
+          if (tag === 'input') {
+            const type = attr(node, 'type').toLowerCase() || 'text';
+            if (type === 'checkbox' || type === 'radio') return type;
+            if (['button', 'submit', 'reset'].includes(type)) return 'button';
+            if (type === 'range') return 'slider';
+            if (type === 'number') return 'spinbutton';
+            if (type === 'search') return 'searchbox';
+            return 'textbox';
+          }
+          if (tag === 'main') return 'main';
+          if (tag === 'nav') return 'navigation';
+          if (tag === 'form') return 'form';
+          return '';
+        };
+        const labelledByName = node =>
+          attr(node, 'aria-labelledby')
+            .split(/\\s+/)
+            .map(id => cleanText(node.ownerDocument.getElementById(id)?.textContent || ''))
+            .filter(Boolean)
+            .join(' ');
+        const nameOf = node =>
+          cleanText(
+            attr(node, 'aria-label') ||
+              labelledByName(node) ||
+              attr(node, 'alt') ||
+              attr(node, 'title') ||
+              (node instanceof HTMLInputElement ? node.value : '') ||
+              node.textContent ||
+              '',
+          ).slice(0, 120);
+        const selectorPart = node => {
+          const tag = node.tagName.toLowerCase();
+          if (node.id) return '#' + cssEscape(node.id);
+          for (const name of ['data-testid', 'data-test-id', 'name', 'aria-label']) {
+            const value = attr(node, name);
+            if (value) return tag + '[' + name + '="' + value.replace(/"/g, '\\\\"') + '"]';
+          }
+          const classHint = [...node.classList]
+            .filter(item => /^[a-zA-Z0-9_-]+$/.test(item))
+            .slice(0, 2)
+            .map(item => '.' + cssEscape(item))
+            .join('');
+          if (classHint) return tag + classHint;
+          if (!node.parentElement) return tag;
+          const siblings = [...node.parentElement.children].filter(
+            item => item.tagName === node.tagName,
+          );
+          const position = siblings.indexOf(node) + 1;
+          return siblings.length > 1 ? tag + ':nth-of-type(' + position + ')' : tag;
+        };
+        const selectorHintOf = node => {
+          const parts = [];
+          let current = node;
+          while (current && current.nodeType === Node.ELEMENT_NODE && parts.length < 4) {
+            parts.unshift(selectorPart(current));
+            if (current.id) break;
+            current = current.parentElement;
+          }
+          return parts.join(' > ');
+        };
+        const describe = node => {
+          const role = roleOf(node);
+          const name = nameOf(node);
+          const selector = selectorPart(node);
+          return [
+            node.tagName.toLowerCase(),
+            role ? 'role=' + JSON.stringify(role) : '',
+            name ? 'name=' + JSON.stringify(name) : '',
+            selector ? 'selector=' + JSON.stringify(selector) : '',
+          ].filter(Boolean).join(' ');
+        };
+        const regionOf = node => {
+          const region = node.closest(
+            '[role="region"], [role="banner"], [role="main"], [role="navigation"], [role="complementary"], [role="contentinfo"], [role="search"], main, nav, aside, header, footer, section[aria-label], form[aria-label]',
+          );
+          return region && region !== node ? describe(region) : '';
+        };
         const selected = nth ? nodes.slice(nth - 1, nth) : nodes.slice(0, 10);
-        return selected.map((node, index) => ({
-          index: nth ? nth : index + 1,
-          text: (node.textContent || '').trim().slice(0, 160),
-          tagName: node.tagName.toLowerCase(),
-          visible: !!(node.offsetWidth || node.offsetHeight || node.getClientRects().length),
-        }));
+        return selected.map((node, index) => {
+          const anchor = node.closest('a[href]');
+          return {
+            index: nth ? nth : index + 1,
+            text: cleanText(node.textContent).slice(0, 160),
+            tagName: node.tagName.toLowerCase(),
+            visible: !!(node.offsetWidth || node.offsetHeight || node.getClientRects().length),
+            href: anchor ? anchor.href : '',
+            role: roleOf(node),
+            name: nameOf(node),
+            ancestor: node.parentElement ? describe(node.parentElement) : '',
+            region: regionOf(node),
+            selectorHint: selectorHintOf(node),
+          };
+        });
       }, nth);
       return JSON.stringify({ count, candidates });
     }`,

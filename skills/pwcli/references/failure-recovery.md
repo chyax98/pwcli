@@ -28,6 +28,22 @@ pw session list
 pw session create bug-a --open 'https://example.com'
 ```
 
+### `SESSION_BUSY`
+
+Meaning:
+
+- another command is still running on the same session
+- pwcli queued for the per-session lock but timed out before dispatching to Playwright
+
+Recovery:
+
+```bash
+pw session status bug-a
+pw wait --session bug-a --selector '<expected-ready-state>'
+```
+
+Then retry the original command. Keep dependent steps sequential, or put stable same-session steps in `pw batch --session <name>`.
+
 ## Dashboard launch failures
 
 ### `DASHBOARD_UNAVAILABLE`
@@ -107,6 +123,39 @@ Modal and browser-dialog blockage is currently reported through `MODAL_STATE_BLO
 
 These codes do not auto-heal selectors and do not pick among candidates. They tell the Agent which next command to run.
 
+Failed `click` / `wait` attempts are recorded as run events. After a failed action or wait, use the run id from the error details when present, or list recent runs:
+
+```bash
+pw diagnostics runs --session bug-a --limit 5
+pw diagnostics digest --run '<runId>'
+pw diagnostics show --run '<runId>' --limit 20
+```
+
+### Dialog-triggering action pending
+
+Meaning:
+
+- a click fired successfully and triggered a browser `alert` / `confirm` / `prompt`
+- the session is now blocked by a modal dialog
+- the result is not the same as "action target not found" or "click did not happen"
+
+Typical successful action output includes:
+
+```text
+click acted=true modalPending=true
+blockedState=MODAL_STATE_BLOCKED
+```
+
+Recovery:
+
+```bash
+pw dialog accept --session bug-a
+# or
+pw dialog dismiss --session bug-a
+```
+
+Then continue with the next assertion or wait. Do not retry the original click unless the dialog was dismissed and the business flow explicitly requires another click.
+
 ### `STATE_TARGET_NOT_FOUND`
 
 Meaning:
@@ -149,6 +198,44 @@ pw diagnostics bundle --session bug-a --out .pwcli/bundles/verify-failure --limi
 
 Do not treat `VERIFY_FAILED` as an action failure. It means the check completed and the observed state did not match the expectation.
 
+## Content and challenge recovery
+
+### Content readable, diagnostics noisy
+
+Meaning:
+
+- `pw read-text` or `pw locate` confirms the target content/state
+- diagnostics contains unrelated console/network noise
+
+Recovery:
+
+1. Treat the content read as primary evidence.
+2. Keep unrelated diagnostics as background only.
+3. Escalate diagnostics only when it explains missing content, failed action, blank page, target API failure, or page error on the target flow.
+
+### Search challenge / CAPTCHA / bot challenge
+
+Meaning:
+
+- the page is a search challenge, CAPTCHA, Cloudflare challenge, or equivalent human verification screen
+- the CLI should not attempt to solve or bypass it automatically
+
+Recovery:
+
+```bash
+pw open --session bug-a '<direct-url-or-docs-url>'
+pw read-text --session bug-a --max-chars 2000
+```
+
+If a human must clear the challenge:
+
+```bash
+pw dashboard open
+pw session list --with-page
+```
+
+After human takeover, continue with `read-text`, `locate`, or `snapshot -i`. Do not encode challenge-solving steps as the automated recovery path.
+
 ### `MODAL_STATE_BLOCKED`
 
 Meaning:
@@ -188,6 +275,20 @@ pw open --session bug-a 'https://example.com/deep/path'
 ```
 
 Do not keep stacking commands on a blocked session.
+
+## Upload verification
+
+`pw upload` waits best-effort for the input file list and `change` / `input` signal before returning. Some apps accept files asynchronously through validation, hashing, or upload APIs, so a successful `uploaded=true` only means the browser input was set.
+
+If output includes `Next steps` or JSON `data.nextSteps`, continue with an app-level check:
+
+```bash
+pw wait --session bug-a --selector '<uploaded-state-selector>'
+pw verify text --session bug-a --text '上传成功'
+pw get text --session bug-a --selector '<file-name-row>'
+```
+
+If the check fails, retry `pw upload` after the page reaches the expected ready state.
 
 ## Environment limitations
 

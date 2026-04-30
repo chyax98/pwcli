@@ -39,6 +39,21 @@ export function sessionRoutingError(message: string) {
     };
   }
 
+  if (message.startsWith("SESSION_BUSY:")) {
+    const [, name, timeoutMs] = message.split(":");
+    return {
+      code: "SESSION_BUSY",
+      message: `Session '${name}' is still running another command.`,
+      retryable: true,
+      suggestions: [
+        "Retry the same command after the in-flight command finishes",
+        "Keep dependent commands on the same session sequential, or put stable steps in `pw batch`",
+        "If the owner process is gone, retry after the lock is reclaimed automatically",
+      ],
+      details: { session: name, timeoutMs: Number(timeoutMs) },
+    };
+  }
+
   if (message.startsWith("SESSION_NAME_TOO_LONG:")) {
     const [, name, limit] = message.split(":");
     return {

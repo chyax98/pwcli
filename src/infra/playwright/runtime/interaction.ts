@@ -10,7 +10,12 @@ import {
 } from "./action-failure-classifier.js";
 import { managedRunCode } from "./code.js";
 import { buildDiagnosticsDelta, captureDiagnosticsBaseline } from "./diagnostics.js";
-import { DIAGNOSTICS_STATE_KEY, maybeRawOutput, normalizeRef } from "./shared.js";
+import {
+  DIAGNOSTICS_STATE_KEY,
+  isModalStateBlockedMessage,
+  maybeRawOutput,
+  normalizeRef,
+} from "./shared.js";
 import { managedPageCurrent } from "./workspace.js";
 
 type SemanticTarget =
@@ -19,6 +24,11 @@ type SemanticTarget =
   | { kind: "label"; label: string; nth?: number }
   | { kind: "placeholder"; placeholder: string; nth?: number }
   | { kind: "testid"; testid: string; nth?: number };
+
+type SelectorTarget = {
+  selector: string;
+  nth?: number;
+};
 
 type RefEpochValidation =
   | {
@@ -59,6 +69,84 @@ async function recordRun(
   return run;
 }
 
+function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function errorCode(error: unknown, fallback: string) {
+  return error instanceof ActionFailure ? error.code : fallback;
+}
+
+function errorRetryable(error: unknown) {
+  return error instanceof ActionFailure ? error.retryable : undefined;
+}
+
+function errorSuggestions(error: unknown) {
+  return error instanceof ActionFailure ? error.suggestions : undefined;
+}
+
+function errorDetails(error: unknown) {
+  return error instanceof ActionFailure ? error.details : undefined;
+}
+
+async function buildDiagnosticsDeltaOrSignal(
+  sessionName: string | undefined,
+  before: { consoleTotal: number; networkTotal: number; pageErrorTotal: number },
+) {
+  try {
+    return await buildDiagnosticsDelta(sessionName, before);
+  } catch (error) {
+    return {
+      unavailable: true,
+      reason: errorMessage(error),
+    };
+  }
+}
+
+function attachFailureRun(error: unknown, run: Awaited<ReturnType<typeof recordRun>>) {
+  if (!(error instanceof ActionFailure)) {
+    return;
+  }
+  const details = {
+    ...(error.details ?? {}),
+    run,
+  };
+  Object.defineProperty(error, "details", {
+    value: details,
+    configurable: true,
+  });
+}
+
+function isModalBlockedDelta(delta: Record<string, unknown>) {
+  return delta.unavailable === true && isModalStateBlockedMessage(errorMessage(delta.reason));
+}
+
+async function recordFailedRun(
+  command: string,
+  sessionName: string | undefined,
+  page: Record<string, unknown> | undefined,
+  before: { consoleTotal: number; networkTotal: number; pageErrorTotal: number },
+  error: unknown,
+  details: Record<string, unknown> = {},
+) {
+  const diagnosticsDelta = await buildDiagnosticsDeltaOrSignal(sessionName, before);
+  const run = await recordRun(command, sessionName, page, {
+    ...details,
+    status: "failed",
+    failed: true,
+    diagnosticsDelta,
+    failure: {
+      code: errorCode(error, `${command.toUpperCase()}_FAILED`),
+      message: errorMessage(error),
+      retryable: errorRetryable(error) ?? null,
+      suggestions: errorSuggestions(error) ?? [],
+      details: errorDetails(error) ?? null,
+    },
+  });
+  attachFailureRun(error, run);
+  return run;
+}
+
 async function managedActionRunCode(options: {
   command: string;
   sessionName?: string;
@@ -75,6 +163,101 @@ async function managedActionRunCode(options: {
     }
     throw error;
   }
+}
+
+async function managedActionRunCodeWithFailureRun(options: {
+  command: string;
+  sessionName?: string;
+  source: string;
+  before: { consoleTotal: number; networkTotal: number; pageErrorTotal: number };
+  target?: Record<string, unknown>;
+  details?: Record<string, unknown>;
+}) {
+  try {
+    return await managedActionRunCode({
+      command: options.command,
+      sessionName: options.sessionName,
+      source: options.source,
+    });
+  } catch (error) {
+    await recordFailedRun(options.command, options.sessionName, undefined, options.before, error, {
+      ...(options.target ? { target: options.target } : {}),
+      ...(options.details ?? {}),
+    });
+    throw error;
+  }
+}
+
+async function throwIfManagedActionErrorWithFailureRun(
+  text: string,
+  context: { command: string; sessionName?: string },
+  options: {
+    before: { consoleTotal: number; networkTotal: number; pageErrorTotal: number };
+    page?: Record<string, unknown>;
+    target?: Record<string, unknown>;
+    details?: Record<string, unknown>;
+  },
+) {
+  try {
+    throwIfManagedActionError(text, context);
+  } catch (error) {
+    await recordFailedRun(
+      context.command,
+      context.sessionName,
+      options.page,
+      options.before,
+      error,
+      {
+        ...(options.target ? { target: options.target } : {}),
+        ...(options.details ?? {}),
+      },
+    );
+    throw error;
+  }
+}
+
+function dialogPendingResult(options: {
+  command: string;
+  sessionName?: string;
+  resultText?: string;
+  page?: Record<string, unknown>;
+  target?: Record<string, unknown>;
+  before: { consoleTotal: number; networkTotal: number; pageErrorTotal: number };
+  diagnosticsDelta?: Record<string, unknown>;
+}) {
+  return (async () => {
+    const diagnosticsDelta =
+      options.diagnosticsDelta ??
+      (await buildDiagnosticsDeltaOrSignal(options.sessionName, options.before));
+    const run = await recordRun(options.command, options.sessionName, options.page, {
+      ...(options.target ? { target: options.target } : {}),
+      status: "dialog-pending",
+      acted: true,
+      modalPending: true,
+      diagnosticsDelta,
+      failureSignal: {
+        code: "MODAL_STATE_BLOCKED",
+        message: "action fired and a browser dialog is pending",
+      },
+    });
+    return {
+      session: {
+        scope: "managed",
+        name: options.sessionName ?? "default",
+        default: !options.sessionName || options.sessionName === "default",
+      },
+      page: options.page,
+      data: {
+        ...(options.target ? { target: options.target } : {}),
+        acted: true,
+        modalPending: true,
+        blockedState: "MODAL_STATE_BLOCKED",
+        diagnosticsDelta,
+        run,
+        ...(options.resultText ? maybeRawOutput(options.resultText) : {}),
+      },
+    };
+  })();
 }
 
 async function validateRefEpoch(options: {
@@ -194,6 +377,7 @@ async function assertFreshRefEpoch(options: { sessionName?: string; ref: string 
 export async function managedClick(options: {
   ref?: string;
   selector?: string;
+  nth?: number;
   semantic?: SemanticTarget;
   button?: string;
   sessionName?: string;
@@ -206,12 +390,36 @@ export async function managedClick(options: {
 
   if (options.semantic) {
     const target = normalizeSemanticTarget(options.semantic);
-    const result = await managedActionRunCode({
-      command: "click",
-      sessionName: options.sessionName,
-      source: semanticClickSource(target, options.button),
-    });
-    const diagnosticsDelta = await buildDiagnosticsDelta(options.sessionName, before);
+    let result: Awaited<ReturnType<typeof managedActionRunCode>>;
+    try {
+      result = await managedActionRunCode({
+        command: "click",
+        sessionName: options.sessionName,
+        source: semanticClickSource(target, options.button),
+      });
+    } catch (error) {
+      if (isModalStateBlockedMessage(errorMessage(error))) {
+        return dialogPendingResult({
+          command: "click",
+          sessionName: options.sessionName,
+          target,
+          before,
+        });
+      }
+      await recordFailedRun("click", options.sessionName, undefined, before, error, { target });
+      throw error;
+    }
+    const diagnosticsDelta = await buildDiagnosticsDeltaOrSignal(options.sessionName, before);
+    if (isModalBlockedDelta(diagnosticsDelta)) {
+      return dialogPendingResult({
+        command: "click",
+        sessionName: options.sessionName,
+        page: result.page,
+        target,
+        before,
+        diagnosticsDelta,
+      });
+    }
     const run = await recordRun("click", options.sessionName, result.page, {
       target,
       diagnosticsDelta,
@@ -229,40 +437,55 @@ export async function managedClick(options: {
   }
 
   if (options.selector) {
-    const args = ["click", options.selector];
-    if (options.button) {
-      args.push(options.button);
-    }
-    const result = await runManagedSessionCommand(
-      {
-        _: args,
-      },
-      {
+    const target = normalizeSelectorTarget({ selector: options.selector, nth: options.nth });
+    const clickOptions = options.button ? JSON.stringify({ button: options.button }) : "undefined";
+    let result: Awaited<ReturnType<typeof managedActionRunCode>>;
+    try {
+      result = await managedActionRunCode({
+        command: "click",
         sessionName: options.sessionName,
-      },
-    );
-    throwIfManagedActionError(result.text, { command: "click", sessionName: options.sessionName });
-
-    const diagnosticsDelta = await buildDiagnosticsDelta(options.sessionName, before);
-    const page = parsePageSummary(result.text);
-    const run = await recordRun("click", options.sessionName, page, {
-      target: { selector: options.selector },
+        source: selectorActionSource("CLICK", target, (locator) => {
+          return `await ${locator}.click(${clickOptions});`;
+        }),
+      });
+    } catch (error) {
+      if (isModalStateBlockedMessage(errorMessage(error))) {
+        return dialogPendingResult({
+          command: "click",
+          sessionName: options.sessionName,
+          target,
+          before,
+        });
+      }
+      await recordFailedRun("click", options.sessionName, undefined, before, error, { target });
+      throw error;
+    }
+    const diagnosticsDelta = await buildDiagnosticsDeltaOrSignal(options.sessionName, before);
+    if (isModalBlockedDelta(diagnosticsDelta)) {
+      return dialogPendingResult({
+        command: "click",
+        sessionName: options.sessionName,
+        page: result.page,
+        target,
+        before,
+        diagnosticsDelta,
+      });
+    }
+    const run = await recordRun("click", options.sessionName, result.page, {
+      target,
       diagnosticsDelta,
     });
     return {
-      session: {
-        scope: "managed",
-        name: result.sessionName,
-        default: result.sessionName === "default",
-      },
-      page,
+      session: result.session,
+      page: result.page,
       data: {
+        target,
         selector: options.selector,
+        nth: target.nth,
         ...(options.button ? { button: options.button } : {}),
         acted: true,
         diagnosticsDelta,
         run,
-        ...maybeRawOutput(result.text),
       },
     };
   }
@@ -282,10 +505,37 @@ export async function managedClick(options: {
       sessionName: options.sessionName,
     },
   );
-  throwIfManagedActionError(result.text, { command: "click", sessionName: options.sessionName });
+  const page = parsePageSummary(result.text);
+  try {
+    throwIfManagedActionError(result.text, { command: "click", sessionName: options.sessionName });
+  } catch (error) {
+    if (isModalStateBlockedMessage(errorMessage(error))) {
+      return dialogPendingResult({
+        command: "click",
+        sessionName: result.sessionName,
+        resultText: result.text,
+        page,
+        target: { ref },
+        before,
+      });
+    }
+    await recordFailedRun("click", result.sessionName, page, before, error, { target: { ref } });
+    throw error;
+  }
 
-  const diagnosticsDelta = await buildDiagnosticsDelta(options.sessionName, before);
-  const run = await recordRun("click", options.sessionName, parsePageSummary(result.text), {
+  const diagnosticsDelta = await buildDiagnosticsDeltaOrSignal(options.sessionName, before);
+  if (isModalBlockedDelta(diagnosticsDelta)) {
+    return dialogPendingResult({
+      command: "click",
+      sessionName: result.sessionName,
+      resultText: result.text,
+      page,
+      target: { ref },
+      before,
+      diagnosticsDelta,
+    });
+  }
+  const run = await recordRun("click", options.sessionName, page, {
     target: options.ref ? { ref: normalizeRef(options.ref) } : { selector: options.selector },
     diagnosticsDelta,
   });
@@ -295,7 +545,7 @@ export async function managedClick(options: {
       name: result.sessionName,
       default: result.sessionName === "default",
     },
-    page: parsePageSummary(result.text),
+    page,
     data: {
       ...(options.ref ? { ref: normalizeRef(options.ref) } : { selector: options.selector }),
       acted: true,
@@ -311,6 +561,51 @@ function normalizeSemanticTarget(target: SemanticTarget) {
     ...target,
     nth: Math.max(1, Math.floor(Number(target.nth ?? 1))),
   };
+}
+
+function normalizeSelectorTarget(target: SelectorTarget) {
+  return {
+    selector: target.selector,
+    nth: Math.max(1, Math.floor(Number(target.nth ?? 1))),
+  };
+}
+
+function selectorActionSource(
+  errorPrefix: string,
+  target: ReturnType<typeof normalizeSelectorTarget>,
+  actionSource: (locatorExpression: string) => string,
+) {
+  const nthIndex = target.nth - 1;
+  const targetJson = JSON.stringify(target);
+  const locatorExpression = `page.locator(${JSON.stringify(target.selector)})`;
+  const action = actionSource(`locator.nth(${nthIndex})`);
+
+  return `async page => {
+    const target = ${targetJson};
+    const locator = ${locatorExpression};
+    const count = await locator.count();
+    if (count === 0) {
+      throw new Error(
+        '${errorPrefix}_SELECTOR_NOT_FOUND:' +
+          JSON.stringify({ target })
+      );
+    }
+    if (${nthIndex} >= count) {
+      throw new Error(
+        '${errorPrefix}_SELECTOR_INDEX_OUT_OF_RANGE:' +
+          JSON.stringify({ target, count, nth: ${target.nth} })
+      );
+    }
+    ${action}
+    return JSON.stringify({
+      acted: true,
+      selected: ${errorPrefix === "SELECT" ? "true" : "undefined"},
+      values: typeof values === 'undefined' ? undefined : values,
+      target,
+      count,
+      nth: ${target.nth},
+    });
+  }`;
 }
 
 function semanticLocatorExpression(target: ReturnType<typeof normalizeSemanticTarget>) {
@@ -394,6 +689,7 @@ function semanticInputSource(
 export async function managedFill(options: {
   ref?: string;
   selector?: string;
+  nth?: number;
   semantic?: SemanticTarget;
   value: string;
   sessionName?: string;
@@ -406,10 +702,12 @@ export async function managedFill(options: {
 
   if (options.semantic) {
     const target = normalizeSemanticTarget(options.semantic);
-    const result = await managedActionRunCode({
+    const result = await managedActionRunCodeWithFailureRun({
       command: "fill",
       sessionName: options.sessionName,
       source: semanticInputSource("FILL", target, "fill", options.value),
+      before,
+      target,
     });
 
     const diagnosticsDelta = await buildDiagnosticsDelta(options.sessionName, before);
@@ -431,36 +729,32 @@ export async function managedFill(options: {
   }
 
   if (options.selector) {
-    const result = await runManagedSessionCommand(
-      {
-        _: ["fill", options.selector, options.value],
-      },
-      {
-        sessionName: options.sessionName,
-      },
-    );
-    throwIfManagedActionError(result.text, { command: "fill", sessionName: options.sessionName });
-
+    const target = normalizeSelectorTarget({ selector: options.selector, nth: options.nth });
+    const result = await managedActionRunCodeWithFailureRun({
+      command: "fill",
+      sessionName: options.sessionName,
+      source: selectorActionSource("FILL", target, (locator) => {
+        return `await ${locator}.fill(${JSON.stringify(options.value)});`;
+      }),
+      before,
+      target,
+    });
     const diagnosticsDelta = await buildDiagnosticsDelta(options.sessionName, before);
-    const page = parsePageSummary(result.text);
-    const run = await recordRun("fill", options.sessionName, page, {
-      target: { selector: options.selector },
+    const run = await recordRun("fill", options.sessionName, result.page, {
+      target,
       diagnosticsDelta,
     });
     return {
-      session: {
-        scope: "managed",
-        name: result.sessionName,
-        default: result.sessionName === "default",
-      },
-      page,
+      session: result.session,
+      page: result.page,
       data: {
+        target,
         selector: options.selector,
+        nth: target.nth,
         value: options.value,
         filled: true,
         diagnosticsDelta,
         run,
-        ...maybeRawOutput(result.text),
       },
     };
   }
@@ -477,10 +771,15 @@ export async function managedFill(options: {
       sessionName: options.sessionName,
     },
   );
-  throwIfManagedActionError(result.text, { command: "fill", sessionName: options.sessionName });
+  const fillPage = parsePageSummary(result.text);
+  await throwIfManagedActionErrorWithFailureRun(
+    result.text,
+    { command: "fill", sessionName: options.sessionName },
+    { before, page: fillPage, target: { ref: normalizeRef(options.ref ?? "") } },
+  );
 
   const diagnosticsDelta = await buildDiagnosticsDelta(options.sessionName, before);
-  const run = await recordRun("fill", options.sessionName, parsePageSummary(result.text), {
+  const run = await recordRun("fill", options.sessionName, fillPage, {
     target: options.ref ? { ref: normalizeRef(options.ref) } : { selector: options.selector },
     diagnosticsDelta,
   });
@@ -490,7 +789,7 @@ export async function managedFill(options: {
       name: result.sessionName,
       default: result.sessionName === "default",
     },
-    page: parsePageSummary(result.text),
+    page: fillPage,
     data: {
       ...(options.ref ? { ref: normalizeRef(options.ref) } : { selector: options.selector }),
       value: options.value,
@@ -505,6 +804,7 @@ export async function managedFill(options: {
 export async function managedType(options: {
   ref?: string;
   selector?: string;
+  nth?: number;
   semantic?: SemanticTarget;
   value: string;
   sessionName?: string;
@@ -513,10 +813,12 @@ export async function managedType(options: {
 
   if (options.semantic) {
     const target = normalizeSemanticTarget(options.semantic);
-    const result = await managedActionRunCode({
+    const result = await managedActionRunCodeWithFailureRun({
       command: "type",
       sessionName: options.sessionName,
       source: semanticInputSource("TYPE", target, "type", options.value),
+      before,
+      target,
     });
 
     const diagnosticsDelta = await buildDiagnosticsDelta(options.sessionName, before);
@@ -546,9 +848,14 @@ export async function managedType(options: {
         sessionName: options.sessionName,
       },
     );
-    throwIfManagedActionError(result.text, { command: "type", sessionName: options.sessionName });
+    const page = parsePageSummary(result.text);
+    await throwIfManagedActionErrorWithFailureRun(
+      result.text,
+      { command: "type", sessionName: options.sessionName },
+      { before, page },
+    );
     const diagnosticsDelta = await buildDiagnosticsDelta(options.sessionName, before);
-    const run = await recordRun("type", options.sessionName, parsePageSummary(result.text), {
+    const run = await recordRun("type", options.sessionName, page, {
       diagnosticsDelta,
     });
     return {
@@ -557,7 +864,7 @@ export async function managedType(options: {
         name: result.sessionName,
         default: result.sessionName === "default",
       },
-      page: parsePageSummary(result.text),
+      page,
       data: {
         value: options.value,
         typed: true,
@@ -572,25 +879,38 @@ export async function managedType(options: {
   if (options.ref) {
     await assertFreshRefEpoch({ sessionName: options.sessionName, ref: target ?? "" });
   }
+  const selectorTarget = options.selector
+    ? normalizeSelectorTarget({ selector: options.selector, nth: options.nth })
+    : undefined;
   const source = options.ref
     ? `async page => { await page.locator(${JSON.stringify(`aria-ref=${target}`)}).type(${JSON.stringify(options.value)}); return 'typed'; }`
-    : `async page => { await page.locator(${JSON.stringify(options.selector)}).type(${JSON.stringify(options.value)}); return 'typed'; }`;
+    : selectorActionSource(
+        "TYPE",
+        selectorTarget as ReturnType<typeof normalizeSelectorTarget>,
+        (locator) => {
+          return `await ${locator}.type(${JSON.stringify(options.value)});`;
+        },
+      );
 
-  const result = await managedActionRunCode({
+  const result = await managedActionRunCodeWithFailureRun({
     command: "type",
     source,
     sessionName: options.sessionName,
+    before,
+    target: options.ref ? { ref: normalizeRef(options.ref) } : selectorTarget,
   });
   const diagnosticsDelta = await buildDiagnosticsDelta(options.sessionName, before);
   const run = await recordRun("type", options.sessionName, result.page, {
-    target: options.ref ? { ref: normalizeRef(options.ref) } : { selector: options.selector },
+    target: options.ref ? { ref: normalizeRef(options.ref) } : selectorTarget,
     diagnosticsDelta,
   });
   return {
     session: result.session,
     page: result.page,
     data: {
-      ...(options.ref ? { ref: normalizeRef(options.ref) } : { selector: options.selector }),
+      ...(options.ref
+        ? { ref: normalizeRef(options.ref) }
+        : { target: selectorTarget, selector: options.selector, nth: selectorTarget?.nth }),
       value: options.value,
       typed: true,
       diagnosticsDelta,
@@ -610,10 +930,15 @@ export async function managedPress(key: string, options?: { sessionName?: string
       sessionName: options?.sessionName,
     },
   );
-  throwIfManagedActionError(result.text, { command: "press", sessionName: options?.sessionName });
+  const page = parsePageSummary(result.text);
+  await throwIfManagedActionErrorWithFailureRun(
+    result.text,
+    { command: "press", sessionName: options?.sessionName },
+    { before, page, details: { key } },
+  );
 
   const diagnosticsDelta = await buildDiagnosticsDelta(options?.sessionName, before);
-  const run = await recordRun("press", options?.sessionName, parsePageSummary(result.text), {
+  const run = await recordRun("press", options?.sessionName, page, {
     key,
     diagnosticsDelta,
   });
@@ -623,7 +948,7 @@ export async function managedPress(key: string, options?: { sessionName?: string
       name: result.sessionName,
       default: result.sessionName === "default",
     },
-    page: parsePageSummary(result.text),
+    page,
     data: {
       key,
       pressed: true,
@@ -639,6 +964,7 @@ async function managedBooleanControlAction(
   options: {
     ref?: string;
     selector?: string;
+    nth?: number;
     sessionName?: string;
   },
 ) {
@@ -649,35 +975,32 @@ async function managedBooleanControlAction(
   const before = await captureDiagnosticsBaseline(options.sessionName);
 
   if (options.selector) {
-    const result = await runManagedSessionCommand(
-      {
-        _: [command, options.selector],
-      },
-      {
-        sessionName: options.sessionName,
-      },
-    );
-    throwIfManagedActionError(result.text, { command, sessionName: options.sessionName });
+    const target = normalizeSelectorTarget({ selector: options.selector, nth: options.nth });
+    const result = await managedActionRunCodeWithFailureRun({
+      command,
+      sessionName: options.sessionName,
+      source: selectorActionSource(command.toUpperCase(), target, (locator) => {
+        return `await ${locator}.${command}();`;
+      }),
+      before,
+      target,
+    });
     const diagnosticsDelta = await buildDiagnosticsDelta(options.sessionName, before);
-    const page = parsePageSummary(result.text);
-    const run = await recordRun(command, options.sessionName, page, {
-      target: { selector: options.selector },
+    const run = await recordRun(command, options.sessionName, result.page, {
+      target,
       diagnosticsDelta,
     });
     return {
-      session: {
-        scope: "managed",
-        name: result.sessionName,
-        default: result.sessionName === "default",
-      },
-      page,
+      session: result.session,
+      page: result.page,
       data: {
+        target,
         selector: options.selector,
+        nth: target.nth,
         acted: true,
         checked: command === "check",
         diagnosticsDelta,
         run,
-        ...maybeRawOutput(result.text),
       },
     };
   }
@@ -692,10 +1015,15 @@ async function managedBooleanControlAction(
       sessionName: options.sessionName,
     },
   );
-  throwIfManagedActionError(result.text, { command, sessionName: options.sessionName });
+  const page = parsePageSummary(result.text);
+  await throwIfManagedActionErrorWithFailureRun(
+    result.text,
+    { command, sessionName: options.sessionName },
+    { before, page, target: { ref } },
+  );
 
   const diagnosticsDelta = await buildDiagnosticsDelta(options.sessionName, before);
-  const run = await recordRun(command, options.sessionName, parsePageSummary(result.text), {
+  const run = await recordRun(command, options.sessionName, page, {
     target: { ref },
     diagnosticsDelta,
   });
@@ -705,7 +1033,7 @@ async function managedBooleanControlAction(
       name: result.sessionName,
       default: result.sessionName === "default",
     },
-    page: parsePageSummary(result.text),
+    page,
     data: {
       ref,
       acted: true,
@@ -720,6 +1048,7 @@ async function managedBooleanControlAction(
 export async function managedCheck(options: {
   ref?: string;
   selector?: string;
+  nth?: number;
   sessionName?: string;
 }) {
   return managedBooleanControlAction("check", options);
@@ -728,6 +1057,7 @@ export async function managedCheck(options: {
 export async function managedHover(options: {
   ref?: string;
   selector?: string;
+  nth?: number;
   sessionName?: string;
 }) {
   if (!options.ref && !options.selector) {
@@ -737,34 +1067,31 @@ export async function managedHover(options: {
   const before = await captureDiagnosticsBaseline(options.sessionName);
 
   if (options.selector) {
-    const result = await runManagedSessionCommand(
-      {
-        _: ["hover", options.selector],
-      },
-      {
-        sessionName: options.sessionName,
-      },
-    );
-    throwIfManagedActionError(result.text, { command: "hover", sessionName: options.sessionName });
+    const target = normalizeSelectorTarget({ selector: options.selector, nth: options.nth });
+    const result = await managedActionRunCodeWithFailureRun({
+      command: "hover",
+      sessionName: options.sessionName,
+      source: selectorActionSource("HOVER", target, (locator) => {
+        return `await ${locator}.hover();`;
+      }),
+      before,
+      target,
+    });
     const diagnosticsDelta = await buildDiagnosticsDelta(options.sessionName, before);
-    const page = parsePageSummary(result.text);
-    const run = await recordRun("hover", options.sessionName, page, {
-      target: { selector: options.selector },
+    const run = await recordRun("hover", options.sessionName, result.page, {
+      target,
       diagnosticsDelta,
     });
     return {
-      session: {
-        scope: "managed",
-        name: result.sessionName,
-        default: result.sessionName === "default",
-      },
-      page,
+      session: result.session,
+      page: result.page,
       data: {
+        target,
         selector: options.selector,
+        nth: target.nth,
         acted: true,
         diagnosticsDelta,
         run,
-        ...maybeRawOutput(result.text),
       },
     };
   }
@@ -779,10 +1106,15 @@ export async function managedHover(options: {
       sessionName: options.sessionName,
     },
   );
-  throwIfManagedActionError(result.text, { command: "hover", sessionName: options.sessionName });
+  const page = parsePageSummary(result.text);
+  await throwIfManagedActionErrorWithFailureRun(
+    result.text,
+    { command: "hover", sessionName: options.sessionName },
+    { before, page, target: { ref } },
+  );
 
   const diagnosticsDelta = await buildDiagnosticsDelta(options.sessionName, before);
-  const run = await recordRun("hover", options.sessionName, parsePageSummary(result.text), {
+  const run = await recordRun("hover", options.sessionName, page, {
     target: { ref },
     diagnosticsDelta,
   });
@@ -792,7 +1124,7 @@ export async function managedHover(options: {
       name: result.sessionName,
       default: result.sessionName === "default",
     },
-    page: parsePageSummary(result.text),
+    page,
     data: {
       ref,
       acted: true,
@@ -806,6 +1138,7 @@ export async function managedHover(options: {
 export async function managedUncheck(options: {
   ref?: string;
   selector?: string;
+  nth?: number;
   sessionName?: string;
 }) {
   return managedBooleanControlAction("uncheck", options);
@@ -814,6 +1147,7 @@ export async function managedUncheck(options: {
 export async function managedSelect(options: {
   ref?: string;
   selector?: string;
+  nth?: number;
   sessionName?: string;
   value: string;
 }) {
@@ -824,19 +1158,22 @@ export async function managedSelect(options: {
   const before = await captureDiagnosticsBaseline(options.sessionName);
 
   if (options.selector) {
-    const result = await managedActionRunCode({
+    const target = normalizeSelectorTarget({ selector: options.selector, nth: options.nth });
+    const result = await managedActionRunCodeWithFailureRun({
       command: "select",
       sessionName: options.sessionName,
-      source: `async page => {
-        const values = await page.locator(${JSON.stringify(options.selector)}).selectOption(${JSON.stringify(options.value)});
-        return JSON.stringify({ selected: true, values });
-      }`,
+      source: selectorActionSource("SELECT", target, (locator) => {
+        return `const values = await ${locator}.selectOption(${JSON.stringify(options.value)});`;
+      }),
+      before,
+      target,
+      details: { value: options.value },
     });
     const parsed =
       typeof result.data.result === "object" && result.data.result ? result.data.result : {};
     const diagnosticsDelta = await buildDiagnosticsDelta(options.sessionName, before);
     const run = await recordRun("select", options.sessionName, result.page, {
-      target: { selector: options.selector },
+      target,
       value: options.value,
       diagnosticsDelta,
     });
@@ -844,7 +1181,9 @@ export async function managedSelect(options: {
       session: result.session,
       page: result.page,
       data: {
+        target,
         selector: options.selector,
+        nth: target.nth,
         value: options.value,
         values: Array.isArray(parsed.values) ? parsed.values : [options.value],
         selected: true,
@@ -864,10 +1203,15 @@ export async function managedSelect(options: {
       sessionName: options.sessionName,
     },
   );
-  throwIfManagedActionError(result.text, { command: "select", sessionName: options.sessionName });
+  const page = parsePageSummary(result.text);
+  await throwIfManagedActionErrorWithFailureRun(
+    result.text,
+    { command: "select", sessionName: options.sessionName },
+    { before, page, target: { ref }, details: { value: options.value } },
+  );
 
   const diagnosticsDelta = await buildDiagnosticsDelta(options.sessionName, before);
-  const run = await recordRun("select", options.sessionName, parsePageSummary(result.text), {
+  const run = await recordRun("select", options.sessionName, page, {
     target: { ref },
     value: options.value,
     diagnosticsDelta,
@@ -878,7 +1222,7 @@ export async function managedSelect(options: {
       name: result.sessionName,
       default: result.sessionName === "default",
     },
-    page: parsePageSummary(result.text),
+    page,
     data: {
       ref,
       value: options.value,
@@ -1072,23 +1416,84 @@ export async function managedUpload(options: {
   if (options.ref) {
     await assertFreshRefEpoch({ sessionName: options.sessionName, ref: normalizeRef(options.ref) });
   }
-  const files = options.files.map((file) => JSON.stringify(resolve(file))).join(", ");
+  const resolvedFiles = options.files.map((file) => resolve(file));
+  const files = resolvedFiles.map((file) => JSON.stringify(file)).join(", ");
   const target = options.ref
     ? `page.locator(${JSON.stringify(`aria-ref=${normalizeRef(options.ref)}`)})`
     : `page.locator(${JSON.stringify(options.selector)})`;
+  const uploadSignalToken = `pwcli-upload-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
   const before = await captureDiagnosticsBaseline(options.sessionName);
   const result = await managedRunCode({
     sessionName: options.sessionName,
     source: `async page => {
-      await ${target}.setInputFiles([${files}]);
-      return JSON.stringify({ uploaded: true });
+      const locator = ${target};
+      const token = ${JSON.stringify(uploadSignalToken)};
+      await locator.evaluate((element, token) => {
+        const win = element.ownerDocument.defaultView;
+        if (!win)
+          return;
+        const state = win.__pwcliUploadSignals ||= {};
+        state[token] = { changeObserved: false, inputObserved: false };
+        element.addEventListener('change', () => {
+          state[token].changeObserved = true;
+        }, { once: true });
+        element.addEventListener('input', () => {
+          state[token].inputObserved = true;
+        }, { once: true });
+      }, token);
+      await locator.setInputFiles([${files}]);
+      await page.waitForFunction(token => {
+        const state = window.__pwcliUploadSignals?.[token];
+        return Boolean(state?.changeObserved || state?.inputObserved);
+      }, token, { timeout: 750 }).catch(() => null);
+      const settle = await locator.evaluate((element, payload) => {
+        const input = element instanceof HTMLInputElement
+          ? element
+          : element.querySelector('input[type="file"]');
+        const state = element.ownerDocument.defaultView?.__pwcliUploadSignals?.[payload.token] ?? {};
+        const fileCount = input?.files?.length ?? null;
+        const fileNames = input?.files ? Array.from(input.files).map(file => file.name) : [];
+        return {
+          fileCount,
+          fileNames,
+          expectedCount: payload.expectedCount,
+          changeObserved: Boolean(state.changeObserved),
+          inputObserved: Boolean(state.inputObserved),
+          filesMatch: fileCount === payload.expectedCount,
+        };
+      }, { token, expectedCount: ${resolvedFiles.length} });
+      const settled = Boolean(settle.filesMatch && (settle.changeObserved || settle.inputObserved));
+      return JSON.stringify({
+        uploaded: true,
+        settle: { ...settle, settled },
+        nextSteps: settled ? [] : [
+          'Run \`pw wait --session <name> --selector <uploaded-state-selector>\` or \`pw wait --session <name> --response <upload-api>\`',
+          'Verify the page accepted the upload with \`pw verify\`, \`pw get\`, or \`pw read-text\`, then retry if needed',
+        ],
+      });
     }`,
   });
+  const parsed =
+    typeof result.data.result === "object" && result.data.result ? result.data.result : {};
+  const settle =
+    "settle" in parsed && parsed.settle && typeof parsed.settle === "object"
+      ? (parsed.settle as Record<string, unknown>)
+      : {
+          settled: false,
+          fileCount: null,
+          expectedCount: resolvedFiles.length,
+          changeObserved: false,
+          inputObserved: false,
+          filesMatch: false,
+        };
+  const nextSteps = Array.isArray(parsed.nextSteps) ? parsed.nextSteps : [];
   const diagnosticsDelta = await buildDiagnosticsDelta(options.sessionName, before);
   const run = await recordRun("upload", options.sessionName, result.page, {
     target: options.ref ? { ref: normalizeRef(options.ref) } : { selector: options.selector },
-    files: options.files.map((file) => resolve(file)),
+    files: resolvedFiles,
+    settle,
+    nextSteps,
     diagnosticsDelta,
   });
   return {
@@ -1096,8 +1501,10 @@ export async function managedUpload(options: {
     page: result.page,
     data: {
       ...(options.ref ? { ref: normalizeRef(options.ref) } : { selector: options.selector }),
-      files: options.files.map((file) => resolve(file)),
+      files: resolvedFiles,
       uploaded: true,
+      settle,
+      ...(nextSteps.length > 0 ? { nextSteps } : {}),
       diagnosticsDelta,
       run,
     },
@@ -1339,10 +1746,17 @@ export async function managedWait(options: {
   sessionName?: string;
 }) {
   let source = "";
+  let condition: Record<string, unknown> | string = "";
 
   if (options.target && /^\d+$/.test(options.target)) {
+    condition = { kind: "delay", timeoutMs: Number(options.target) };
     source = `async page => { await page.waitForTimeout(${Number(options.target)}); return 'delay'; }`;
   } else if (options.request) {
+    condition = {
+      kind: "request",
+      url: options.request,
+      ...(options.method ? { method: options.method.toUpperCase() } : {}),
+    };
     source = `async page => {
       const request = await page.waitForRequest(request => {
         if (!request.url().includes(${JSON.stringify(options.request)}))
@@ -1353,6 +1767,12 @@ export async function managedWait(options: {
       return JSON.stringify({ kind: 'request', url: request.url(), method: request.method() });
     }`;
   } else if (options.response) {
+    condition = {
+      kind: "response",
+      url: options.response,
+      ...(options.method ? { method: options.method.toUpperCase() } : {}),
+      ...(options.status ? { status: options.status } : {}),
+    };
     source = `async page => {
       const response = await page.waitForResponse(response => {
         if (!response.url().includes(${JSON.stringify(options.response)}))
@@ -1364,21 +1784,32 @@ export async function managedWait(options: {
       return JSON.stringify({ kind: 'response', url: response.url(), method: response.request().method(), status: response.status() });
     }`;
   } else if (options.networkidle) {
+    condition = { kind: "networkidle" };
     source = `async page => { await page.waitForLoadState('networkidle'); return 'networkidle'; }`;
   } else if (options.selector) {
+    condition = { kind: "selector", selector: options.selector };
     source = `async page => { await page.locator(${JSON.stringify(options.selector)}).waitFor(); return 'selector'; }`;
   } else if (options.text) {
+    condition = { kind: "text", text: options.text };
     source = `async page => { await page.getByText(${JSON.stringify(options.text)}, { exact: true }).waitFor(); return 'text'; }`;
   } else if (options.target) {
+    condition = { kind: "ref", ref: normalizeRef(options.target) };
     source = `async page => { await page.locator(${JSON.stringify(`aria-ref=${normalizeRef(options.target)}`)}).waitFor(); return 'ref'; }`;
   } else {
     throw new Error("wait requires a condition");
   }
 
   const before = await captureDiagnosticsBaseline(options.sessionName);
-  const result = await managedRunCode({ source, sessionName: options.sessionName });
+  let result: Awaited<ReturnType<typeof managedRunCode>>;
+  try {
+    result = await managedRunCode({ source, sessionName: options.sessionName });
+  } catch (error) {
+    await recordFailedRun("wait", options.sessionName, undefined, before, error, { condition });
+    throw error;
+  }
   const diagnosticsDelta = await buildDiagnosticsDelta(options.sessionName, before);
   const run = await recordRun("wait", options.sessionName, result.page, {
+    condition,
     diagnosticsDelta,
   });
 

@@ -20,7 +20,7 @@
 4. 改代码
 5. 同步 skill
 6. 同步 architecture docs（如果边界、限制、扩展方向有变化）
-7. 跑 typecheck/build/smoke
+7. 做受影响的最小验证；最终发布/总验收才跑全量 smoke
 ```
 
 ## 结构
@@ -63,13 +63,19 @@ docs/
 
 ## 验证
 
-优先跑：
+日常改动优先：
 
 ```bash
-pnpm typecheck
 pnpm build
-pnpm smoke
+pw <affected-command> ...
 ```
+
+规则：
+
+- alias 已经是 `pw`；构建后直接用 `pw` 做真实、针对性的命令验证。
+- 不默认跑 `pnpm smoke` / 全量 gate。
+- 最终发布、合并前总验收，或用户明确要求时，才跑全量测试。
+- 类型风险明显时再补 `pnpm typecheck`。
 
 ## Review guidelines
 

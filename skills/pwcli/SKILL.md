@@ -28,6 +28,7 @@ description: "Use pwcli for browser automation, page exploration, diagnostics, s
 - `auth` 只执行内置 auth provider，不负责创建 session；没有外部 plugin 机制。
 - 所有浏览器命令显式带 session，实战优先 `-s <name>`，解释 contract 时用 `--session <name>`。
 - session 名最长 16 字符，只用字母、数字、`-`、`_`。
+- 同一个 session 的命令按 per-session lock 串行进入 Playwright；依赖步骤仍按顺序写，不要在外层并发发同一 session 的动作。
 - 默认 stdout 给 Agent 阅读；脚本解析和字段断言才用 `--output json`。
 
 ## 命令风格
@@ -152,18 +153,29 @@ pw verify text -s bug-a --text '保存成功'
 - `page current`：当前 page projection。
 - `read-text`：可见文本，适合快速理解页面。
 - `read-text --include-overlay`：点击 dropdown/modal/popover 后读取浮层文本。
-- `locate/get/is`：窄状态检查；只返回候选、事实或布尔值，不生成动作计划。
+- `locate/get/is`：窄状态检查；`locate` 返回总匹配数和候选 metadata，`get/is` 返回事实或布尔值，不生成动作计划。
 - `verify`：动作和 wait 之后的 read-only 断言；通过/失败都给 Agent 可消费结果，失败返回 `VERIFY_FAILED`。
 - `snapshot -i`：只看可交互节点，找 ref 首选。
 - `snapshot`：完整结构树，需要理解页面层级时再用。
 
-`locate/get/is/verify` 适合脚本断言和低噪声状态读取。需要 fresh ref 或页面结构时继续用 `snapshot -i`；不要把这些命令当 action planner。
+`locate/get/is/verify` 适合脚本断言和低噪声状态读取。`locate` 的 `count` 是总匹配数，候选最多展示前 10 个；根据 `href`、`role/name`、`region`、`ancestor`、`selectorHint` 决定下一步 selector 或语义 locator。需要 fresh ref 或页面结构时继续用 `snapshot -i`；不要把这些命令当 action planner。
 
 需要 ref 点击或结构定位：
 
 ```bash
 pw snapshot -i -s bug-a
 ```
+
+大页面不要直接全量 snapshot。先缩小范围：
+
+```bash
+pw read-text -s bug-a --selector '<main-or-panel>' --max-chars 2000
+pw locate -s bug-a --selector '<candidate-selector>'
+pw snapshot -i -s bug-a
+pw snapshot -c -s bug-a
+```
+
+只有 compact / interactive / scoped 结果不够、且确实需要完整层级时，才跑全量 `pw snapshot -s bug-a`。如果当前命令面暴露 depth 参数，优先用 depth 限制层级，不把全量 snapshot 当默认观察路径。
 
 截图证据：
 
@@ -230,9 +242,13 @@ pw diagnostics digest -s bug-a
 
 ```bash
 pw upload -s bug-a --selector 'input[type=file]' ./fixture.png
+pw wait -s bug-a --selector '.upload-ready'
+pw verify text -s bug-a --text '上传成功'
 pw download -s bug-a --selector 'a.download' --dir ./downloads
 pw download e42 -s bug-a --path ./downloads/report.csv
 ```
+
+`upload` 返回前会 best-effort 等待 input files/change settle。输出出现 `Next steps` 时，说明页面接收态无法完全判定，按提示补 `wait` / `verify` 后再继续。
 
 响应式检查：
 
@@ -300,6 +316,15 @@ pw wait network-idle -s bug-a
 pw diagnostics digest -s bug-a
 ```
 
+如果 action / wait 失败，先查最近 run；失败事件会进入 diagnostics：
+
+```bash
+pw diagnostics runs --session bug-a --limit 5
+pw diagnostics digest --run <runId>
+```
+
+如果 click 返回 `modalPending=true` / `blockedState=MODAL_STATE_BLOCKED`，表示动作已触发 alert/confirm/prompt，先 `pw dialog accept|dismiss -s bug-a`，不要把它当成普通点击失败重试。
+
 查具体接口：
 
 ```bash
@@ -320,7 +345,7 @@ pw diagnostics bundle -s bug-a --out ./bundle-bug-a --limit 20
 回放 run：
 
 ```bash
-pw diagnostics runs -s bug-a --limit 20
+pw diagnostics runs --session bug-a --limit 20
 pw diagnostics show --run <runId> --command click --limit 10
 pw diagnostics grep --run <runId> --text 'CHECKOUT_TIMEOUT' --limit 10
 ```
@@ -332,14 +357,14 @@ Trace / HAR：
 ```bash
 pw trace start -s bug-a
 pw trace stop -s bug-a
-pw trace inspect .pwcli/playwright/traces/trace.zip --section actions
-pw trace inspect .pwcli/playwright/traces/trace.zip --section requests --failed
-pw trace inspect .pwcli/playwright/traces/trace.zip --section console --level error
+pw trace inspect <traceArtifactPath> --section actions
+pw trace inspect <traceArtifactPath> --section requests --failed
+pw trace inspect <traceArtifactPath> --section console --level error
 pw har start ./bug.har -s bug-a
 pw har stop -s bug-a
 ```
 
-`trace inspect` 是离线 trace zip 查询，适合回看 actions / requests / console / errors；它不替代 live `network` / `console` / `diagnostics export`。
+`trace stop` 会输出 `traceArtifactPath` 和 inspect next step。`trace inspect` 是离线 trace artifact 查询，适合回看 actions / requests / console / errors；它不替代 live `network` / `console` / `diagnostics export`。
 
 HAR 热录制当前只暴露 substrate 边界，稳定诊断仍优先 `network` 和 `diagnostics export`。
 
@@ -391,6 +416,31 @@ pw auth <provider> -s auth-a --save-state ./auth.json
 - provider 失败时，按错误信息补参数后重试。
 
 专项 provider 细节不写进主 skill；遇到 provider-specific 失败或参数不确定时，查对应 reference。
+
+Forge / DC / DC2 / 开发者后台：
+
+```text
+if 用户给了具体 Forge/DC URL:
+  pw session create dc-main
+  pw auth dc -s dc-main --arg targetUrl='<url>'
+elif 已有 session 当前页就是 Forge/DC:
+  pw auth dc -s <session>
+else:
+  pw session create dc-main
+  pw auth dc -s dc-main
+
+pw read-text -s dc-main --max-chars 1200
+pw observe status -s dc-main
+```
+
+规则：
+
+- 看到 Forge / DC / DC2 / 开发者后台 / developer console，优先走 `pw auth dc`。
+- 不要求先 `open` Forge 页面；`auth dc` 会解析目标并导航登录。
+- 用户给了 URL 时，把 URL 作为 `--arg targetUrl=<url>` 传给 provider。
+- 用户没给 URL 时，让 provider 使用默认本地 Forge。
+- 不要手填登录表单，不要把 `dc2` 当 `instance`。
+- Forge/DC 登录失败再查 `references/forge-dc-auth.md`。
 
 ## 9. 状态复用
 

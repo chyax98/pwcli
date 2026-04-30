@@ -69,6 +69,7 @@ export function registerTypeCommand(program: Command): void {
     try {
       const sessionName = requireSessionName(options);
       const values = Array.isArray(parts) ? parts : [];
+      const nth = parseNth(options.nth);
       const semantic = buildSemanticTarget(options);
       const ref =
         options.selector || semantic ? undefined : values.length > 1 ? values[0] : undefined;
@@ -86,6 +87,7 @@ export function registerTypeCommand(program: Command): void {
         await managedType({
           ref,
           selector: options.selector,
+          nth: options.selector ? nth : undefined,
           semantic,
           value,
           sessionName,

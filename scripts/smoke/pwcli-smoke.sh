@@ -466,7 +466,7 @@ assert_json "$auth_info_json" "auth info exposes fixture-auth contract" \
   "data.ok === true && data.data.name === 'fixture-auth' && data.data.args.some(item => item.name === 'marker')"
 auth_apply_json="$(run_json auth-apply auth fixture-auth --session "$SESSION_NAME" --arg marker=smoke-auth --save-state "$AUTH_STATE_FILE")"
 assert_json "$auth_apply_json" "auth provider executes and saves state" \
-  "data.ok === true && data.data.provider === 'fixture-auth' && data.data.pageState.authMarker === 'smoke-auth' && data.data.stateSaved === '${AUTH_STATE_FILE}'"
+  "data.ok === true && data.data.provider === 'fixture-auth' && !('args' in data.data) && data.data.pageState.authMarker === 'smoke-auth' && data.data.stateSaved === '${AUTH_STATE_FILE}'"
 storage_after_auth_json="$(run_json storage-after-auth storage local --session "$SESSION_NAME")"
 assert_json "$storage_after_auth_json" "auth provider writes local storage marker" \
   "data.ok === true && data.data.entries['pwcli-auth-marker'] === 'smoke-auth'"
