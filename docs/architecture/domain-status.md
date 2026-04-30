@@ -23,7 +23,7 @@
   - trace
   - diagnostics records
   - run artifacts
-- same-session managed command dispatch uses a per-session lock before entering the Playwright substrate; lock timeout reports recoverable `SESSION_BUSY`
+- same-session lifecycle startup/reset/close and managed command dispatch use a per-session lock before entering the Playwright substrate; lock timeout reports recoverable `SESSION_BUSY`
 
 ### 当前限制
 

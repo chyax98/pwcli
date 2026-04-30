@@ -11,7 +11,7 @@ state / auth / batch / environment 命令见 `command-reference-advanced.md`。
 
 **session 规则**：最大 16 字符，允许 `[a-zA-Z0-9_-]`。错误码：`SESSION_REQUIRED` / `SESSION_NAME_TOO_LONG` / `SESSION_NAME_INVALID` / `SESSION_BUSY`。
 
-**同 session 串行化**：同一个 session 上的 managed command 会用 per-session lock 串行进入 Playwright substrate；如果等待锁超时，返回可重试的 `SESSION_BUSY`。依赖步骤仍然按顺序发，稳定子集可用 `pw batch --session <name>`。
+**同 session 串行化**：同一个 session 上的 lifecycle startup/reset/close 和 managed command dispatch 都会用 per-session lock 串行进入 Playwright substrate；如果等待锁超时，返回可重试的 `SESSION_BUSY`。依赖步骤仍然按顺序发，稳定子集可用 `pw batch --session <name>`。
 
 **输出模式**：默认 agent-readable text。脚本解析加 `--output json`，envelope 为 `{ ok, command, session, page, data }` / `{ ok, command, error: { code, message, retryable, suggestions } }`。
 
@@ -24,6 +24,7 @@ state / auth / batch / environment 命令见 `command-reference-advanced.md`。
 - `--headed` / `--headless`、`--trace` / `--no-trace`
 - 默认打开 `about:blank`；`--state` 在创建后加载
 - `--profile` 与 `--from-system-chrome` 互斥；系统 Chrome profile 正被 Chrome 使用时，底层可能返回 profile locked，需要关闭 Chrome 或换 profile
+- 同名 session 的并发 create/reset 会按 per-session lock 串行；Agent 不应并发发同名 lifecycle 命令
 
 ### `pw session attach <name>`
 
@@ -34,6 +35,7 @@ state / auth / batch / environment 命令见 `command-reference-advanced.md`。
 
 - `--headed` / `--headless`、`--open <url>`、`--trace` / `--no-trace`
 - 关闭并重建；尝试保存并恢复 state
+- stop + startup + registry load 受同一把 per-session lock 保护
 
 ### `pw session list`
 

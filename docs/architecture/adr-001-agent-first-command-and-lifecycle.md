@@ -43,6 +43,7 @@ Agent 不需要多套同义入口，它需要稳定、窄、可预测的 contrac
 
 - lifecycle 只有一条心智模型
 - session shape 只在生命周期命令上变化
+- 同名 session 的 create/reset/close/startup 与 command dispatch 共享 per-session lock
 - `open` / `auth` / `profile` 语义更窄
 - skill 可以给出唯一教程
 

@@ -34,6 +34,7 @@ Meaning:
 
 - another command is still running on the same session
 - pwcli queued for the per-session lock but timed out before dispatching to Playwright
+- lifecycle startup/reset/close for the same session is still in progress
 
 Recovery:
 
@@ -42,7 +43,7 @@ pw session status bug-a
 pw wait --session bug-a --selector '<expected-ready-state>'
 ```
 
-Then retry the original command. Keep dependent steps sequential, or put stable same-session steps in `pw batch --session <name>`.
+Then retry the original command. Keep dependent steps sequential, do not issue concurrent `session create|recreate|close` for the same name, or put stable same-session steps in `pw batch --session <name>`.
 
 ## System Chrome profile failures
 

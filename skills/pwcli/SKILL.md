@@ -28,7 +28,7 @@ description: "Use pwcli for browser automation, page exploration, diagnostics, s
 - `auth` 只执行内置 auth provider，不负责创建 session；没有外部 plugin 机制。
 - 所有浏览器命令显式带 session，实战优先 `-s <name>`，解释 contract 时用 `--session <name>`。
 - session 名最长 16 字符，只用字母、数字、`-`、`_`。
-- 同一个 session 的命令按 per-session lock 串行进入 Playwright；依赖步骤仍按顺序写，不要在外层并发发同一 session 的动作。
+- 同一个 session 的 lifecycle startup/reset/close 和命令 dispatch 按 per-session lock 串行进入 Playwright；依赖步骤仍按顺序写，不要在外层并发发同一 session 的动作或同名 lifecycle 命令。
 - 默认 stdout 给 Agent 阅读；脚本解析和字段断言才用 `--output json`。
 
 ## 命令风格

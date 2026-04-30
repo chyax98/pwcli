@@ -56,6 +56,17 @@ type PlaywrightBrowserServerDescriptor = {
   };
 };
 
+type EnsureManagedSessionOptions = {
+  sessionName?: string;
+  headed?: boolean;
+  reset?: boolean;
+  profile?: string;
+  persistent?: boolean;
+  endpoint?: string;
+  createIfMissing?: boolean;
+  config?: string;
+};
+
 export type AttachableBrowserServer = {
   id: string;
   title: string;
@@ -367,22 +378,11 @@ export async function getManagedSessionStatus(sessionName?: string) {
   };
 }
 
-export async function ensureManagedSession(options?: {
-  sessionName?: string;
-  headed?: boolean;
-  reset?: boolean;
-  profile?: string;
-  persistent?: boolean;
-  endpoint?: string;
-  createIfMissing?: boolean;
-  config?: string;
-}) {
+async function ensureManagedSessionUnlocked(options?: EnsureManagedSessionOptions) {
   const { clientInfo, registry, sessionName, entry } = await getSessionEntry(options?.sessionName);
 
   if (entry && options?.reset) {
-    await withSessionCommandLock(clientInfo.workspaceDir, sessionName, async () => {
-      await stopSessionEntry(entry);
-    });
+    await stopSessionEntry(entry);
   }
 
   if (!entry && !options?.createIfMissing && !options?.reset) {
@@ -418,28 +418,29 @@ export async function ensureManagedSession(options?: {
   };
 }
 
+export async function ensureManagedSession(options?: EnsureManagedSessionOptions) {
+  const { clientInfo, sessionName } = await getSessionEntry(options?.sessionName);
+  return await withSessionCommandLock(clientInfo.workspaceDir, sessionName, async () => {
+    return await ensureManagedSessionUnlocked(options);
+  });
+}
+
 export async function runManagedSessionCommand(
   args: Record<string, unknown>,
-  options?: {
-    sessionName?: string;
-    headed?: boolean;
-    reset?: boolean;
-    profile?: string;
-    persistent?: boolean;
-    endpoint?: string;
-    createIfMissing?: boolean;
+  options?: EnsureManagedSessionOptions & {
     timeoutMs?: number;
     timeoutMessage?: string;
     timeoutCode?: string;
-    config?: string;
   },
 ) {
-  const { clientInfo, sessionName, session } = await ensureManagedSession(options);
-  const text = await withSessionCommandLock(clientInfo.workspaceDir, sessionName, async (lock) => {
-    const run = session.run(clientInfo, {
+  const { clientInfo, sessionName } = await getSessionEntry(options?.sessionName);
+  return await withSessionCommandLock(clientInfo.workspaceDir, sessionName, async (lock) => {
+    const ensured = await ensureManagedSessionUnlocked(options);
+    const { clientInfo: ensuredClientInfo, sessionName: ensuredSessionName, session } = ensured;
+    const run = session.run(ensuredClientInfo, {
       ...args,
     });
-    return options?.timeoutMs
+    const text = options?.timeoutMs
       ? await withManagedSessionTimeout(run, {
           timeoutMs: options.timeoutMs,
           timeoutMessage: options.timeoutMessage,
@@ -447,11 +448,11 @@ export async function runManagedSessionCommand(
           onTimeout: () => lock.releaseAfter(run),
         })
       : await run;
+    return {
+      sessionName: ensuredSessionName,
+      text: text.text,
+    };
   });
-  return {
-    sessionName,
-    text: text.text,
-  };
 }
 
 async function withManagedSessionTimeout<T>(
