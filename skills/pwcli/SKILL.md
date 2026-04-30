@@ -105,6 +105,15 @@ pw session create bug-a --headed --open 'https://example.com'
 pw session create bug-a --headless --open 'https://example.com'
 ```
 
+复用用户本机 Chrome 登录态：
+
+```bash
+pw profile list-chrome
+pw session create bug-a --from-system-chrome --chrome-profile Default --headed --open 'https://example.com'
+```
+
+`--from-system-chrome` 是 session lifecycle 能力，不是 `auth`。它用本机 Chrome user data dir 和 profile-directory 启动 managed session；如果 Chrome 正在使用同一个 profile，可能需要先关闭 Chrome 或换一个 profile。
+
 已有 session 内换 URL：
 
 ```bash
@@ -484,7 +493,9 @@ Profile 检查：
 
 ```bash
 pw profile inspect ./profile
+pw profile list-chrome
 pw session create bug-a --profile ./profile --persistent --headed --open 'https://example.com'
+pw session create bug-a --from-system-chrome --chrome-profile Default --headed --open 'https://example.com'
 ```
 
 ## 10. Controlled Testing

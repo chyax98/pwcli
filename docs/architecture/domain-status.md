@@ -101,6 +101,7 @@
 - `cookies list|set`
 - `storage local|session` read + current-origin `get|set|delete|clear`
 - `profile inspect`
+- `profile list-chrome` discovers local Chrome profiles for `session create --from-system-chrome`
 - `auth` 内置 provider 执行 + `save-state`
 - `dc` 是内置 DC/Forge auth provider；默认手机号和验证码内聚在 provider 内，目标解析顺序为显式 `targetUrl`、当前 Forge 页面、默认本地 Forge
 - `fixture-auth` 是内部 contract 测试 provider，用于 smoke 验证 auth 执行链
@@ -109,6 +110,7 @@
 
 - `storage local|session get|set|delete|clear` 只作用于当前页 origin，不做跨 origin storage 编辑
 - `auth` 不负责 session shape
+- `--from-system-chrome` 不复制 profile；它用 Chrome user data dir + profile-directory 启动 session，因此同 profile 被 Chrome 占用时会失败
 - `dc` 不接受 `instance` 参数；不暴露环境参数，用户给具体业务 URL 时由 skill 作为 `targetUrl` 传入
 - `profile open` 已移除
 - 当前没有外部 plugin 加载、安装、发现、生命周期机制

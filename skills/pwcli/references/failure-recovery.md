@@ -44,6 +44,24 @@ pw wait --session bug-a --selector '<expected-ready-state>'
 
 Then retry the original command. Keep dependent steps sequential, or put stable same-session steps in `pw batch --session <name>`.
 
+## System Chrome profile failures
+
+### `CHROME_PROFILE_NOT_FOUND`
+
+Meaning:
+
+- `pw session create --from-system-chrome` could not find the requested Chrome profile directory or display name
+- or no local Chrome user data dir was discovered
+
+Recovery:
+
+```bash
+pw profile list-chrome
+pw session create bug-a --from-system-chrome --chrome-profile Default --headed --open '<url>'
+```
+
+If Chrome reports that the profile is already in use, close Chrome fully or choose another profile. This path reuses the user's Chrome profile as session startup state; it is not an auth provider.
+
 ## Dashboard launch failures
 
 ### `DASHBOARD_UNAVAILABLE`

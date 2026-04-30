@@ -12,6 +12,7 @@ export async function managedOpen(
     profile?: string;
     persistent?: boolean;
     endpoint?: string;
+    config?: string;
   },
 ) {
   const result = await runManagedSessionCommand(
@@ -25,6 +26,7 @@ export async function managedOpen(
       profile: options?.profile,
       persistent: options?.persistent,
       endpoint: options?.endpoint,
+      config: options?.config,
       createIfMissing: true,
     },
   );
@@ -43,6 +45,7 @@ export async function managedOpen(
       ...(options?.profile ? { profile: options.profile } : {}),
       ...(options?.persistent ? { persistent: true } : {}),
       ...(options?.endpoint ? { endpoint: options.endpoint } : {}),
+      ...(options?.config ? { config: options.config } : {}),
       ...maybeRawOutput(result.text),
     },
   };

@@ -43,6 +43,12 @@
 
 - 检查 profile 路径是否存在、可写、可用
 
+### `pw profile list-chrome`
+
+- 列出本机 Chrome profiles，输出 `directory`、`name`、`userDataDir`、`profilePath`
+- 配合 `pw session create --from-system-chrome --chrome-profile <directory-or-name>` 使用
+- 这是 session 启动身份来源，不是 `auth provider`
+
 ## Auth
 
 ### `pw auth list`

@@ -57,9 +57,11 @@ Agent 不需要多套同义入口，它需要稳定、窄、可预测的 contrac
 
 - `session attach --browser-url/--cdp` 只能接管当前机器上可连接的浏览器调试端口
 - `session status` 只做快速状态检查，不保证页面忙、弹窗阻塞、浏览器断连时仍能返回完整页面信息
+- `session create --from-system-chrome` 复用本机 Chrome profile 时依赖 Chrome user data dir；如果同一个 profile 正被 Chrome 使用，底层可能拒绝启动，需要用户关闭 Chrome 或换 profile
 
 ## 后续扩展原则
 
 - 新 lifecycle 能力只允许长在 `session create|attach|recreate`
 - 其它命令如果要碰 session shape，需要先过这条 ADR
 - 如果未来要扩 raw CDP substrate，也只能落在 `session attach`
+- 从用户浏览器拿登录态优先走 `session create --from-system-chrome` 或 `state save|load`；不要把这类 session shape 选择塞进 `auth`

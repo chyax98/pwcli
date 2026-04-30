@@ -2,6 +2,7 @@ import { accessSync, constants, existsSync, lstatSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, resolve } from "node:path";
 import type { Command } from "commander";
+import { listChromeProfiles } from "../../infra/system-chrome/profiles.js";
 import { printCommandResult } from "../output.js";
 
 function expandPath(input: string) {
@@ -42,6 +43,19 @@ function inspectProfilePath(input: string) {
 
 export function registerProfileCommand(program: Command): void {
   const profile = program.command("profile").description("Inspect browser profile paths");
+
+  profile
+    .command("list-chrome")
+    .description("List local Chrome profiles available for session create --from-system-chrome")
+    .action(async () => {
+      const profiles = await listChromeProfiles();
+      printCommandResult("profile list-chrome", {
+        data: {
+          count: profiles.length,
+          profiles,
+        },
+      });
+    });
 
   profile
     .command("inspect <path>")

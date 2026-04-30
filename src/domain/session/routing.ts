@@ -54,6 +54,22 @@ export function sessionRoutingError(message: string) {
     };
   }
 
+  if (message.startsWith("CHROME_PROFILE_NOT_FOUND")) {
+    const [, profile] = message.split(":");
+    return {
+      code: "CHROME_PROFILE_NOT_FOUND",
+      message: profile
+        ? `Chrome profile '${profile}' was not found.`
+        : "No local Chrome profiles were found.",
+      suggestions: [
+        "Run `pw profile list-chrome` to inspect available Chrome profiles",
+        "Retry with `pw session create <name> --from-system-chrome --chrome-profile <directory-or-name> --open <url>`",
+        "If Chrome is installed in a non-standard location, set PWCLI_CHROME_USER_DATA_DIR to the Chrome user data directory",
+      ],
+      details: profile ? { profile } : undefined,
+    };
+  }
+
   if (message.startsWith("SESSION_NAME_TOO_LONG:")) {
     const [, name, limit] = message.split(":");
     return {

@@ -30,6 +30,7 @@ type ManagedSessionConfig = {
   browser?: {
     launchOptions?: {
       headless?: boolean;
+      args?: string[];
     };
     userDataDir?: string;
   };
@@ -268,7 +269,11 @@ async function withSessionCommandLock<T>(
 }
 
 async function stopSessionEntry(entry: ManagedSessionEntry) {
-  await new Session(entry).stop(true);
+  const session = new Session(entry);
+  await session.stop(true);
+  if (typeof session.deleteSessionConfig === "function") {
+    await session.deleteSessionConfig();
+  }
 }
 
 export async function getManagedSessionEntry(sessionName?: string) {
@@ -370,6 +375,7 @@ export async function ensureManagedSession(options?: {
   persistent?: boolean;
   endpoint?: string;
   createIfMissing?: boolean;
+  config?: string;
 }) {
   const { clientInfo, registry, sessionName, entry } = await getSessionEntry(options?.sessionName);
 
@@ -397,6 +403,7 @@ export async function ensureManagedSession(options?: {
                   ...(options?.profile ? { profile: options.profile } : {}),
                   ...(options?.persistent ? { persistent: true } : {}),
                   ...(options?.endpoint ? { endpoint: options.endpoint } : {}),
+                  ...(options?.config ? { config: options.config } : {}),
                 }),
               ),
           );
@@ -424,6 +431,7 @@ export async function runManagedSessionCommand(
     timeoutMs?: number;
     timeoutMessage?: string;
     timeoutCode?: string;
+    config?: string;
   },
 ) {
   const { clientInfo, sessionName, session } = await ensureManagedSession(options);

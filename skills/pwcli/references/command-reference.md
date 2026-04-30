@@ -20,8 +20,10 @@ state / auth / batch / environment 命令见 `command-reference-advanced.md`。
 ### `pw session create <name>`
 
 - `--open <url>`、`--profile <path>`、`--persistent`、`--state <file>`
+- `--from-system-chrome`、`--chrome-profile <directory-or-name>`：从本机 Chrome profile 启动 session，复用已有登录态
 - `--headed` / `--headless`、`--trace` / `--no-trace`
 - 默认打开 `about:blank`；`--state` 在创建后加载
+- `--profile` 与 `--from-system-chrome` 互斥；系统 Chrome profile 正被 Chrome 使用时，底层可能返回 profile locked，需要关闭 Chrome 或换 profile
 
 ### `pw session attach <name>`
 

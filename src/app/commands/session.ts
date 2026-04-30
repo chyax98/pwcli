@@ -19,6 +19,7 @@ import {
   stopManagedSession,
 } from "../../domain/session/service.js";
 import { parsePageSummary } from "../../infra/playwright/output-parsers.js";
+import { writeChromeProfileConfig } from "../../infra/system-chrome/profiles.js";
 import { printCommandError, printCommandResult } from "../output.js";
 import { attachManagedSession, resolveAttachTarget } from "./attach-shared.js";
 
@@ -78,6 +79,11 @@ export function registerSessionCommand(program: Command): void {
     .description("Create a named managed session")
     .option("--open <url>", "Open a URL in the new session")
     .option("--profile <path>", "Use a persistent browser profile")
+    .option("--from-system-chrome", "Use a local Chrome profile as the session profile source")
+    .option(
+      "--chrome-profile <name>",
+      "Chrome profile directory or display name for --from-system-chrome",
+    )
     .option("--persistent", "Use a persistent browser profile")
     .option("--state <file>", "Load storage state after session creation")
     .option("--headed", "Launch a visible browser window")
@@ -90,6 +96,8 @@ export function registerSessionCommand(program: Command): void {
         options: {
           open?: string;
           profile?: string;
+          fromSystemChrome?: boolean;
+          chromeProfile?: string;
           persistent?: boolean;
           state?: string;
           headed?: boolean;
@@ -108,15 +116,26 @@ export function registerSessionCommand(program: Command): void {
           if (options.headed && options.headless) {
             throw new Error("session create accepts either --headed or --headless, not both");
           }
+          if (options.profile && (options.fromSystemChrome || options.chromeProfile)) {
+            throw new Error(
+              "session create accepts either --profile or --from-system-chrome, not both",
+            );
+          }
           const defaults = await getSessionDefaults();
           const headed = await resolveLifecycleHeaded(options);
           const traceEnabled = await resolveTraceEnabled(options);
-          const persistent = options.persistent || Boolean(options.profile);
+          const systemChrome =
+            options.fromSystemChrome || options.chromeProfile
+              ? await writeChromeProfileConfig(name, options.chromeProfile)
+              : undefined;
+          const persistent =
+            options.persistent || Boolean(options.profile) || Boolean(systemChrome);
           await managedOpen("about:blank", {
             sessionName: name,
             headed,
             profile: options.profile,
             persistent,
+            ...(systemChrome ? { config: systemChrome.configPath } : {}),
             reset: true,
           });
 
@@ -152,6 +171,12 @@ export function registerSessionCommand(program: Command): void {
               appliedDefaults,
               headed,
               traceEnabled,
+              ...(systemChrome
+                ? {
+                    systemChromeProfile: systemChrome.profile,
+                    config: systemChrome.configPath,
+                  }
+                : {}),
               ...(options.state ? { stateLoaded: options.state } : {}),
             },
           });
@@ -290,6 +315,15 @@ export function registerSessionCommand(program: Command): void {
           const headed = options.headed ? true : options.headless ? false : currentHeaded;
           const traceEnabled = await resolveTraceEnabled(options);
           const profile = entry.config.browser?.userDataDir;
+          const chromeProfileDirectory = entry.config.browser?.launchOptions?.args
+            ?.find((arg) => arg.startsWith("--profile-directory="))
+            ?.slice("--profile-directory=".length);
+          const systemChrome =
+            chromeProfileDirectory && profile
+              ? await writeChromeProfileConfig(name, chromeProfileDirectory, {
+                  userDataDir: profile,
+                })
+              : undefined;
           const persistent = Boolean(entry.config.cli?.persistent || profile);
           const targetUrl = options.open ?? currentPage?.url ?? "about:blank";
 
@@ -305,8 +339,8 @@ export function registerSessionCommand(program: Command): void {
           await managedOpen(stateSaved ? "about:blank" : targetUrl, {
             sessionName: name,
             headed,
-            ...(profile ? { profile } : {}),
-            ...(persistent ? { persistent: true } : {}),
+            ...(systemChrome ? { config: systemChrome.configPath } : profile ? { profile } : {}),
+            ...(systemChrome || persistent ? { persistent: true } : {}),
             reset: true,
           });
 
@@ -340,6 +374,12 @@ export function registerSessionCommand(program: Command): void {
               defaults,
               appliedDefaults,
               traceEnabled,
+              ...(systemChrome
+                ? {
+                    systemChromeProfile: systemChrome.profile,
+                    config: systemChrome.configPath,
+                  }
+                : {}),
               ...(profile ? { profile } : {}),
               ...(persistent ? { persistent: true } : {}),
               ...(options.open ? { openedUrl: options.open } : {}),
