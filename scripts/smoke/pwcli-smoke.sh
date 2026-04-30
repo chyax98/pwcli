@@ -323,7 +323,7 @@ log "state check primitives"
 locate_json="$(run_json locate-text locate --session "$SESSION_NAME" --text "pwcli deterministic fixture")"
 assert_json "$locate_json" "locate text returns candidates" \
   "data.ok === true && data.data.count >= 1 && Array.isArray(data.data.candidates)"
-state_target_setup_json="$(run_json state-target-setup code --session "$SESSION_NAME" "async page => { await page.evaluate(() => { const main = document.querySelector('main'); const labelled = document.createElement('label'); labelled.textContent = 'State Email'; const labelledInput = document.createElement('input'); labelledInput.id = 'state-email'; labelledInput.value = 'agent@example.com'; labelled.appendChild(labelledInput); const placeholderInput = document.createElement('input'); placeholderInput.placeholder = 'State Search'; placeholderInput.value = 'query'; const firstRow = document.createElement('div'); firstRow.className = 'verify-row'; firstRow.textContent = 'row one'; const secondRow = document.createElement('div'); secondRow.className = 'verify-row'; secondRow.textContent = 'row two'; main.append(labelled, placeholderInput, firstRow, secondRow); }); return 'state-targets-ready'; }")"
+state_target_setup_json="$(run_json state-target-setup code --session "$SESSION_NAME" "async page => { await page.evaluate(() => { const main = document.querySelector('main'); const labelled = document.createElement('label'); labelled.textContent = 'State Email'; const labelledInput = document.createElement('input'); labelledInput.id = 'state-email'; labelledInput.value = 'agent@example.com'; labelled.appendChild(labelledInput); const placeholderInput = document.createElement('input'); placeholderInput.placeholder = 'State Search'; placeholderInput.value = 'query'; const firstRow = document.createElement('div'); firstRow.className = 'verify-row'; firstRow.textContent = 'row one'; const secondRow = document.createElement('div'); secondRow.className = 'verify-row'; secondRow.textContent = 'row two'; const manyRows = Array.from({ length: 12 }, (_, index) => { const row = document.createElement('div'); row.className = 'locate-many-row'; row.textContent = 'locate many row ' + (index + 1); return row; }); main.append(labelled, placeholderInput, firstRow, secondRow, ...manyRows); }); return 'state-targets-ready'; }")"
 assert_json "$state_target_setup_json" "state target fixture installed" \
   "data.ok === true && data.data.result === 'state-targets-ready'"
 label_get_json="$(run_json get-label get value --session "$SESSION_NAME" --label "State Email")"
@@ -335,6 +335,12 @@ assert_json "$placeholder_get_json" "get supports placeholder target" \
 nth_get_json="$(run_json get-nth get text --session "$SESSION_NAME" --selector ".verify-row" --nth 2)"
 assert_json "$nth_get_json" "get supports nth target disambiguation" \
   "data.ok === true && data.data.value.includes('row two')"
+locate_nth_json="$(run_json locate-nth locate --session "$SESSION_NAME" --selector ".verify-row" --nth 2)"
+assert_json "$locate_nth_json" "locate supports nth target disambiguation" \
+  "data.ok === true && data.data.count === 2 && data.data.candidates.length === 1 && data.data.candidates[0].index === 2 && data.data.candidates[0].text.includes('row two')"
+locate_many_json="$(run_json locate-many locate --session "$SESSION_NAME" --selector ".locate-many-row")"
+assert_json "$locate_many_json" "locate preserves total count when candidates are capped" \
+  "data.ok === true && data.data.count === 12 && data.data.candidates.length === 10"
 count_json="$(run_json get-count get count --session "$SESSION_NAME" --selector "body")"
 assert_json "$count_json" "get count returns number" \
   "data.ok === true && typeof data.data.value === 'number' && data.data.value >= 1"

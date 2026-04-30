@@ -114,13 +114,18 @@ export async function managedLocate(options: { sessionName?: string; target: Sta
     sessionName: options.sessionName,
     source: `async page => {
       const locator = ${targetBaseExpression(options.target)};
+      const target = ${JSON.stringify(options.target)};
+      const nth = typeof target.nth === 'number' ? Math.max(1, Math.floor(target.nth)) : null;
       const count = await locator.count();
-      const candidates = await locator.evaluateAll(nodes => nodes.slice(0, 10).map((node, index) => ({
-        index: index + 1,
-        text: (node.textContent || '').trim().slice(0, 160),
-        tagName: node.tagName.toLowerCase(),
-        visible: !!(node.offsetWidth || node.offsetHeight || node.getClientRects().length),
-      })));
+      const candidates = await locator.evaluateAll((nodes, nth) => {
+        const selected = nth ? nodes.slice(nth - 1, nth) : nodes.slice(0, 10);
+        return selected.map((node, index) => ({
+          index: nth ? nth : index + 1,
+          text: (node.textContent || '').trim().slice(0, 160),
+          tagName: node.tagName.toLowerCase(),
+          visible: !!(node.offsetWidth || node.offsetHeight || node.getClientRects().length),
+        }));
+      }, nth);
       return JSON.stringify({ count, candidates });
     }`,
   });
