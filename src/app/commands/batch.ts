@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import type { Command } from "commander";
 import { runBatch } from "../batch/run-batch.js";
-import { printCommandResult } from "../output.js";
+import { printCommandError, printCommandResult } from "../output.js";
 import {
   addSessionOption,
   printSessionAwareCommandError,
@@ -69,14 +69,27 @@ export function registerBatchCommand(program: Command): void {
           throw new Error("batch requires --file <path> or --stdin-json stdin input");
         }
         const commands = parseBatchCommands(input);
+        const result = await runBatch({
+          sessionName,
+          commands,
+          continueOnError: options.continueOnError,
+          includeResults: options.includeResults,
+          summaryOnly: options.summaryOnly,
+        });
+        const summary = result.summary;
+        if (!options.continueOnError && summary.failedCount > 0) {
+          printCommandError("batch", {
+            code: "BATCH_STEP_FAILED",
+            message: summary.firstFailureMessage ?? "batch step failed",
+            retryable: true,
+            suggestions: summary.firstFailureSuggestions ?? [],
+            details: result as unknown as Record<string, unknown>,
+          });
+          process.exitCode = 1;
+          return;
+        }
         printCommandResult("batch", {
-          data: await runBatch({
-            sessionName,
-            commands,
-            continueOnError: options.continueOnError,
-            includeResults: options.includeResults,
-            summaryOnly: options.summaryOnly,
-          }),
+          data: result,
         });
       } catch (error) {
         const message = error instanceof Error ? error.message : "batch failed";

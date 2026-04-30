@@ -299,7 +299,7 @@ async function executeBatchStep(tokens: string[], sessionName: string) {
         data: await managedOpen(args[0], { sessionName, reset: false }),
       };
     case "code": {
-      const source = rawStep.slice(rawStep.indexOf("code") + 4).trim();
+      const source = args.join(" ").trim();
       if (!source) {
         throw new Error(`batch step '${rawStep}' requires inline code`);
       }

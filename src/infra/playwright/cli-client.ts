@@ -288,16 +288,53 @@ export async function runManagedSessionCommand(
     persistent?: boolean;
     endpoint?: string;
     createIfMissing?: boolean;
+    timeoutMs?: number;
+    timeoutMessage?: string;
+    timeoutCode?: string;
   },
 ) {
   const { clientInfo, sessionName, session } = await ensureManagedSession(options);
-  const text = await session.run(clientInfo, {
+  const run = session.run(clientInfo, {
     ...args,
   });
+  const text = options?.timeoutMs
+    ? await withManagedSessionTimeout(run, {
+        timeoutMs: options.timeoutMs,
+        timeoutMessage: options.timeoutMessage,
+        timeoutCode: options.timeoutCode,
+      })
+    : await run;
   return {
     sessionName,
     text: text.text,
   };
+}
+
+async function withManagedSessionTimeout<T>(
+  operation: Promise<T>,
+  options: {
+    timeoutMs: number;
+    timeoutMessage?: string;
+    timeoutCode?: string;
+  },
+) {
+  let timer: NodeJS.Timeout | undefined;
+  try {
+    return await Promise.race([
+      operation,
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => {
+          const code = options.timeoutCode ?? "MANAGED_COMMAND_TIMEOUT";
+          const message = options.timeoutMessage ?? "managed session command timed out";
+          reject(new Error(`${code}:${message}`));
+        }, options.timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timer) {
+      clearTimeout(timer);
+    }
+  }
 }
 
 export async function stopManagedSession(sessionName?: string) {

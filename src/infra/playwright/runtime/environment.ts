@@ -1,7 +1,4 @@
-import { createRequire } from "node:module";
-import type { Socket } from "node:net";
-import { dirname, join } from "node:path";
-import { ensureManagedSession } from "../cli-client.js";
+import { runManagedSessionCommand } from "../cli-client.js";
 import {
   parseErrorText,
   parseJsonStringLiteral,
@@ -28,27 +25,6 @@ type ManagedEnvironmentRunCodeResult = {
   };
 };
 
-type SessionLike = {
-  name: string;
-  isCompatible(clientInfo: unknown): boolean;
-  _connect(): Promise<{ socket?: Socket; error?: Error }>;
-};
-
-const require = createRequire(import.meta.url);
-const playwrightCoreRoot = dirname(require.resolve("playwright-core/package.json"));
-const socketConnectionModule = require(
-  join(playwrightCoreRoot, "lib/tools/utils/socketConnection.js"),
-);
-const { SocketConnection } = socketConnectionModule as {
-  SocketConnection: new (
-    socket: Socket,
-  ) => {
-    onmessage?: (message: { id?: number; result?: { text?: string }; error?: string }) => void;
-    onclose?: () => void;
-    send(message: Record<string, unknown>): Promise<void>;
-    close(): void;
-  };
-};
 const ENVIRONMENT_TIMEOUT_MS = 4000;
 
 function environmentSessionResult(
@@ -86,141 +62,21 @@ function parseEnvironmentMutationResult(
   return payload as Record<string, unknown>;
 }
 
-class TimeoutSocketConnectionClient {
-  private readonly connection: {
-    onmessage?: (message: { id?: number; result?: { text?: string }; error?: string }) => void;
-    onclose?: () => void;
-    send(message: Record<string, unknown>): Promise<void>;
-    close(): void;
-  };
-
-  private nextMessageId = 1;
-
-  private readonly callbacks = new Map<
-    number,
-    {
-      resolve: (value: { text?: string }) => void;
-      reject: (error: Error) => void;
-      timer: NodeJS.Timeout;
-    }
-  >();
-
-  constructor(socket: Socket) {
-    this.connection = new SocketConnection(socket);
-    this.connection.onmessage = (message) => this.onMessage(message);
-    this.connection.onclose = () => this.rejectCallbacks(new Error("Session closed"));
-  }
-
-  async send(
-    method: string,
-    params: Record<string, unknown>,
-    timeoutMs: number,
-    timeoutMessage: string,
-  ) {
-    const messageId = this.nextMessageId++;
-    const responsePromise = new Promise<{ text?: string }>((resolve, reject) => {
-      const timer = setTimeout(() => {
-        this.callbacks.delete(messageId);
-        this.connection.close();
-        reject(new Error(`ENVIRONMENT_LIMITATION:${timeoutMessage}`));
-      }, timeoutMs);
-      this.callbacks.set(messageId, { resolve, reject, timer });
-    });
-    await this.connection.send({
-      id: messageId,
-      method,
-      params,
-    });
-    return await responsePromise;
-  }
-
-  static async sendAndClose(
-    socket: Socket,
-    method: string,
-    params: Record<string, unknown>,
-    timeoutMs: number,
-    timeoutMessage: string,
-  ) {
-    const connection = new TimeoutSocketConnectionClient(socket);
-    try {
-      return await connection.send(method, params, timeoutMs, timeoutMessage);
-    } finally {
-      connection.close();
-    }
-  }
-
-  close() {
-    this.connection.close();
-  }
-
-  private onMessage(message: { id?: number; result?: { text?: string }; error?: string }) {
-    if (!message.id) {
-      throw new Error(`Unexpected message without id: ${JSON.stringify(message)}`);
-    }
-    const callback = this.callbacks.get(message.id);
-    if (!callback) {
-      throw new Error(`Unexpected message id: ${message.id}`);
-    }
-    this.callbacks.delete(message.id);
-    clearTimeout(callback.timer);
-    if (message.error) {
-      callback.reject(new Error(message.error));
-      return;
-    }
-    callback.resolve(message.result ?? {});
-  }
-
-  private rejectCallbacks(error: Error) {
-    for (const callback of this.callbacks.values()) {
-      clearTimeout(callback.timer);
-      callback.reject(error);
-    }
-    this.callbacks.clear();
-  }
-}
-
-async function runManagedEnvironmentCommand(
-  args: Record<string, unknown>,
-  options: ManagedEnvironmentOptions,
-  timeoutMessage: string,
-) {
-  const { clientInfo, sessionName, session } = await ensureManagedSession({
-    sessionName: options.sessionName,
-  });
-  const managedSession = session as unknown as SessionLike;
-  if (!managedSession.isCompatible(clientInfo)) {
-    throw new Error(
-      `ENVIRONMENT_LIMITATION:Managed session '${managedSession.name}' is not compatible with the current client runtime.`,
-    );
-  }
-  const { socket } = await managedSession._connect();
-  if (!socket) {
-    throw new Error(`SESSION_NOT_FOUND:${sessionName}`);
-  }
-  const result = await TimeoutSocketConnectionClient.sendAndClose(
-    socket,
-    "run",
-    { args, cwd: process.cwd() },
-    ENVIRONMENT_TIMEOUT_MS,
-    timeoutMessage,
-  );
-  return {
-    sessionName,
-    text: result.text ?? "",
-  };
-}
-
 async function managedEnvironmentRunCode(
   source: string,
   options: ManagedEnvironmentOptions,
   timeoutMessage: string,
 ): Promise<ManagedEnvironmentRunCodeResult> {
-  const result = await runManagedEnvironmentCommand(
+  const result = await runManagedSessionCommand(
     {
       _: ["run-code", source],
     },
-    options,
-    timeoutMessage,
+    {
+      sessionName: options.sessionName,
+      timeoutMs: ENVIRONMENT_TIMEOUT_MS,
+      timeoutMessage,
+      timeoutCode: "ENVIRONMENT_LIMITATION",
+    },
   );
   const errorText = parseErrorText(result.text);
   if (errorText) {

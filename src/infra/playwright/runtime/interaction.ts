@@ -229,30 +229,40 @@ export async function managedClick(options: {
   }
 
   if (options.selector) {
-    const button = options.button ? JSON.stringify({ button: options.button }) : "undefined";
-    const result = await managedActionRunCode({
-      command: "click",
-      sessionName: options.sessionName,
-      source: `async page => {
-        await page.locator(${JSON.stringify(options.selector)}).click(${button});
-        return 'clicked';
-      }`,
-    });
+    const args = ["click", options.selector];
+    if (options.button) {
+      args.push(options.button);
+    }
+    const result = await runManagedSessionCommand(
+      {
+        _: args,
+      },
+      {
+        sessionName: options.sessionName,
+      },
+    );
+    throwIfManagedActionError(result.text, { command: "click", sessionName: options.sessionName });
 
     const diagnosticsDelta = await buildDiagnosticsDelta(options.sessionName, before);
-    const run = await recordRun("click", options.sessionName, result.page, {
+    const page = parsePageSummary(result.text);
+    const run = await recordRun("click", options.sessionName, page, {
       target: { selector: options.selector },
       diagnosticsDelta,
     });
     return {
-      session: result.session,
-      page: result.page,
+      session: {
+        scope: "managed",
+        name: result.sessionName,
+        default: result.sessionName === "default",
+      },
+      page,
       data: {
         selector: options.selector,
         ...(options.button ? { button: options.button } : {}),
         acted: true,
         diagnosticsDelta,
         run,
+        ...maybeRawOutput(result.text),
       },
     };
   }
@@ -421,29 +431,36 @@ export async function managedFill(options: {
   }
 
   if (options.selector) {
-    const result = await managedActionRunCode({
-      command: "fill",
-      sessionName: options.sessionName,
-      source: `async page => {
-        await page.locator(${JSON.stringify(options.selector)}).fill(${JSON.stringify(options.value)});
-        return 'filled';
-      }`,
-    });
+    const result = await runManagedSessionCommand(
+      {
+        _: ["fill", options.selector, options.value],
+      },
+      {
+        sessionName: options.sessionName,
+      },
+    );
+    throwIfManagedActionError(result.text, { command: "fill", sessionName: options.sessionName });
 
     const diagnosticsDelta = await buildDiagnosticsDelta(options.sessionName, before);
-    const run = await recordRun("fill", options.sessionName, result.page, {
+    const page = parsePageSummary(result.text);
+    const run = await recordRun("fill", options.sessionName, page, {
       target: { selector: options.selector },
       diagnosticsDelta,
     });
     return {
-      session: result.session,
-      page: result.page,
+      session: {
+        scope: "managed",
+        name: result.sessionName,
+        default: result.sessionName === "default",
+      },
+      page,
       data: {
         selector: options.selector,
         value: options.value,
         filled: true,
         diagnosticsDelta,
         run,
+        ...maybeRawOutput(result.text),
       },
     };
   }
@@ -632,33 +649,41 @@ async function managedBooleanControlAction(
   const before = await captureDiagnosticsBaseline(options.sessionName);
 
   if (options.selector) {
-    const result = await managedActionRunCode({
-      command,
-      sessionName: options.sessionName,
-      source: `async page => {
-        await page.locator(${JSON.stringify(options.selector)}).${command}();
-        return JSON.stringify({ acted: true, checked: ${command === "check" ? "true" : "false"} });
-      }`,
-    });
+    const result = await runManagedSessionCommand(
+      {
+        _: [command, options.selector],
+      },
+      {
+        sessionName: options.sessionName,
+      },
+    );
+    throwIfManagedActionError(result.text, { command, sessionName: options.sessionName });
     const diagnosticsDelta = await buildDiagnosticsDelta(options.sessionName, before);
-    const run = await recordRun(command, options.sessionName, result.page, {
+    const page = parsePageSummary(result.text);
+    const run = await recordRun(command, options.sessionName, page, {
       target: { selector: options.selector },
       diagnosticsDelta,
     });
     return {
-      session: result.session,
-      page: result.page,
+      session: {
+        scope: "managed",
+        name: result.sessionName,
+        default: result.sessionName === "default",
+      },
+      page,
       data: {
         selector: options.selector,
         acted: true,
         checked: command === "check",
         diagnosticsDelta,
         run,
+        ...maybeRawOutput(result.text),
       },
     };
   }
 
   const ref = normalizeRef(options.ref ?? "");
+  await assertFreshRefEpoch({ sessionName: options.sessionName, ref });
   const result = await runManagedSessionCommand(
     {
       _: [command, ref],
@@ -712,27 +737,34 @@ export async function managedHover(options: {
   const before = await captureDiagnosticsBaseline(options.sessionName);
 
   if (options.selector) {
-    const result = await managedActionRunCode({
-      command: "hover",
-      sessionName: options.sessionName,
-      source: `async page => {
-        await page.locator(${JSON.stringify(options.selector)}).hover();
-        return JSON.stringify({ acted: true });
-      }`,
-    });
+    const result = await runManagedSessionCommand(
+      {
+        _: ["hover", options.selector],
+      },
+      {
+        sessionName: options.sessionName,
+      },
+    );
+    throwIfManagedActionError(result.text, { command: "hover", sessionName: options.sessionName });
     const diagnosticsDelta = await buildDiagnosticsDelta(options.sessionName, before);
-    const run = await recordRun("hover", options.sessionName, result.page, {
+    const page = parsePageSummary(result.text);
+    const run = await recordRun("hover", options.sessionName, page, {
       target: { selector: options.selector },
       diagnosticsDelta,
     });
     return {
-      session: result.session,
-      page: result.page,
+      session: {
+        scope: "managed",
+        name: result.sessionName,
+        default: result.sessionName === "default",
+      },
+      page,
       data: {
         selector: options.selector,
         acted: true,
         diagnosticsDelta,
         run,
+        ...maybeRawOutput(result.text),
       },
     };
   }
@@ -823,6 +855,7 @@ export async function managedSelect(options: {
   }
 
   const ref = normalizeRef(options.ref ?? "");
+  await assertFreshRefEpoch({ sessionName: options.sessionName, ref });
   const result = await runManagedSessionCommand(
     {
       _: ["select", ref, options.value],
@@ -938,6 +971,9 @@ export async function managedScreenshot(options?: {
   fullPage?: boolean;
   sessionName?: string;
 }) {
+  if (options?.ref) {
+    await assertFreshRefEpoch({ sessionName: options.sessionName, ref: normalizeRef(options.ref) });
+  }
   const run = await ensureRunDir(options?.sessionName);
   const defaultPath = join(run.runDir, `screenshot-${Date.now()}.png`);
   const target = options?.ref
@@ -1030,13 +1066,16 @@ export async function managedUpload(options: {
   files: string[];
   sessionName?: string;
 }) {
+  if (!options.ref && !options.selector) {
+    throw new Error("upload requires a ref or selector");
+  }
+  if (options.ref) {
+    await assertFreshRefEpoch({ sessionName: options.sessionName, ref: normalizeRef(options.ref) });
+  }
   const files = options.files.map((file) => JSON.stringify(resolve(file))).join(", ");
   const target = options.ref
     ? `page.locator(${JSON.stringify(`aria-ref=${normalizeRef(options.ref)}`)})`
     : `page.locator(${JSON.stringify(options.selector)})`;
-  if (!options.ref && !options.selector) {
-    throw new Error("upload requires a ref or selector");
-  }
 
   const before = await captureDiagnosticsBaseline(options.sessionName);
   const result = await managedRunCode({
@@ -1072,16 +1111,27 @@ export async function managedDrag(options: {
   toSelector?: string;
   sessionName?: string;
 }) {
+  if ((!options.fromRef && !options.fromSelector) || (!options.toRef && !options.toSelector)) {
+    throw new Error("drag requires source and target");
+  }
+  if (options.fromRef) {
+    await assertFreshRefEpoch({
+      sessionName: options.sessionName,
+      ref: normalizeRef(options.fromRef),
+    });
+  }
+  if (options.toRef) {
+    await assertFreshRefEpoch({
+      sessionName: options.sessionName,
+      ref: normalizeRef(options.toRef),
+    });
+  }
   const source = options.fromRef
     ? `page.locator(${JSON.stringify(`aria-ref=${normalizeRef(options.fromRef)}`)})`
     : `page.locator(${JSON.stringify(options.fromSelector)})`;
   const target = options.toRef
     ? `page.locator(${JSON.stringify(`aria-ref=${normalizeRef(options.toRef)}`)})`
     : `page.locator(${JSON.stringify(options.toSelector)})`;
-
-  if ((!options.fromRef && !options.fromSelector) || (!options.toRef && !options.toSelector)) {
-    throw new Error("drag requires source and target");
-  }
 
   const before = await captureDiagnosticsBaseline(options.sessionName);
   const result = await managedRunCode({
@@ -1122,6 +1172,9 @@ export async function managedDownload(options: {
 }) {
   if (!options.ref && !options.selector) {
     throw new Error("download requires a ref or selector");
+  }
+  if (options.ref) {
+    await assertFreshRefEpoch({ sessionName: options.sessionName, ref: normalizeRef(options.ref) });
   }
   const target = options.ref
     ? `page.locator(${JSON.stringify(`aria-ref=${normalizeRef(options.ref)}`)})`

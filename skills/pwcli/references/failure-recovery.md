@@ -144,7 +144,7 @@ pw page current --session bug-a
 If `VERIFY_FAILED` follows an action and the page state is unexpectedly wrong, collect the compact handoff bundle:
 
 ```bash
-pw diagnostics bundle --session bug-a --limit 20
+pw diagnostics bundle --session bug-a --out .pwcli/bundles/verify-failure --limit 20
 ```
 
 Do not treat `VERIFY_FAILED` as an action failure. It means the check completed and the observed state did not match the expectation.
