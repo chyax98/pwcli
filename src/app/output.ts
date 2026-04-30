@@ -152,6 +152,9 @@ function formatRunPointer(value: unknown): string | null {
 
 function formatDiagnosticsDelta(value: unknown): string[] {
   const delta = asRecord(value);
+  if (delta.unavailable) {
+    return [`delta unavailable: ${asString(delta.reason) ?? "unknown"}`];
+  }
   const consoleDelta = asNumber(delta.consoleDelta) ?? 0;
   const networkDelta = asNumber(delta.networkDelta) ?? 0;
   const pageErrorDelta = asNumber(delta.pageErrorDelta) ?? 0;
@@ -281,6 +284,28 @@ function formatTraceInspect(result: CommandResult): string {
   return lines.join("\n");
 }
 
+function formatTrace(result: CommandResult): string {
+  const action = asString(result.data.action) ?? "trace";
+  const facts = [
+    result.data.started === true ? "started=true" : null,
+    result.data.stopped === true ? "stopped=true" : null,
+  ].filter(Boolean);
+  const lines = [`trace ${action}${facts.length > 0 ? ` ${facts.join(" ")}` : ""}`];
+  const artifactPath = asString(result.data.traceArtifactPath);
+  if (artifactPath) {
+    lines.push(`artifact=${artifactPath}`);
+  }
+  const nextStep = asString(result.data.nextStep);
+  if (nextStep) {
+    lines.push(`next=${nextStep}`);
+  }
+  const inspectHint = asString(result.data.inspectHint);
+  if (inspectHint) {
+    lines.push(`hint=${inspectHint}`);
+  }
+  return lines.join("\n");
+}
+
 function formatPage(result: CommandResult): string {
   const current = asRecord(result.data.currentPage);
   const pages = asArray(result.data.pages);
@@ -331,6 +356,7 @@ function formatAction(command: string, result: CommandResult): string {
     "checked",
     "selected",
     "saved",
+    "modalPending",
   ];
   const facts = keys
     .filter((key) => key in result.data)
@@ -339,9 +365,18 @@ function formatAction(command: string, result: CommandResult): string {
   if (page) {
     lines.push(`page ${page}`);
   }
+  const blockedState = asString(result.data.blockedState);
+  if (blockedState) {
+    lines.push(`blockedState=${blockedState}`);
+  }
   const runPointer = formatRunPointer(result.data.run);
   if (runPointer) {
     lines.push(runPointer);
+  }
+  const nextSteps = asArray(result.data.nextSteps).map(String);
+  if (nextSteps.length > 0) {
+    lines.push("Next steps:");
+    lines.push(...nextSteps.map((item) => `- ${item}`));
   }
   lines.push(...formatDiagnosticsDelta(result.data.diagnosticsDelta));
   return lines.join("\n");
@@ -385,8 +420,14 @@ function formatStateCheck(command: string, result: CommandResult): string {
       const tagName = asString(item.tagName) ?? "node";
       const visible = Boolean(item.visible);
       const text = asString(item.text) ?? "";
+      const href = asString(item.href);
+      const role = asString(item.role);
+      const name = asString(item.name);
+      const region = asString(item.region);
+      const ancestor = asString(item.ancestor);
+      const selectorHint = asString(item.selectorHint);
       lines.push(
-        `${index}. ${tagName} visible=${visible}${text ? ` text=${JSON.stringify(text)}` : ""}`,
+        `${index}. ${tagName} visible=${visible}${role ? ` role=${JSON.stringify(role)}` : ""}${name ? ` name=${JSON.stringify(name)}` : ""}${href ? ` href=${JSON.stringify(href)}` : ""}${region ? ` region=${JSON.stringify(region)}` : ""}${ancestor ? ` ancestor=${JSON.stringify(ancestor)}` : ""}${selectorHint ? ` selectorHint=${JSON.stringify(selectorHint)}` : ""}${text ? ` text=${JSON.stringify(text)}` : ""}`,
       );
     }
     return lines.join("\n");
@@ -485,6 +526,9 @@ function formatCommandText(command: string, result: CommandResult): string {
   }
   if (command === "trace inspect") {
     return formatTraceInspect(result);
+  }
+  if (command === "trace start" || command === "trace stop") {
+    return formatTrace(result);
   }
   if (command.startsWith("page ")) {
     return formatPage(result);

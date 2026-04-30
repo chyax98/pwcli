@@ -17,6 +17,7 @@ pw auth <provider> --session <name> --arg key=value
   -> src/app/commands/auth.ts
   -> src/infra/auth-providers/registry.ts
   -> managedRunCode(page => provider(page, args))
+  -> output provider/pageState/resolved target fields, not raw provider args
 ```
 
 ## 硬边界
@@ -62,6 +63,7 @@ async (page, args) => {
 - `ok`
 - `pageState.url`
 - `pageState.title`
+- `resolvedTargetUrl` / `resolvedBy`（如果 provider 会解析业务目标）
 - 能证明登录结果的低敏字段
 
 禁止返回：

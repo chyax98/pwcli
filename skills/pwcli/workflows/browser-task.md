@@ -35,6 +35,17 @@ pw page current -s <name>
 pw read-text -s <name> --max-chars 2000
 ```
 
+如果页面很大，先 scoped，再 compact，不要直接全量 snapshot：
+
+```bash
+pw read-text -s <name> --selector '<main-or-panel>' --max-chars 2000
+pw locate -s <name> --text '<visible text>'
+pw snapshot -i -s <name>
+pw snapshot -c -s <name>
+```
+
+只有 scoped / interactive / compact 不足以回答问题时，才使用全量 `pw snapshot -s <name>`。如果当前命令面暴露 depth 参数，先用 depth 限制层级。
+
 多页面、popup、新开预览页：
 
 ```bash
@@ -48,7 +59,7 @@ pw tab close <pageId> -s <name>
 需要 aria ref：
 
 ```bash
-pw snapshot -s <name>
+pw snapshot -i -s <name>
 ```
 
 ## 动作
@@ -77,4 +88,4 @@ pw read-text -s <name> --max-chars 2000
 pw diagnostics digest -s <name>
 ```
 
-如果出现错误、白屏、接口失败，按 `SKILL.md` 的 Bug 诊断流程继续。
+如果 `read-text` 已经确认页面内容可读，console/network 里的第三方 warning、favicon 404、扩展噪声只作为背景。只有内容缺失、动作失败、白屏、接口 4xx/5xx 或 page error 影响目标路径时，才进入 diagnostics 主流程。

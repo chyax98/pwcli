@@ -102,5 +102,29 @@ pw read-text --session <name> --max-chars 2000
 只有需要 aria ref 或结构定位时才用：
 
 ```bash
-pw snapshot --session <name>
+pw snapshot -i --session <name>
 ```
+
+大页面顺序：
+
+```bash
+pw read-text --session <name> --selector '<main-or-panel>' --max-chars 2000
+pw locate --session <name> --selector '<candidate-selector>'
+pw snapshot -i --session <name>
+pw snapshot -c --session <name>
+```
+
+全量 `pw snapshot --session <name>` 放最后。当前命令面如果有 depth 限制，先用 depth，不默认倾倒完整页面树。
+
+## read-text 成功优先 {#read-text-before-diagnostics}
+
+如果目标内容已经被 `read-text` 读到，diagnostics 里的第三方 warning、favicon 404、浏览器扩展噪声、无关 requestfailed 只作为背景记录。只有页面内容缺失、动作失败、白屏、目标接口异常或 page error 影响主路径时，才把 diagnostics 当主证据。
+
+## 不自动解 challenge {#challenge-fallback}
+
+遇到搜索引擎 challenge、CAPTCHA、Cloudflare challenge：
+
+- 不写自动解挑战脚本。
+- 先换 direct URL、站内搜索、官方 docs、site-specific 文档页。
+- 需要人类确认时打开 headed session 或 dashboard 让人接管。
+- 人接管后用 `read-text` / `locate` 继续验证，不把 challenge 解决过程纳入自动化主链。

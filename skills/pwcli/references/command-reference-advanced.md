@@ -63,7 +63,8 @@
 
 - 默认 `phone=19545672859`、`smsCode=000000`
 - `--arg phone=<number>`、`--arg smsCode=<code>`、`--arg targetUrl=<url>`、`--arg baseURL=<origin>`
-- 传 `targetUrl` 则使用指定业务 URL；不支持 `instance`
+- 传 `targetUrl` 则使用指定业务 URL；未传时优先用当前 Forge 页面，最后回退默认本地 Forge；不支持 `instance`
+- auth 输出给 Agent 的主字段是 `provider`、`resolvedTargetUrl`、`resolvedBy`、`pageState`，不输出原始 provider args
 
 ## Bootstrap
 

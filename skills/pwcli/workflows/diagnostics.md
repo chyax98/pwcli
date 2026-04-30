@@ -8,6 +8,14 @@
 
 ## 1. 快速总览
 
+先确认内容事实：
+
+```bash
+pw read-text --session <name> --max-chars 2000
+```
+
+如果目标内容已读到，diagnostics 里的背景噪声不要升级成失败；只记录和目标路径有关的 console/network/page error。
+
 ```bash
 pw diagnostics digest --session <name>
 ```
@@ -117,6 +125,15 @@ pw dialog dismiss --session <name>
 ```bash
 pw session recreate <name> --open '<url>'
 ```
+
+## 9. Search / challenge fallback
+
+遇到搜索引擎 challenge、CAPTCHA、人机验证、Cloudflare challenge：
+
+- 不自动解挑战，不写滑块/验证码绕过脚本。
+- 优先改用 direct URL、站内 docs、site-specific 文档页或已有深链。
+- 如果必须确认挑战后内容，交给 human takeover：`pw dashboard open` 或让用户在 headed session 中接管。
+- 接管后再用 `pw read-text` / `pw locate` 验证内容，不把 challenge 解决过程写成自动化 workflow。
 
 ## 输出要求
 

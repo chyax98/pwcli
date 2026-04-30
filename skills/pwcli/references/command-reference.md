@@ -9,7 +9,9 @@ state / auth / batch / environment 命令见 `command-reference-advanced.md`。
 
 ## 通用 contract
 
-**session 规则**：最大 16 字符，允许 `[a-zA-Z0-9_-]`。错误码：`SESSION_REQUIRED` / `SESSION_NAME_TOO_LONG` / `SESSION_NAME_INVALID`。
+**session 规则**：最大 16 字符，允许 `[a-zA-Z0-9_-]`。错误码：`SESSION_REQUIRED` / `SESSION_NAME_TOO_LONG` / `SESSION_NAME_INVALID` / `SESSION_BUSY`。
+
+**同 session 串行化**：同一个 session 上的 managed command 会用 per-session lock 串行进入 Playwright substrate；如果等待锁超时，返回可重试的 `SESSION_BUSY`。依赖步骤仍然按顺序发，稳定子集可用 `pw batch --session <name>`。
 
 **输出模式**：默认 agent-readable text。脚本解析加 `--output json`，envelope 为 `{ ok, command, session, page, data }` / `{ ok, command, error: { code, message, retryable, suggestions } }`。
 
@@ -73,7 +75,16 @@ state / auth / batch / environment 命令见 `command-reference-advanced.md`。
 
 ### `pw locate --session <name>`
 
-低噪声定位，返回 `count` 和最多 10 个候选摘要；不返回 ref，不生成动作计划。
+低噪声定位，返回总匹配数 `count` 和最多 10 个候选摘要；不返回 ref，不生成动作计划。
+
+候选 metadata：
+
+- `index`：1-based candidate index；传 `--nth <n>` 时仍保留总 `count`，候选只返回该 index。
+- `text` / `tagName` / `visible`
+- `href`：候选或最近链接祖先的绝对 URL，适合导航目标判断。
+- `role` / `name`：显式或常见隐式 role，以及可消费 name hint。
+- `region` / `ancestor`：最近 landmark/区域和父级摘要，帮助区分重复文本。
+- `selectorHint`：best-effort CSS 路径提示；可作为下一步 selector 起点，但不是稳定契约。
 
 目标（一次只传一个）：
 
@@ -135,6 +146,8 @@ Use `locate/get/is/verify` for narrow state checks. Use `snapshot -i` when you n
 - `-i, --interactive`：只输出可交互节点（找 ref 首选）
 - `-c, --compact`：移除低信号结构节点
 
+大页面顺序：先 `read-text --selector ... --max-chars ...` 或 `locate` 缩小范围，再 `snapshot -i` / `snapshot -c`，最后才跑全量 `snapshot`。如果当前命令面暴露 depth 参数，优先用 depth 限制层级；不要默认倾倒全量结构树。
+
 ### `pw screenshot [ref] --session <name>`
 
 - `--selector <selector>`、`--path <path>`、`--full-page`
@@ -155,17 +168,23 @@ Use `locate/get/is/verify` for narrow state checks. Use `snapshot -i` when you n
 
 定位：aria ref / `--selector` / `--role <role> --name <name>` / `--text` / `--label` / `--placeholder` / `--testid`；附加 `--nth <n>`（1-based）
 
+`--nth` 对 selector 和语义定位都生效；多匹配 selector 会先应用 `.nth(n-1)` 再执行 click，不触发 Playwright strict-mode 多匹配。
+
 所有 click 定位方式都会记录 action evidence：`target`、`diagnosticsDelta`、`run`。需要追踪动作后信号时用 `diagnostics runs/show/grep` 查对应 run。
 
 ### `pw fill [parts...] --session <name>`
 
 定位：aria ref / `--selector` / `--role <role> --name <name>` / `--text` / `--label` / `--placeholder` / `--testid`；附加 `--nth <n>`（1-based）
 
+`--nth` 对 selector 和语义定位都生效；多匹配 selector 会先应用 `.nth(n-1)` 再填值。
+
 有 `--selector` 或语义定位参数时，所有 `parts` 拼成填充值；否则第一个 part 是 ref，后续 parts 拼成填充值。
 
 ### `pw type [parts...] --session <name>`
 
 定位：focused element / aria ref / `--selector` / `--role <role> --name <name>` / `--text` / `--label` / `--placeholder` / `--testid`；附加 `--nth <n>`（1-based）
+
+`--nth` 对 selector 和语义定位都生效；多匹配 selector 会先应用 `.nth(n-1)` 再输入。
 
 无 `--selector` 和语义定位时：单个 part 输入到当前 focused element；多个 parts 时第一个 part 是 ref，后续 parts 拼成输入值。有 `--selector` 或语义定位参数时，所有 `parts` 拼成输入值。
 
@@ -174,17 +193,20 @@ Use `locate/get/is/verify` for narrow state checks. Use `snapshot -i` when you n
 ### `pw hover [ref] --session <name>`
 
 - `--selector <selector>`
+- `--nth <n>`：selector 多匹配时的 1-based 目标序号
 - 支持 hover 触发的 menu / popover / tooltip；输出复用 action evidence：`target`、`diagnosticsDelta`、`run`
 - hover 后需要读取浮层时，用 `pw read-text --session <name> --include-overlay`
 
 ### `pw check [ref] --session <name>`
 
 - `--selector <selector>`
+- `--nth <n>`：selector 多匹配时的 1-based 目标序号
 - 支持 checkbox / radio；输出复用 action evidence：`diagnosticsDelta`、`run`
 
 ### `pw uncheck [ref] --session <name>`
 
 - `--selector <selector>`
+- `--nth <n>`：selector 多匹配时的 1-based 目标序号
 - 支持 checkbox；输出复用 action evidence：`diagnosticsDelta`、`run`
 
 ### `pw select [ref] <value> --session <name>`
@@ -201,10 +223,13 @@ Use `locate/get/is/verify` for narrow state checks. Use `snapshot -i` when you n
 ### `pw upload [parts...] --session <name>`
 
 - `--selector <selector>`
+- 返回前 best-effort 等待 input `files` 数量和 `change` / `input` 事件 settle
+- 如果无法完全判定页面已接收上传，输出 `nextSteps`，按提示补 `pw wait` / `pw verify` / `pw get` 后再继续
 
 ### `pw download [ref] --session <name>`
 
-- `--selector <selector>`、`--path <path>`、`--dir <dir>`
+- `--selector <selector>`、`--path <path>`、`--dir <dir>`、`--download-dir <dir>`
+- `--download-dir` 是 `--dir` alias；不能和 `--dir` 同时使用；`--path` 不能和任一目录参数同时使用
 
 ### `pw resize --session <name>`
 

@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { dirname, join, resolve } from "node:path";
 
@@ -14,6 +16,8 @@ const { serverRegistry } = serverRegistryModule;
 
 export const DEFAULT_SESSION_NAME = "default";
 export const MAX_SESSION_NAME_LENGTH = 16;
+const SESSION_LOCK_TIMEOUT_MS = Number(process.env.PWCLI_SESSION_LOCK_TIMEOUT_MS ?? 120_000);
+const SESSION_LOCK_STALE_MS = Number(process.env.PWCLI_SESSION_LOCK_STALE_MS ?? 600_000);
 
 type ManagedSessionConfig = {
   name?: string;
@@ -138,6 +142,105 @@ async function getSessionEntry(sessionName?: string) {
     sessionName: resolvedSessionName,
     entry,
   };
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isProcessAlive(pid: unknown) {
+  if (typeof pid !== "number" || !Number.isInteger(pid) || pid <= 0) {
+    return false;
+  }
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function readLockOwner(lockDir: string) {
+  try {
+    return JSON.parse(await readFile(join(lockDir, "owner.json"), "utf8")) as {
+      pid?: number;
+      token?: string;
+      acquiredAt?: string;
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function isStaleSessionLock(lockDir: string) {
+  const owner = await readLockOwner(lockDir);
+  if (owner?.pid && isProcessAlive(owner.pid)) {
+    return false;
+  }
+  if (owner?.pid && !isProcessAlive(owner.pid)) {
+    return true;
+  }
+  try {
+    const info = await stat(lockDir);
+    return Date.now() - info.mtimeMs > SESSION_LOCK_STALE_MS;
+  } catch {
+    return true;
+  }
+}
+
+async function withSessionCommandLock<T>(
+  workspaceDir: string | undefined,
+  sessionName: string,
+  fn: () => Promise<T>,
+) {
+  const root = resolve(workspaceDir ?? process.cwd(), ".pwcli", "locks");
+  const lockDir = join(root, `${sessionName}.lock`);
+  const token = randomUUID();
+  const startedAt = Date.now();
+
+  await mkdir(root, { recursive: true });
+
+  while (true) {
+    try {
+      await mkdir(lockDir);
+      await writeFile(
+        join(lockDir, "owner.json"),
+        JSON.stringify(
+          {
+            pid: process.pid,
+            token,
+            sessionName,
+            acquiredAt: new Date().toISOString(),
+          },
+          null,
+          2,
+        ),
+      );
+      break;
+    } catch (error) {
+      const code = error && typeof error === "object" ? (error as { code?: string }).code : "";
+      if (code !== "EEXIST") {
+        throw error;
+      }
+      if (await isStaleSessionLock(lockDir)) {
+        await rm(lockDir, { recursive: true, force: true });
+        continue;
+      }
+      if (Date.now() - startedAt > SESSION_LOCK_TIMEOUT_MS) {
+        throw new Error(`SESSION_BUSY:${sessionName}:${SESSION_LOCK_TIMEOUT_MS}`);
+      }
+      await sleep(50 + Math.floor(Math.random() * 100));
+    }
+  }
+
+  try {
+    return await fn();
+  } finally {
+    const owner = await readLockOwner(lockDir);
+    if (owner?.token === token) {
+      await rm(lockDir, { recursive: true, force: true });
+    }
+  }
 }
 
 export async function getManagedSessionEntry(sessionName?: string) {
@@ -294,16 +397,18 @@ export async function runManagedSessionCommand(
   },
 ) {
   const { clientInfo, sessionName, session } = await ensureManagedSession(options);
-  const run = session.run(clientInfo, {
-    ...args,
+  const text = await withSessionCommandLock(clientInfo.workspaceDir, sessionName, async () => {
+    const run = session.run(clientInfo, {
+      ...args,
+    });
+    return options?.timeoutMs
+      ? await withManagedSessionTimeout(run, {
+          timeoutMs: options.timeoutMs,
+          timeoutMessage: options.timeoutMessage,
+          timeoutCode: options.timeoutCode,
+        })
+      : await run;
   });
-  const text = options?.timeoutMs
-    ? await withManagedSessionTimeout(run, {
-        timeoutMs: options.timeoutMs,
-        timeoutMessage: options.timeoutMessage,
-        timeoutCode: options.timeoutCode,
-      })
-    : await run;
   return {
     sessionName,
     text: text.text,

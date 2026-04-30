@@ -31,19 +31,20 @@ export function registerClickCommand(program: Command): void {
   ).action(async (ref: string | undefined, options: Record<string, string>) => {
     try {
       const sessionName = requireSessionName(options);
+      const nth = parseNth(options.nth);
       if (ref || options.selector) {
         printCommandResult(
           "click",
           await managedClick({
             ref,
             selector: options.selector,
+            nth: options.selector ? nth : undefined,
             sessionName,
           }),
         );
         return;
       }
 
-      const nth = parseNth(options.nth);
       if (options.role) {
         printCommandResult(
           "click",

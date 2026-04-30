@@ -69,6 +69,7 @@ export function registerFillCommand(program: Command): void {
     try {
       const sessionName = requireSessionName(options);
       const values = Array.isArray(parts) ? parts : [];
+      const nth = parseNth(options.nth);
       const semantic = buildSemanticTarget(options);
       const ref = options.selector || semantic ? undefined : values[0];
       const value = options.selector || semantic ? values.join(" ") : values.slice(1).join(" ");
@@ -80,6 +81,7 @@ export function registerFillCommand(program: Command): void {
         await managedFill({
           ref,
           selector: options.selector,
+          nth: options.selector ? nth : undefined,
           semantic,
           value,
           sessionName,

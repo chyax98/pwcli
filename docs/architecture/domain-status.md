@@ -23,6 +23,7 @@
   - trace
   - diagnostics records
   - run artifacts
+- same-session managed command dispatch uses a per-session lock before entering the Playwright substrate; lock timeout reports recoverable `SESSION_BUSY`
 
 ### 当前限制
 
@@ -75,6 +76,7 @@
 - `snapshot` records the latest ref epoch for the active page/navigation identity
 - ref-backed `click` / `fill` / `type` validate against the latest snapshot epoch before reporting success
 - `locate|get|is` state-check primitives for compact read-only target checks
+- `upload` best-effort waits for input file count plus `change` / `input` settle, and returns `nextSteps` when page-level acceptance still needs verification
 
 ### 当前限制
 
@@ -100,14 +102,14 @@
 - `storage local|session` read + current-origin `get|set|delete|clear`
 - `profile inspect`
 - `auth` 内置 provider 执行 + `save-state`
-- `dc` 是内置 DC/Forge auth provider；默认手机号和验证码内聚在 provider 内，传了 `targetUrl` 就使用指定业务 URL，未传 URL 时执行默认登录流程
+- `dc` 是内置 DC/Forge auth provider；默认手机号和验证码内聚在 provider 内，目标解析顺序为显式 `targetUrl`、当前 Forge 页面、默认本地 Forge
 - `fixture-auth` 是内部 contract 测试 provider，用于 smoke 验证 auth 执行链
 
 ### 当前限制
 
 - `storage local|session get|set|delete|clear` 只作用于当前页 origin，不做跨 origin storage 编辑
 - `auth` 不负责 session shape
-- `dc` 不接受 `instance` 参数；不暴露环境参数，RND 固定入口由 skill 引导 agent 显式打开
+- `dc` 不接受 `instance` 参数；不暴露环境参数，用户给具体业务 URL 时由 skill 作为 `targetUrl` 传入
 - `profile open` 已移除
 - 当前没有外部 plugin 加载、安装、发现、生命周期机制
 

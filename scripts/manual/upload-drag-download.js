@@ -2,8 +2,13 @@ async (page) => {
   await page.setContent(`
     <input id="f" type="file">
     <div id="name"></div>
+    <div id="events" data-change="0" data-input="0"></div>
     <script>
+      document.getElementById('f').addEventListener('input', () => {
+        document.getElementById('events').dataset.input = String(Number(document.getElementById('events').dataset.input) + 1);
+      });
       document.getElementById('f').addEventListener('change', e => {
+        document.getElementById('events').dataset.change = String(Number(document.getElementById('events').dataset.change) + 1);
         document.getElementById('name').textContent = e.target.files[0]?.name || '';
       });
     </script>

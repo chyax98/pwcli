@@ -242,6 +242,17 @@ function toNetworkSignal(record: Record<string, unknown>): SignalRecord {
   };
 }
 
+function toFailureSignal(record: Record<string, unknown>): SignalRecord {
+  const code = asString(record.code) ?? "COMMAND_FAILED";
+  const message = asString(record.message) ?? "";
+  return {
+    kind: `failure:${code}`,
+    timestamp: asString(record.timestamp),
+    summary: message || code,
+    details: record,
+  };
+}
+
 function buildSessionDigestFromExport(
   exported: Awaited<ReturnType<typeof managedDiagnosticsExport>>,
   limit: number,
@@ -318,8 +329,26 @@ function collectRunSignals(event: RunEventRecord): SignalRecord[] {
   const pageError = asObject(diagnosticsDelta.lastPageError);
   const consoleRecord = asObject(diagnosticsDelta.lastConsole);
   const networkRecord = asObject(diagnosticsDelta.lastNetwork);
+  const failure = asObject(event.failure);
+  const failureSignal = asObject(event.failureSignal);
   const signals: SignalRecord[] = [];
 
+  if (Object.keys(failure).length > 0) {
+    signals.push(
+      toFailureSignal({
+        ...failure,
+        timestamp: eventTimestamp(event),
+      }),
+    );
+  }
+  if (Object.keys(failureSignal).length > 0) {
+    signals.push(
+      toFailureSignal({
+        ...failureSignal,
+        timestamp: eventTimestamp(event),
+      }),
+    );
+  }
   if (Object.keys(pageError).length > 0) {
     signals.push(toPageErrorSignal(pageError));
   }
@@ -354,6 +383,14 @@ function buildRunDigest(runId: string, events: RunEventRecord[], limit: number) 
     const value = asNumber(asObject(event.diagnosticsDelta).pageErrorDelta);
     return sum + (value ?? 0);
   }, 0);
+  const failureCount = events.filter(
+    (event) => Boolean(event.failed) || Object.keys(asObject(event.failure)).length > 0,
+  ).length;
+  const dialogPendingCount = events.filter(
+    (event) =>
+      event.modalPending === true ||
+      asString(asObject(event.failureSignal).code) === "MODAL_STATE_BLOCKED",
+  ).length;
 
   const topSignals = limitSignals(
     events.flatMap((event) => collectRunSignals(event)),
@@ -366,10 +403,15 @@ function buildRunDigest(runId: string, events: RunEventRecord[], limit: number) 
       command: asString(event.command),
       pageId: asString(event.pageId),
       navigationId: asString(event.navigationId),
+      status: asString(event.status) ?? (event.failed ? "failed" : "ok"),
+      failed: Boolean(event.failed),
+      modalPending: event.modalPending === true,
       summary: {
         consoleDelta: asNumber(diagnosticsDelta.consoleDelta) ?? 0,
         networkDelta: asNumber(diagnosticsDelta.networkDelta) ?? 0,
         pageErrorDelta: asNumber(diagnosticsDelta.pageErrorDelta) ?? 0,
+        failureCode: asString(asObject(event.failure).code),
+        failureSignalCode: asString(asObject(event.failureSignal).code),
       },
     };
   });
@@ -385,6 +427,8 @@ function buildRunDigest(runId: string, events: RunEventRecord[], limit: number) 
       consoleDeltaTotal,
       networkDeltaTotal,
       pageErrorDeltaTotal,
+      failureCount,
+      dialogPendingCount,
       signalCount: topSignals.length,
     },
     topSignals,
@@ -411,15 +455,36 @@ export function buildDiagnosticsAuditConclusion(input: {
   const lastEvent = asObject(events.at(-1) ?? {});
   const lastCommand = asString(lastEvent.command);
   const lastTs = asString(lastEvent.ts) ?? asString(lastEvent.timestamp);
+  const lastFailure = asObject(lastEvent.failure);
+  const lastFailureSignal = asObject(lastEvent.failureSignal);
   const pageErrorCount = asNumber(summary.pageErrorCount) ?? 0;
   const failedRequestCount = asNumber(summary.failedRequestCount) ?? 0;
   const consoleErrorCount = asNumber(summary.consoleErrorCount) ?? 0;
   const httpErrorCount = asNumber(summary.httpErrorCount) ?? 0;
+  const latestRunHasFailure = events.some(
+    (event) => Boolean(event.failed) || Object.keys(asObject(event.failure)).length > 0,
+  );
+  const latestRunHasFailureSignal = events.some(
+    (event) => Object.keys(asObject(event.failureSignal)).length > 0,
+  );
   const failureLikely =
-    pageErrorCount > 0 || failedRequestCount > 0 || consoleErrorCount > 0 || httpErrorCount > 0;
+    pageErrorCount > 0 ||
+    failedRequestCount > 0 ||
+    consoleErrorCount > 0 ||
+    httpErrorCount > 0 ||
+    latestRunHasFailure ||
+    latestRunHasFailureSignal;
   const firstSignal = asObject(topSignals[0] ?? {});
-  const failureKind = asString(firstSignal.kind) ?? null;
-  const failureSummary = asString(firstSignal.summary) ?? null;
+  const failureKind =
+    asString(lastFailure.code) ??
+    asString(lastFailureSignal.code) ??
+    asString(firstSignal.kind) ??
+    null;
+  const failureSummary =
+    asString(lastFailure.message) ??
+    asString(lastFailureSignal.message) ??
+    asString(firstSignal.summary) ??
+    null;
   const latestRunId = input.latestRunId ?? asString(latestRunEvents.runId);
   const limit = Math.max(1, input.limit);
   const grepText = failureSummary ?? failureKind ?? "error";

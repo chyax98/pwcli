@@ -10,15 +10,70 @@ const dcProviderSource = String(async (page, args) => {
     const match = String(raw || "").match(/^(https?:\/\/[^/]+)(?:\/.*)?$/);
     return match?.[1] || "";
   };
+  const pathFromUrl = (raw) => {
+    const origin = originFromUrl(raw);
+    return origin ? String(raw || "").slice(origin.length) || "/" : "";
+  };
+  const queryParam = (raw, name) => {
+    const decode = (value) => {
+      try {
+        return decodeURIComponent(value || "");
+      } catch {
+        return value || "";
+      }
+    };
+    const query =
+      String(raw || "")
+        .split("?")[1]
+        ?.split("#")[0] || "";
+    for (const part of query.split("&")) {
+      const [key, ...valueParts] = part.split("=");
+      if (decode(key) === name) {
+        return decode(valueParts.join("="));
+      }
+    }
+    return "";
+  };
+  const forgeTargetFromUrl = (raw) => {
+    const url = String(raw || "").trim();
+    const origin = originFromUrl(url);
+    if (!origin) {
+      return "";
+    }
+    const host = origin.replace(/^https?:\/\//, "");
+    if (!host.startsWith("developer")) {
+      return "";
+    }
+    const path = pathFromUrl(url);
+    if (path.startsWith("/forge/auth/login")) {
+      const refer = queryParam(url, "refer");
+      return forgeTargetFromUrl(refer);
+    }
+    if (path === "/" || path === "") {
+      return `${origin}/forge`;
+    }
+    return path.startsWith("/forge") ? url : "";
+  };
   const phone = String(args.phone ?? "19545672859").trim();
   const smsCode = String(args.smsCode ?? "000000").trim();
   const explicitTargetUrl = String(args.targetUrl ?? "").trim();
-  const resolvedBy = String(args.resolvedBy ?? "").trim();
+  let resolvedBy = "";
   let baseURL = String(args.baseURL ?? "")
     .trim()
     .replace(/\/$/, "");
 
-  let targetUrl = explicitTargetUrl || String(args.detectedTargetUrl ?? "").trim();
+  let targetUrl = "";
+  if (explicitTargetUrl) {
+    targetUrl = explicitTargetUrl;
+    resolvedBy = "targetUrl";
+  } else if (baseURL) {
+    targetUrl = `${baseURL}/forge`;
+    resolvedBy = "baseURL";
+  } else {
+    const currentTargetUrl = forgeTargetFromUrl(page.url());
+    targetUrl = currentTargetUrl || String(args.detectedTargetUrl ?? "").trim();
+    resolvedBy = currentTargetUrl ? "current-page" : String(args.resolvedBy ?? "").trim();
+  }
 
   if (!baseURL && targetUrl) {
     baseURL = originFromUrl(targetUrl);
@@ -32,7 +87,7 @@ const dcProviderSource = String(async (page, args) => {
   }
   if (!baseURL || !targetUrl) {
     throw new Error(
-      "DC_AUTH_URL_REQUIRED: dc auth could not resolve Forge URL. Open the session on Forge first or pass --arg targetUrl=<url>.",
+      "DC_AUTH_URL_REQUIRED: dc auth could not resolve Forge URL. Pass --arg targetUrl=<url> or run from an existing Forge page.",
     );
   }
 
@@ -178,6 +233,9 @@ const dcProviderSource = String(async (page, args) => {
 
   return {
     ok: true,
+    resolvedTargetUrl: targetUrl,
+    resolvedBy,
+    baseURL,
     pageState: await page.evaluate(() => ({
       url: window.location.href,
       title: document.title,
@@ -191,7 +249,7 @@ export const dcAuthProvider: AuthProviderSpec = {
   name: "dc",
   summary: "TapTap/Forge DC 登录 provider",
   description:
-    "在现有 session 内执行 DC 登录链。默认使用测试手机号和万能验证码；传了 targetUrl 就使用指定业务 URL。",
+    "在现有 session 内执行 DC 登录链。传了 targetUrl 就使用指定业务 URL；否则优先使用当前 Forge 页面，最后回退默认本地 Forge。",
   source: dcProviderSource,
   args: [
     {
@@ -220,7 +278,8 @@ export const dcAuthProvider: AuthProviderSpec = {
   ],
   notes: [
     "传了 `targetUrl` 就用 `targetUrl`。",
-    "未传 URL 时直接执行默认登录流程。",
+    "未传 URL 时，先尝试使用当前 session 的 Forge 页面 URL。",
+    "当前页不是 Forge 时，回退到默认本地 Forge URL。",
     "默认登录失败时，传 `--arg targetUrl=<forge-url>`。",
   ],
   resolveArgs: resolveDcArgs,
