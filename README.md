@@ -1,114 +1,102 @@
 # pwcli
 
-`pwcli` 是一个面向内部 Agent 的 Playwright orchestration CLI，默认命令名是 `pw`。
+`pwcli` 是内部 Agent-first Playwright CLI，默认命令名是 `pw`。
 
-它首先是一个**工具型 CLI**：强调“可执行命令链路 + 可恢复 + 可诊断”，不是原理讲解手册。
+它不是 Playwright 教程，也不是测试框架外壳。它的目标是把浏览器任务变成 Agent 能稳定消费的命令链：创建 session、观察页面、执行动作、等待状态、收集诊断、恢复失败。
 
-它服务的场景只有两类：
-
-1. 执行浏览器任务
-2. 复现、定位、诊断浏览器问题
-
-当前仓库把真相拆成三条：
-
-- **怎么用**：看 [skills/pwcli/SKILL.md](skills/pwcli/SKILL.md)
-- **为什么这样设计**：看 [docs/README.md](docs/README.md)
-- **怎么维护**：看 [.codex/README.md](.codex/README.md)
-
-## 当前产品规则
-
-- agent-first
-- strict session-first
-- 稳定 JSON 输出
-- `session create|attach|recreate` 是唯一 lifecycle 主路
-- `open` 只做导航
-- `auth` 只做内置 auth provider 执行
-- auth provider 只支持内置 registry，没有外部 plugin 加载机制
-- `batch` 走结构化 `string[][]`
-- diagnostics 优先 query/export
-- trace 默认开启
-
-## 稳定主链
+## 最短使用链路
 
 ```bash
-pw session create bug-a --open 'https://example.com'
-pw observe status --session bug-a
-pw page current --session bug-a
-pw page list --session bug-a
-pw tab select --session bug-a <pageId>
-pw click e6 --session bug-a
-pw wait network-idle --session bug-a
-pw diagnostics digest --session bug-a
-pw diagnostics show --run <runId> --command click --limit 5
-pw diagnostics export --session bug-a --out ./diag.json
+pw session create bug-a --headed --open 'https://example.com'
+pw observe status -s bug-a
+pw read-text -s bug-a --max-chars 2000
+pw snapshot -i -s bug-a
+pw click e6 -s bug-a
+pw wait network-idle -s bug-a
+pw verify text -s bug-a --text 'Saved'
+pw diagnostics digest -s bug-a
 ```
 
-接管已有浏览器：
+继续已有任务时先看 session：
 
 ```bash
-pw session attach bug-a --ws-endpoint ws://127.0.0.1:9222/devtools/browser/...
+pw session list --with-page
+pw session status bug-a
 ```
 
-确定性 mock：
+复用本机 Chrome 登录态：
 
 ```bash
-pw route load ./scripts/manual/mock-routes.json --session bug-a
-pw route list --session bug-a
+pw profile list-chrome
+pw session create dc-main --from-system-chrome --chrome-profile Default --headed --open 'https://example.com'
 ```
 
-环境控制：
+运行内置 auth provider：
 
 ```bash
-pw environment offline on --session bug-a
-pw environment geolocation set --session bug-a --lat 37.7749 --lng -122.4194
+pw session create dc-main --headed --open 'about:blank'
+pw auth dc -s dc-main --arg targetUrl='https://developer.example.com/forge'
 ```
+
+## 产品边界
+
+- `session create|attach|recreate` 是唯一 lifecycle 主路。
+- `open` 只在已有 session 内导航。
+- `auth` 只执行内置 auth provider；没有外部 plugin 加载机制。
+- `batch` 只接收结构化 `string[][]`，只承诺稳定子集。
+- `locate|get|is|verify` 是 read-only 状态检查，不做 action planner。
+- diagnostics 优先 query/export/bundle，不额外维护第二套事件系统。
+- trace 默认开启；`.pwcli/runs/` 是轻量动作事件，trace zip 是 Playwright replay 证据。
+
+## 文档入口
+
+| 读者 | 入口 | 作用 |
+|---|---|---|
+| Agent / 使用者 | [skills/pwcli/SKILL.md](skills/pwcli/SKILL.md) | 唯一使用教程真相 |
+| 参数核对 | [skills/pwcli/references/command-reference.md](skills/pwcli/references/command-reference.md) | 核心命令 reference |
+| 诊断链路 | [skills/pwcli/references/command-reference-diagnostics.md](skills/pwcli/references/command-reference-diagnostics.md) | diagnostics / route / trace |
+| 状态与自动化 | [skills/pwcli/references/command-reference-advanced.md](skills/pwcli/references/command-reference-advanced.md) | auth / state / batch / environment |
+| 维护者 | [docs/README.md](docs/README.md) | 架构和维护文档入口 |
+| 命令面审计 | [docs/architecture/command-surface.md](docs/architecture/command-surface.md) | 从源码和 CLI help 对齐的命令能力地图 |
+| 发布准备 | [docs/architecture/release-v0.1.0.md](docs/architecture/release-v0.1.0.md) | v0.1.0 发布前检查清单 |
+| Codex 协作 | [.codex/README.md](.codex/README.md) | 项目级维护规则 |
 
 ## 仓库结构
 
 ```text
 src/
-  app/
-  domain/
-  infra/
+  app/        # commander 命令、batch、输出 envelope
+  domain/     # session/workspace/interaction/diagnostics/environment 语义
+  infra/      # Playwright substrate、fs、auth provider、外部脚本适配
 skills/
-  pwcli/
+  pwcli/      # Agent 使用教程的唯一真相
 docs/
-  architecture/
+  architecture/ # 架构事实、限制、扩展口、发布检查
+.codex/       # Codex 项目配置和 skill 维护规则
 ```
 
-职责：
+## 本地开发
 
-- `src/app`：CLI、batch、输出
-- `src/domain`：命令语义与领域编排
-- `src/infra`：Playwright substrate、fs、内置 auth provider / 外部脚本适配
-- `skills/pwcli`：模型使用教程的唯一真相
-- `docs`：架构决策、领域现状、已知限制、扩展方向
-- `.codex`：Codex 项目配置和 skill 维护规则
+```bash
+pnpm install
+pnpm build
+node dist/cli.js --help
+```
 
-## 验证
-
-开发期优先：
+开发期优先跑受影响验证：
 
 ```bash
 pnpm typecheck
 pnpm build
-pnpm smoke
-pnpm test:dogfood:e2e
+pw --help
 ```
+
+发布前再跑完整 gate，见 [release-v0.1.0.md](docs/architecture/release-v0.1.0.md)。
 
 ## 已知限制
 
-- `page dialogs` 是事件投影，不是 authoritative live dialog set
-- `MODAL_STATE_BLOCKED` 会阻断 run-code-backed 读取和部分动作
-- `observe status` 和 `doctor` 默认走 compact 输出，`--verbose` 才展开完整细节
-- `session attach --browser-url/--cdp` 依赖本地 attach bridge registry
-- `har start|stop` 当前只暴露 substrate 边界，没有稳定热录制 contract
-
-## 入口
-
-- 使用教程：[skills/pwcli/SKILL.md](skills/pwcli/SKILL.md)
-- 命令参考：[skills/pwcli/references/command-reference.md](skills/pwcli/references/command-reference.md)
-- 工作流：[skills/pwcli/references/workflows.md](skills/pwcli/references/workflows.md)
-- 恢复策略：[skills/pwcli/references/failure-recovery.md](skills/pwcli/references/failure-recovery.md)
-- 文档入口：[docs/README.md](docs/README.md)
-- Codex 项目配置：[.codex/README.md](.codex/README.md)
+- `page dialogs` 是事件投影，不是 authoritative live dialog set。
+- `MODAL_STATE_BLOCKED` 会阻断 run-code-backed 读取和部分动作。
+- `observe status` 和 `doctor` 默认 compact，`--verbose` 才展开完整细节。
+- `session attach --browser-url/--cdp` 只能接管本机可连接的调试端口。
+- `har start|stop` 当前只暴露 substrate 边界，没有稳定热录制 contract。

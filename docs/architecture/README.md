@@ -10,8 +10,9 @@
 |---|---|---|
 | 1 | [documentation-governance.md](documentation-governance.md) | 文档边界、真相优先级、归档规则 |
 | 2 | [domain-status.md](domain-status.md) | 当前各领域实现、限制、扩展口 |
-| 3 | [adr-001-agent-first-command-and-lifecycle.md](adr-001-agent-first-command-and-lifecycle.md) | lifecycle 和命令边界 |
-| 4 | [adr-002-diagnostics-mock-environment.md](adr-002-diagnostics-mock-environment.md) | diagnostics、mock、environment 取舍 |
+| 3 | [command-surface.md](command-surface.md) | 当前命令能力面和源码入口 |
+| 4 | [adr-001-agent-first-command-and-lifecycle.md](adr-001-agent-first-command-and-lifecycle.md) | lifecycle 和命令边界 |
+| 5 | [adr-002-diagnostics-mock-environment.md](adr-002-diagnostics-mock-environment.md) | diagnostics、mock、environment 取舍 |
 
 ## 当前结构
 
@@ -74,12 +75,14 @@ session attach -> state/profile/auth provider -> continue
 |---|---|
 | 治理 | [documentation-governance.md](documentation-governance.md) |
 | 现状 | [domain-status.md](domain-status.md) |
+| 命令面 | [command-surface.md](command-surface.md) |
 | ADR | [adr-001-agent-first-command-and-lifecycle.md](adr-001-agent-first-command-and-lifecycle.md)、[adr-002-diagnostics-mock-environment.md](adr-002-diagnostics-mock-environment.md) |
 | Contract | [workspace-mutation-contract.md](workspace-mutation-contract.md) |
 | Analysis | [browser-task-state-model.md](browser-task-state-model.md) |
 | 验证 | [e2e-dogfood-test-plan.md](e2e-dogfood-test-plan.md)、[e2e-dogfood-experience-report.md](e2e-dogfood-experience-report.md) |
 | 技术结论 | [environment-clock-survey.md](environment-clock-survey.md) |
 | 外部基准调研 | [browserbase-browser-trace-survey.md](browserbase-browser-trace-survey.md) |
+| 发布 | [release-v0.1.0.md](release-v0.1.0.md) |
 
 ## 明确边界
 

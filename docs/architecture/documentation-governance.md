@@ -1,6 +1,6 @@
 # Documentation Governance
 
-更新时间：2026-04-28
+更新时间：2026-04-30
 状态：active
 
 这份文档定义 `pwcli` 的文档边界、真相优先级、归档规则。
@@ -110,8 +110,10 @@
 - `skills/pwcli/**`
 - `docs/architecture/README.md`
 - `docs/architecture/documentation-governance.md`
+- `docs/architecture/command-surface.md`
 - `docs/architecture/domain-status.md`
 - `docs/architecture/adr-*.md`
+- `docs/architecture/release-*.md`
 - `docs/architecture/environment-clock-survey.md`
 - `docs/architecture/workspace-mutation-contract.md`
 - `docs/architecture/browser-task-state-model.md`

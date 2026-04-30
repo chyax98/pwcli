@@ -15,6 +15,7 @@
 | Forge/DC auth 变化 | `skills/pwcli/references/forge-dc-auth.md` |
 | 新增 / 修改 auth provider | `.codex/auth-provider-authoring.md`、`skills/pwcli/references/command-reference-advanced.md` |
 | 架构边界、限制、扩展口变化 | `docs/architecture/domain-status.md` 或 ADR |
+| 命令注册面、命令家族、源码入口变化 | `docs/architecture/command-surface.md` |
 | 文档边界变化 | `docs/architecture/documentation-governance.md` |
 
 ## 更新顺序
@@ -40,6 +41,7 @@
 - 命令存在：`src/app/commands/*`。
 - 运行入口存在：`node dist/cli.js --help`。
 - 参数存在：对应 command `--help` 或 commander 定义。
+- 命令家族归属存在：`docs/architecture/command-surface.md`。
 - 输出 envelope 存在：`src/app/output.ts` 和命令实现。
 - limitation 存在：源码错误码、运行时返回、或 dogfood 结论。
 

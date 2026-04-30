@@ -19,7 +19,7 @@
 - `AGENTS.md` 是所有 Agent 的执行契约。
 - `.codex/` 是 Codex 项目配置和维护说明。
 - `skills/pwcli/` 是唯一使用教程真相。
-- `docs/` 只展示架构、限制、扩展方向和验证体系。
+- `docs/` 只展示架构、限制、扩展方向、命令面审计、验证体系和发布检查。
 - `.claude/` 只保留本地过程归档，不再作为 active truth。
 
 ## 默认工作流
@@ -30,4 +30,4 @@
 4. 改源码。
 5. 按 [.codex/skill-maintenance.md](skill-maintenance.md) 同步 skill。
 6. 如边界变化，同步 `docs/architecture/`。
-7. 跑 `pnpm typecheck && pnpm build && pnpm smoke`。
+7. 开发期跑受影响验证；发布或高风险行为变更前再跑 `pnpm typecheck && pnpm build && pnpm smoke`。
