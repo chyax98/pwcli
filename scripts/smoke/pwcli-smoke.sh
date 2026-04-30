@@ -306,6 +306,9 @@ run_json stale-navigate open --session "$STALE_SESSION" "${BLANK_URL}?stale-ref=
 stale_reuse_json="$(run_fail_json stale-reuse click "$stale_ref" --session "$STALE_SESSION")"
 assert_json "$stale_reuse_json" "stale ref reuse returns REF_STALE" \
   "data.ok === false && data.error.code === 'REF_STALE' && data.error.retryable === false && data.error.details.reason === 'navigation-changed' && data.error.suggestions.some(item => item.includes('snapshot -i'))"
+stale_hover_json="$(run_fail_json stale-hover hover "$stale_ref" --session "$STALE_SESSION")"
+assert_json "$stale_hover_json" "stale hover ref reuse returns REF_STALE" \
+  "data.ok === false && data.error.code === 'REF_STALE' && data.error.retryable === false && data.error.details.reason === 'navigation-changed' && data.error.suggestions.some(item => item.includes('snapshot -i'))"
 run_json stale-close session close "$STALE_SESSION" >/dev/null
 STALE_SESSION_CLOSED="1"
 
@@ -692,6 +695,34 @@ assert_json "$uncheck_json" "uncheck returns action evidence" \
 select_json="$(run_json select-option select --session "$SESSION_NAME" --selector '#smoke-select' b)"
 assert_json "$select_json" "select returns selected value" \
   "data.ok === true && data.data.selected === true && data.data.value === 'b' && data.data.values.includes('b') && typeof data.data.run.runId === 'string'"
+hover_fixture_json="$(run_json hover-fixture code --session "$SESSION_NAME" "async page => { await page.evaluate(() => { const trigger = document.createElement('button'); trigger.id = 'hover-smoke-trigger'; trigger.type = 'button'; trigger.textContent = 'hover smoke trigger'; const panel = document.createElement('div'); panel.id = 'hover-smoke-panel'; panel.textContent = 'hover smoke option'; panel.style.display = 'none'; trigger.addEventListener('mouseenter', () => { panel.style.display = 'block'; console.log('hover-smoke-fired'); }); document.body.append(trigger, panel); }); return 'hover-fixture-ready'; }")"
+assert_json "$hover_fixture_json" "hover fixture installed" \
+  "data.ok === true && data.data.result === 'hover-fixture-ready'"
+hover_selector_json="$(run_json hover-selector hover --session "$SESSION_NAME" --selector '#hover-smoke-trigger')"
+assert_json "$hover_selector_json" "hover selector returns action evidence" \
+  "data.ok === true && data.data.acted === true && data.data.selector === '#hover-smoke-trigger' && data.data.diagnosticsDelta.consoleDelta >= 1 && typeof data.data.run.runId === 'string'"
+hover_text_json="$(run_json hover-read-text read-text --session "$SESSION_NAME" --max-chars 4000)"
+assert_json "$hover_text_json" "hover changed visible page state" \
+  "data.ok === true && data.data.text.includes('hover smoke option')"
+hover_snapshot_json="$(run_json hover-snapshot snapshot -i --session "$SESSION_NAME")"
+hover_ref="$(node - "$hover_snapshot_json" <<'NODE'
+const fs = require('node:fs');
+
+const payload = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+const line = String(payload.data.snapshot || '')
+  .split('\n')
+  .find(item => item.includes('hover smoke trigger') && item.includes('[ref='));
+const match = line && line.match(/\[ref=(e[0-9]+)\]/);
+if (!match) {
+  console.error('[smoke] could not find hover trigger ref in fixture snapshot');
+  process.exit(1);
+}
+process.stdout.write(match[1]);
+NODE
+)"
+hover_ref_json="$(run_json hover-ref hover "$hover_ref" --session "$SESSION_NAME")"
+assert_json "$hover_ref_json" "hover ref returns action evidence" \
+  "data.ok === true && data.data.acted === true && data.data.ref === '${hover_ref}' && typeof data.data.run.runId === 'string'"
 
 log "storage mutation"
 storage_set_json="$(run_json storage-set storage local set --session "$SESSION_NAME" smokeFlag enabled)"

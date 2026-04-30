@@ -6,6 +6,7 @@ export {
   managedDrag,
   managedFill,
   managedGetFact,
+  managedHover,
   managedIsState,
   managedLocate,
   managedPdf,

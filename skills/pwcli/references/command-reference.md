@@ -171,6 +171,12 @@ Use `locate/get/is/verify` for narrow state checks. Use `snapshot -i` when you n
 
 ### `pw press <key> --session <name>`
 
+### `pw hover [ref] --session <name>`
+
+- `--selector <selector>`
+- 支持 hover 触发的 menu / popover / tooltip；输出复用 action evidence：`target`、`diagnosticsDelta`、`run`
+- hover 后需要读取浮层时，用 `pw read-text --session <name> --include-overlay`
+
 ### `pw check [ref] --session <name>`
 
 - `--selector <selector>`

@@ -700,6 +700,77 @@ export async function managedCheck(options: {
   return managedBooleanControlAction("check", options);
 }
 
+export async function managedHover(options: {
+  ref?: string;
+  selector?: string;
+  sessionName?: string;
+}) {
+  if (!options.ref && !options.selector) {
+    throw new Error("hover requires a ref or selector");
+  }
+
+  const before = await captureDiagnosticsBaseline(options.sessionName);
+
+  if (options.selector) {
+    const result = await managedActionRunCode({
+      command: "hover",
+      sessionName: options.sessionName,
+      source: `async page => {
+        await page.locator(${JSON.stringify(options.selector)}).hover();
+        return JSON.stringify({ acted: true });
+      }`,
+    });
+    const diagnosticsDelta = await buildDiagnosticsDelta(options.sessionName, before);
+    const run = await recordRun("hover", options.sessionName, result.page, {
+      target: { selector: options.selector },
+      diagnosticsDelta,
+    });
+    return {
+      session: result.session,
+      page: result.page,
+      data: {
+        selector: options.selector,
+        acted: true,
+        diagnosticsDelta,
+        run,
+      },
+    };
+  }
+
+  const ref = normalizeRef(options.ref ?? "");
+  await assertFreshRefEpoch({ sessionName: options.sessionName, ref });
+  const result = await runManagedSessionCommand(
+    {
+      _: ["hover", ref],
+    },
+    {
+      sessionName: options.sessionName,
+    },
+  );
+  throwIfManagedActionError(result.text, { command: "hover", sessionName: options.sessionName });
+
+  const diagnosticsDelta = await buildDiagnosticsDelta(options.sessionName, before);
+  const run = await recordRun("hover", options.sessionName, parsePageSummary(result.text), {
+    target: { ref },
+    diagnosticsDelta,
+  });
+  return {
+    session: {
+      scope: "managed",
+      name: result.sessionName,
+      default: result.sessionName === "default",
+    },
+    page: parsePageSummary(result.text),
+    data: {
+      ref,
+      acted: true,
+      diagnosticsDelta,
+      run,
+      ...maybeRawOutput(result.text),
+    },
+  };
+}
+
 export async function managedUncheck(options: {
   ref?: string;
   selector?: string;

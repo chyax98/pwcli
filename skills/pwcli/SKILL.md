@@ -77,7 +77,7 @@ pw diagnostics digest -s bug-a
 | 状态读取 / 断言 | `locate`、`get`、`is`、`verify` | 低噪声检查元素是否存在、读取事实、布尔状态或可执行断言 |
 | 多页面切换 | `page list`、`tab select|close` | popup、新开页、OAuth/预览窗口 |
 | 结构定位 | `snapshot -i` / `snapshot` | 需要 aria ref 或页面结构 |
-| 页面动作 | `click/fill/type/press/scroll/drag` | 稳定动作，带 action 记录 |
+| 页面动作 | `click/fill/type/press/hover/scroll/drag` | 稳定动作，带 action 记录 |
 | 文件交互 | `upload/download` | 上传文件、验证下载 |
 | 等待状态 | `wait` | 动作后依赖页面变化 |
 | 快速脚本 | `code` | 多状态读取、组合动作、能力未覆盖 |
@@ -202,6 +202,8 @@ pw press Enter -s bug-a
 pw type -s bug-a --selector 'textarea' 'hello'
 pw check -s bug-a --selector '#agree'
 pw select -s bug-a --selector '#country' jp
+pw hover -s bug-a --selector '.menu-trigger'
+pw hover e42 -s bug-a
 pw scroll down 800 -s bug-a
 pw drag -s bug-a --from-selector '.source' --to-selector '.target'
 ```
