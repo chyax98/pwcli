@@ -320,12 +320,42 @@ log "state check primitives"
 locate_json="$(run_json locate-text locate --session "$SESSION_NAME" --text "pwcli deterministic fixture")"
 assert_json "$locate_json" "locate text returns candidates" \
   "data.ok === true && data.data.count >= 1 && Array.isArray(data.data.candidates)"
+state_target_setup_json="$(run_json state-target-setup code --session "$SESSION_NAME" "async page => { await page.evaluate(() => { const main = document.querySelector('main'); const labelled = document.createElement('label'); labelled.textContent = 'State Email'; const labelledInput = document.createElement('input'); labelledInput.id = 'state-email'; labelledInput.value = 'agent@example.com'; labelled.appendChild(labelledInput); const placeholderInput = document.createElement('input'); placeholderInput.placeholder = 'State Search'; placeholderInput.value = 'query'; const firstRow = document.createElement('div'); firstRow.className = 'verify-row'; firstRow.textContent = 'row one'; const secondRow = document.createElement('div'); secondRow.className = 'verify-row'; secondRow.textContent = 'row two'; main.append(labelled, placeholderInput, firstRow, secondRow); }); return 'state-targets-ready'; }")"
+assert_json "$state_target_setup_json" "state target fixture installed" \
+  "data.ok === true && data.data.result === 'state-targets-ready'"
+label_get_json="$(run_json get-label get value --session "$SESSION_NAME" --label "State Email")"
+assert_json "$label_get_json" "get supports label target" \
+  "data.ok === true && data.data.value === 'agent@example.com'"
+placeholder_get_json="$(run_json get-placeholder get value --session "$SESSION_NAME" --placeholder "State Search")"
+assert_json "$placeholder_get_json" "get supports placeholder target" \
+  "data.ok === true && data.data.value === 'query'"
+nth_get_json="$(run_json get-nth get text --session "$SESSION_NAME" --selector ".verify-row" --nth 2)"
+assert_json "$nth_get_json" "get supports nth target disambiguation" \
+  "data.ok === true && data.data.value.includes('row two')"
 count_json="$(run_json get-count get count --session "$SESSION_NAME" --selector "body")"
 assert_json "$count_json" "get count returns number" \
   "data.ok === true && typeof data.data.value === 'number' && data.data.value >= 1"
 visible_json="$(run_json is-visible is visible --session "$SESSION_NAME" --selector "body")"
 assert_json "$visible_json" "is visible returns boolean" \
   "data.ok === true && data.data.value === true"
+verify_text_json="$(run_json verify-text verify text --session "$SESSION_NAME" --text "pwcli deterministic fixture")"
+assert_json "$verify_text_json" "verify text passes with compact assertion result" \
+  "data.ok === true && data.data.assertion === 'text' && data.data.passed === true && data.data.retryable === false && Array.isArray(data.data.suggestions)"
+verify_url_json="$(run_json verify-url verify url --session "$SESSION_NAME" --contains "/blank")"
+assert_json "$verify_url_json" "verify url contains passes" \
+  "data.ok === true && data.data.assertion === 'url' && data.data.passed === true && data.data.actual.includes('/blank')"
+verify_count_json="$(run_json verify-count verify count --session "$SESSION_NAME" --selector ".verify-row" --equals 2)"
+assert_json "$verify_count_json" "verify count equals passes" \
+  "data.ok === true && data.data.assertion === 'count' && data.data.passed === true && data.data.count === 2"
+verify_text_nth_missing_json="$(run_fail_json verify-text-nth-missing verify text --session "$SESSION_NAME" --selector ".verify-row" --nth 3)"
+assert_json "$verify_text_nth_missing_json" "verify text honors nth when indexed target is missing" \
+  "data.ok === false && data.error.code === 'VERIFY_FAILED' && data.error.details.assertion === 'text' && data.error.details.passed === false && data.error.details.count === 2"
+verify_text_absent_nth_json="$(run_json verify-text-absent-nth verify text-absent --session "$SESSION_NAME" --selector ".verify-row" --nth 3)"
+assert_json "$verify_text_absent_nth_json" "verify text-absent honors nth when indexed target is missing" \
+  "data.ok === true && data.data.assertion === 'text-absent' && data.data.passed === true && data.data.count === 2"
+verify_missing_json="$(run_fail_json verify-missing verify text --session "$SESSION_NAME" --text "missing verify smoke text")"
+assert_json "$verify_missing_json" "verify failure returns stable recovery envelope" \
+  "data.ok === false && data.error.code === 'VERIFY_FAILED' && data.error.retryable === true && data.error.details.assertion === 'text' && data.error.details.passed === false && data.error.suggestions.some(item => item.includes('read-text'))"
 missing_get_json="$(run_fail_json get-missing get text --session "$SESSION_NAME" --selector ".missing-state-target")"
 assert_json "$missing_get_json" "get missing target returns stable code" \
   "data.ok === false && data.error.code === 'STATE_TARGET_NOT_FOUND' && data.error.retryable === true"

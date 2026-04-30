@@ -19,6 +19,9 @@ export {
   managedType,
   managedUncheck,
   managedUpload,
+  managedVerify,
   managedWait,
   type StateTarget,
+  type VerifyAssertion,
+  type VerifyOptions,
 } from "../../infra/playwright/runtime.js";

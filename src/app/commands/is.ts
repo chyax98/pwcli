@@ -19,7 +19,10 @@ export function registerIsCommand(program: Command): void {
       .option("--text <text>", "Exact text locator")
       .option("--role <role>", "Role locator")
       .option("--name <name>", "Accessible name for --role")
-      .option("--testid <id>", "Test id locator"),
+      .option("--label <label>", "Exact label locator")
+      .option("--placeholder <text>", "Exact placeholder locator")
+      .option("--testid <id>", "Test id locator")
+      .option("--nth <number>", "1-based match index"),
   ).action(async (state: string, options: StateTargetOptions & { session?: string }) => {
     try {
       const sessionName = requireSessionName(options);

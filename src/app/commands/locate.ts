@@ -12,12 +12,15 @@ export function registerLocateCommand(program: Command): void {
   addSessionOption(
     program
       .command("locate")
-      .description("Locate elements by selector, text, role/name, or test id")
+      .description("Locate elements by selector, text, role/name, label, placeholder, or test id")
       .option("--selector <selector>", "CSS selector")
       .option("--text <text>", "Exact text locator")
       .option("--role <role>", "Role locator")
       .option("--name <name>", "Accessible name for --role")
-      .option("--testid <id>", "Test id locator"),
+      .option("--label <label>", "Exact label locator")
+      .option("--placeholder <text>", "Exact placeholder locator")
+      .option("--testid <id>", "Test id locator")
+      .option("--nth <number>", "1-based match index"),
   ).action(async (options: StateTargetOptions & { session?: string }) => {
     try {
       const sessionName = requireSessionName(options);
@@ -32,7 +35,9 @@ export function registerLocateCommand(program: Command): void {
       printSessionAwareCommandError("locate", error, {
         code: "LOCATE_FAILED",
         message: "locate failed",
-        suggestions: ["Pass exactly one target: --selector, --text, --role, or --testid"],
+        suggestions: [
+          "Pass exactly one target: --selector, --text, --role, --label, --placeholder, or --testid",
+        ],
       });
       process.exitCode = 1;
     }
