@@ -1,5 +1,5 @@
 import type { Command } from "commander";
-import { managedStateSave } from "../../domain/identity-state/service.js";
+import { managedAuthProbe, managedStateSave } from "../../domain/identity-state/service.js";
 import { managedRunCode } from "../../domain/interaction/service.js";
 import {
   getAuthProvider,
@@ -64,6 +64,7 @@ export function registerAuthCommand(program: Command): void {
       "Examples:",
       "  pw auth list",
       "  pw auth info dc",
+      "  pw auth probe --session dc2",
       "  pw auth dc --session dc2",
       "  pw auth dc --session dc2 --arg targetUrl='https://developer-192-168-5-18.tap.dev/forge'",
     ].join("\n"),
@@ -118,6 +119,36 @@ export function registerAuthCommand(program: Command): void {
           ...(provider.notes ? { notes: provider.notes } : {}),
         },
       });
+    });
+
+  addSessionOption(
+    auth
+      .command("probe")
+      .description("Read-only auth state probe for the current managed session"),
+  )
+    .option("--url <target>", "Optionally navigate read-only to a protected URL before probing")
+    .action(async (options: { session?: string; url?: string }, command: Command) => {
+      try {
+        const sessionName = requireSessionName(options, command);
+        printCommandResult(
+          "auth probe",
+          await managedAuthProbe({
+            sessionName,
+            url: options.url,
+          }),
+        );
+      } catch (error) {
+        printSessionAwareCommandError("auth probe", error, {
+          code: "AUTH_PROBE_FAILED",
+          message: "auth probe failed",
+          suggestions: [
+            "Create the session first with `pw session create <name> --open <url>`",
+            "Open the target site before probing auth state, or pass `--url <protected-url>` for a read-only navigation probe",
+            "Use `pw page current --session <name>` and `pw storage local --session <name>` to inspect the current page state",
+          ],
+        });
+        process.exitCode = 1;
+      }
     });
 
   for (const provider of listAuthProviders()

@@ -16,6 +16,44 @@
 
 - 导入 storage state
 
+### `pw state diff --session <name> --before <file>`
+
+- 读取当前 managed session 的只读 state 摘要，并与 `before` 基线文件比较
+- 首次运行时，如果 `before` 文件不存在：
+  - 当前摘要会被保存成 baseline
+  - 返回 `baselineCreated: true`
+- 后续再运行同一条命令：
+  - 比较 baseline 和当前状态
+  - 返回 compact diff buckets
+- 可选：
+  - `--after <file>`：把当前 after 摘要额外保存到文件，便于离线复查或二次比较
+
+### `pw state diff --before <file> --after <file>`
+
+- 比较两份已保存的 state diff 摘要文件
+- 不需要 session
+- 适合离线比较 before/after artifact
+
+返回：
+
+- `summary.changed`
+- `summary.changedBuckets`
+- `cookies.added/removed/changed`
+- `localStorage.added/removed`
+- `sessionStorage.added/removed`
+- `indexeddb.databasesAdded/databasesRemoved/storesChanged`
+
+限制：
+
+- 只读比较，不修改浏览器状态
+- 当前 MVP 的 storage 范围是：
+  - cookie 摘要
+  - `localStorage` key 集合
+  - `sessionStorage` key 集合
+  - IndexedDB database/store metadata + `countEstimate`
+- 不做 value 级 local/session storage diff
+- 不做 Cache Storage / service worker diff
+
 ### `pw cookies list --session <name>`
 
 - `--domain <domain>`
@@ -37,7 +75,34 @@
 - `delete <key>`：删除当前页 origin 的单个 storage 值
 - `clear`：清空当前页 origin 的对应 storage
 
-这只是受控测试状态操作，不替代 `state save|load`、cookies 或 auth provider。不会跨 origin 修改 storage，也不支持 IndexedDB。
+这只是受控测试状态操作，不替代 `state save|load`、cookies 或 auth provider。不会跨 origin 修改 storage。
+
+### `pw storage indexeddb export --session <name>`
+
+- 只读导出当前页 origin 下可见的 IndexedDB 摘要
+- 可选：
+  - `--database <name>`：只看一个 database
+  - `--store <name>`：只看一个 object store
+  - `--limit <n>`：采样记录上限，默认 `20`
+  - `--include-records`：返回采样记录 preview
+- 返回：
+  - `origin`
+  - `databaseCount`
+  - `databases[].name`
+  - `databases[].version`
+  - `stores[].name`
+  - `stores[].keyPath`
+  - `stores[].autoIncrement`
+  - `stores[].indexNames`
+  - `stores[].countEstimate`
+  - `stores[].sampledRecords[]`（仅 `--include-records`）
+
+限制：
+
+- 只读
+- 只看当前页 origin
+- 不支持 mutation / import / clear
+- 不替代 Cache Storage / service worker 探测
 
 ### `pw profile inspect <path>`
 
@@ -50,6 +115,32 @@
 - 这是 session 启动身份来源，不是 `auth provider`
 
 ## Auth
+
+### `pw auth probe --session <name>`
+
+- 只读判断当前 managed session 的身份状态
+- 返回：
+  - `status`: `authenticated | anonymous | uncertain`
+  - `confidence`: `high | medium | low`
+  - `blockedState`: `none | challenge | two_factor | interstitial | unknown`
+  - `recommendedAction`: `continue | save_state | inspect | reauth | human_handoff`
+  - `signals.pageIdentity[]`
+  - `signals.protectedResource[]`
+  - `signals.storage[]`
+- 三层信号分别回答：
+  - 页面本身像不像登录后页面
+  - 当前页面是不是还卡在登录/验证入口
+  - cookie / localStorage / sessionStorage 里是否有 auth/session-like 痕迹
+- 可选：
+  - `--url <protected-url>`：先做一次只读导航，再基于落地页做 probe
+
+限制：
+
+- 只读 probe，不执行登录
+- 不创建 session
+- 当前 MVP 不调用站点特化 `/me` API，也不做站点 pack
+- `--url` 会改变当前页，但不做写操作
+- 结果是通用启发式判断，不等同于站点级强认证结论
 
 ### `pw auth list`
 

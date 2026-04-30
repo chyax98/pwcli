@@ -195,6 +195,246 @@ export async function managedPageDialogs(options?: { sessionName?: string }) {
   };
 }
 
+type PageAssessSignals = {
+  title: string;
+  url: string;
+  visibleTextChars: number;
+  paragraphCount: number;
+  headingCount: number;
+  interactiveCount: number;
+  formCount: number;
+  formControlCount: number;
+  tableLikeCount: number;
+  feedLikeCount: number;
+  dialogLikeCount: number;
+  iframeCount: number;
+  shadowHostCount: number;
+  scrollableRegionCount: number;
+  fixedOverlayCount: number;
+  passwordFieldCount: number;
+  runtimeHints: {
+    nextData: boolean;
+    nuxtData: boolean;
+    initialState: boolean;
+    redux: boolean;
+    apollo: boolean;
+  };
+};
+
+export async function managedPageAssess(options?: { sessionName?: string }) {
+  const projection = await managedWorkspaceProjection({ sessionName: options?.sessionName });
+  const assessment = await managedRunCode({
+    sessionName: options?.sessionName,
+    source: `async page => {
+      return await page.evaluate(() => {
+        const bodyText = document.body?.innerText?.replace(/\\s+/g, ' ').trim() ?? '';
+        const countVisible = (selector) =>
+          Array.from(document.querySelectorAll(selector)).filter(node => {
+            if (!(node instanceof HTMLElement))
+              return false;
+            const style = window.getComputedStyle(node);
+            return style.display !== 'none' && style.visibility !== 'hidden';
+          }).length;
+        const countScrollableRegions = () =>
+          Array.from(document.querySelectorAll('body, main, section, article, div')).filter(node => {
+            if (!(node instanceof HTMLElement))
+              return false;
+            const style = window.getComputedStyle(node);
+            const overflowY = style.overflowY;
+            const overflowX = style.overflowX;
+            const scrollable =
+              overflowY === 'auto' ||
+              overflowY === 'scroll' ||
+              overflowX === 'auto' ||
+              overflowX === 'scroll';
+            return scrollable && (node.scrollHeight > node.clientHeight || node.scrollWidth > node.clientWidth);
+          }).length;
+        const runtimeHints = {
+          nextData: typeof window.__NEXT_DATA__ !== 'undefined',
+          nuxtData: typeof window.__NUXT__ !== 'undefined' || typeof window.__NUXT_DATA__ !== 'undefined',
+          initialState: typeof window.__INITIAL_STATE__ !== 'undefined',
+          redux:
+            typeof window.__REDUX_STATE__ !== 'undefined' ||
+            Boolean(window.store && typeof window.store.getState === 'function'),
+          apollo:
+            typeof window.__APOLLO_STATE__ !== 'undefined' ||
+            typeof window.__APOLLO_CLIENT__ !== 'undefined',
+        };
+        return JSON.stringify({
+          title: document.title,
+          url: location.href,
+          visibleTextChars: bodyText.length,
+          paragraphCount: document.querySelectorAll('p, li, article p, main p').length,
+          headingCount: document.querySelectorAll('h1, h2, h3').length,
+          interactiveCount: countVisible('button, a[href], input, textarea, select, summary, [role="button"], [role="link"], [role="textbox"], [role="menuitem"], [role="tab"]'),
+          formCount: document.querySelectorAll('form').length,
+          formControlCount: document.querySelectorAll('input, textarea, select, button[type="submit"]').length,
+          tableLikeCount: document.querySelectorAll('table, [role="table"], [role="grid"]').length,
+          feedLikeCount: document.querySelectorAll('[role="feed"], [data-feed], [data-testid*="feed"]').length,
+          dialogLikeCount: document.querySelectorAll('dialog, [role="dialog"], [aria-modal="true"]').length,
+          iframeCount: document.querySelectorAll('iframe, frame').length,
+          shadowHostCount: Array.from(document.querySelectorAll('*')).filter(node => node.shadowRoot).length,
+          scrollableRegionCount: countScrollableRegions(),
+          fixedOverlayCount: Array.from(document.querySelectorAll('body *')).filter(node => {
+            if (!(node instanceof HTMLElement))
+              return false;
+            const style = window.getComputedStyle(node);
+            return style.position === 'fixed' && Number.parseInt(style.zIndex || '0', 10) >= 100;
+          }).length,
+          passwordFieldCount: document.querySelectorAll('input[type="password"]').length,
+          runtimeHints,
+        });
+      });
+    }`,
+  });
+  const signals = assessment.data.result as PageAssessSignals;
+  const runtimeHintCount = Object.values(signals.runtimeHints ?? {}).filter(Boolean).length;
+  const hasFrames = Number(projection.data.frames.frameCount ?? 0) > 1 || signals.iframeCount > 0;
+  const hasDialog = Number(projection.data.dialogs.count ?? 0) > 0 || signals.dialogLikeCount > 0;
+  const hasForms = signals.formCount > 0 || signals.formControlCount >= 3;
+  const hasTableLikeRegions = signals.tableLikeCount > 0;
+  const hasFeedLikeRegions = signals.feedLikeCount > 0;
+  const visibleTextDensity =
+    signals.visibleTextChars >= 100 ? "high" : signals.visibleTextChars >= 40 ? "medium" : "low";
+  const authSensitivePageLikely =
+    signals.passwordFieldCount > 0 ||
+    (hasForms &&
+      /login|signin|sign-in|auth|account|dashboard|settings/i.test(signals.url));
+  const pageKind = inferPageKind({
+    hasDialog,
+    hasForms,
+    hasTableLikeRegions,
+    hasFeedLikeRegions,
+    interactiveCount: signals.interactiveCount,
+    runtimeHintCount,
+    visibleTextChars: signals.visibleTextChars,
+  });
+  const runtimeProbeRecommended = runtimeHintCount > 0 || pageKind === "app";
+  const storageProbeRecommended = authSensitivePageLikely;
+  const networkProbeRecommended =
+    pageKind === "table" || pageKind === "feed" || (pageKind === "app" && signals.visibleTextChars < 120);
+  const complexityHints = {
+    virtualizedUiLikely:
+      signals.scrollableRegionCount > 1 && signals.interactiveCount >= 12 && signals.visibleTextChars < 250,
+    spaNavigationLikely: runtimeHintCount > 0 || pageKind === "app",
+    authSensitivePageLikely,
+    overlayHeavyPageLikely: signals.fixedOverlayCount >= 2 || hasDialog,
+  };
+
+  return {
+    session: projection.session,
+    page: projection.page,
+    data: {
+      page: projection.data.page,
+      summary: {
+        pageKind,
+        visibleTextDensity,
+        hasDialog,
+        hasFrames,
+        hasShadowRoots: signals.shadowHostCount > 0,
+        hasScrollableRegions: signals.scrollableRegionCount > 0,
+        hasForms,
+        hasTableLikeRegions,
+        hasFeedLikeRegions,
+      },
+      dataHints: {
+        domReadable: signals.visibleTextChars > 0,
+        accessibilityReadable:
+          signals.interactiveCount > 0 || signals.headingCount > 0 || signals.paragraphCount > 0,
+        runtimeProbeRecommended,
+        storageProbeRecommended,
+        networkProbeRecommended,
+      },
+      complexityHints,
+      nextSteps: recommendedNextSteps({
+        sessionName: projection.session.name,
+        domReadable: signals.visibleTextChars > 0,
+        accessibilityReadable:
+          signals.interactiveCount > 0 || signals.headingCount > 0 || signals.paragraphCount > 0,
+        runtimeProbeRecommended,
+        storageProbeRecommended,
+        networkProbeRecommended,
+      }),
+      limitations: [
+        "Assessment is inference-only; use `pw code`, storage, or diagnostics commands for authoritative runtime/network/state facts.",
+      ],
+      evidence: {
+        derivedFrom: [
+          "page current",
+          "read-text-lite",
+          "interactive summary",
+          "frame/dialog projection",
+        ],
+      },
+      ...maybeRawOutput(assessment.rawText ?? ""),
+    },
+  };
+}
+
+function inferPageKind(options: {
+  hasDialog: boolean;
+  hasForms: boolean;
+  hasTableLikeRegions: boolean;
+  hasFeedLikeRegions: boolean;
+  interactiveCount: number;
+  runtimeHintCount: number;
+  visibleTextChars: number;
+}) {
+  if (options.hasDialog) {
+    return "dialog";
+  }
+  if (options.hasTableLikeRegions) {
+    return "table";
+  }
+  if (options.hasFeedLikeRegions) {
+    return "feed";
+  }
+  if (options.hasForms) {
+    return "form";
+  }
+  if (
+    options.runtimeHintCount > 0 &&
+    options.interactiveCount >= 6 &&
+    options.visibleTextChars < 250
+  ) {
+    return "app";
+  }
+  if (options.visibleTextChars >= 80) {
+    return "document";
+  }
+  if (options.interactiveCount >= 6) {
+    return "app";
+  }
+  return "unknown";
+}
+
+function recommendedNextSteps(options: {
+  sessionName: string;
+  domReadable: boolean;
+  accessibilityReadable: boolean;
+  runtimeProbeRecommended: boolean;
+  storageProbeRecommended: boolean;
+  networkProbeRecommended: boolean;
+}) {
+  const nextSteps: string[] = [];
+  if (options.domReadable) {
+    nextSteps.push(`pw read-text -s ${options.sessionName}`);
+  }
+  if (options.accessibilityReadable) {
+    nextSteps.push(`pw snapshot -i -s ${options.sessionName}`);
+  }
+  if (options.runtimeProbeRecommended) {
+    nextSteps.push(`pw code --session ${options.sessionName} '<runtime-probe>'`);
+  }
+  if (options.storageProbeRecommended) {
+    nextSteps.push(`pw storage local -s ${options.sessionName}`);
+  }
+  if (options.networkProbeRecommended) {
+    nextSteps.push(`pw diagnostics digest -s ${options.sessionName}`);
+  }
+  return [...new Set(nextSteps)].slice(0, 3);
+}
+
 function pageById(pages: WorkspacePage[], pageId: string) {
   return pages.find((page) => page.pageId === pageId);
 }

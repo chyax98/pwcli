@@ -1,5 +1,6 @@
 export {
   managedObserveStatus,
+  managedPageAssess,
   managedPageCurrent,
   managedPageDialogs,
   managedPageFrames,

@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { rmSync } from "node:fs";
 import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { dirname, join, resolve } from "node:path";
@@ -18,6 +19,15 @@ export const DEFAULT_SESSION_NAME = "default";
 export const MAX_SESSION_NAME_LENGTH = 16;
 const SESSION_LOCK_TIMEOUT_MS = positiveDurationEnv("PWCLI_SESSION_LOCK_TIMEOUT_MS", 120_000);
 const SESSION_LOCK_STALE_MS = positiveDurationEnv("PWCLI_SESSION_LOCK_STALE_MS", 600_000);
+const SESSION_STARTUP_LOCK_TIMEOUT_MS = positiveDurationEnv(
+  "PWCLI_SESSION_STARTUP_LOCK_TIMEOUT_MS",
+  0,
+);
+const SESSION_STARTUP_LOCK_STALE_MS = positiveDurationEnv(
+  "PWCLI_SESSION_STARTUP_LOCK_STALE_MS",
+  600_000,
+);
+const SESSION_STARTUP_LOCK_HOLD_MS = positiveDurationEnv("PWCLI_SESSION_STARTUP_LOCK_HOLD_MS", 0);
 
 type ManagedSessionConfig = {
   name?: string;
@@ -84,6 +94,11 @@ export type AttachableBrowserServerList = {
   count: number;
   servers: AttachableBrowserServer[];
   limitation?: string;
+};
+
+type SessionLockHandle = {
+  lockDir: string;
+  token: string;
 };
 
 function positiveDurationEnv(name: string, fallback: number) {
@@ -200,7 +215,27 @@ async function releaseSessionCommandLock(lockDir: string, token: string) {
   }
 }
 
-async function isStaleSessionLock(lockDir: string) {
+const heldSessionStartupLocks = new Map<string, SessionLockHandle>();
+let sessionStartupCleanupRegistered = false;
+
+function sessionStartupLockKey(workspaceDir: string | undefined, sessionName: string) {
+  return `${resolve(workspaceDir ?? process.cwd())}:${sessionName}`;
+}
+
+function registerSessionStartupCleanup() {
+  if (sessionStartupCleanupRegistered) {
+    return;
+  }
+  sessionStartupCleanupRegistered = true;
+  process.once("exit", () => {
+    for (const { lockDir } of heldSessionStartupLocks.values()) {
+      rmSync(lockDir, { recursive: true, force: true });
+    }
+    heldSessionStartupLocks.clear();
+  });
+}
+
+async function isStaleSessionLock(lockDir: string, staleMs: number) {
   const owner = await readLockOwner(lockDir);
   if (owner?.pid && isProcessAlive(owner.pid)) {
     return false;
@@ -210,22 +245,23 @@ async function isStaleSessionLock(lockDir: string) {
   }
   try {
     const info = await stat(lockDir);
-    return Date.now() - info.mtimeMs > SESSION_LOCK_STALE_MS;
+    return Date.now() - info.mtimeMs > staleMs;
   } catch {
     return true;
   }
 }
 
-async function withSessionCommandLock<T>(
-  workspaceDir: string | undefined,
-  sessionName: string,
-  fn: (lock: { releaseAfter(operation: Promise<unknown>): void }) => Promise<T>,
-) {
-  const root = resolve(workspaceDir ?? process.cwd(), ".pwcli", "locks");
-  const lockDir = join(root, `${sessionName}.lock`);
+async function acquireSessionLock(options: {
+  workspaceDir: string | undefined;
+  sessionName: string;
+  namespace: string;
+  timeoutMs: number;
+  staleMs: number;
+}) {
+  const root = resolve(options.workspaceDir ?? process.cwd(), ".pwcli", "locks", options.namespace);
+  const lockDir = join(root, `${options.sessionName}.lock`);
   const token = randomUUID();
   const startedAt = Date.now();
-  let deferredRelease: Promise<unknown> | undefined;
 
   await mkdir(root, { recursive: true });
 
@@ -238,29 +274,48 @@ async function withSessionCommandLock<T>(
           {
             pid: process.pid,
             token,
-            sessionName,
+            sessionName: options.sessionName,
             acquiredAt: new Date().toISOString(),
           },
           null,
           2,
         ),
       );
-      break;
+      return { lockDir, token };
     } catch (error) {
       const code = error && typeof error === "object" ? (error as { code?: string }).code : "";
       if (code !== "EEXIST") {
         throw error;
       }
-      if (await isStaleSessionLock(lockDir)) {
+      const owner = await readLockOwner(lockDir);
+      if (owner?.pid === process.pid) {
+        return { lockDir, token: owner.token ?? token };
+      }
+      if (await isStaleSessionLock(lockDir, options.staleMs)) {
         await rm(lockDir, { recursive: true, force: true });
         continue;
       }
-      if (Date.now() - startedAt > SESSION_LOCK_TIMEOUT_MS) {
-        throw new Error(`SESSION_BUSY:${sessionName}:${SESSION_LOCK_TIMEOUT_MS}`);
+      if (Date.now() - startedAt > options.timeoutMs) {
+        throw new Error(`SESSION_BUSY:${options.sessionName}:${options.timeoutMs}`);
       }
       await sleep(50 + Math.floor(Math.random() * 100));
     }
   }
+}
+
+async function withSessionCommandLock<T>(
+  workspaceDir: string | undefined,
+  sessionName: string,
+  fn: (lock: { releaseAfter(operation: Promise<unknown>): void }) => Promise<T>,
+) {
+  const { lockDir, token } = await acquireSessionLock({
+    workspaceDir,
+    sessionName,
+    namespace: "commands",
+    timeoutMs: SESSION_LOCK_TIMEOUT_MS,
+    staleMs: SESSION_LOCK_STALE_MS,
+  });
+  let deferredRelease: Promise<unknown> | undefined;
 
   try {
     return await fn({
@@ -277,6 +332,38 @@ async function withSessionCommandLock<T>(
       await releaseSessionCommandLock(lockDir, token);
     }
   }
+}
+
+async function withSessionStartupLock<T>(
+  workspaceDir: string | undefined,
+  sessionName: string,
+  active: boolean,
+  fn: () => Promise<T>,
+) {
+  if (!active) {
+    return await fn();
+  }
+
+  const key = sessionStartupLockKey(workspaceDir, sessionName);
+  if (heldSessionStartupLocks.has(key)) {
+    return await fn();
+  }
+
+  const handle = await acquireSessionLock({
+    workspaceDir,
+    sessionName,
+    namespace: "startup",
+    timeoutMs: SESSION_STARTUP_LOCK_TIMEOUT_MS,
+    staleMs: SESSION_STARTUP_LOCK_STALE_MS,
+  });
+  heldSessionStartupLocks.set(key, handle);
+  registerSessionStartupCleanup();
+
+  if (SESSION_STARTUP_LOCK_HOLD_MS > 0) {
+    await sleep(SESSION_STARTUP_LOCK_HOLD_MS);
+  }
+
+  return await fn();
 }
 
 async function stopSessionEntry(entry: ManagedSessionEntry) {
@@ -420,9 +507,15 @@ async function ensureManagedSessionUnlocked(options?: EnsureManagedSessionOption
 
 export async function ensureManagedSession(options?: EnsureManagedSessionOptions) {
   const { clientInfo, sessionName } = await getSessionEntry(options?.sessionName);
-  return await withSessionCommandLock(clientInfo.workspaceDir, sessionName, async () => {
-    return await ensureManagedSessionUnlocked(options);
-  });
+  return await withSessionStartupLock(
+    clientInfo.workspaceDir,
+    sessionName,
+    Boolean(options?.reset || options?.createIfMissing),
+    async () =>
+      await withSessionCommandLock(clientInfo.workspaceDir, sessionName, async () => {
+        return await ensureManagedSessionUnlocked(options);
+      }),
+  );
 }
 
 export async function runManagedSessionCommand(
@@ -434,25 +527,32 @@ export async function runManagedSessionCommand(
   },
 ) {
   const { clientInfo, sessionName } = await getSessionEntry(options?.sessionName);
-  return await withSessionCommandLock(clientInfo.workspaceDir, sessionName, async (lock) => {
-    const ensured = await ensureManagedSessionUnlocked(options);
-    const { clientInfo: ensuredClientInfo, sessionName: ensuredSessionName, session } = ensured;
-    const run = session.run(ensuredClientInfo, {
-      ...args,
-    });
-    const text = options?.timeoutMs
-      ? await withManagedSessionTimeout(run, {
-          timeoutMs: options.timeoutMs,
-          timeoutMessage: options.timeoutMessage,
-          timeoutCode: options.timeoutCode,
-          onTimeout: () => lock.releaseAfter(run),
-        })
-      : await run;
-    return {
-      sessionName: ensuredSessionName,
-      text: text.text,
-    };
-  });
+  return await withSessionStartupLock(
+    clientInfo.workspaceDir,
+    sessionName,
+    Boolean(options?.reset || options?.createIfMissing),
+    async () =>
+      await withSessionCommandLock(clientInfo.workspaceDir, sessionName, async (lock) => {
+        const ensured = await ensureManagedSessionUnlocked(options);
+        const { clientInfo: ensuredClientInfo, sessionName: ensuredSessionName, session } =
+          ensured;
+        const run = session.run(ensuredClientInfo, {
+          ...args,
+        });
+        const text = options?.timeoutMs
+          ? await withManagedSessionTimeout(run, {
+              timeoutMs: options.timeoutMs,
+              timeoutMessage: options.timeoutMessage,
+              timeoutCode: options.timeoutCode,
+              onTimeout: () => lock.releaseAfter(run),
+            })
+          : await run;
+        return {
+          sessionName: ensuredSessionName,
+          text: text.text,
+        };
+      }),
+  );
 }
 
 async function withManagedSessionTimeout<T>(
@@ -493,8 +593,10 @@ export async function stopManagedSession(sessionName?: string) {
   if (!entry) {
     return false;
   }
-  await withSessionCommandLock(clientInfo.workspaceDir, resolvedSessionName, async () => {
-    await stopSessionEntry(entry);
+  await withSessionStartupLock(clientInfo.workspaceDir, resolvedSessionName, true, async () => {
+    await withSessionCommandLock(clientInfo.workspaceDir, resolvedSessionName, async () => {
+      await stopSessionEntry(entry);
+    });
   });
   return true;
 }

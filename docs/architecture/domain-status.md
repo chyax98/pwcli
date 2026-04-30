@@ -24,6 +24,7 @@
   - diagnostics records
   - run artifacts
 - same-session lifecycle startup/reset/close and managed command dispatch use a per-session lock before entering the Playwright substrate; lock timeout reports recoverable `SESSION_BUSY`
+- same-name lifecycle startup/reset also holds a fail-fast startup lane for the lifetime of that CLI process, so concurrent `session create|recreate` for the same name returns structured `SESSION_BUSY` instead of leaking substrate startup races such as raw `EADDRINUSE`
 
 ### 当前限制
 
@@ -41,9 +42,11 @@
 ### 当前实现
 
 - `page current|list|frames|dialogs`
+- `page assess`
 - `tab select|close <pageId>`
 - `observe status`
 - page / frame / dialog projection
+- `page assess` returns a compact read-only summary: page kind, data-layer hints, complexity hints, and next read commands
 - `observe status` 默认 compact，`--verbose` 返回完整状态载荷
 - workspace mutation contract 已单独定义在 `workspace-mutation-contract.md`
 
@@ -51,10 +54,12 @@
 
 - `page dialogs` 是事件投影
 - `tab select|close` 只接受 `pageId`，不接受 index / title / URL substring 作为写操作目标
+- `page assess` is inference-only: it does not export runtime state, storage state, or network payloads, and it is not an action planner
 
 ### 后续扩展
 
 - 如果继续扩 workspace 写操作，仍然先定义 stable target identity
+- 如果 `page assess` 后续继续扩展，优先补 selector-scoped assessment、auth-sensitive hints 和 real-site benchmark coverage；不要把它扩成 planner
 
 ## 3. Interaction
 
@@ -98,8 +103,11 @@
 ### 当前实现
 
 - `state save|load`
+- `state diff` read-only before/after comparison for cookies, `localStorage` keys, `sessionStorage` keys, and IndexedDB metadata
 - `cookies list|set`
 - `storage local|session` read + current-origin `get|set|delete|clear`
+- `storage indexeddb export` read-only current-origin summary + optional sampled previews
+- `auth probe` read-only auth-state heuristic with `authenticated|anonymous|uncertain`, `confidence`, `blockedState`, `recommendedAction`, and three signal layers (`pageIdentity` / `protectedResource` / `storage`)
 - `profile inspect`
 - `profile list-chrome` discovers local Chrome profiles for `session create --from-system-chrome`
 - `auth` 内置 provider 执行 + `save-state`
@@ -109,6 +117,9 @@
 ### 当前限制
 
 - `storage local|session get|set|delete|clear` 只作用于当前页 origin，不做跨 origin storage 编辑
+- `state diff` 当前只做 metadata comparison：cookie 摘要、local/session storage key 集合、IndexedDB database/store metadata + `countEstimate`；不做 local/session value diff，也不做 Cache Storage / service worker diff
+- `storage indexeddb export` 只读、只看当前页 origin；不做 mutation、跨 origin 遍历、profile 级迁移，也不替代 Cache Storage / service worker 探测
+- `auth probe` 当前只做通用启发式判断：可选 `--url` 只读导航、不调用站点级 `/me` 接口、不替代站点特化 auth pack
 - `auth` 不负责 session shape
 - `--from-system-chrome` 不复制 profile；它用 Chrome user data dir + profile-directory 启动 session，因此同 profile 被 Chrome 占用时会失败
 - `dc` 不接受 `instance` 参数；不暴露环境参数，用户给具体业务 URL 时由 skill 作为 `targetUrl` 传入
@@ -117,7 +128,7 @@
 
 ### 后续扩展
 
-- 如果 Agent 真实需要，再补 richer cookie mutation 或 IndexedDB 读取；当前 storage mutation 不替代 auth/state 主路
+- 如果 Agent 真实需要，再补更深层 value diff、Cache Storage probe、站点级 auth probe pack 或 extraction recipe；当前 storage mutation 不替代 auth/state 主路
 
 ## 5. Diagnostics
 
