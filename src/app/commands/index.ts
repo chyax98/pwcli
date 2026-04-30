@@ -18,6 +18,7 @@ import { registerErrorsCommand } from "./errors.js";
 import { registerFillCommand } from "./fill.js";
 import { registerGetCommand } from "./get.js";
 import { registerHarCommand } from "./har.js";
+import { registerHoverCommand } from "./hover.js";
 import { registerIsCommand } from "./is.js";
 import { registerLocateCommand } from "./locate.js";
 import { registerNetworkCommand } from "./network.js";
@@ -70,6 +71,7 @@ export function registerCommands(program: Command): void {
   registerFillCommand(program);
   registerTypeCommand(program);
   registerPressCommand(program);
+  registerHoverCommand(program);
   registerScrollCommand(program);
   registerSelectCommand(program);
   registerUncheckCommand(program);

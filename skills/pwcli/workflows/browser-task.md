@@ -59,6 +59,7 @@ pw fill -s <name> --selector '<selector>' '<value>'
 pw click -s <name> --role button --name '<name>'
 pw click -s <name> --text '<text>'
 pw click e42 -s <name>
+pw hover -s <name> --selector '<selector>'
 ```
 
 动作后等待：

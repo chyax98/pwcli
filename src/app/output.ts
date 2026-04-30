@@ -477,6 +477,7 @@ function formatCommandText(command: string, result: CommandResult): string {
       "fill",
       "type",
       "press",
+      "hover",
       "wait",
       "scroll",
       "upload",
