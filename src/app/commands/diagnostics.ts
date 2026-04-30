@@ -1,11 +1,10 @@
-import { writeFile } from "node:fs/promises";
-import { mkdir } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import type { Command } from "commander";
 import {
   listDiagnosticsRuns,
-  managedDiagnosticsDigest,
   managedDiagnosticsBundle,
+  managedDiagnosticsDigest,
   managedDiagnosticsExport,
   managedDiagnosticsExportFiltered,
   readDiagnosticsRunView,
@@ -139,7 +138,11 @@ export function registerDiagnosticsCommand(program: Command): void {
         const result = await managedDiagnosticsBundle({ sessionName, limit });
         const bundleDir = resolve(out);
         await mkdir(bundleDir, { recursive: true });
-        await writeFile(resolve(bundleDir, "manifest.json"), JSON.stringify(result.data, null, 2), "utf8");
+        await writeFile(
+          resolve(bundleDir, "manifest.json"),
+          JSON.stringify(result.data, null, 2),
+          "utf8",
+        );
         printCommandResult("diagnostics bundle", {
           session: result.session,
           page: result.page,
