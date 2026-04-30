@@ -392,7 +392,14 @@ function buildRunDigest(runId: string, events: RunEventRecord[], limit: number) 
   };
 }
 
-function buildAgentAuditConclusion(input: {
+function shellArg(value: string) {
+  return `'${value.replace(/'/g, "'\\''")}'`;
+}
+
+export function buildDiagnosticsAuditConclusion(input: {
+  sessionName: string;
+  latestRunId: string | null;
+  limit: number;
   digestData: Record<string, unknown>;
   latestRunEvents: Record<string, unknown> | null;
 }) {
@@ -407,10 +414,24 @@ function buildAgentAuditConclusion(input: {
   const pageErrorCount = asNumber(summary.pageErrorCount) ?? 0;
   const failedRequestCount = asNumber(summary.failedRequestCount) ?? 0;
   const consoleErrorCount = asNumber(summary.consoleErrorCount) ?? 0;
-  const failureLikely = pageErrorCount > 0 || failedRequestCount > 0 || consoleErrorCount > 0;
+  const httpErrorCount = asNumber(summary.httpErrorCount) ?? 0;
+  const failureLikely =
+    pageErrorCount > 0 || failedRequestCount > 0 || consoleErrorCount > 0 || httpErrorCount > 0;
   const firstSignal = asObject(topSignals[0] ?? {});
   const failureKind = asString(firstSignal.kind) ?? null;
   const failureSummary = asString(firstSignal.summary) ?? null;
+  const latestRunId = input.latestRunId ?? asString(latestRunEvents.runId);
+  const limit = Math.max(1, input.limit);
+  const grepText = failureSummary ?? failureKind ?? "error";
+  const failureNextSteps = latestRunId
+    ? [
+        `run: pw diagnostics show --run ${shellArg(latestRunId)} --limit ${limit}`,
+        `run: pw diagnostics grep --run ${shellArg(latestRunId)} --text ${shellArg(grepText)} --limit ${limit}`,
+      ]
+    : [
+        `run: pw diagnostics digest --session ${shellArg(input.sessionName)} --limit ${Math.min(limit, 10)}`,
+        `run: pw diagnostics export --session ${shellArg(input.sessionName)} --out ./diag.json --limit ${limit}`,
+      ];
 
   return {
     status: failureLikely ? "failed_or_risky" : "no_strong_failure_signal",
@@ -423,8 +444,7 @@ function buildAgentAuditConclusion(input: {
       : "continue_workflow_or_run_targeted_assertions",
     agentNextSteps: failureLikely
       ? [
-          "run: pw diagnostics show --run <latestRunId> --limit 20",
-          "run: pw diagnostics grep --run <latestRunId> --text <error keyword> --limit 20",
+          ...failureNextSteps,
           "derive root cause hypothesis",
           "propose and apply minimal fix",
           "re-run validation commands",
@@ -613,10 +633,7 @@ export async function readDiagnosticsRunView(options: {
   };
 }
 
-export async function managedDiagnosticsBundle(options: {
-  sessionName: string;
-  limit?: number;
-}) {
+export async function managedDiagnosticsBundle(options: { sessionName: string; limit?: number }) {
   const limit = Math.max(1, options.limit ?? 20);
   const exported = await managedDiagnosticsExportFiltered({
     sessionName: options.sessionName,
@@ -638,7 +655,10 @@ export async function managedDiagnosticsBundle(options: {
         limit,
       })
     : null;
-  const auditConclusion = buildAgentAuditConclusion({
+  const auditConclusion = buildDiagnosticsAuditConclusion({
+    sessionName: options.sessionName,
+    latestRunId: latestRun?.runId ?? null,
+    limit,
     digestData: asObject(digest.data),
     latestRunEvents: latestRunView,
   });

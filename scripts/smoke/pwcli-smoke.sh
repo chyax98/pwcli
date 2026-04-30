@@ -129,6 +129,46 @@ if ! curl -sf "$BLANK_URL" >/dev/null; then
   exit 1
 fi
 
+log "diagnostics audit conclusion domain contract"
+node --input-type=module <<'NODE'
+import assert from 'node:assert/strict';
+import { buildDiagnosticsAuditConclusion } from './dist/domain/diagnostics/service.js';
+
+const conclusion = buildDiagnosticsAuditConclusion({
+  sessionName: 'audit-smoke',
+  latestRunId: 'run-http-1',
+  limit: 20,
+  digestData: {
+    summary: {
+      pageErrorCount: 0,
+      failedRequestCount: 0,
+      consoleErrorCount: 0,
+      httpErrorCount: 1,
+    },
+    topSignals: [
+      {
+        kind: 'response',
+        summary: 'GET /api/failure -> 500',
+      },
+    ],
+  },
+  latestRunEvents: {
+    runId: 'run-http-1',
+    events: [
+      {
+        command: 'click',
+        ts: '2026-04-30T02:00:00.000Z',
+      },
+    ],
+  },
+});
+
+assert.equal(conclusion.status, 'failed_or_risky');
+assert.equal(conclusion.failureKind, 'response');
+assert.ok(conclusion.agentNextSteps.some((step) => step.includes('run-http-1')));
+assert.ok(conclusion.agentNextSteps.every((step) => !step.includes('<latestRunId>')));
+NODE
+
 log "action failure classifier contract"
 node --input-type=module <<'NODE'
 import { ActionFailure } from './dist/domain/interaction/action-failure.js';
@@ -640,6 +680,20 @@ pdf_json="$(run_json pdf-export pdf --session "$SESSION_NAME" --path "$pdf_path"
 assert_json "$pdf_json" "pdf export returns path" \
   "data.ok === true && data.data.path.endsWith('page.pdf') && data.data.saved === true && typeof data.data.run.runId === 'string'"
 test -s "$pdf_path"
+
+log "diagnostics bundle audit conclusion"
+bundle_http_json="$(run_json bundle-http-code code --session "$SESSION_NAME" "async page => { const response = await page.evaluate(async () => { const response = await fetch('/__pwcli__/bundle-http-error', { cache: 'no-store' }); return { status: response.status, text: await response.text() }; }); return response; }")"
+assert_json "$bundle_http_json" "bundle setup captured http error response without throwing" \
+  "data.ok === true && data.data.result.status === 404"
+bundle_dir="${TMP_DIR}/diag-bundle"
+bundle_json="$(run_json diagnostics-bundle diagnostics bundle --session "$SESSION_NAME" --out "$bundle_dir" --limit 20)"
+BUNDLE_RUN_ID="$(json_field "$bundle_json" "data.data.latestRunId")"
+assert_json "$bundle_json" "bundle audit conclusion reports risky signals" \
+  "data.ok === true && data.data.auditConclusion.status === 'failed_or_risky'"
+assert_json "$bundle_json" "bundle audit next steps contain executable run commands" \
+  "data.ok === true && data.data.auditConclusion.agentNextSteps.some(item => item.includes('${BUNDLE_RUN_ID}')) && data.data.auditConclusion.agentNextSteps.every(item => !item.includes('<latestRunId>'))"
+assert_json "${bundle_dir}/manifest.json" "bundle manifest mirrors executable audit next steps" \
+  "data.latestRunId === '${BUNDLE_RUN_ID}' && data.auditConclusion.agentNextSteps.some(item => item.includes('${BUNDLE_RUN_ID}')) && data.auditConclusion.agentNextSteps.every(item => !item.includes('<latestRunId>'))"
 
 log "fire diagnostics"
 diagnostics_restore_json="$(run_json diagnostics-restore code --session "$SESSION_NAME" --file ./scripts/manual/diagnostics-fixture.js)"
