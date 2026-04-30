@@ -43,6 +43,13 @@ state / auth / batch 命令见 `command-reference-advanced.md`。
 - `--limit <n>`、`--since <iso>`、`--text <substring>`
 - `--fields <list>`：支持 `path` 和 `alias=path`
 
+### `pw diagnostics bundle --session <name> --out <dir>`
+
+- 导出失败现场最小证据包（`manifest.json`）
+- 默认包含：session digest、filtered diagnostics、latest run events（如果存在）
+- 包含 `auditConclusion`（`status/failedAt/failedCommand/failureKind/failureSummary/agentNextSteps`），供 Agent 自主闭环：先做归因，再定位，再修复，再复验
+- `--limit <n>`：每类记录的保留上限（默认 `20`）
+
 ### `pw diagnostics runs`
 
 - 列出 `.pwcli/runs/` 下的 run 摘要

@@ -392,6 +392,47 @@ function buildRunDigest(runId: string, events: RunEventRecord[], limit: number) 
   };
 }
 
+function buildAgentAuditConclusion(input: {
+  digestData: Record<string, unknown>;
+  latestRunEvents: Record<string, unknown> | null;
+}) {
+  const digestData = asObject(input.digestData);
+  const summary = asObject(digestData.summary);
+  const topSignals = asArray(digestData.topSignals);
+  const latestRunEvents = asObject(input.latestRunEvents ?? {});
+  const events = asArray(latestRunEvents.events);
+  const lastEvent = asObject(events.at(-1) ?? {});
+  const lastCommand = asString(lastEvent.command);
+  const lastTs = asString(lastEvent.ts) ?? asString(lastEvent.timestamp);
+  const pageErrorCount = asNumber(summary.pageErrorCount) ?? 0;
+  const failedRequestCount = asNumber(summary.failedRequestCount) ?? 0;
+  const consoleErrorCount = asNumber(summary.consoleErrorCount) ?? 0;
+  const failureLikely = pageErrorCount > 0 || failedRequestCount > 0 || consoleErrorCount > 0;
+  const firstSignal = asObject(topSignals[0] ?? {});
+  const failureKind = asString(firstSignal.kind) ?? null;
+  const failureSummary = asString(firstSignal.summary) ?? null;
+
+  return {
+    status: failureLikely ? "failed_or_risky" : "no_strong_failure_signal",
+    failedAt: lastTs,
+    failedCommand: lastCommand,
+    failureKind,
+    failureSummary,
+    agentAction: failureLikely
+      ? "continue_audit_and_localize_bug"
+      : "continue_workflow_or_run_targeted_assertions",
+    agentNextSteps: failureLikely
+      ? [
+          "run: pw diagnostics show --run <latestRunId> --limit 20",
+          "run: pw diagnostics grep --run <latestRunId> --text <error keyword> --limit 20",
+          "derive root cause hypothesis",
+          "propose and apply minimal fix",
+          "re-run validation commands",
+        ]
+      : ["continue planned workflow", "verify expected business outcome with assertions"],
+  };
+}
+
 export async function managedDiagnosticsDigest(options: {
   sessionName?: string;
   runId?: string;
@@ -569,6 +610,52 @@ export async function readDiagnosticsRunView(options: {
     count: limited.length,
     total: filtered.length,
     events: fields.length > 0 ? limited.map((event) => projectRecord(event, fields)) : limited,
+  };
+}
+
+export async function managedDiagnosticsBundle(options: {
+  sessionName: string;
+  limit?: number;
+}) {
+  const limit = Math.max(1, options.limit ?? 20);
+  const exported = await managedDiagnosticsExportFiltered({
+    sessionName: options.sessionName,
+    section: "all",
+    limit,
+  });
+  const digest = await managedDiagnosticsDigest({
+    sessionName: options.sessionName,
+    limit: Math.min(limit, 10),
+  });
+  const runs = await listDiagnosticsRuns({
+    sessionName: options.sessionName,
+    limit: 1,
+  });
+  const latestRun = runs[0] ?? null;
+  const latestRunView = latestRun
+    ? await readDiagnosticsRunView({
+        runId: latestRun.runId,
+        limit,
+      })
+    : null;
+  const auditConclusion = buildAgentAuditConclusion({
+    digestData: asObject(digest.data),
+    latestRunEvents: latestRunView,
+  });
+
+  return {
+    session: exported.session,
+    page: exported.page,
+    data: {
+      createdAt: new Date().toISOString(),
+      sessionName: options.sessionName,
+      limit,
+      latestRunId: latestRun?.runId ?? null,
+      auditConclusion,
+      digest: digest.data,
+      diagnostics: exported.data,
+      latestRunEvents: latestRunView,
+    },
   };
 }
 

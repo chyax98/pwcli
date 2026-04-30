@@ -231,6 +231,14 @@ pw diagnostics runs
 
 Then re-run with a valid `runId`.
 
+### `DIAGNOSTICS_BUNDLE_FAILED`
+
+Recovery:
+
+1. Verify session exists and is attachable (`pw session status <name>`).
+2. Retry with writable output directory (`pw diagnostics bundle --session <name> --out ./bundle`).
+3. If limit is passed, ensure `--limit` is a positive integer.
+
 ## Trace inspect failures
 
 ### `TRACE_FILE_NOT_FOUND`
