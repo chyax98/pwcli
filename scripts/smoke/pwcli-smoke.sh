@@ -309,6 +309,24 @@ assert_json "$stale_reuse_json" "stale ref reuse returns REF_STALE" \
 stale_hover_json="$(run_fail_json stale-hover hover "$stale_ref" --session "$STALE_SESSION")"
 assert_json "$stale_hover_json" "stale hover ref reuse returns REF_STALE" \
   "data.ok === false && data.error.code === 'REF_STALE' && data.error.retryable === false && data.error.details.reason === 'navigation-changed' && data.error.suggestions.some(item => item.includes('snapshot -i'))"
+stale_screenshot_json="$(run_fail_json stale-screenshot screenshot "$stale_ref" --session "$STALE_SESSION" --path "${TMP_DIR}/stale-ref.png")"
+assert_json "$stale_screenshot_json" "stale screenshot ref reuse returns REF_STALE" \
+  "data.ok === false && data.error.code === 'REF_STALE' && data.error.retryable === false && data.error.details.reason === 'navigation-changed'"
+stale_check_json="$(run_fail_json stale-check check "$stale_ref" --session "$STALE_SESSION")"
+assert_json "$stale_check_json" "stale check ref reuse returns REF_STALE" \
+  "data.ok === false && data.error.code === 'REF_STALE' && data.error.retryable === false && data.error.details.reason === 'navigation-changed'"
+stale_select_json="$(run_fail_json stale-select select "$stale_ref" value --session "$STALE_SESSION")"
+assert_json "$stale_select_json" "stale select ref reuse returns REF_STALE" \
+  "data.ok === false && data.error.code === 'REF_STALE' && data.error.retryable === false && data.error.details.reason === 'navigation-changed'"
+stale_upload_json="$(run_fail_json stale-upload upload "$stale_ref" "$HEADERS_FILE" --session "$STALE_SESSION")"
+assert_json "$stale_upload_json" "stale upload ref reuse returns REF_STALE" \
+  "data.ok === false && data.error.code === 'REF_STALE' && data.error.retryable === false && data.error.details.reason === 'navigation-changed'"
+stale_drag_json="$(run_fail_json stale-drag drag "$stale_ref" "$stale_ref" --session "$STALE_SESSION")"
+assert_json "$stale_drag_json" "stale drag ref reuse returns REF_STALE" \
+  "data.ok === false && data.error.code === 'REF_STALE' && data.error.retryable === false && data.error.details.reason === 'navigation-changed'"
+stale_download_json="$(run_fail_json stale-download download "$stale_ref" --session "$STALE_SESSION" --path "${TMP_DIR}/stale-download.bin")"
+assert_json "$stale_download_json" "stale download ref reuse returns REF_STALE" \
+  "data.ok === false && data.error.code === 'REF_STALE' && data.error.retryable === false && data.error.details.reason === 'navigation-changed'"
 run_json stale-close session close "$STALE_SESSION" >/dev/null
 STALE_SESSION_CLOSED="1"
 
@@ -350,6 +368,9 @@ assert_json "$visible_json" "is visible returns boolean" \
 verify_text_json="$(run_json verify-text verify text --session "$SESSION_NAME" --text "pwcli deterministic fixture")"
 assert_json "$verify_text_json" "verify text passes with compact assertion result" \
   "data.ok === true && data.data.assertion === 'text' && data.data.passed === true && data.data.retryable === false && Array.isArray(data.data.suggestions)"
+invalid_action_nth_json="$(run_fail_json invalid-action-nth click --session "$SESSION_NAME" --text "pwcli deterministic fixture" --nth nope)"
+assert_json "$invalid_action_nth_json" "action semantic nth rejects non-integer input" \
+  "data.ok === false && data.error.code === 'CLICK_FAILED' && data.error.message.includes('--nth requires a positive integer')"
 verify_url_json="$(run_json verify-url verify url --session "$SESSION_NAME" --contains "/blank")"
 assert_json "$verify_url_json" "verify url contains passes" \
   "data.ok === true && data.data.assertion === 'url' && data.data.passed === true && data.data.actual.includes('/blank')"
@@ -364,7 +385,7 @@ assert_json "$verify_text_absent_nth_json" "verify text-absent honors nth when i
   "data.ok === true && data.data.assertion === 'text-absent' && data.data.passed === true && data.data.count === 2"
 verify_missing_json="$(run_fail_json verify-missing verify text --session "$SESSION_NAME" --text "missing verify smoke text")"
 assert_json "$verify_missing_json" "verify failure returns stable recovery envelope" \
-  "data.ok === false && data.error.code === 'VERIFY_FAILED' && data.error.retryable === true && data.error.details.assertion === 'text' && data.error.details.passed === false && data.error.suggestions.some(item => item.includes('read-text'))"
+  "data.ok === false && data.error.code === 'VERIFY_FAILED' && data.error.retryable === true && data.error.details.assertion === 'text' && data.error.details.passed === false && data.error.suggestions.some(item => item.includes('read-text')) && data.error.suggestions.some(item => item.includes('diagnostics bundle') && item.includes('--out'))"
 missing_get_json="$(run_fail_json get-missing get text --session "$SESSION_NAME" --selector ".missing-state-target")"
 assert_json "$missing_get_json" "get missing target returns stable code" \
   "data.ok === false && data.error.code === 'STATE_TARGET_NOT_FOUND' && data.error.retryable === true"
@@ -490,14 +511,35 @@ assert_json "$batch_json" "batch summary reflects successful execution" \
   "data.ok === true && data.data.summary.stepCount === 2 && data.data.summary.successCount === 2 && data.data.summary.failedCount === 0 && data.data.summary.firstFailedStep === null"
 
 batch_fail_out="${TMP_DIR}/batch-fail.json"
-if ! printf '[ [\"session\",\"list\"] ]' | "${CLI[@]}" --output json batch --session "$SESSION_NAME" --stdin-json >"$batch_fail_out"; then
-  log "command failed: ${CLI[*]} --output json batch --session ${SESSION_NAME} --stdin-json"
+set +e
+printf '[["session","list"]]' | "${CLI[@]}" --output json batch --session "$SESSION_NAME" --stdin-json >"$batch_fail_out"
+batch_fail_code=$?
+set -e
+if [ "$batch_fail_code" -eq 0 ]; then
+  log "expected batch failure: ${CLI[*]} --output json batch --session ${SESSION_NAME} --stdin-json"
   cat "$batch_fail_out" >&2 || true
   exit 1
 fi
 batch_fail_json="$batch_fail_out"
 assert_json "$batch_fail_json" "batch failed step exposes summary and reason code" \
-  "data.ok === true && data.data.summary.stepCount === 1 && data.data.summary.successCount === 0 && data.data.summary.failedCount === 1 && data.data.summary.firstFailedStep === 1 && data.data.summary.firstFailedCommand === 'session' && data.data.summary.failedSteps.length === 1 && data.data.summary.failedSteps[0].step === 1 && data.data.summary.failedSteps[0].command === 'session' && Array.isArray(data.data.results) && data.data.results.length === 1 && data.data.results[0].ok === false"
+  "data.ok === false && data.error.code === 'BATCH_STEP_FAILED' && data.error.details.summary.stepCount === 1 && data.error.details.summary.successCount === 0 && data.error.details.summary.failedCount === 1 && data.error.details.summary.firstFailedStep === 1 && data.error.details.summary.firstFailedCommand === 'session' && data.error.details.summary.failedSteps.length === 1 && data.error.details.summary.failedSteps[0].step === 1 && data.error.details.summary.failedSteps[0].command === 'session' && Array.isArray(data.error.details.results) && data.error.details.results.length === 1 && data.error.details.results[0].ok === false"
+
+batch_continue_out="${TMP_DIR}/batch-continue.json"
+batch_continue_steps="$(node --input-type=module <<'NODE'
+console.log(JSON.stringify([
+  ["code", "async page => { throw new Error('batch continue smoke failure'); }"],
+  ["observe", "status"]
+]));
+NODE
+)"
+if ! printf '%s' "$batch_continue_steps" | "${CLI[@]}" --output json batch --session "$SESSION_NAME" --stdin-json --continue-on-error >"$batch_continue_out"; then
+  log "command failed: ${CLI[*]} --output json batch --session ${SESSION_NAME} --stdin-json --continue-on-error"
+  cat "$batch_continue_out" >&2 || true
+  exit 1
+fi
+batch_continue_json="$batch_continue_out"
+assert_json "$batch_continue_json" "batch continue-on-error preserves success envelope for collection" \
+  "data.ok === true && data.data.summary.stepCount === 2 && data.data.summary.successCount === 1 && data.data.summary.failedCount === 1 && data.data.results.length === 2 && data.data.results[0].ok === false && data.data.results[0].error.message.includes('batch continue smoke failure') && data.data.results[1].ok === true"
 
 batch_verbose_out="${TMP_DIR}/batch-verbose.json"
 if ! printf '[["observe","status"],["page","dialogs"]]' | "${CLI[@]}" --output json batch --session "$SESSION_NAME" --stdin-json --include-results >"$batch_verbose_out"; then
@@ -533,9 +575,17 @@ if grep -q '"results"' "$batch_text_out"; then
 fi
 
 batch_text_fail_out="${TMP_DIR}/batch-text-fail.txt"
+set +e
 printf '[["session","list"]]' | "${TEXT_CLI[@]}" batch --session "$SESSION_NAME" --stdin-json >"$batch_text_fail_out"
-if ! grep -q 'first failure step=1 command=session' "$batch_text_fail_out"; then
-  log "batch text first failure summary missing"
+batch_text_fail_code=$?
+set -e
+if [ "$batch_text_fail_code" -eq 0 ]; then
+  log "expected text batch failure"
+  cat "$batch_text_fail_out" >&2
+  exit 1
+fi
+if ! grep -q 'ERROR BATCH_STEP_FAILED' "$batch_text_fail_out"; then
+  log "batch text failure code missing"
   cat "$batch_text_fail_out" >&2
   exit 1
 fi
@@ -616,14 +666,14 @@ set +e
 printf '%s' "$bad_semantic_batch" | "${CLI[@]}" batch --session "$SESSION_NAME" --stdin-json >"$bad_semantic_out"
 bad_semantic_code=$?
 set -e
-if [ "$bad_semantic_code" -ne 0 ]; then
-  log "command failed before producing batch failure envelope: ${CLI[*]} batch --session ${SESSION_NAME} --stdin-json"
+if [ "$bad_semantic_code" -eq 0 ]; then
+  log "expected unsupported semantic batch failure: ${CLI[*]} batch --session ${SESSION_NAME} --stdin-json"
   cat "$bad_semantic_out" >&2 || true
   exit 1
 fi
 bad_semantic_json="$bad_semantic_out"
 assert_json "$bad_semantic_json" "unsupported batch semantic flag fails" \
-  "data.ok === true && data.data.summary.failedCount === 1 && String(data.data.summary.firstFailureMessage).includes('unsupported click batch argument') && String(data.data.summary.firstFailureMessage).includes('outside batch')"
+  "data.ok === false && data.error.code === 'BATCH_STEP_FAILED' && data.error.details.summary.failedCount === 1 && String(data.error.details.summary.firstFailureMessage).includes('unsupported click batch argument') && String(data.error.details.summary.firstFailureMessage).includes('outside batch')"
 
 log "bootstrap apply"
 bootstrap_json="$(run_json bootstrap-apply bootstrap apply --session "$SESSION_NAME" --init-script ./scripts/manual/bootstrap-fixture.js --headers-file "$HEADERS_FILE")"

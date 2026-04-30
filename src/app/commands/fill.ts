@@ -19,8 +19,16 @@ type FillOptions = {
   nth?: string;
 };
 
+function parseNth(value?: string) {
+  const nth = Number(value ?? "1");
+  if (!Number.isInteger(nth) || nth < 1) {
+    throw new Error("--nth requires a positive integer");
+  }
+  return nth;
+}
+
 function buildSemanticTarget(options: FillOptions) {
-  const nth = Math.max(1, options.nth ? Number(options.nth) : 1);
+  const nth = parseNth(options.nth);
   if (options.role) {
     return {
       kind: "role" as const,

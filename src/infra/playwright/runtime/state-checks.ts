@@ -65,7 +65,7 @@ function targetExpression(target: StateTarget) {
     }
     return `page.getByTestId(${JSON.stringify(target.testid)})`;
   })();
-  return nth > 1 ? `${locator}.nth(${nth - 1})` : locator;
+  return `${locator}.nth(${nth - 1})`;
 }
 
 function targetBaseExpression(target: StateTarget) {
@@ -189,7 +189,7 @@ export async function managedIsState(options: {
   const result = await managedRunCode({
     sessionName: options.sessionName,
     source: `async page => {
-      const locator = ${targetExpression(options.target)}.first();
+      const locator = ${targetExpression(options.target)};
       const baseLocator = ${targetBaseExpression(options.target)};
       const count = await baseLocator.count();
       if (count === 0) {
@@ -228,13 +228,13 @@ function verifySuggestions(assertion: VerifyAssertion): string[] {
     return [
       "Run `pw read-text --session <name> --include-overlay --max-chars 4000` to inspect visible text",
       "Run `pw locate --session <name> --text '<text>'` to inspect text candidates",
-      "Run `pw diagnostics bundle --session <name> --limit 20` if the missing text follows an action",
+      "Run `pw diagnostics bundle --session <name> --out .pwcli/bundles/verify-failure --limit 20` if the missing text follows an action",
     ];
   }
   return [
     "Run `pw locate --session <name> --selector '<selector>'` to inspect candidates",
     "Run `pw snapshot -i --session <name>` when you need fresh refs",
-    "Run `pw diagnostics bundle --session <name> --limit 20` if the failed assertion follows an action",
+    "Run `pw diagnostics bundle --session <name> --out .pwcli/bundles/verify-failure --limit 20` if the failed assertion follows an action",
   ];
 }
 

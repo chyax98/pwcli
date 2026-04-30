@@ -6,11 +6,6 @@ import { DIAGNOSTICS_STATE_KEY, maybeRawOutput } from "./shared.js";
 type WorkspacePage = {
   index: number;
   pageId: string;
-  navigationId?: string;
-  url?: string;
-  title?: string;
-  current?: boolean;
-  openerPageId?: string | null;
 };
 
 export async function managedWorkspaceProjection(options?: { sessionName?: string }) {

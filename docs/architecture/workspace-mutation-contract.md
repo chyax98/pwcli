@@ -21,7 +21,7 @@
 
 - `tab select <pageId>`
 - `tab close <pageId>`
-- ref-backed interaction writes (`click` / `fill` / `type`) guarded by snapshot epoch
+- ref-backed interaction/evidence targets guarded by snapshot epoch
 
 运行时里已经存在这些 identity：
 
@@ -58,6 +58,8 @@ workspace mutation 唯一稳定 target id 用：
 - URL substring
 
 这些都只能作为读侧辅助信息，不适合作为 mutation contract。
+
+实现边界：Playwright Core 当前只通过 `tab-select <index>` 改 daemon active tab。`pwcli` 对外仍只接受 `pageId`，内部从最新 workspace projection 解析 index，调用 Core 后立即用 `page current` 校验 active `pageId`。如果期间 index 漂移，必须失败为 `TAB_PAGE_SELECTION_RACE`，不能报告成功。
 
 ### 3. `tab close`
 
@@ -100,7 +102,7 @@ Ref-backed writes require a fresh snapshot epoch for the active page identity. A
 - `url`
 - captured refs
 
-`click` / `fill` / `type` ref paths must validate the ref against that latest epoch before reporting `acted` / `filled` / `typed` success. Missing snapshot, missing ref, page switch, and navigation change all fail as `REF_STALE`.
+All ref-backed mutation and evidence-target paths must validate the ref against that latest epoch before reporting success. This includes `click`, `fill`, `type`, `hover`, `check`, `uncheck`, `select`, `upload`, `drag`, `download`, and ref-scoped `screenshot`. Missing snapshot, missing ref, page switch, and navigation change all fail as `REF_STALE`.
 
 ## 当前结论
 

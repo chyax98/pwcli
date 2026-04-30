@@ -83,13 +83,13 @@
 - snapshot refs are not stable cross-navigation identifiers; after navigation, tab switch, or a new snapshot, old refs fail as `REF_STALE`
 - `batch` 当前只做单 session 串行执行，不做 lifecycle / environment / diagnostics query 容器
 - dialog 恢复当前只覆盖 browser dialog handle，不覆盖更复杂的页面级阻断控件
-- `locate|get|is` 只做 read-only state check；不返回 ref、不规划动作、不包含 `verify`
+- `locate|get|is|verify` 只做 read-only state check；不返回 ref、不规划动作
 - `get value` 依赖 Playwright `inputValue()`，只适合 input/textarea/select 等表单控件
 
 ### 后续扩展
 
 - batch 只在真实高频场景下增量扩命令，不追求全量 parity
-- `verify` 留在 #23 后续切片，不进入当前 MVP
+- `verify` 后续只补真实场景断言覆盖，不扩大成动作规划器
 
 ## 4. Identity State
 

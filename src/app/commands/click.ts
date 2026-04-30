@@ -7,6 +7,14 @@ import {
   requireSessionName,
 } from "./session-options.js";
 
+function parseNth(value?: string) {
+  const nth = Number(value ?? "1");
+  if (!Number.isInteger(nth) || nth < 1) {
+    throw new Error("--nth requires a positive integer");
+  }
+  return nth;
+}
+
 export function registerClickCommand(program: Command): void {
   addSessionOption(
     program
@@ -35,7 +43,7 @@ export function registerClickCommand(program: Command): void {
         return;
       }
 
-      const nth = Math.max(1, options.nth ? Number(options.nth) : 1);
+      const nth = parseNth(options.nth);
       if (options.role) {
         printCommandResult(
           "click",
