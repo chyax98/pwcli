@@ -445,6 +445,12 @@ export function registerSessionCommand(program: Command): void {
           },
         });
       } catch (error) {
+        const routing = sessionRoutingError(error instanceof Error ? error.message : String(error));
+        if (routing) {
+          printCommandError("session close", routing);
+          process.exitCode = 1;
+          return;
+        }
         printCommandError("session close", {
           code: "SESSION_CLOSE_FAILED",
           message: error instanceof Error ? error.message : "session close failed",
