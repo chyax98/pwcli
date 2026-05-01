@@ -5,6 +5,9 @@ import {
   managedClick,
   managedErrors,
   managedFill,
+  managedGetFact,
+  managedIsState,
+  managedLocate,
   managedObserveStatus,
   managedOpen,
   managedPageCurrent,
@@ -21,6 +24,7 @@ import {
   managedStateLoad,
   managedStateSave,
   managedType,
+  managedVerify,
   managedWait,
 } from "../../infra/playwright/runtime.js";
 
@@ -30,6 +34,9 @@ const SUPPORTED_BATCH_TOP_LEVEL = [
   "code",
   "errors",
   "fill",
+  "get",
+  "is",
+  "locate",
   "observe",
   "open",
   "page",
@@ -41,6 +48,7 @@ const SUPPORTED_BATCH_TOP_LEVEL = [
   "snapshot",
   "state",
   "type",
+  "verify",
   "wait",
 ] as const;
 
@@ -275,6 +283,96 @@ function parseBatchClickArgs(args: string[]) {
     return { ref };
   }
   throw new Error("batch click requires a ref, --selector, --text, or --role");
+}
+
+type BatchStateTarget = {
+  selector?: string;
+  semantic?: {
+    kind: "text" | "role" | "label" | "placeholder" | "testid";
+    text?: string;
+    role?: string;
+    name?: string;
+    label?: string;
+    placeholder?: string;
+    testid?: string;
+    nth?: number;
+  };
+};
+
+function parseBatchStateTarget(args: string[]): BatchStateTarget {
+  let selector: string | undefined;
+  let text: string | undefined;
+  let role: string | undefined;
+  let name: string | undefined;
+  let label: string | undefined;
+  let placeholder: string | undefined;
+  let testId: string | undefined;
+  let nth: number | undefined;
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    if (arg === "--selector") {
+      selector = args[index + 1];
+      index += 1;
+      continue;
+    }
+    if (arg === "--text") {
+      text = args[index + 1];
+      index += 1;
+      continue;
+    }
+    if (arg === "--role") {
+      role = args[index + 1];
+      index += 1;
+      continue;
+    }
+    if (arg === "--name") {
+      name = args[index + 1];
+      index += 1;
+      continue;
+    }
+    if (arg === "--label") {
+      label = args[index + 1];
+      index += 1;
+      continue;
+    }
+    if (arg === "--placeholder") {
+      placeholder = args[index + 1];
+      index += 1;
+      continue;
+    }
+    if (arg === "--test-id" || arg === "--testid") {
+      testId = args[index + 1];
+      index += 1;
+      continue;
+    }
+    if (arg === "--nth") {
+      nth = args[index + 1] ? Number(args[index + 1]) : undefined;
+      index += 1;
+      continue;
+    }
+    throw new Error(`unsupported batch argument '${arg}'`);
+  }
+
+  if (selector) {
+    return { selector };
+  }
+  if (role) {
+    return { semantic: { kind: "role", role, ...(name ? { name } : {}), ...(nth ? { nth } : {}) } };
+  }
+  if (text) {
+    return { semantic: { kind: "text", text, ...(nth ? { nth } : {}) } };
+  }
+  if (label) {
+    return { semantic: { kind: "label", label, ...(nth ? { nth } : {}) } };
+  }
+  if (placeholder) {
+    return { semantic: { kind: "placeholder", placeholder, ...(nth ? { nth } : {}) } };
+  }
+  if (testId) {
+    return { semantic: { kind: "testid", testid: testId, ...(nth ? { nth } : {}) } };
+  }
+  return {};
 }
 
 async function executeBatchStep(tokens: string[], sessionName: string) {
@@ -844,6 +942,118 @@ async function executeBatchStep(tokens: string[], sessionName: string) {
         };
       }
       throw new Error(`unsupported state batch step '${rawStep}'`);
+    case "locate": {
+      const target = parseBatchStateTarget(args);
+      if (!target.selector && !target.semantic) {
+        throw new Error(`batch step '${rawStep}' requires a target (--selector, --text, --role, --label, --placeholder, --test-id)`);
+      }
+      return {
+        ok: true,
+        command: "locate",
+        data: await managedLocate({
+          sessionName,
+          target: (target.semantic ?? { selector: target.selector }) as any,
+        }),
+      };
+    }
+    case "get": {
+      const fact = args[0] as "text" | "value" | "count" | undefined;
+      if (!fact || !["text", "value", "count"].includes(fact)) {
+        throw new Error(`batch step '${rawStep}' requires fact: text, value, or count`);
+      }
+      const target = parseBatchStateTarget(args.slice(1));
+      if (!target.selector && !target.semantic) {
+        throw new Error(`batch step '${rawStep}' requires a target after fact`);
+      }
+      return {
+        ok: true,
+        command: `get ${fact}`,
+        data: await managedGetFact({
+          sessionName,
+          target: (target.semantic ?? { selector: target.selector }) as any,
+          fact,
+        }),
+      };
+    }
+    case "is": {
+      const state = args[0] as "visible" | "enabled" | "checked" | undefined;
+      if (!state || !["visible", "enabled", "checked"].includes(state)) {
+        throw new Error(`batch step '${rawStep}' requires state: visible, enabled, or checked`);
+      }
+      const target = parseBatchStateTarget(args.slice(1));
+      if (!target.selector && !target.semantic) {
+        throw new Error(`batch step '${rawStep}' requires a target after state`);
+      }
+      return {
+        ok: true,
+        command: `is ${state}`,
+        data: await managedIsState({
+          sessionName,
+          target: (target.semantic ?? { selector: target.selector }) as any,
+          state,
+        }),
+      };
+    }
+    case "verify": {
+      const assertion = args[0] as any;
+      if (!assertion) {
+        throw new Error(`batch step '${rawStep}' requires an assertion (text, text-absent, url, visible, hidden, enabled, disabled, checked, unchecked, count)`);
+      }
+      const remaining = args.slice(1);
+      let url: { contains?: string; equals?: string; matches?: string } | undefined;
+      let count: { equals?: number; min?: number; max?: number } | undefined;
+      const targetArgs: string[] = [];
+
+      for (let index = 0; index < remaining.length; index += 1) {
+        const arg = remaining[index];
+        if (arg === "--contains") {
+          url = { contains: remaining[index + 1] };
+          index += 1;
+          continue;
+        }
+        if (arg === "--equals" && assertion === "url") {
+          url = { equals: remaining[index + 1] };
+          index += 1;
+          continue;
+        }
+        if (arg === "--matches") {
+          url = { matches: remaining[index + 1] };
+          index += 1;
+          continue;
+        }
+        if (arg === "--equals" && assertion === "count") {
+          count = { equals: Number(remaining[index + 1]) };
+          index += 1;
+          continue;
+        }
+        if (arg === "--min") {
+          count = { min: Number(remaining[index + 1]) };
+          index += 1;
+          continue;
+        }
+        if (arg === "--max") {
+          count = { max: Number(remaining[index + 1]) };
+          index += 1;
+          continue;
+        }
+        targetArgs.push(arg);
+      }
+
+      const target = parseBatchStateTarget(targetArgs);
+      const needsTarget = !["url"].includes(assertion);
+
+      return {
+        ok: true,
+        command: `verify ${assertion}`,
+        data: await managedVerify({
+          sessionName,
+          assertion,
+          target: needsTarget ? (target.semantic ?? (target.selector ? { selector: target.selector } : undefined)) as any : undefined,
+          url,
+          count,
+        }),
+      };
+    }
     default:
       throw new Error(unsupportedBatchStepMessage(tokens));
   }

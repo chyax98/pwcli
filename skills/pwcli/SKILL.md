@@ -587,7 +587,7 @@ pw batch --session bug-a --file ./steps.json
 - 要 JSON 输出：`pw --output json batch --session bug-a --stdin-json`。
 - `batch` 适合单 session 串行动作，不适合 lifecycle/auth/environment/dialog recovery。
 - batch `click` 支持 ref、`--selector`、`--text`、`--role --name`；`--text` 和 `--role` 可带 `--nth`。
-- batch `click` 不支持 `--label`/`--placeholder`/`--test-id` 等完整 CLI parity；需要时拆出单命令。
+- batch `locate/get/is/verify` 支持 `--selector`、`--text`、`--role --name`、`--label`、`--placeholder`、`--test-id`、`--nth`。
 - 默认遇到首个失败会返回非零退出码和 `ok:false` / `BATCH_STEP_FAILED`；需要收集失败步骤时显式加 `--continue-on-error`。
 - 默认 text 输出是轻量摘要：step 数、成功/失败数、首个失败、warnings；不倾倒嵌套 `results`。
 - 脚本解析、字段断言、完整 envelope 消费必须加 `--output json`。

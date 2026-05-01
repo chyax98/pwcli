@@ -218,6 +218,12 @@
 - `press <key>`、`scroll <direction> [distance]`、`type [ref] <value>`
 - `open <url>`
 - `read-text`、`read-text --max-chars <n>`、`read-text --selector <selector>`、`read-text --no-include-overlay`
+- `locate --text <text>`、`locate --selector <selector>`、`locate --role <role> --name <name>`
+- `get text|value|count --text <text>`、`get text|value|count --selector <selector>`
+- `is visible|enabled|checked --text <text>`、`is visible|enabled|checked --selector <selector>`
+- `verify text|text-absent|visible|hidden|enabled|disabled|checked|unchecked --text <text>`
+- `verify url --contains <text>`、`verify url --equals <url>`、`verify url --matches <regex>`
+- `verify count --equals <n>`、`verify count --min <n>`、`verify count --max <n>`
 - `wait network-idle`（或 `--networkidle`）、`wait --text`、`wait --selector`、`wait --request`、`wait --response`
 - `screenshot ...`、`observe status`、`errors recent|clear`
 - `route list|add|load|remove ...`、`bootstrap apply ...`
