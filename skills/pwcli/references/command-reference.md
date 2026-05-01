@@ -238,18 +238,26 @@ Use `locate/get/is/verify` for narrow state checks. Use `snapshot -i` when you n
 
 ### `pw hover [ref] --session <name>`
 
-- `--selector <selector>`
-- `--nth <n>`：selector 多匹配时的 1-based 目标序号
+定位：aria ref / `--selector` / `--role <role> --name <name>` / `--text` / `--label` / `--placeholder` / `--test-id`；附加 `--nth <n>`（1-based）
+
+语义定位使用 substring 匹配。多匹配时用 `--nth` 消歧。
+
 - 支持 hover 触发的 menu / popover / tooltip；输出复用 action evidence：`target`、`diagnosticsDelta`、`run`
 - hover 后读取浮层时，用 `pw read-text --session <name>`（overlay 默认包含）
 
 ### `pw check [ref] --session <name>`
 
-- `--selector <selector>`
-- `--nth <n>`：selector 多匹配时的 1-based 目标序号
+定位：aria ref / `--selector` / `--role <role> --name <name>` / `--text` / `--label` / `--placeholder` / `--test-id`；附加 `--nth <n>`（1-based）
+
+语义定位使用 substring 匹配。`--label 'I agree'` 匹配 "I agree to the terms"。多匹配时用 `--nth` 消歧。
+
 - 支持 checkbox / radio；输出复用 action evidence：`diagnosticsDelta`、`run`
 
 ### `pw uncheck [ref] --session <name>`
+
+定位：aria ref / `--selector` / `--role <role> --name <name>` / `--text` / `--label` / `--placeholder` / `--test-id`；附加 `--nth <n>`（1-based）
+
+语义定位使用 substring 匹配。多匹配时用 `--nth` 消歧。
 
 - `--selector <selector>`
 - `--nth <n>`：selector 多匹配时的 1-based 目标序号
@@ -257,7 +265,10 @@ Use `locate/get/is/verify` for narrow state checks. Use `snapshot -i` when you n
 
 ### `pw select [ref] <value> --session <name>`
 
-- `--selector <selector>`
+定位：aria ref / `--selector` / `--role <role> --name <name>` / `--text` / `--label` / `--placeholder` / `--test-id`；附加 `--nth <n>`（1-based）
+
+语义定位使用 substring 匹配。`--label 'Country'` 匹配 "Country:"。多匹配时用 `--nth` 消歧。
+
 - `value` 是 option value；输出包含 `value` / `values` 和 action evidence
 
 ### `pw scroll <direction> [distance] --session <name>`

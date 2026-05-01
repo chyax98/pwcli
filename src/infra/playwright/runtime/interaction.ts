@@ -749,6 +749,36 @@ function semanticClickSource(target: ReturnType<typeof normalizeSemanticTarget>,
   }`;
 }
 
+function semanticBooleanControlSource(
+  command: "check" | "uncheck",
+  target: ReturnType<typeof normalizeSemanticTarget>,
+) {
+  const nthIndex = target.nth - 1;
+  const targetJson = JSON.stringify(target);
+  const locatorExpression = semanticLocatorExpression(target);
+  const errorPrefix = command.toUpperCase();
+
+  return `async page => {
+    const target = ${targetJson};
+    const locator = ${locatorExpression};
+    const count = await locator.count();
+    if (count === 0) {
+      throw new Error(
+        '${errorPrefix}_SEMANTIC_NOT_FOUND:' +
+          JSON.stringify({ target })
+      );
+    }
+    if (${nthIndex} >= count) {
+      throw new Error(
+        '${errorPrefix}_SEMANTIC_INDEX_OUT_OF_RANGE:' +
+          JSON.stringify({ target, count, nth: ${target.nth} })
+      );
+    }
+    await locator.nth(${nthIndex}).${command}();
+    return JSON.stringify({ ${command === "check" ? "checked" : "unchecked"}: true, target, count, nth: ${target.nth} });
+  }`;
+}
+
 function semanticInputSource(
   errorPrefix: "FILL" | "TYPE",
   target: ReturnType<typeof normalizeSemanticTarget>,
@@ -1059,14 +1089,42 @@ async function managedBooleanControlAction(
     ref?: string;
     selector?: string;
     nth?: number;
+    semantic?: SemanticTarget;
     sessionName?: string;
   },
 ) {
-  if (!options.ref && !options.selector) {
-    throw new Error(`${command} requires a ref or selector`);
+  if (!options.ref && !options.selector && !options.semantic) {
+    throw new Error(`${command} requires a ref, selector, or semantic locator`);
   }
 
   const before = await captureDiagnosticsBaseline(options.sessionName);
+
+  if (options.semantic) {
+    const target = normalizeSemanticTarget(options.semantic);
+    const result = await managedActionRunCodeWithFailureRun({
+      command,
+      sessionName: options.sessionName,
+      source: semanticBooleanControlSource(command, target),
+      before,
+      target,
+    });
+    const diagnosticsDelta = await buildDiagnosticsDelta(options.sessionName, before);
+    const run = await recordRun(command, options.sessionName, result.page, {
+      target,
+      diagnosticsDelta,
+    });
+    return {
+      session: result.session,
+      page: result.page,
+      data: {
+        target,
+        acted: true,
+        checked: command === "check",
+        diagnosticsDelta,
+        run,
+      },
+    };
+  }
 
   if (options.selector) {
     const target = normalizeSelectorTarget({ selector: options.selector, nth: options.nth });
@@ -1143,6 +1201,7 @@ export async function managedCheck(options: {
   ref?: string;
   selector?: string;
   nth?: number;
+  semantic?: SemanticTarget;
   sessionName?: string;
 }) {
   return managedBooleanControlAction("check", options);
@@ -1152,13 +1211,64 @@ export async function managedHover(options: {
   ref?: string;
   selector?: string;
   nth?: number;
+  semantic?: SemanticTarget;
   sessionName?: string;
 }) {
-  if (!options.ref && !options.selector) {
-    throw new Error("hover requires a ref or selector");
+  if (!options.ref && !options.selector && !options.semantic) {
+    throw new Error("hover requires a ref, selector, or semantic locator");
   }
 
   const before = await captureDiagnosticsBaseline(options.sessionName);
+
+  if (options.semantic) {
+    const target = normalizeSemanticTarget(options.semantic);
+    const nthIndex = target.nth - 1;
+    const targetJson = JSON.stringify(target);
+    const locatorExpression = semanticLocatorExpression(target);
+
+    const source = `async page => {
+      const target = ${targetJson};
+      const locator = ${locatorExpression};
+      const count = await locator.count();
+      if (count === 0) {
+        throw new Error(
+          'HOVER_SEMANTIC_NOT_FOUND:' +
+            JSON.stringify({ target })
+        );
+      }
+      if (${nthIndex} >= count) {
+        throw new Error(
+          'HOVER_SEMANTIC_INDEX_OUT_OF_RANGE:' +
+            JSON.stringify({ target, count, nth: ${target.nth} })
+        );
+      }
+      await locator.nth(${nthIndex}).hover();
+      return JSON.stringify({ hovered: true, target, count, nth: ${target.nth} });
+    }`;
+
+    const result = await managedActionRunCodeWithFailureRun({
+      command: "hover",
+      sessionName: options.sessionName,
+      source,
+      before,
+      target,
+    });
+    const diagnosticsDelta = await buildDiagnosticsDelta(options.sessionName, before);
+    const run = await recordRun("hover", options.sessionName, result.page, {
+      target,
+      diagnosticsDelta,
+    });
+    return {
+      session: result.session,
+      page: result.page,
+      data: {
+        target,
+        acted: true,
+        diagnosticsDelta,
+        run,
+      },
+    };
+  }
 
   if (options.selector) {
     const target = normalizeSelectorTarget({ selector: options.selector, nth: options.nth });
@@ -1233,6 +1343,7 @@ export async function managedUncheck(options: {
   ref?: string;
   selector?: string;
   nth?: number;
+  semantic?: SemanticTarget;
   sessionName?: string;
 }) {
   return managedBooleanControlAction("uncheck", options);
@@ -1242,14 +1353,72 @@ export async function managedSelect(options: {
   ref?: string;
   selector?: string;
   nth?: number;
+  semantic?: SemanticTarget;
   sessionName?: string;
   value: string;
 }) {
-  if (!options.ref && !options.selector) {
-    throw new Error("select requires a ref or selector");
+  if (!options.ref && !options.selector && !options.semantic) {
+    throw new Error("select requires a ref, selector, or semantic locator");
   }
 
   const before = await captureDiagnosticsBaseline(options.sessionName);
+
+  if (options.semantic) {
+    const target = normalizeSemanticTarget(options.semantic);
+    const nthIndex = target.nth - 1;
+    const targetJson = JSON.stringify(target);
+    const locatorExpression = semanticLocatorExpression(target);
+    const valueJson = JSON.stringify(options.value);
+
+    const source = `async page => {
+      const target = ${targetJson};
+      const locator = ${locatorExpression};
+      const count = await locator.count();
+      if (count === 0) {
+        throw new Error(
+          'SELECT_SEMANTIC_NOT_FOUND:' +
+            JSON.stringify({ target })
+        );
+      }
+      if (${nthIndex} >= count) {
+        throw new Error(
+          'SELECT_SEMANTIC_INDEX_OUT_OF_RANGE:' +
+            JSON.stringify({ target, count, nth: ${target.nth} })
+        );
+      }
+      const values = await locator.nth(${nthIndex}).selectOption(${valueJson});
+      return JSON.stringify({ selected: true, target, count, nth: ${target.nth}, values });
+    }`;
+
+    const result = await managedActionRunCodeWithFailureRun({
+      command: "select",
+      sessionName: options.sessionName,
+      source,
+      before,
+      target,
+      details: { value: options.value },
+    });
+    const parsed =
+      typeof result.data.result === "object" && result.data.result ? result.data.result : {};
+    const diagnosticsDelta = await buildDiagnosticsDelta(options.sessionName, before);
+    const run = await recordRun("select", options.sessionName, result.page, {
+      target,
+      value: options.value,
+      diagnosticsDelta,
+    });
+    return {
+      session: result.session,
+      page: result.page,
+      data: {
+        target,
+        value: options.value,
+        values: Array.isArray(parsed.values) ? parsed.values : [options.value],
+        selected: true,
+        diagnosticsDelta,
+        run,
+      },
+    };
+  }
 
   if (options.selector) {
     const target = normalizeSelectorTarget({ selector: options.selector, nth: options.nth });
