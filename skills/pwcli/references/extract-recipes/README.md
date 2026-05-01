@@ -4,6 +4,7 @@
 
 当前内置：
 
+- `github-discussion-document`
 - `github-issues-list`
 - `github-prs-list`
 - `table-rows`
@@ -19,5 +20,6 @@ pw extract run --session bug-a --recipe "$(pw extract recipe-path github-issues-
 原则：
 
 - 这些 recipe 只是模板
+- `github-discussion-document` 适合 issue / PR 详情页的原始内容采集起手式，不是站点强契约
 - 真正运行前，先用 `pw page assess` / `pw read-text` / `pw snapshot -i` 确认页面结构
 - 如果页面结构不匹配，复制模板到本地再改，不要把临时站点细节直接写回内置 recipe

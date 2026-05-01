@@ -22,12 +22,34 @@
 - `read-text`
 - `snapshot -i`
 - `auth probe`（如果使用登录态）
-- `extract run`（对 issue/PR 列表做结构化提取）
+- `extract run`
+  - 列表页：`github-issues-list` / `github-prs-list`
+  - 详情页：`github-discussion-document`
 
 成功标准：
 
 - 可稳定读取标题、正文、评论或列表项
 - 登录态存在时，`auth probe` 不误判
+
+推荐命令链：
+
+```bash
+pw session create gh-a --open 'https://github.com/chyax98/pwcli/pull/68'
+pw page assess --session gh-a
+pw read-text --session gh-a --max-chars 3000
+pw snapshot -i --session gh-a
+pw extract run --session gh-a \
+  --recipe "$(pw extract recipe-path github-discussion-document --output json | jq -r '.data.path')" \
+  --out ./github-pr-68.json
+pw diagnostics digest --session gh-a
+```
+
+最小 artifact checklist：
+
+- extracted JSON artifact
+- one screenshot
+- diagnostics digest
+- failure notes
 
 ### 2. Hacker News
 
@@ -73,6 +95,7 @@
 - 不把真实站点波动包装成 deterministic 回归失败
 - 登录、2FA、挑战页允许人工接管
 - 不以绕过风控为目标
+- 真实站点只回答“当前采集/workflow 是否够用”，不要顺手补抽象
 
 ## 推荐命令链
 
