@@ -67,6 +67,7 @@ function isResourceLoadNoise(text: string | null): boolean {
       /adtrafficquality|googlesyndication|googleadservice|doubleclick|facebook\.com\/tr/.test(text)) return true;
   if (/^Loading the image 'data:image\/svg/.test(text)) return true;
   if (/Attestation check.*googleadservices\.com/.test(text)) return true;
+  if (/TinyMCE editors are configured to be read-only/.test(text)) return true;
   return false;
 }
 
