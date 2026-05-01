@@ -23,7 +23,7 @@ export function registerIsCommand(program: Command): void {
       .option("--placeholder <text>", "Exact placeholder locator")
       .option("--test-id <id>", "Test id locator")
       .addOption(new Option("--testid <id>").hideHelp())
-      .option("--nth <number>", "1-based match index"),
+      .option("--nth <number>", "1-based match index", "1"),
   ).action(async (state: string, options: StateTargetOptions & { session?: string }) => {
     try {
       const sessionName = requireSessionName(options);

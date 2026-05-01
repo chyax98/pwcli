@@ -453,6 +453,34 @@ pw get text --session bug-a --selector '<file-name-row>'
 
 If the check fails, retry `pw upload` after the page reaches the expected ready state.
 
+## Content limitations
+
+### Iframe content not accessible via `read-text`
+
+`read-text` uses `body.innerText` on the main frame. Content inside `<iframe>` elements is in a separate frame and returns empty.
+
+Recovery:
+
+1. Use `pw page frames --session <name>` to list available frames.
+2. Use `pw read-text --selector '<iframe-selector>' --session <name>` to verify the iframe exists.
+3. Use `pw code` to access iframe content directly:
+   ```javascript
+   const frame = page.frameLocator('iframe').first();
+   const text = await frame.locator('body').innerText();
+   console.log(text);
+   ```
+
+### Modal/overlay blocks interactions
+
+When `observe status` shows `modalCount > 0` or `snapshot status` shows `blockingModals`, HTML modals are intercepting pointer events.
+
+Recovery:
+
+1. Check `pw observe status --session <name>` for modal details.
+2. Dismiss with `pw click --session <name> --selector '.modal.show .btn-close'` or the modal's dismiss button.
+3. If the modal has an accept/save action, use the appropriate button selector.
+4. Do not use `--text` for dismiss buttons when multiple elements share the same text (e.g., "Close" appears in both modal and sidebar).
+
 ## Environment limitations
 
 ### `ENVIRONMENT_LIMITATION`
