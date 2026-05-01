@@ -9,6 +9,39 @@ import {
   shellArg,
 } from "./helpers.js";
 
+const TRACKING_DOMAINS = [
+  "google-analytics.com",
+  "googletagmanager.com",
+  "doubleclick.net",
+  "facebook.com/tr",
+  "connect.facebook.net",
+  "analytics.tiktok.com",
+  "ads-twitter.com",
+  "bat.bing.com",
+  "clarity.ms",
+  "hotjar.com",
+  "segment.com",
+  "mixpanel.com",
+  "amplitude.com",
+  "heapanalytics.com",
+  "fullstory.com",
+];
+
+function isTrackingPixel(url: string | null): boolean {
+  if (!url) return false;
+  try {
+    const hostname = new URL(url).hostname;
+    return TRACKING_DOMAINS.some((domain) => hostname === domain || hostname.endsWith("." + domain));
+  } catch {
+    return false;
+  }
+}
+
+function isResourceLoadNoise(text: string | null): boolean {
+  if (!text) return false;
+  return /^Failed to load resource:.*\b(404|403|401)\b/.test(text);
+}
+
 function toConsoleSignal(record: Record<string, unknown>): SignalRecord {
   const level = asString(record.level) ?? "info";
   const text = asString(record.text) ?? "";
@@ -97,12 +130,18 @@ export function buildSessionDigestFromExport(
     const level = asString(record.level);
     return level === "error";
   });
+  const criticalConsoleErrors = consoleErrors.filter(
+    (record) => !isResourceLoadNoise(asString(record.text)),
+  );
   const consoleWarnings = consoleRecords.filter((record) => {
     const level = asString(record.level);
     return level === "warning" || level === "warn";
   });
   const failedRequests = networkRecords.filter(
     (record) => asString(record.kind) === "requestfailed",
+  );
+  const firstPartyFailedRequests = failedRequests.filter(
+    (record) => !isTrackingPixel(asString(record.url)),
   );
   const httpErrors = networkRecords.filter((record) => {
     if (asString(record.kind) !== "response") {
@@ -129,9 +168,11 @@ export function buildSessionDigestFromExport(
       pageCount: asNumber(workspace.pageCount) ?? 0,
       routeCount: routes.length,
       consoleErrorCount: consoleErrors.length,
+      criticalConsoleErrorCount: criticalConsoleErrors.length,
       consoleWarningCount: consoleWarnings.length,
       pageErrorCount: pageErrors.length,
       failedRequestCount: failedRequests.length,
+      firstPartyFailedRequestCount: firstPartyFailedRequests.length,
       httpErrorCount: httpErrors.length,
     },
     currentPage,
@@ -281,8 +322,8 @@ export function buildDiagnosticsAuditConclusion(input: {
   const lastFailure = asObject(lastEvent.failure);
   const lastFailureSignal = asObject(lastEvent.failureSignal);
   const pageErrorCount = asNumber(summary.pageErrorCount) ?? 0;
-  const failedRequestCount = asNumber(summary.failedRequestCount) ?? 0;
-  const consoleErrorCount = asNumber(summary.consoleErrorCount) ?? 0;
+  const failedRequestCount = asNumber(summary.firstPartyFailedRequestCount) ?? asNumber(summary.failedRequestCount) ?? 0;
+  const consoleErrorCount = asNumber(summary.criticalConsoleErrorCount) ?? asNumber(summary.consoleErrorCount) ?? 0;
   const httpErrorCount = asNumber(summary.httpErrorCount) ?? 0;
   const latestRunHasFailure = events.some(
     (event) => Boolean(event.failed) || Object.keys(asObject(event.failure)).length > 0,
