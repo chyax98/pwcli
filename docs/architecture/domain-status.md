@@ -1,6 +1,6 @@
 # Domain Status
 
-更新时间：2026-04-28
+更新时间：2026-05-01
 
 这份文档记录每个领域的：
 
@@ -15,6 +15,8 @@
 - `session create|attach|recreate|list|status|close`
 - `dashboard open` exposes Playwright-core's bundled session dashboard as a thin wrapper.
 - `session list --attachable` exposes Playwright server-registry discovery as read-only attach candidates.
+- `session attach --attachable-id <id>` attaches to one connectable server returned by `session list --attachable`
+- `session list --attachable` also projects machine-readable capability facts for workspace-level attachability and per-target attach capability
 - session 名硬限制：
   - 最长 16 字符
   - 只允许字母、数字、`-`、`_`
@@ -24,26 +26,32 @@
   - diagnostics records
   - run artifacts
 - same-session lifecycle startup/reset/close and managed command dispatch use a per-session lock before entering the Playwright substrate; lock timeout reports recoverable `SESSION_BUSY`
+- same-name lifecycle startup/reset also holds a fail-fast startup lane for the lifetime of that CLI process, so concurrent `session create|recreate` for the same name returns structured `SESSION_BUSY` instead of leaking substrate startup races such as raw `EADDRINUSE`
 
 ### 当前限制
 
 - `session status` 只做快速状态检查；页面忙、弹窗阻塞、浏览器断连时可能拿不到完整页面信息，异常时用 `pw doctor --session <name>` 复查
 - `session attach --browser-url/--cdp` 只能接管当前机器上可连接的浏览器调试端口；连接失败时先确认浏览器是否用远程调试参数启动、端口是否可访问
 - `session list --attachable` 只发现 Playwright-core 已登记的 browser servers，不做进程扫描、不自动 attach、不替代 `session create|attach|recreate` 主路
+- `--attachable-id` 只接管当前 workspace registry 里仍可连接的 browser server；它不是 extension bridge，也不做跨 workspace 发现
 - `dashboard open` relies on an internal/hidden Playwright CLI surface and must fail as `DASHBOARD_UNAVAILABLE` if the entrypoint disappears, or `DASHBOARD_LAUNCH_FAILED` if the subprocess exits during startup.
 
 ### 后续扩展
 
 - 只有出现真实跨工具接管场景，再评估 raw CDP named-session substrate
+- 当前 existing-browser enhancement 先停在 attachable server one-hop attach，不扩成 extension/native-host bridge
+- CLI 是 authoritative 命令面；MCP 是 thin second surface，共享同一批 domain/service substrate，不追求即时 parity
 
 ## 2. Workspace
 
 ### 当前实现
 
 - `page current|list|frames|dialogs`
+- `page assess`
 - `tab select|close <pageId>`
 - `observe status`
 - page / frame / dialog projection
+- `page assess` returns a compact read-only summary: page kind, data-layer hints, complexity hints, and next read commands
 - `observe status` 默认 compact，`--verbose` 返回完整状态载荷
 - workspace mutation contract 已单独定义在 `workspace-mutation-contract.md`
 
@@ -51,10 +59,12 @@
 
 - `page dialogs` 是事件投影
 - `tab select|close` 只接受 `pageId`，不接受 index / title / URL substring 作为写操作目标
+- `page assess` is inference-only: it does not export runtime state, storage state, or network payloads, and it is not an action planner
 
 ### 后续扩展
 
 - 如果继续扩 workspace 写操作，仍然先定义 stable target identity
+- 如果 `page assess` 后续继续扩展，优先补 selector-scoped assessment、auth-sensitive hints 和 real-site benchmark coverage；不要把它扩成 planner
 
 ## 3. Interaction
 
@@ -93,15 +103,94 @@
 - batch 只在真实高频场景下增量扩命令，不追求全量 parity
 - `verify` 后续只补真实场景断言覆盖，不扩大成动作规划器
 
+## 3.5 Extraction
+
+### 当前实现
+
+- `extract run`
+- `extract recipes` / `extract recipe-path`
+- bounded recipe-driven extraction lane
+- `kind: "list"` visible DOM list extraction
+- `kind: "article"` single-container extraction
+- bounded `next-page` pagination
+- bounded `load-more` pagination
+- bounded `until-stable` scroll driver
+- optional dotted-path `runtimeGlobal` probe
+- optional artifact write via `--out`
+- stable extraction artifact contract:
+  - `recipeId`
+  - `url`
+  - `generatedAt`
+  - `items[]`
+  - `document.blocks[]`
+  - `document.media[]`
+  - `stats`
+- artifact export formats:
+  - JSON
+  - CSV
+  - Markdown
+- bundled recipe pack for GitHub issue/PR lists and generic table rows
+
+### 当前限制
+
+- 只读，不做 mutation
+- `runtimeGlobal` 只允许 dotted path，不允许任意表达式
+- stdout 仍然只输出 JSON envelope；CSV / Markdown 只用于 `--out` artifact
+- `document.blocks/media` 是原始内容采集结果，不做语义摘要或最终文档重写
+- CLI payload and `--out` artifact still carry `recipe`, `recordCount`, and `records[]` as compatibility aliases over the newer contract
+- 当前分页/滚动只支持：
+  - `next-page`
+  - `load-more`
+  - `until-stable`
+- 所有分页/滚动都必须是 bounded
+- iframe：
+  - same-origin：支持
+  - cross-origin：不深采，只返回 limitation
+- 不支持 URL template / cursor/API pagination / site pack marketplace
+- 不替代 `pw code` 的 ad-hoc 调试能力，也不替代 `bootstrap apply --init-script` 的 preload/runtime patch lane
+
+### 后续扩展
+
+- 如果 extraction lane 真实高频，再补更完整的 raw block richness、cursor/API pagination、组合 scroll+pagination strategy
+- recipe pack 当前是模板级资产，不是站点强契约
+- 不把 extraction lane 扩成任意脚本平台
+
+## 3.6 MCP
+
+### 当前实现
+
+- `mcp schema`
+- `mcp serve`
+- stdio MCP server
+- thin tool surface over session/read/extract/diagnostics lanes
+- schema contract includes protocol/server/transport/capabilities/surface metadata
+- tool argument validation rejects non-object arguments, unknown keys, and obvious type mismatches before dispatch
+
+### 当前限制
+
+- 当前不是全量 command parity
+- 只暴露高频 tools：session create/list/status/attachable list、open、page assess、auth probe、read text、interactive snapshot、diagnostics digest、extract run
+- CLI 仍然是主入口，MCP 是第二出口
+- MCP tool registry/dispatch lives in `src/domain/mcp/service.ts`; `src/infra/mcp/server.ts` only holds stdio framing + JSON-RPC handling
+
+### 后续扩展
+
+- 当前冻结为兼容出口，不再主动扩更多 tool surface
+
 ## 4. Identity State
 
 ### 当前实现
 
 - `state save|load`
+- `state diff` read-only before/after comparison for cookies, `localStorage` keys, `sessionStorage` keys, and IndexedDB metadata
 - `cookies list|set`
 - `storage local|session` read + current-origin `get|set|delete|clear`
+- `storage indexeddb export` read-only current-origin summary + optional sampled previews
+- `auth probe` read-only auth-state heuristic with `authenticated|anonymous|uncertain`, `confidence`, `blockedState`, `recommendedAction`, and three signal layers (`pageIdentity` / `protectedResource` / `storage`)
+- `auth probe` also projects machine-readable capability facts: `available`, `blocked`, `reusableStateLikely`
 - `profile inspect`
 - `profile list-chrome` discovers local Chrome profiles for `session create --from-system-chrome`
+- `profile inspect` / `profile list-chrome` project capability facts for persistent-profile-path and system-chrome-profile-source
 - `auth` 内置 provider 执行 + `save-state`
 - `dc` 是内置 DC/Forge auth provider；默认手机号和验证码内聚在 provider 内，目标解析顺序为显式 `targetUrl`、当前 Forge 页面、默认本地 Forge
 - `fixture-auth` 是内部 contract 测试 provider，用于 smoke 验证 auth 执行链
@@ -109,6 +198,9 @@
 ### 当前限制
 
 - `storage local|session get|set|delete|clear` 只作用于当前页 origin，不做跨 origin storage 编辑
+- `state diff` 当前只做 metadata comparison：cookie 摘要、local/session storage key 集合、IndexedDB database/store metadata + `countEstimate`；不做 local/session value diff，也不做 Cache Storage / service worker diff
+- `storage indexeddb export` 只读、只看当前页 origin；不做 mutation、跨 origin 遍历、profile 级迁移，也不替代 Cache Storage / service worker 探测
+- `auth probe` 当前只做通用启发式判断：可选 `--url` 只读导航、不调用站点级 `/me` 接口、不替代站点特化 auth pack
 - `auth` 不负责 session shape
 - `--from-system-chrome` 不复制 profile；它用 Chrome user data dir + profile-directory 启动 session，因此同 profile 被 Chrome 占用时会失败
 - `dc` 不接受 `instance` 参数；不暴露环境参数，用户给具体业务 URL 时由 skill 作为 `targetUrl` 传入
@@ -117,7 +209,7 @@
 
 ### 后续扩展
 
-- 如果 Agent 真实需要，再补 richer cookie mutation 或 IndexedDB 读取；当前 storage mutation 不替代 auth/state 主路
+- 如果 Agent 真实需要，再补更深层 value diff、Cache Storage probe、站点级 auth probe pack 或 extraction recipe；当前 storage mutation 不替代 auth/state 主路
 
 ## 5. Diagnostics
 
@@ -156,6 +248,35 @@
 - mock 第二层
 - stream / heavier substrate survey
 
+## 5.5 Benchmark
+
+### 当前实现
+
+- `benchmark/` deterministic stability scaffold
+- fixture server
+- recursive task discovery
+- task runner
+- suite runner
+- machine-readable taxonomy
+- generated deterministic task matrix
+- closure suite script
+- nightly regression runner
+- versioned score/report contract（当前保留，但不继续优先扩张）
+
+### 当前限制
+
+- 当前 benchmark 主体是 deterministic fixture suite，不是 real-site automation
+- runner 串行执行，不做并发调度
+- summary 目前输出 `summary.json` / `summary.md`，不做 HTML 报告
+- nightly surface still uses the same deterministic runner substrate; it is report promotion, not a new browser contract
+- 任务 corpus 通过 generator 产出，不承诺每个 JSON 都手工维护
+
+### 后续扩展
+
+- real-site manual stability dogfood pack
+- 只在真实回归需求下增补能力级 case
+- 不继续主动扩 benchmark 平台能力
+
 ## 6. Bootstrap
 
 ### 当前实现
@@ -177,6 +298,8 @@
 
 - `route list`
 - `route add`
+- `route add --match-query <key=value>`
+- `route add --match-header <key=value>`
 - `route load`
 - `route remove`
 - `--abort`
@@ -192,9 +315,9 @@
 
 ### 当前限制
 
-- richer matching 当前只到 body substring
+- richer matching 当前已扩到 body substring、query exact match、request header exact match、JSON request body subset match；还不做 schema-level body matcher
 - inject 当前只到 request header merge + continue
-- response patch 当前只到 upstream JSON merge patch + status override
+- response patch 当前已支持 upstream JSON merge patch、text patch、status override、response header merge；GraphQL patch 走 `match-json + patch-json` 组合，不做单独 planner
 
 ### 后续扩展
 

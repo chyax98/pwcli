@@ -1,11 +1,13 @@
 import type { Command } from "commander";
 import {
+  managedPageAssess,
   managedPageCurrent,
   managedPageDialogs,
   managedPageFrames,
   managedPageList,
 } from "../../domain/workspace/service.js";
-import { printCommandResult } from "../output.js";
+import { isModalStateBlockedMessage } from "../../infra/playwright/runtime.js";
+import { printCommandError, printCommandResult } from "../output.js";
 import {
   addSessionOption,
   printSessionAwareCommandError,
@@ -76,6 +78,39 @@ export function registerPageCommand(program: Command): void {
         code: "PAGE_DIALOGS_FAILED",
         message: "page dialogs failed",
         suggestions: ["Run `pw session create <name> --open <url>` first"],
+      });
+      process.exitCode = 1;
+    }
+  });
+
+  addSessionOption(
+    page
+      .command("assess")
+      .description("Assess the active page and suggest the next read-only observation lane"),
+  ).action(async (options: { session?: string }, command: Command) => {
+    try {
+      const sessionName = requireSessionName(options, command);
+      printCommandResult("page assess", await managedPageAssess({ sessionName }));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (isModalStateBlockedMessage(message)) {
+        printCommandError("page assess", {
+          code: "MODAL_STATE_BLOCKED",
+          message: "page assess is blocked by a modal dialog",
+          suggestions: [
+            "Run `pw dialog accept --session <name>` or `pw dialog dismiss --session <name>` first",
+          ],
+        });
+        process.exitCode = 1;
+        return;
+      }
+      printSessionAwareCommandError("page assess", error, {
+        code: "PAGE_ASSESS_FAILED",
+        message: "page assess failed",
+        suggestions: [
+          "Run `pw page current --session <name>` to confirm the active page",
+          "Retry with `pw read-text --session <name>` and `pw snapshot -i --session <name>` if the page is still readable",
+        ],
       });
       process.exitCode = 1;
     }

@@ -4,6 +4,9 @@ dist
 .playwright
 .playwright-cli
 .pwcli
+benchmark/artifacts/closure/
+benchmark/reports/closure/
+benchmark/tasks/generated/
 .tmp*
 .codex/*.env
 .codex/*.local.toml

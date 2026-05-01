@@ -2,6 +2,7 @@ export * from "./runtime/bootstrap.js";
 export * from "./runtime/code.js";
 export * from "./runtime/diagnostics.js";
 export * from "./runtime/environment.js";
+export * from "./runtime/extraction.js";
 export * from "./runtime/hooks.js";
 export * from "./runtime/identity-state.js";
 export * from "./runtime/interaction.js";

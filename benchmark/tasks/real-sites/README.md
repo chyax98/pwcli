@@ -1,0 +1,92 @@
+# Real-site Benchmark Pack
+
+这里放人工 dogfood 的真实站点基准，不进入日常 deterministic closure suite。
+
+## 目标
+
+- 验证 `pwcli` 在真实页面上的上限
+- 补 deterministic fixture 看不到的问题：
+  - 真实登录态
+  - 复杂 DOM
+  - 虚拟列表
+  - 真实导航/重定向
+  - 真实 anti-bot / handoff 边界
+
+## 当前 manual pack
+
+### 1. GitHub Issues / Pull Requests
+
+测：
+
+- `page assess`
+- `read-text`
+- `snapshot -i`
+- `auth probe`（如果使用登录态）
+- `extract run`（对 issue/PR 列表做结构化提取）
+
+成功标准：
+
+- 可稳定读取标题、正文、评论或列表项
+- 登录态存在时，`auth probe` 不误判
+
+### 2. Hacker News
+
+测：
+
+- 只读结构提取
+- 链接列表 extraction
+- diagnostics 轻量证据链
+
+成功标准：
+
+- `extract run` 能提取标题、链接、分数/作者等可见字段
+
+### 3. Wikipedia
+
+测：
+
+- 长文档 perception
+- `page assess` 与 `read-text` 的分工
+
+成功标准：
+
+- 可稳定识别主标题、导语、正文片段
+
+### 4. 一个内部后台 / CMS
+
+测：
+
+- 登录态复用
+- `auth probe`
+- `state diff`
+- 表格/列表 extraction
+
+成功标准：
+
+- 登录态复用成立
+- 可提取表格首屏数据
+- 失败时有 diagnostics 证据链
+
+## 运行原则
+
+- 不把真实站点混入 closure suite
+- 不把真实站点波动包装成 deterministic 回归失败
+- 登录、2FA、挑战页允许人工接管
+- 不以绕过风控为目标
+
+## 推荐命令链
+
+```bash
+pw session create real-a --open '<url>'
+pw page assess --session real-a
+pw auth probe --session real-a
+pw read-text --session real-a --max-chars 3000
+pw snapshot -i --session real-a
+pw diagnostics digest --session real-a
+```
+
+如果需要结构化导出：
+
+```bash
+pw extract run --session real-a --recipe ./recipe.json --out ./artifact.json
+```

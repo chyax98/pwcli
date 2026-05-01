@@ -1,4 +1,4 @@
-import { cpSync, existsSync, mkdirSync, rmSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readdirSync, rmSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -38,5 +38,39 @@ export function installPackagedSkill(targetParentDir: string) {
     targetRoot,
     installed: true,
     overwritten,
+  };
+}
+
+export function resolvePackagedExtractRecipeRoot(): string {
+  return resolve(resolvePackagedSkillRoot(), "references", "extract-recipes");
+}
+
+export function listPackagedExtractRecipes() {
+  const root = resolvePackagedExtractRecipeRoot();
+  if (!existsSync(root)) {
+    return [];
+  }
+  return readdirSync(root)
+    .filter((entry) => entry.endsWith(".json"))
+    .sort()
+    .map((entry) => ({
+      name: entry.replace(/\.json$/i, ""),
+      path: resolve(root, entry),
+    }));
+}
+
+export function resolvePackagedExtractRecipe(name: string) {
+  const normalized = name.trim();
+  if (!normalized) {
+    throw new Error("extract recipe name is required");
+  }
+  const root = resolvePackagedExtractRecipeRoot();
+  const path = resolve(root, `${normalized}.json`);
+  if (!existsSync(path)) {
+    throw new Error(`packaged extract recipe '${normalized}' not found`);
+  }
+  return {
+    name: normalized,
+    path,
   };
 }

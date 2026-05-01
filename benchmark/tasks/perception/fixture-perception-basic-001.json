@@ -1,0 +1,72 @@
+{
+  "id": "fixture-perception-basic-001",
+  "title": "Read a deterministic article fixture and identify primary content",
+  "category": "perception",
+  "mode": "fixture",
+  "site": {
+    "name": "deterministic-fixture",
+    "startUrl": "http://127.0.0.1:<port>/article",
+    "requiresLogin": false,
+    "authMode": "none"
+  },
+  "goal": "Identify the fixture title, primary body excerpt, and primary CTA from a stable article page.",
+  "allowedCommands": [
+    "session",
+    "open",
+    "observe",
+    "page",
+    "read-text",
+    "snapshot",
+    "locate",
+    "get",
+    "is",
+    "verify",
+    "screenshot",
+    "diagnostics"
+  ],
+  "successCriteria": [
+    {
+      "id": "title-visible",
+      "type": "text",
+      "check": "Main heading matches the fixture title marker"
+    },
+    {
+      "id": "body-visible",
+      "type": "text",
+      "check": "Visible article excerpt contains the stable body marker"
+    },
+    {
+      "id": "cta-visible",
+      "type": "element",
+      "check": "Exactly one primary CTA is visible in the main article region"
+    }
+  ],
+  "failureTaxonomy": [
+    "PERCEPTION_FAILED",
+    "TEXT_EXTRACTION_FAILED",
+    "SNAPSHOT_TOO_NOISY",
+    "LOCATOR_NOT_FOUND",
+    "VERIFY_FAILED",
+    "ARTIFACT_INVALID"
+  ],
+  "evidenceRequired": [
+    "observe status",
+    "page current",
+    "read-text excerpt",
+    "snapshot -i",
+    "screenshot",
+    "diagnostics digest"
+  ],
+  "scoring": {
+    "completion": 40,
+    "evidence": 25,
+    "diagnosis": 15,
+    "efficiency": 10,
+    "artifactQuality": 10
+  },
+  "ciPolicy": {
+    "allowedInCI": true,
+    "allowedInNightly": true,
+    "requiresManualReview": false
+  }
+}

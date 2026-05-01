@@ -29,6 +29,7 @@ state / auth / batch / environment 命令见 `command-reference-advanced.md`。
 ### `pw session attach <name>`
 
 - `--ws-endpoint <url>` / `--browser-url <url>` / `--cdp <port>`（三选一）
+- `--attachable-id <id>`：用 `pw session list --attachable` 返回的 server id/title 直接接管当前 workspace 里的现成 browser server
 - `--trace` / `--no-trace`
 
 ### `pw session recreate <name>`
@@ -41,6 +42,21 @@ state / auth / batch / environment 命令见 `command-reference-advanced.md`。
 
 - `--with-page`：为 live session 补 best-effort 页面摘要
 - `--attachable`：列出当前 workspace 内 Playwright server registry 中可供接管的 browser servers；只做 discovery，不自动 attach
+- 传 `--attachable` 时额外返回：
+  - `capability`
+    - `capability: "existing-browser-attach"`
+    - `supported`
+    - `available`
+    - `attachableCount`
+    - `connectableCount`
+    - `endpointCount`
+    - `workspaceScoped`
+  - `attachable.servers[].capability`
+    - `capability: "existing-browser-attach-target"`
+    - `available`
+    - `connectable`
+    - `endpointExposed`
+    - `attachableId`
 
 ### `pw session status <name>`
 
@@ -65,6 +81,20 @@ state / auth / batch / environment 命令见 `command-reference-advanced.md`。
 ### `pw page current|list|frames|dialogs --session <name>`
 
 - `dialogs` 是事件投影，不是 authoritative live dialog set
+
+### `pw page assess --session <name>`
+
+- compact、read-only 的页面评估摘要
+- 输出 `summary`、`dataHints`、`complexityHints`、`nextSteps`、`limitations`、`evidence`
+- 目标是帮助 Agent 判断当前页更适合先走：
+  - `read-text`
+  - `snapshot -i`
+  - `code`
+  - `storage local`
+  - `diagnostics digest`
+- 不是 action planner，不返回具体点击目标，不替代 extractor / auth probe / diagnostics bundle
+- `nextSteps` 只给“下一类观察命令”，不替 Agent 决定业务动作
+- 当前结论是 inference-only；涉及 runtime / network / storage 的 authoritative 事实，要继续跑对应命令家族
 
 ### `pw tab select|close <pageId> --session <name>`
 
@@ -248,6 +278,7 @@ Use `locate/get/is/verify` for narrow state checks. Use `snapshot -i` when you n
 ## 当前限制
 
 - modal state 阻断 `page *` / `observe status` 读取链路
+- `page assess` 只做 inference summary，不直接导出 runtime state、storage state、network payload，也不做 selector-scoped assessment
 - `session status` 是快速检查；异常时用 `pw doctor --session <name>`
 - `session attach --browser-url/--cdp` 只接管本机可连接的调试端口
 - `storage local|session` 对无效 origin 返回 `accessible: false`

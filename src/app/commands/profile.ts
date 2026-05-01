@@ -2,7 +2,7 @@ import { accessSync, constants, existsSync, lstatSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, resolve } from "node:path";
 import type { Command } from "commander";
-import { listChromeProfiles } from "../../infra/system-chrome/profiles.js";
+import { listChromeProfiles, type ChromeProfileInfo } from "../../infra/system-chrome/profiles.js";
 import { printCommandResult } from "../output.js";
 
 function expandPath(input: string) {
@@ -41,6 +41,27 @@ function inspectProfilePath(input: string) {
   };
 }
 
+function buildChromeProfileCapability(profiles: ChromeProfileInfo[]) {
+  return {
+    capability: "system-chrome-profile-source",
+    supported: true,
+    available: profiles.length > 0,
+    profileCount: profiles.length,
+    defaultProfileAvailable: profiles.some((profile) => profile.default),
+  };
+}
+
+function buildProfilePathCapability(profile: ReturnType<typeof inspectProfilePath>) {
+  return {
+    capability: "persistent-profile-path",
+    supported: true,
+    available: profile.usable,
+    exists: profile.exists,
+    writable: profile.writable,
+    willCreateOnOpen: Boolean(profile.willCreateOnOpen),
+  };
+}
+
 export function registerProfileCommand(program: Command): void {
   const profile = program.command("profile").description("Inspect browser profile paths");
 
@@ -53,6 +74,7 @@ export function registerProfileCommand(program: Command): void {
         data: {
           count: profiles.length,
           profiles,
+          capability: buildChromeProfileCapability(profiles),
         },
       });
     });
@@ -65,6 +87,7 @@ export function registerProfileCommand(program: Command): void {
       printCommandResult("profile inspect", {
         data: {
           profile: info,
+          capability: buildProfilePathCapability(info),
         },
       });
     });

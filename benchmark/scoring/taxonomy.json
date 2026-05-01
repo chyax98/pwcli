@@ -1,0 +1,318 @@
+{
+  "schemaVersion": 1,
+  "scope": "task-failure",
+  "note": "Transport and session-routing errors stay outside the main task taxonomy table.",
+  "families": [
+    {
+      "family": "PERCEPTION_FAILED",
+      "layer": "task-failure",
+      "owner": "agent_planning_failure",
+      "retryable": true,
+      "humanHandoffRecommended": false,
+      "minimumEvidence": [
+        "page current",
+        "read-text",
+        "snapshot -i"
+      ],
+      "firstRecoveryCommand": "pw read-text -s <name> --max-chars 2000"
+    },
+    {
+      "family": "TEXT_EXTRACTION_FAILED",
+      "layer": "task-failure",
+      "owner": "agent_planning_failure",
+      "retryable": true,
+      "humanHandoffRecommended": false,
+      "minimumEvidence": [
+        "read-text",
+        "screenshot"
+      ],
+      "firstRecoveryCommand": "pw read-text -s <name> --selector '<scope>' --max-chars 2000"
+    },
+    {
+      "family": "SNAPSHOT_TOO_NOISY",
+      "layer": "task-failure",
+      "owner": "agent_planning_failure",
+      "retryable": true,
+      "humanHandoffRecommended": false,
+      "minimumEvidence": [
+        "snapshot -i",
+        "read-text"
+      ],
+      "firstRecoveryCommand": "pw snapshot -i -s <name>"
+    },
+    {
+      "family": "LOCATOR_NOT_FOUND",
+      "layer": "task-failure",
+      "owner": "agent_planning_failure",
+      "retryable": true,
+      "humanHandoffRecommended": false,
+      "minimumEvidence": [
+        "locate",
+        "read-text",
+        "diagnostics digest"
+      ],
+      "firstRecoveryCommand": "pw locate -s <name> --text '<target>'"
+    },
+    {
+      "family": "LOCATOR_AMBIGUOUS",
+      "layer": "task-failure",
+      "owner": "agent_planning_failure",
+      "retryable": true,
+      "humanHandoffRecommended": false,
+      "minimumEvidence": [
+        "locate",
+        "snapshot -i"
+      ],
+      "firstRecoveryCommand": "pw locate -s <name> --role '<role>' --name '<name>'"
+    },
+    {
+      "family": "REF_STALE",
+      "layer": "task-failure",
+      "owner": "agent_planning_failure",
+      "retryable": true,
+      "humanHandoffRecommended": false,
+      "minimumEvidence": [
+        "diagnostics digest",
+        "snapshot -i"
+      ],
+      "firstRecoveryCommand": "pw snapshot -i -s <name>"
+    },
+    {
+      "family": "ACTION_FAILED",
+      "layer": "task-failure",
+      "owner": "agent_planning_failure",
+      "retryable": true,
+      "humanHandoffRecommended": false,
+      "minimumEvidence": [
+        "diagnostics digest",
+        "screenshot"
+      ],
+      "firstRecoveryCommand": "pw diagnostics digest -s <name>"
+    },
+    {
+      "family": "WAIT_TIMEOUT",
+      "layer": "task-failure",
+      "owner": "agent_planning_failure",
+      "retryable": true,
+      "humanHandoffRecommended": false,
+      "minimumEvidence": [
+        "diagnostics digest",
+        "page current"
+      ],
+      "firstRecoveryCommand": "pw page current -s <name>"
+    },
+    {
+      "family": "VERIFY_FAILED",
+      "layer": "task-failure",
+      "owner": "agent_planning_failure",
+      "retryable": true,
+      "humanHandoffRecommended": false,
+      "minimumEvidence": [
+        "verify output",
+        "read-text",
+        "locate"
+      ],
+      "firstRecoveryCommand": "pw read-text -s <name> --max-chars 2000"
+    },
+    {
+      "family": "MODAL_STATE_BLOCKED",
+      "layer": "task-failure",
+      "owner": "target_site_limitation",
+      "retryable": true,
+      "humanHandoffRecommended": false,
+      "minimumEvidence": [
+        "page dialogs",
+        "screenshot"
+      ],
+      "firstRecoveryCommand": "pw page dialogs -s <name>"
+    },
+    {
+      "family": "AUTH_NOT_REUSED",
+      "layer": "task-failure",
+      "owner": "pwcli_gap",
+      "retryable": false,
+      "humanHandoffRecommended": false,
+      "minimumEvidence": [
+        "protected navigation evidence",
+        "storage summary",
+        "screenshot"
+      ],
+      "firstRecoveryCommand": "pw auth probe -s <name>"
+    },
+    {
+      "family": "PROFILE_LOCKED",
+      "layer": "task-failure",
+      "owner": "environment_or_operator_issue",
+      "retryable": true,
+      "humanHandoffRecommended": false,
+      "minimumEvidence": [
+        "session create output",
+        "profile inspect output"
+      ],
+      "firstRecoveryCommand": "pw profile list-chrome"
+    },
+    {
+      "family": "STORAGE_NOT_ACCESSIBLE",
+      "layer": "task-failure",
+      "owner": "target_site_limitation",
+      "retryable": true,
+      "humanHandoffRecommended": false,
+      "minimumEvidence": [
+        "storage read output",
+        "page current"
+      ],
+      "firstRecoveryCommand": "pw page current -s <name>"
+    },
+    {
+      "family": "INDEXEDDB_UNSUPPORTED",
+      "layer": "task-failure",
+      "owner": "pwcli_gap",
+      "retryable": false,
+      "humanHandoffRecommended": false,
+      "minimumEvidence": [
+        "storage output",
+        "diagnostics digest"
+      ],
+      "firstRecoveryCommand": "pw storage indexeddb export -s <name>"
+    },
+    {
+      "family": "NETWORK_FAILED",
+      "layer": "task-failure",
+      "owner": "target_site_limitation",
+      "retryable": true,
+      "humanHandoffRecommended": false,
+      "minimumEvidence": [
+        "network summary",
+        "diagnostics bundle",
+        "console output"
+      ],
+      "firstRecoveryCommand": "pw network requests -s <name>"
+    },
+    {
+      "family": "API_4XX",
+      "layer": "task-failure",
+      "owner": "target_site_limitation",
+      "retryable": false,
+      "humanHandoffRecommended": false,
+      "minimumEvidence": [
+        "network summary",
+        "diagnostics bundle"
+      ],
+      "firstRecoveryCommand": "pw diagnostics bundle -s <name>"
+    },
+    {
+      "family": "API_5XX",
+      "layer": "task-failure",
+      "owner": "target_site_limitation",
+      "retryable": true,
+      "humanHandoffRecommended": false,
+      "minimumEvidence": [
+        "network summary",
+        "diagnostics bundle",
+        "console output"
+      ],
+      "firstRecoveryCommand": "pw diagnostics bundle -s <name>"
+    },
+    {
+      "family": "CORS_BLOCKED",
+      "layer": "task-failure",
+      "owner": "target_site_limitation",
+      "retryable": false,
+      "humanHandoffRecommended": false,
+      "minimumEvidence": [
+        "console output",
+        "network summary"
+      ],
+      "firstRecoveryCommand": "pw console -s <name>"
+    },
+    {
+      "family": "BOT_DETECTED",
+      "layer": "task-failure",
+      "owner": "target_site_limitation",
+      "retryable": false,
+      "humanHandoffRecommended": true,
+      "minimumEvidence": [
+        "screenshot",
+        "page current",
+        "read-text"
+      ],
+      "firstRecoveryCommand": "pw screenshot -s <name> --path ./bot-detected.png"
+    },
+    {
+      "family": "RATE_LIMITED",
+      "layer": "task-failure",
+      "owner": "target_site_limitation",
+      "retryable": true,
+      "humanHandoffRecommended": true,
+      "minimumEvidence": [
+        "network summary",
+        "read-text"
+      ],
+      "firstRecoveryCommand": "pw diagnostics digest -s <name>"
+    },
+    {
+      "family": "SCRIPT_INJECTION_FAILED",
+      "layer": "task-failure",
+      "owner": "pwcli_gap",
+      "retryable": true,
+      "humanHandoffRecommended": false,
+      "minimumEvidence": [
+        "code output",
+        "console output",
+        "diagnostics digest"
+      ],
+      "firstRecoveryCommand": "pw code -s <name> --expr '<script>'"
+    },
+    {
+      "family": "RUNTIME_STATE_NOT_FOUND",
+      "layer": "task-failure",
+      "owner": "agent_planning_failure",
+      "retryable": true,
+      "humanHandoffRecommended": false,
+      "minimumEvidence": [
+        "code output",
+        "network summary",
+        "read-text"
+      ],
+      "firstRecoveryCommand": "pw network requests -s <name>"
+    },
+    {
+      "family": "EXTRACTION_INCOMPLETE",
+      "layer": "task-failure",
+      "owner": "agent_planning_failure",
+      "retryable": true,
+      "humanHandoffRecommended": false,
+      "minimumEvidence": [
+        "artifact sample",
+        "count summary",
+        "diagnostics digest"
+      ],
+      "firstRecoveryCommand": "pw read-text -s <name> --max-chars 2000"
+    },
+    {
+      "family": "ARTIFACT_INVALID",
+      "layer": "task-failure",
+      "owner": "pwcli_gap",
+      "retryable": true,
+      "humanHandoffRecommended": false,
+      "minimumEvidence": [
+        "artifact file",
+        "stdout.json"
+      ],
+      "firstRecoveryCommand": "pw diagnostics export -s <name>"
+    },
+    {
+      "family": "HUMAN_INTERVENTION_REQUIRED",
+      "layer": "task-failure",
+      "owner": "target_site_limitation",
+      "retryable": false,
+      "humanHandoffRecommended": true,
+      "minimumEvidence": [
+        "screenshot",
+        "page current",
+        "read-text"
+      ],
+      "firstRecoveryCommand": "pw dashboard open"
+    }
+  ]
+}

@@ -35,6 +35,7 @@ Meaning:
 - another command is still running on the same session
 - pwcli queued for the per-session lock but timed out before dispatching to Playwright
 - lifecycle startup/reset/close for the same session is still in progress
+- another CLI process is already running same-name lifecycle startup/reset and still owns the startup lane for that session
 
 Recovery:
 
@@ -43,7 +44,189 @@ pw session status bug-a
 pw wait --session bug-a --selector '<expected-ready-state>'
 ```
 
-Then retry the original command. Keep dependent steps sequential, do not issue concurrent `session create|recreate|close` for the same name, or put stable same-session steps in `pw batch --session <name>`.
+Then retry the original command. Keep dependent steps sequential, do not issue concurrent `session create|recreate|close` for the same name, or put stable same-session steps in `pw batch --session <name>`. Concurrent same-name `session create` is expected to fail fast as `SESSION_BUSY`; do not treat that as a raw Playwright startup failure.
+
+### `SESSION_ATTACH_FAILED`
+
+Meaning:
+
+- the attach source is missing, invalid, or not connectable
+- or `--attachable-id` does not point to a live browser server in the current workspace
+
+Recovery:
+
+```bash
+pw session list --attachable
+pw session attach bug-a --attachable-id <id>
+```
+
+If the attachable entry has no usable endpoint, fall back to an explicit attach source such as `--ws-endpoint`, `--browser-url`, or `--cdp`.
+
+## Identity-state recovery
+
+### `auth probe` returned `status=uncertain`
+
+Meaning:
+
+- the session does not look safely authenticated
+- but pwcli also cannot prove it is fully anonymous
+- common cases are challenge pages, two-factor steps, stale storage, or UI that lacks strong identity markers
+
+Recovery:
+
+```bash
+pw page current --session bug-a
+pw auth probe --session bug-a --url 'https://example.com/protected'
+pw read-text --session bug-a --max-chars 2000
+pw storage local --session bug-a
+pw cookies list --session bug-a
+```
+
+If `blockedState=challenge|two_factor|interstitial`, treat the result as a human handoff point instead of forcing another automated login loop.
+
+### `INDEXEDDB_ORIGIN_UNAVAILABLE`
+
+Meaning:
+
+- `pw storage indexeddb export` was run on a page without a stable origin
+- common cases are `about:blank`, `data:`, or other `origin === "null"` pages
+
+Recovery:
+
+```bash
+pw open --session bug-a 'https://example.com/app'
+pw storage indexeddb export --session bug-a
+```
+
+### `INDEXEDDB_UNSUPPORTED`
+
+Meaning:
+
+- the current browser/page context does not expose IndexedDB enumeration needed for export
+- or the page environment blocks the required probe
+
+Recovery:
+
+```bash
+pw page current --session bug-a
+pw storage local --session bug-a
+pw storage indexeddb export --session bug-a --database '<expected-db>'
+```
+
+If the target site truly stores state outside cookies/localStorage/sessionStorage but IndexedDB export is unavailable, fall back to page/runtime/network evidence instead of treating this as automatic auth failure.
+
+### `EXTRACT_RECIPE_INVALID`
+
+Meaning:
+
+- `pw extract run` 的 recipe 文件结构不合法
+- 常见原因是 `kind` 不支持、缺少 `itemSelector|containerSelector`、或者 `fields` 不是对象
+
+Recovery:
+
+```bash
+pw extract run --session bug-a --recipe ./recipe.json
+```
+
+先检查：
+
+- `kind` 是否是 `list` 或 `article`
+- `fields` 是否是对象，而不是数组
+- `list` recipe 是否提供了 `itemSelector`
+- `article` recipe 是否提供了 `containerSelector`
+
+### `EXTRACT_RUNTIME_GLOBAL_INVALID`
+
+Meaning:
+
+- `runtimeGlobal` 不是受限的 dotted path
+- 当前 structured extraction lane 不允许任意 JS 表达式
+
+Recovery:
+
+```bash
+pw code --session bug-a --file ./debug-runtime.js
+```
+
+在 `extract run` 中只保留类似 `__NEXT_DATA__`、`app.state` 这样的 dotted path。需要更复杂 runtime 读取时，退回 `pw code` 做 ad-hoc 调试。
+
+### `EXTRACT_RESULT_INVALID`
+
+Meaning:
+
+- `pw extract run` 底层返回的 payload 不完整
+- 常见原因是页面结构波动过大、selector 过宽，或 recipe 和页面不匹配
+
+Recovery:
+
+```bash
+pw page current --session bug-a
+pw read-text --session bug-a --max-chars 2000
+pw snapshot -i --session bug-a
+pw extract run --session bug-a --recipe ./recipe.json
+```
+
+先确认页面确实落在预期内容上，再收窄 recipe selectors。不要在 structured extraction lane 里塞任意脚本补丁。
+
+### `STATE_DIFF_BEFORE_REQUIRED`
+
+Meaning:
+
+- `pw state diff` was called without a baseline file
+
+Recovery:
+
+```bash
+pw state diff --session bug-a --before .pwcli/state/bug-a-before.json
+```
+
+Run it once to capture a baseline, then rerun it after the workflow mutates browser state.
+
+### `STATE_DIFF_AFTER_REQUIRED`
+
+Meaning:
+
+- `pw state diff` was called without a session and without an `--after` snapshot file
+
+Recovery:
+
+```bash
+pw state diff --before before.json --after after.json
+```
+
+Or add `--session <name>` so pwcli can capture the current after snapshot read-only.
+
+### `STATE_DIFF_SNAPSHOT_INVALID`
+
+Meaning:
+
+- the baseline or after snapshot file is missing, malformed, or not produced by `pw state diff`
+
+Recovery:
+
+```bash
+pw state diff --session bug-a --before before.json
+pw state diff --session bug-a --before before.json --after after.json
+```
+
+Recreate the snapshot files with `pw state diff` and compare again. Do not point the command at arbitrary JSON files.
+
+## MCP recovery
+
+### `MCP_SERVER_FAILED`
+
+Meaning:
+
+- `pw mcp serve` failed while starting or serving the stdio MCP surface
+
+Recovery:
+
+```bash
+pw mcp schema
+pw mcp serve
+```
+
+Make sure the MCP client is speaking stdio framing with `Content-Length` headers, then re-check the tool arguments being sent.
 
 ## System Chrome profile failures
 
@@ -96,6 +279,23 @@ pw session list --with-page
 Use `session list --with-page` as the CLI-only fallback. Do not treat `DASHBOARD_LAUNCH_FAILED` as a launched dashboard.
 
 ## Modal blockage
+
+### `PAGE_ASSESS_FAILED`
+
+Meaning:
+
+- `pw page assess` could not produce a stable compact summary
+- common causes are unreadable current page state, transient runtime failure, or heavy page churn between reads
+
+Recovery:
+
+```bash
+pw page current --session bug-a
+pw read-text --session bug-a --max-chars 2000
+pw snapshot -i --session bug-a
+```
+
+If the page is clearly present but the compact assessment is still not useful, treat the situation as a `PERCEPTION_FAILED` benchmark family and continue with narrower read commands instead of retrying `page assess` blindly.
 
 ### `REF_STALE`
 
@@ -261,6 +461,7 @@ Meaning:
 
 - current managed session is blocked by a modal dialog
 - run-code-backed reads and some actions are unavailable
+- affected reads include `page assess`, `observe status`, and `pw code`
 
 Recovery order:
 

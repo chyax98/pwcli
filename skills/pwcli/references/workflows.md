@@ -13,6 +13,7 @@
 - 浏览器探索：`../workflows/browser-task.md`
 - 诊断与证据链：`../workflows/diagnostics.md`
 - 受控自动化测试：`../workflows/controlled-testing.md`
+- 结构化提取：`../workflows/extraction.md`
 
 ## 配套文档
 

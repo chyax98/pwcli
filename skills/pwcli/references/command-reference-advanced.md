@@ -16,6 +16,44 @@
 
 - 导入 storage state
 
+### `pw state diff --session <name> --before <file>`
+
+- 读取当前 managed session 的只读 state 摘要，并与 `before` 基线文件比较
+- 首次运行时，如果 `before` 文件不存在：
+  - 当前摘要会被保存成 baseline
+  - 返回 `baselineCreated: true`
+- 后续再运行同一条命令：
+  - 比较 baseline 和当前状态
+  - 返回 compact diff buckets
+- 可选：
+  - `--after <file>`：把当前 after 摘要额外保存到文件，便于离线复查或二次比较
+
+### `pw state diff --before <file> --after <file>`
+
+- 比较两份已保存的 state diff 摘要文件
+- 不需要 session
+- 适合离线比较 before/after artifact
+
+返回：
+
+- `summary.changed`
+- `summary.changedBuckets`
+- `cookies.added/removed/changed`
+- `localStorage.added/removed`
+- `sessionStorage.added/removed`
+- `indexeddb.databasesAdded/databasesRemoved/storesChanged`
+
+限制：
+
+- 只读比较，不修改浏览器状态
+- 当前 MVP 的 storage 范围是：
+  - cookie 摘要
+  - `localStorage` key 集合
+  - `sessionStorage` key 集合
+  - IndexedDB database/store metadata + `countEstimate`
+- 不做 value 级 local/session storage diff
+- 不做 Cache Storage / service worker diff
+
 ### `pw cookies list --session <name>`
 
 - `--domain <domain>`
@@ -37,19 +75,94 @@
 - `delete <key>`：删除当前页 origin 的单个 storage 值
 - `clear`：清空当前页 origin 的对应 storage
 
-这只是受控测试状态操作，不替代 `state save|load`、cookies 或 auth provider。不会跨 origin 修改 storage，也不支持 IndexedDB。
+这只是受控测试状态操作，不替代 `state save|load`、cookies 或 auth provider。不会跨 origin 修改 storage。
+
+### `pw storage indexeddb export --session <name>`
+
+- 只读导出当前页 origin 下可见的 IndexedDB 摘要
+- 可选：
+  - `--database <name>`：只看一个 database
+  - `--store <name>`：只看一个 object store
+  - `--limit <n>`：采样记录上限，默认 `20`
+  - `--include-records`：返回采样记录 preview
+- 返回：
+  - `origin`
+  - `databaseCount`
+  - `databases[].name`
+  - `databases[].version`
+  - `stores[].name`
+  - `stores[].keyPath`
+  - `stores[].autoIncrement`
+  - `stores[].indexNames`
+  - `stores[].countEstimate`
+  - `stores[].sampledRecords[]`（仅 `--include-records`）
+
+限制：
+
+- 只读
+- 只看当前页 origin
+- 不支持 mutation / import / clear
+- 不替代 Cache Storage / service worker 探测
 
 ### `pw profile inspect <path>`
 
 - 检查 profile 路径是否存在、可写、可用
+- 返回：
+  - `profile`
+  - `capability`
+    - `capability: "persistent-profile-path"`
+    - `supported`
+    - `available`
+    - `exists`
+    - `writable`
+    - `willCreateOnOpen`
 
 ### `pw profile list-chrome`
 
 - 列出本机 Chrome profiles，输出 `directory`、`name`、`userDataDir`、`profilePath`
 - 配合 `pw session create --from-system-chrome --chrome-profile <directory-or-name>` 使用
 - 这是 session 启动身份来源，不是 `auth provider`
+- 额外返回：
+  - `capability`
+    - `capability: "system-chrome-profile-source"`
+    - `supported`
+    - `available`
+    - `profileCount`
+    - `defaultProfileAvailable`
 
 ## Auth
+
+### `pw auth probe --session <name>`
+
+- 只读判断当前 managed session 的身份状态
+- 返回：
+  - `status`: `authenticated | anonymous | uncertain`
+  - `confidence`: `high | medium | low`
+  - `blockedState`: `none | challenge | two_factor | interstitial | unknown`
+  - `recommendedAction`: `continue | save_state | inspect | reauth | human_handoff`
+  - `capability`
+    - `capability: "auth-state-probe"`
+    - `supported`
+    - `available`
+    - `blocked`
+    - `reusableStateLikely`
+  - `signals.pageIdentity[]`
+  - `signals.protectedResource[]`
+  - `signals.storage[]`
+- 三层信号分别回答：
+  - 页面本身像不像登录后页面
+  - 当前页面是不是还卡在登录/验证入口
+  - cookie / localStorage / sessionStorage 里是否有 auth/session-like 痕迹
+- 可选：
+  - `--url <protected-url>`：先做一次只读导航，再基于落地页做 probe
+
+限制：
+
+- 只读 probe，不执行登录
+- 不创建 session
+- 当前 MVP 不调用站点特化 `/me` API，也不做站点 pack
+- `--url` 会改变当前页，但不做写操作
+- 结果是通用启发式判断，不等同于站点级强认证结论
 
 ### `pw auth list`
 
@@ -87,6 +200,214 @@
 - `--retry <count>`
 - 失败保留 Playwright 原始错误，常见 locator 问题后追加 `PWCLI_HINT`
 - modal 阻塞时可能返回 `MODAL_STATE_BLOCKED`，先恢复 dialog
+
+## Extract
+
+### `pw extract recipes`
+
+- 列出随包分发的 recipe 模板
+
+### `pw extract recipe-path <name>`
+
+- 返回一个 bundled recipe 的绝对路径
+- 适合先拿模板，再复制到本地修改
+
+### `pw extract run --session <name> --recipe <file>`
+
+- 运行 bounded extraction lane，把当前页面里的结构化数据导出成稳定 artifact
+- 可选：
+  - `--out <file>`：把 artifact 额外写盘
+- 当前支持两类 recipe：
+  - `kind: "list"`：可见 DOM 列表提取
+  - `kind: "article"`：单篇文章容器提取
+- recipe 可选扩展：
+  - `pagination`
+    - `mode: "next-page" | "load-more"`
+    - `selector`
+    - `maxPages`
+  - `scroll`
+    - `mode: "until-stable"`
+    - `stepPx`
+    - `settleMs`
+    - `maxSteps`
+  - `output`
+    - `format: "json" | "csv" | "markdown"`
+    - `columns`
+- recipe 例子：
+
+```json
+{
+  "kind": "list",
+  "itemSelector": ".post-card",
+  "fields": {
+    "title": "h2 a",
+    "url": { "selector": "h2 a", "attr": "href" },
+    "summary": ".summary"
+  },
+  "pagination": {
+    "mode": "next-page",
+    "selector": "a.next",
+    "maxPages": 3
+  },
+  "scroll": {
+    "mode": "until-stable",
+    "stepPx": 1200,
+    "settleMs": 250,
+    "maxSteps": 5
+  },
+  "output": {
+    "format": "csv",
+    "columns": ["title", "url", "summary"]
+  },
+  "runtimeGlobal": "__PWCLI_RUNTIME__"
+}
+```
+
+返回：
+
+- `format: "json"`
+- `recipePath`
+- `recipeId`
+- `recipe`
+- `url`
+- `generatedAt`
+- `items[]`
+- `document`
+  - `blocks[]`
+    - `heading`
+    - `paragraph`
+    - `link`
+    - `image`
+    - `video`
+    - `list`
+    - `quote`
+    - `code`
+    - `table`
+  - `media[]`
+- `stats`
+  - `kind`
+  - `itemCount`
+  - `fieldCount`
+  - `limit`
+  - `pageCount?`
+  - `paginationMode?`
+  - `scrollMode?`
+  - `scrollStepsUsed?`
+  - `maxPages?`
+  - `maxScrollSteps?`
+  - `runtimeProbePath?`
+  - `runtimeProbeFound?`
+- `recordCount`
+- `records[]`
+- `runtimeProbe`
+- `artifactPath`（仅 `--out`）
+- `artifactFormat`（仅 `--out` 且 `output.format !== "json"`）
+- `limitation?`
+- `limitations[]?`
+
+说明：
+
+- `items[]` / `stats` 是稳定 artifact contract 的主字段
+- `document.blocks[]` / `document.media[]` 是给 Agent 用的原始结构采集结果
+- `recordCount` / `records[]` 目前保留为兼容别名：
+  - `recordCount -> stats.itemCount`
+  - `records[] -> items[]`
+- `recipe` 继续保留在 stdout 和 `--out` artifact 里，方便旧调用方平滑迁移
+- `--out` 写出的 artifact：
+  - `output.format = "json"`：写完整 JSON artifact payload
+  - `output.format = "csv"`：只写 CSV 文本
+  - `output.format = "markdown"`：只写 Markdown 表格文本
+
+限制：
+
+- 只读，不做 DOM mutation
+- stdout 的主输出仍然是 JSON 原始采集结果；最终 Markdown / 报告 /文章由 Agent 还原
+- `runtimeGlobal` 只允许点路径，例如 `__NEXT_DATA__`、`app.state`
+- 不允许函数调用、括号访问、任意表达式
+- 分页和滚动必须是 bounded：
+  - `pagination.maxPages`
+  - `scroll.maxSteps`
+- 当前只支持：
+  - `next-page`
+  - `load-more`
+  - `until-stable`
+- 当前不支持：
+  - URL template pagination
+  - cursor/API pagination
+  - site marketplace
+- iframe：
+  - same-origin iframe：支持
+  - cross-origin iframe：不深采，只返回 limitation
+- 不替代 `pw code` 的 ad-hoc 调试能力
+
+### `pw code` / `bootstrap apply --init-script` / `pw extract run` 的边界
+
+- `pw code`
+  - ad-hoc escape hatch
+  - 适合一次性调试、快速验证、临时探针
+- `pw bootstrap apply --init-script`
+  - preload/runtime patch lane
+  - 适合给 session 提前注入 hook、header、初始化逻辑
+- `pw extract run`
+  - repeatable structured extraction lane
+  - 适合固定 recipe、固定 artifact、固定验证
+  - stdout 始终保持 JSON；CSV/Markdown 只用于 `--out` artifact
+  - Agent 读取 `document.blocks/media` 后自行理解和还原最终文档
+
+不要把 `pw extract run` 包装成 planner、userscript installer 或任意脚本执行器。
+
+## MCP
+
+### `pw mcp schema`
+
+- 返回 `pwcli` MCP server 的稳定 contract：
+  - `protocol`
+  - `server`
+  - `transport`
+  - `capabilities`
+  - `surface`
+- `surface` 额外给出：
+  - `contractVersion`
+  - `kind: "thin-wrapper"`
+  - `authoritativeSurface: "cli"`
+  - `commandParity: "subset"`
+  - `lanes[]`
+  - `toolCount`
+  - `tools[]`
+    - `name`
+    - `lane`
+    - `boundary`
+    - `authoritativeCommand`
+    - `readOnly`
+    - `inputSchema`
+
+### `pw mcp serve`
+
+- 启动 stdio MCP server
+- 当前内置 tools：
+  - `session_create`
+  - `session_list`
+  - `session_status`
+  - `session_attachable_list`
+  - `open`
+  - `page_assess`
+  - `auth_probe`
+  - `read_text`
+  - `snapshot_interactive`
+  - `diagnostics_digest`
+  - `extract_run`
+
+限制：
+
+- 当前是 thin MCP surface，不覆盖全部 `pw` 命令
+- 当前只暴露最常用的 session/read/extract/diagnostics lanes
+- 仍然保留 CLI 为主，MCP 只是第二出口
+- CLI contract 是 authoritative truth；MCP 复用同一批 domain/service，不追求即时 command parity
+- MCP tool 参数按 schema 严格校验：
+  - `arguments` 必须是 object
+  - unknown keys 会直接报错
+  - 不再静默吞掉超出 contract 的参数
+- 当前定位是兼容出口，不是后续主线能力面
 
 ## Batch
 

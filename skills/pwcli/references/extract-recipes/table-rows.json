@@ -1,0 +1,12 @@
+{
+  "kind": "list",
+  "itemSelector": "table tbody tr",
+  "fields": {
+    "firstCell": "td:first-child",
+    "secondCell": "td:nth-child(2)",
+    "link": {
+      "selector": "a",
+      "attr": "href"
+    }
+  }
+}
