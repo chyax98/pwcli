@@ -198,13 +198,17 @@ function buildBatchStepSuggestions(message: string) {
   return undefined;
 }
 
-function parseBatchClickArgs(args: string[]) {
+function parseBatchSemanticArgs(args: string[], commandName: string) {
   let ref: string | undefined;
   let selector: string | undefined;
   let text: string | undefined;
   let role: string | undefined;
   let name: string | undefined;
+  let label: string | undefined;
+  let placeholder: string | undefined;
+  let testId: string | undefined;
   let nth: number | undefined;
+  const trailingValues: string[] = [];
 
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
@@ -228,61 +232,103 @@ function parseBatchClickArgs(args: string[]) {
       index += 1;
       continue;
     }
+    if (arg === "--label") {
+      label = args[index + 1];
+      index += 1;
+      continue;
+    }
+    if (arg === "--placeholder") {
+      placeholder = args[index + 1];
+      index += 1;
+      continue;
+    }
+    if (arg === "--test-id" || arg === "--testid") {
+      testId = args[index + 1];
+      index += 1;
+      continue;
+    }
     if (arg === "--nth") {
       nth = args[index + 1] ? Number(args[index + 1]) : undefined;
       index += 1;
       continue;
     }
-    if (!arg.startsWith("--") && !ref) {
-      ref = arg;
+    if (!arg.startsWith("--")) {
+      trailingValues.push(arg);
       continue;
     }
     throw new Error(
-      `unsupported click batch argument '${arg}'; run the single pw click command outside batch for unsupported flags`,
+      `unsupported ${commandName} batch argument '${arg}'; run the single pw ${commandName} command outside batch for unsupported flags`,
     );
   }
 
-  const targetCount = [ref, selector, text, role].filter(Boolean).length;
+  const semanticTargets = [text, role, label, placeholder, testId].filter(Boolean).length;
+  const hasSemanticOrSelector = selector || semanticTargets > 0;
+
+  // Only treat first trailing arg as ref if no semantic/selector target
+  if (!hasSemanticOrSelector && trailingValues.length > 0) {
+    ref = trailingValues.shift();
+  }
+
+  const targetCount = [ref, selector].filter(Boolean).length + semanticTargets;
   if (targetCount > 1) {
-    throw new Error("batch click accepts exactly one target: ref, --selector, --text, or --role");
+    throw new Error(`batch ${commandName} accepts exactly one target: ref, --selector, --text, --role, --label, --placeholder, or --test-id`);
   }
   if (args.includes("--selector") && !selector) {
-    throw new Error("batch click requires a selector after --selector");
+    throw new Error(`batch ${commandName} requires a selector after --selector`);
   }
   if (args.includes("--text") && !text) {
-    throw new Error("batch click requires text after --text");
+    throw new Error(`batch ${commandName} requires text after --text`);
   }
   if (args.includes("--role") && !role) {
-    throw new Error("batch click requires a role after --role");
+    throw new Error(`batch ${commandName} requires a role after --role`);
   }
   if (args.includes("--name") && !name) {
-    throw new Error("batch click requires a name after --name");
+    throw new Error(`batch ${commandName} requires a name after --name`);
+  }
+  if (args.includes("--label") && !label) {
+    throw new Error(`batch ${commandName} requires a label after --label`);
+  }
+  if (args.includes("--placeholder") && !placeholder) {
+    throw new Error(`batch ${commandName} requires text after --placeholder`);
+  }
+  if ((args.includes("--test-id") || args.includes("--testid")) && !testId) {
+    throw new Error(`batch ${commandName} requires an id after --test-id`);
   }
   if (args.includes("--nth") && (!Number.isInteger(nth) || nth < 1)) {
-    throw new Error("batch click requires a positive integer after --nth");
+    throw new Error(`batch ${commandName} requires a positive integer after --nth`);
   }
   if (name && !role) {
-    throw new Error("batch click supports --name only with --role");
+    throw new Error(`batch ${commandName} supports --name only with --role`);
   }
-  if (nth && !text && !role) {
-    throw new Error("batch click supports --nth only with --text or --role");
+  if (nth && !text && !role && !label && !placeholder && !testId) {
+    throw new Error(`batch ${commandName} supports --nth only with a semantic locator`);
   }
 
   if (text) {
-    return { semantic: { kind: "text" as const, text, ...(nth ? { nth } : {}) } };
+    return { semantic: { kind: "text" as const, text, ...(nth ? { nth } : {}) }, trailingValues };
   }
   if (role) {
     return {
       semantic: { kind: "role" as const, role, ...(name ? { name } : {}), ...(nth ? { nth } : {}) },
+      trailingValues,
     };
   }
+  if (label) {
+    return { semantic: { kind: "label" as const, label, ...(nth ? { nth } : {}) }, trailingValues };
+  }
+  if (placeholder) {
+    return { semantic: { kind: "placeholder" as const, placeholder, ...(nth ? { nth } : {}) }, trailingValues };
+  }
+  if (testId) {
+    return { semantic: { kind: "testid" as const, testid: testId, ...(nth ? { nth } : {}) }, trailingValues };
+  }
   if (selector) {
-    return { selector };
+    return { selector, trailingValues };
   }
   if (ref) {
-    return { ref };
+    return { ref, trailingValues };
   }
-  throw new Error("batch click requires a ref, --selector, --text, or --role");
+  return { trailingValues };
 }
 
 type BatchStateTarget = {
@@ -787,7 +833,10 @@ async function executeBatchStep(tokens: string[], sessionName: string) {
       };
     }
     case "click": {
-      const target = parseBatchClickArgs(args);
+      const target = parseBatchSemanticArgs(args, "click");
+      if (!target) {
+        throw new Error("batch click requires a ref, --selector, or semantic locator");
+      }
       return {
         ok: true,
         command: "click",
@@ -795,23 +844,22 @@ async function executeBatchStep(tokens: string[], sessionName: string) {
       };
     }
     case "fill": {
-      if (args[0] === "--selector") {
-        const selector = args[1];
-        const value = args.slice(2).join(" ");
-        if (!selector) {
-          throw new Error(`batch step '${rawStep}' requires a selector after --selector`);
-        }
-        if (!value) {
-          throw new Error(`batch step '${rawStep}' requires a value after the selector`);
-        }
+      const target = parseBatchSemanticArgs(args, "fill");
+      const { trailingValues, ...targetRest } = target;
+      const value = trailingValues.join(" ");
+      if (!value) {
+        throw new Error(`batch step '${rawStep}' requires a value after the target`);
+      }
+      if (targetRest.semantic || targetRest.selector) {
         return {
           ok: true,
           command: "fill",
-          data: await managedFill({ selector, value, sessionName }),
+          data: await managedFill({ ...targetRest, value, sessionName }),
         };
       }
+      // Fallback: first arg is ref, rest is value
       if (args.length < 2) {
-        throw new Error(`batch step '${rawStep}' requires ref/--selector and value`);
+        throw new Error(`batch step '${rawStep}' requires ref/--selector/--label and value`);
       }
       return {
         ok: true,
@@ -823,7 +871,21 @@ async function executeBatchStep(tokens: string[], sessionName: string) {
         }),
       };
     }
-    case "type":
+    case "type": {
+      const target = parseBatchSemanticArgs(args, "type");
+      const { trailingValues, ...targetRest } = target;
+      const value = trailingValues.join(" ");
+      if (targetRest.semantic || targetRest.selector) {
+        if (!value) {
+          throw new Error(`batch step '${rawStep}' requires a value after the target`);
+        }
+        return {
+          ok: true,
+          command: "type",
+          data: await managedType({ ...targetRest, value, sessionName }),
+        };
+      }
+      // Fallback: single value or ref + value
       if (args.length < 1) {
         throw new Error(`batch step '${rawStep}' requires a value`);
       }
@@ -836,6 +898,7 @@ async function executeBatchStep(tokens: string[], sessionName: string) {
           sessionName,
         }),
       };
+    }
     case "press":
       if (args.length !== 1) {
         throw new Error(`batch step '${rawStep}' requires exactly one key`);
