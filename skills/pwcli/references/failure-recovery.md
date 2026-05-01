@@ -287,6 +287,7 @@ These codes do not auto-heal selectors and do not pick among candidates. They te
 Failed `click` / `wait` attempts are recorded as run events. After a failed action or wait, use the run id from the error details when present, or list recent runs:
 
 ```bash
+pw diagnostics timeline --session bug-a --limit 50
 pw diagnostics runs --session bug-a --limit 5
 pw diagnostics digest --run '<runId>'
 pw diagnostics show --run '<runId>' --limit 20
