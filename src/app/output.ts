@@ -15,17 +15,24 @@ type CommandError = {
 
 type OutputMode = "text" | "json";
 
+let cachedOutputMode: OutputMode | undefined;
+
 function outputMode(): OutputMode {
+  if (cachedOutputMode !== undefined) {
+    return cachedOutputMode;
+  }
   const envMode = process.env.PWCLI_OUTPUT?.trim().toLowerCase();
   if (envMode === "json" || envMode === "text") {
-    return envMode;
+    cachedOutputMode = envMode;
+    return cachedOutputMode;
   }
 
   const outputIndex = process.argv.indexOf("--output");
   if (outputIndex >= 0) {
     const mode = process.argv[outputIndex + 1]?.trim().toLowerCase();
     if (mode === "json" || mode === "text") {
-      return mode;
+      cachedOutputMode = mode;
+      return cachedOutputMode;
     }
   }
 
@@ -33,10 +40,12 @@ function outputMode(): OutputMode {
   const outputArg = process.argv.find((arg) => arg.startsWith(outputPrefix));
   const mode = outputArg?.slice(outputPrefix.length).trim().toLowerCase();
   if (mode === "json" || mode === "text") {
-    return mode;
+    cachedOutputMode = mode;
+    return cachedOutputMode;
   }
 
-  return "text";
+  cachedOutputMode = "text";
+  return cachedOutputMode;
 }
 
 export function printJson(value: unknown): void {
