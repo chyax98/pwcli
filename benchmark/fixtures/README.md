@@ -32,8 +32,3 @@ fixture 是 benchmark 的 substrate，不是 `pwcli` shipped 功能的一部分�
 benchmark/fixtures/
   server.mjs
 ```
-
-## 和 real-site benchmark 的关系
-
-- `fixtures/` 用于日常 gate 和 deterministic contract 验证
-- real-site benchmark 另走 `benchmark/tasks/real-sites/`，不把波动站点混入本地 fixture 面

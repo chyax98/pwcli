@@ -29,7 +29,6 @@ runner 分两层：
   - screenshot
   - diagnostics bundle
   - exported artifact
-- 按 `benchmark/scoring/taxonomy.json` 分类失败 family
 - 写出 run 目录：
 
 ```text

@@ -12,7 +12,6 @@ session -> observe/read/snapshot -> act -> wait/verify -> diagnostics/evidence
 
 - 用 deterministic fixture 验证主链 contract
 - 用少量固定能力用例做稳定性回归
-- 为 real-site manual dogfood 提供最小工件面
 
 ## 当前范围
 
@@ -27,8 +26,6 @@ session -> observe/read/snapshot -> act -> wait/verify -> diagnostics/evidence
 - `scripts/`
   - task matrix generator
   - closure suite launcher
-- `scoring/`
-  - machine-readable taxonomy 和最小稳定性聚合资产
 - `reports/`
   - 最小汇总输出目录
 - `artifacts/`
@@ -43,7 +40,6 @@ benchmark/
     diagnostics/
   fixtures/
   runners/
-  scoring/
   reports/
   artifacts/
 ```
@@ -55,7 +51,6 @@ benchmark/
 - `tasks/state-reuse/`
 - `tasks/controlled-testing/`
 - `tasks/script-injection/`
-- `tasks/real-sites/`（当前先是 manual pack）
 
 ## 任务 spec 原则
 

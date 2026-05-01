@@ -183,7 +183,6 @@
 - recursive task discovery
 - task runner
 - suite runner
-- machine-readable taxonomy
 - minimal suite summary: `total` / `passed` / `failed` / `failures`
 - generated deterministic task matrix
 - closure suite script
@@ -198,7 +197,6 @@
 
 ### 后续扩展
 
-- real-site manual stability dogfood pack
 - 只在真实回归需求下增补能力级 case
 - 不继续主动扩 benchmark 平台能力
 
