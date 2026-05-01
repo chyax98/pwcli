@@ -297,16 +297,21 @@ export function buildDiagnosticsAuditConclusion(input: {
     httpErrorCount > 0 ||
     latestRunHasFailure ||
     latestRunHasFailureSignal;
-  const firstSignal = asObject(topSignals[0] ?? {});
+  // Prioritize error-level signals over warnings for failureKind/failureSummary
+  const errorSignals = topSignals.filter((s) => {
+    const kind = asString(s.kind) ?? "";
+    return kind === "pageerror" || kind === "requestfailed" || kind === "console:error";
+  });
+  const representativeSignal = asObject(errorSignals[0] ?? topSignals[0] ?? {});
   const failureKind =
     asString(lastFailure.code) ??
     asString(lastFailureSignal.code) ??
-    asString(firstSignal.kind) ??
+    asString(representativeSignal.kind) ??
     null;
   const failureSummary =
     asString(lastFailure.message) ??
     asString(lastFailureSignal.message) ??
-    asString(firstSignal.summary) ??
+    asString(representativeSignal.summary) ??
     null;
   const latestRunId = input.latestRunId ?? asString(latestRunEvents.runId);
   const limit = Math.max(1, input.limit);
