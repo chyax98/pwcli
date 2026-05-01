@@ -334,7 +334,7 @@ function verifySuggestions(assertion: VerifyAssertion): string[] {
   if (assertion === "url") {
     return [
       "Run `pw page current --session <name>` to inspect the active URL",
-      "Run `pw wait network-idle --session <name>` before retrying the assertion",
+      "Run `pw wait --networkidle --session <name>` before retrying the assertion",
     ];
   }
   if (assertion === "text" || assertion === "text-absent") {

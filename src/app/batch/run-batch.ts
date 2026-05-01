@@ -772,13 +772,7 @@ async function executeBatchStep(tokens: string[], sessionName: string) {
 
       for (let index = 0; index < args.length; index += 1) {
         const arg = args[index];
-        if (
-          arg === "networkIdle" ||
-          arg === "networkidle" ||
-          arg === "network-idle" ||
-          arg === "--networkidle" ||
-          arg === "--network-idle"
-        ) {
+        if (arg === "networkidle" || arg === "--networkidle") {
           networkidle = true;
           continue;
         }
@@ -829,11 +823,7 @@ async function executeBatchStep(tokens: string[], sessionName: string) {
           response,
           method,
           status,
-          networkidle:
-            networkidle ||
-            target === "networkIdle" ||
-            target === "networkidle" ||
-            target === "network-idle",
+          networkidle: networkidle || target === "networkidle",
           sessionName,
         }),
       };

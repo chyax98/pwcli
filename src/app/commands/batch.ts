@@ -102,7 +102,7 @@ export function registerBatchCommand(program: Command): void {
             : message.includes("environment mutation")
               ? [
                   "Run environment commands directly before batch",
-                  'Keep batch for stable page/read/action steps such as [["snapshot"],["click","e6"],["wait","network-idle"]]',
+                  'Keep batch for stable page/read/action steps such as [["snapshot"],["click","e6"],["wait","networkidle"]]',
                 ]
               : [
                   'Pass `--file steps.json` with [["snapshot"],["click","--selector","#fire"]]',

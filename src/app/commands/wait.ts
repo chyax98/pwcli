@@ -51,5 +51,5 @@ export function registerWaitCommand(program: Command): void {
 }
 
 function isNetworkIdleTarget(target: string | undefined) {
-  return target === "networkIdle" || target === "networkidle" || target === "network-idle";
+  return target === "networkidle";
 }
