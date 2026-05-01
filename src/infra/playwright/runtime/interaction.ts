@@ -1921,54 +1921,54 @@ export async function managedReadText(options?: {
     : `async page => {
       const includeOverlay = ${JSON.stringify(Boolean(options?.includeOverlay))};
       const data = await page.evaluate((includeOverlay) => {
-        const visible = (el) => {
-          if (!(el instanceof HTMLElement))
-            return false;
-          const style = window.getComputedStyle(el);
-          if (
-            style.display === 'none' ||
-            style.visibility === 'hidden' ||
-            style.opacity === '0' ||
-            el.getAttribute('aria-hidden') === 'true'
-          )
-            return false;
-          const rect = el.getBoundingClientRect();
-          return rect.width > 0 && rect.height > 0;
-        };
-        const normalize = (value) => String(value || '').replace(/\\s+/g, ' ').trim();
         const bodyText = document.body?.innerText ?? '';
-        const overlaySelectors = [
-          '[role="dialog"]',
-          '[role="menu"]',
-          '[role="listbox"]',
-          '[role="tooltip"]',
-          '[role="alertdialog"]',
-          '[aria-modal="true"]',
-          '.modal',
-          '.dropdown',
-          '.popover',
-          '.tooltip',
-          '.ant-modal',
-          '.ant-dropdown',
-          '.ant-select-dropdown',
-          '.ant-popover',
-          '.ant-tooltip',
-          '.el-popper',
-          '.el-dropdown-menu',
-        ];
-        const overlays = includeOverlay
-          ? Array.from(document.querySelectorAll(overlaySelectors.join(',')))
+        let overlays = [];
+        if (includeOverlay) {
+          const visible = (el) => {
+            if (!(el instanceof HTMLElement))
+              return false;
+            const style = window.getComputedStyle(el);
+            if (
+              style.display === 'none' ||
+              style.visibility === 'hidden' ||
+              style.opacity === '0' ||
+              el.getAttribute('aria-hidden') === 'true'
+            )
+              return false;
+            const rect = el.getBoundingClientRect();
+            return rect.width > 0 && rect.height > 0;
+          };
+          const normalize = (value) => String(value || '').replace(/\\s+/g, ' ').trim();
+          const overlaySelectors = [
+            '[role="dialog"]',
+            '[role="menu"]',
+            '[role="listbox"]',
+            '[role="tooltip"]',
+            '[role="alertdialog"]',
+            '[aria-modal="true"]',
+            '.modal',
+            '.dropdown',
+            '.popover',
+            '.tooltip',
+            '.ant-modal',
+            '.ant-dropdown',
+            '.ant-select-dropdown',
+            '.ant-popover',
+            '.ant-tooltip',
+            '.el-popper',
+            '.el-dropdown-menu',
+          ];
+          overlays = Array.from(document.querySelectorAll(overlaySelectors.join(',')))
               .filter(visible)
               .map((el) => ({
                 selector: overlaySelectors.find((selector) => el.matches(selector)) || '',
                 text: normalize(el.innerText || el.textContent || ''),
               }))
-              .filter((item) => item.text)
-          : [];
-        const overlayText = overlays.map((item) => item.text).join('\\n');
+              .filter((item) => item.text);
+        }
         return {
-          source: includeOverlay ? 'body-visible+overlay' : 'body-visible',
-          text: overlayText ? bodyText + '\\n' + overlayText : bodyText,
+          source: 'body-visible',
+          text: bodyText,
           overlays,
         };
       }, includeOverlay);

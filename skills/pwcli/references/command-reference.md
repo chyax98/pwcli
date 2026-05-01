@@ -106,7 +106,7 @@ state / auth / batch / environment 命令见 `command-reference-advanced.md`。
 
 ### `pw read-text --session <name>`
 
-- `--selector <selector>`、`--no-include-overlay`、`--max-chars <count>`（默认 8000，overlay 默认纳入）
+- `--selector <selector>`、`--no-include-overlay`、`--max-chars <count>`（默认 15000，overlay metadata 默认采集）
 
 ### `pw locate --session <name>`
 
