@@ -249,13 +249,25 @@ Typical output:
 
 ```text
 ERROR REF_STALE
-Ref e17 not found in the current page snapshot
+Ref e17 is stale for the current page snapshot
+Details:
+{
+  "reason": "navigation-changed",
+  "recovery": {
+    "action": "re-snapshot",
+    "freshSnapshotCaptured": true,
+    "freshSnapshotRefCount": 12,
+    "previousEpoch": { "snapshotId": "...", "pageId": "p1", "navigationId": "nav-1" },
+    "currentEpoch": { "pageId": "p1", "navigationId": "nav-2", "url": "..." },
+    "nextSteps": ["pw snapshot -i --session bug-a", "重新选择 ref 后再执行 action"]
+  }
+}
 Try:
-- Refresh refs with `pw snapshot -i --session bug-a`
-- Retry with a fresh ref from the new snapshot
+- Fresh snapshot captured (12 refs) — run `pw snapshot -i --session bug-a` to see them
+- Pick a new ref from the fresh snapshot and retry the action
 ```
 
-`REF_STALE` means the old ref is no longer a safe write target. Do not retry the same ref.
+On `REF_STALE`, a fresh interactive snapshot is automatically captured. The error includes `recovery.freshSnapshotCaptured`, `previousEpoch`, `currentEpoch`, and `nextSteps`. Use the fresh snapshot to pick a new ref. Do not retry the old ref.
 
 ### Action target failures
 

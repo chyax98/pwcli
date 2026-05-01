@@ -8,7 +8,7 @@ import {
   throwIfManagedActionError,
   throwManagedActionErrorText,
 } from "./action-failure-classifier.js";
-import { managedRunCode } from "./code.js";
+import { managedRunCode, managedSnapshot } from "./code.js";
 import { buildDiagnosticsDelta, captureDiagnosticsBaseline } from "./diagnostics.js";
 import {
   DIAGNOSTICS_STATE_KEY,
@@ -351,14 +351,50 @@ async function assertFreshRefEpoch(options: { sessionName?: string; ref: string 
     return;
   }
 
+  let freshSnapshotCaptured = false;
+  let freshSnapshotRefCount: number | undefined;
+  try {
+    const fresh = await managedSnapshot({ sessionName: options.sessionName, interactive: true });
+    freshSnapshotCaptured = true;
+    const snapshotText = typeof fresh.data?.snapshot === "string" ? fresh.data.snapshot : "";
+    const refMatches = snapshotText.match(/\[ref=[^\]]+\]/g);
+    freshSnapshotRefCount = refMatches?.length;
+  } catch {
+    // snapshot capture failed — still throw the original REF_STALE
+  }
+
+  const sessionFlag = `--session ${options.sessionName ?? "<name>"}`;
   throw new ActionFailure({
     code: "REF_STALE",
     message: `Ref ${options.ref} is stale for the current page snapshot`,
     retryable: false,
-    details: validation as unknown as Record<string, unknown>,
+    details: {
+      ...(validation as unknown as Record<string, unknown>),
+      recovery: {
+        action: "re-snapshot",
+        freshSnapshotCaptured,
+        freshSnapshotRefCount: freshSnapshotRefCount ?? null,
+        previousEpoch: {
+          snapshotId: (validation as Record<string, unknown>).snapshotId ?? null,
+          pageId: (validation as Record<string, unknown>).snapshotPageId ?? null,
+          navigationId: (validation as Record<string, unknown>).snapshotNavigationId ?? null,
+        },
+        currentEpoch: {
+          pageId: (validation as Record<string, unknown>).currentPageId ?? null,
+          navigationId: (validation as Record<string, unknown>).currentNavigationId ?? null,
+          url: (validation as Record<string, unknown>).currentUrl ?? null,
+        },
+        nextSteps: [
+          `pw snapshot -i ${sessionFlag}`,
+          "重新选择 ref 后再执行 action",
+        ],
+      },
+    },
     suggestions: [
-      `Refresh refs with \`pw snapshot -i --session ${options.sessionName ?? "<name>"}\``,
-      "Retry the action with a fresh ref from the new snapshot",
+      freshSnapshotCaptured
+        ? `Fresh snapshot captured (${freshSnapshotRefCount ?? "?"} refs) — run \`pw snapshot -i ${sessionFlag}\` to see them`
+        : `Refresh refs with \`pw snapshot -i ${sessionFlag}\``,
+      "Pick a new ref from the fresh snapshot and retry the action",
     ],
   });
 }
