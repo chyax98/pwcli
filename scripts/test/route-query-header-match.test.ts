@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { createServer } from "node:http";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -68,6 +68,9 @@ if (!address || typeof address === "string") {
   throw new Error("failed to bind fixture server");
 }
 const pageUrl = `http://127.0.0.1:${address.port}/page`;
+const mergeHeadersPath = resolve(workspaceDir, "merge-headers.json");
+
+await writeFile(mergeHeadersPath, JSON.stringify({ "x-from-test": "yes" }, null, 2), "utf8");
 
 try {
   const createResult = await runPw([
@@ -92,10 +95,14 @@ try {
     "tenant=alpha",
     "--match-header",
     "x-tenant=alpha",
-    "--body",
-    '{"source":"mocked"}',
-    "--content-type",
-    "application/json",
+    "--match-json",
+    '{"tenant":"alpha"}',
+    "--patch-status",
+    "201",
+    "--merge-headers-file",
+    mergeHeadersPath,
+    "--patch-text",
+    "fallback=mocked",
     "--output",
     "json",
   ]);
@@ -115,12 +122,18 @@ try {
         pattern: string;
         matchQuery?: Record<string, string>;
         matchHeaders?: Record<string, string>;
+        matchJson?: Record<string, string>;
+        mergeHeaders?: Record<string, string>;
+        patchText?: Record<string, string>;
       }>;
     };
   };
   assert.equal(routeList.data.routes.length, 1);
   assert.deepEqual(routeList.data.routes[0]?.matchQuery, { tenant: "alpha" });
   assert.deepEqual(routeList.data.routes[0]?.matchHeaders, { "x-tenant": "alpha" });
+  assert.deepEqual(routeList.data.routes[0]?.matchJson, { tenant: "alpha" });
+  assert.deepEqual(routeList.data.routes[0]?.mergeHeaders, { "x-from-test": "yes" });
+  assert.deepEqual(routeList.data.routes[0]?.patchText, { fallback: "mocked" });
 
   const closeResult = await runPw(["session", "close", sessionName, "--output", "json"]);
   assert.equal(closeResult.code, 0);

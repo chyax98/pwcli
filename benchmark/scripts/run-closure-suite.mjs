@@ -5,6 +5,7 @@ import { generateMatrix } from "./generate-matrix.mjs";
 import { startFixtureServer } from "../fixtures/server.mjs";
 import { createClosureSessionName, runLoadedTask, spawnPw } from "../runners/task/run-task.mjs";
 import { discoverTaskPaths, loadTaskList } from "../shared/load-task.mjs";
+import { computeBenchmarkScore } from "../shared/score.mjs";
 
 const repoRoot = resolve(import.meta.dirname, "..", "..");
 
@@ -116,14 +117,19 @@ export async function runClosureSuite() {
       failureFamilies,
       tasks: summaries,
     };
+    const score = computeBenchmarkScore(summaries);
     const latestDir = resolve(reportsDir, "latest");
     await mkdir(latestDir, { recursive: true });
     await writeFile(resolve(latestDir, "summary.json"), JSON.stringify(summary, null, 2));
     await writeFile(resolve(latestDir, "summary.md"), renderSummaryMarkdown(summary));
+    await writeFile(resolve(latestDir, "score.json"), JSON.stringify(score, null, 2));
     return {
       manifest,
       port: fixture.port,
-      summary,
+      summary: {
+        ...summary,
+        score,
+      },
     };
   } finally {
     await fixture.close();

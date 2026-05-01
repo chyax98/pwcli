@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { discoverTaskPaths } from "../../shared/load-task.mjs";
+import { computeBenchmarkScore } from "../../shared/score.mjs";
 import { runTask } from "../task/run-task.mjs";
 
 const repoRoot = resolve(import.meta.dirname, "..", "..", "..");
@@ -112,13 +113,18 @@ export async function runSuite(input) {
     failureFamilies,
     tasks,
   };
+  const score = computeBenchmarkScore(tasks);
 
   const latestDir = resolve(input.reportsDir, "latest");
   await mkdir(latestDir, { recursive: true });
   await writeFile(resolve(latestDir, "summary.json"), JSON.stringify(summary, null, 2));
   await writeFile(resolve(latestDir, "summary.md"), renderSummaryMarkdown(summary));
+  await writeFile(resolve(latestDir, "score.json"), JSON.stringify(score, null, 2));
 
-  return summary;
+  return {
+    ...summary,
+    score,
+  };
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

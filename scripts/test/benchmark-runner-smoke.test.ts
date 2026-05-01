@@ -7,15 +7,16 @@ import { startFixtureServer } from "../../benchmark/fixtures/server.mjs";
 import { runSuite } from "../../benchmark/runners/suite/run-suite.mjs";
 
 const repoRoot = resolve(import.meta.dirname, "..", "..");
-const tempRoot = await mkdtemp(join(tmpdir(), "pwcli-benchmark-runner-"));
-const reportsDir = resolve(tempRoot, "reports");
-const artifactsDir = resolve(tempRoot, "artifacts");
-const workspaceDir = resolve(tempRoot, "workspace");
-const generatedRoot = resolve(tempRoot, "generated");
 
-const fixture = await startFixtureServer();
+async function main() {
+  const tempRoot = await mkdtemp(join(tmpdir(), "pwcli-benchmark-runner-"));
+  const reportsDir = resolve(tempRoot, "reports");
+  const artifactsDir = resolve(tempRoot, "artifacts");
+  const workspaceDir = resolve(tempRoot, "workspace");
+  const generatedRoot = resolve(tempRoot, "generated");
+  const fixture = await startFixtureServer();
 
-try {
+  try {
   await generateMatrix({ outputDir: generatedRoot });
   const taskPaths = [
     resolve(generatedRoot, "perception", "fixture-perception-00.json"),
@@ -39,9 +40,11 @@ try {
 
   const summaryJsonPath = resolve(reportsDir, "latest", "summary.json");
   const summaryMdPath = resolve(reportsDir, "latest", "summary.md");
+  const scoreJsonPath = resolve(reportsDir, "latest", "score.json");
 
   await stat(summaryJsonPath);
   await stat(summaryMdPath);
+  await stat(scoreJsonPath);
 
   const summaryJson = JSON.parse(await readFile(summaryJsonPath, "utf8")) as {
     totals: { total: number; passed: number; failed: number };
@@ -56,6 +59,14 @@ try {
   assert.match(summaryMd, /fixture-diagnostics-00/);
   assert.match(summaryMd, /fixture-auth-00/);
   assert.match(summaryMd, /fixture-extract-00/);
+  const scoreJson = JSON.parse(await readFile(scoreJsonPath, "utf8")) as {
+    overallScore: number;
+    passRate: number;
+    categories: Record<string, { passRate: number }>;
+  };
+  assert.equal(scoreJson.overallScore, 100);
+  assert.equal(scoreJson.passRate, 100);
+  assert.equal(scoreJson.categories["perception"]?.passRate, 100);
 
   for (const task of summaryJson.tasks) {
     const taskSummaryPath = resolve(task.artifactDir, "task-summary.json");
@@ -66,7 +77,13 @@ try {
     await stat(stdoutPath);
     assert.equal(task.status, "passed");
   }
-} finally {
-  await fixture.close();
-  await rm(tempRoot, { recursive: true, force: true });
+  } finally {
+    await fixture.close();
+    await rm(tempRoot, { recursive: true, force: true });
+  }
 }
+
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});

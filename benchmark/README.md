@@ -127,5 +127,6 @@ node benchmark/scripts/run-closure-suite.mjs
 ```text
 benchmark/reports/latest/summary.json
 benchmark/reports/latest/summary.md
+benchmark/reports/latest/score.json
 benchmark/artifacts/<taskId>/<runId>/
 ```

@@ -58,10 +58,21 @@ export function registerRouteCommand(program: Command): void {
         },
         [] as string[],
       )
+      .option("--match-json <json>", "Only match when parsed request JSON contains this subset")
+      .option("--match-json-file <path>", "Load JSON subset matcher from a file")
       .option("--patch-json <json>", "Fetch upstream response and apply a JSON merge patch")
       .option(
         "--patch-json-file <path>",
         "Fetch upstream response and apply a JSON merge patch loaded from a file",
+      )
+      .option(
+        "--patch-text <from=to>",
+        "Fetch upstream text response and replace one substring",
+        (value, acc) => {
+          acc.push(value);
+          return acc;
+        },
+        [] as string[],
       )
       .option("--patch-status <code>", "Override upstream status while preserving or patching body")
       .option("--body <text>", "Fulfill matching requests with a text body")
@@ -69,6 +80,10 @@ export function registerRouteCommand(program: Command): void {
       .option(
         "--headers-file <path>",
         "Fulfill matching requests with headers loaded from a JSON file",
+      )
+      .option(
+        "--merge-headers-file <path>",
+        "Merge response headers loaded from a JSON file when patching upstream responses",
       )
       .option(
         "--inject-headers-file <path>",
@@ -86,12 +101,16 @@ export function registerRouteCommand(program: Command): void {
         matchBody?: string;
         matchQuery?: string[];
         matchHeader?: string[];
+        matchJson?: string;
+        matchJsonFile?: string;
         patchJson?: string;
         patchJsonFile?: string;
+        patchText?: string[];
         patchStatus?: string;
         body?: string;
         bodyFile?: string;
         headersFile?: string;
+        mergeHeadersFile?: string;
         injectHeadersFile?: string;
         method?: string;
         status?: string;
@@ -111,9 +130,23 @@ export function registerRouteCommand(program: Command): void {
             : options.patchJson !== undefined
               ? JSON.parse(options.patchJson)
               : undefined;
+        const patchText = parseKeyValuePairs(options.patchText);
+        const matchJson =
+          options.matchJsonFile !== undefined
+            ? JSON.parse(await readFile(resolve(options.matchJsonFile), "utf8"))
+            : options.matchJson !== undefined
+              ? JSON.parse(options.matchJson)
+              : undefined;
         const headers =
           options.headersFile !== undefined
             ? (JSON.parse(await readFile(resolve(options.headersFile), "utf8")) as Record<
+                string,
+                string
+              >)
+            : undefined;
+        const mergeHeaders =
+          options.mergeHeadersFile !== undefined
+            ? (JSON.parse(await readFile(resolve(options.mergeHeadersFile), "utf8")) as Record<
                 string,
                 string
               >)
@@ -134,12 +167,15 @@ export function registerRouteCommand(program: Command): void {
             matchBody: options.matchBody,
             matchQuery: parseKeyValuePairs(options.matchQuery),
             matchHeaders: parseKeyValuePairs(options.matchHeader),
+            matchJson,
             patchJson,
+            patchText,
             patchStatus: options.patchStatus ? Number(options.patchStatus) : undefined,
             body,
             status: options.status ? Number(options.status) : undefined,
             contentType: options.contentType,
             headers,
+            mergeHeaders,
             injectHeaders,
             method: options.method,
           }),
@@ -185,6 +221,15 @@ export function registerRouteCommand(program: Command): void {
             : spec.patchJson !== undefined
               ? spec.patchJson
               : undefined;
+        const patchText = Array.isArray(spec.patchText)
+          ? parseKeyValuePairs(spec.patchText as string[])
+          : undefined;
+        const matchJson =
+          typeof spec.matchJsonFile === "string"
+            ? JSON.parse(await readFile(resolve(dir, spec.matchJsonFile), "utf8"))
+            : spec.matchJson !== undefined
+              ? spec.matchJson
+              : undefined;
         const headers =
           typeof spec.headersFile === "string"
             ? (JSON.parse(await readFile(resolve(dir, spec.headersFile), "utf8")) as Record<
@@ -193,6 +238,15 @@ export function registerRouteCommand(program: Command): void {
               >)
             : spec.headers && typeof spec.headers === "object"
               ? (spec.headers as Record<string, string>)
+            : undefined;
+        const mergeHeaders =
+          typeof spec.mergeHeadersFile === "string"
+            ? (JSON.parse(await readFile(resolve(dir, spec.mergeHeadersFile), "utf8")) as Record<
+                string,
+                string
+              >)
+            : spec.mergeHeaders && typeof spec.mergeHeaders === "object"
+              ? (spec.mergeHeaders as Record<string, string>)
               : undefined;
         const injectHeaders =
           typeof spec.injectHeadersFile === "string"
@@ -214,12 +268,15 @@ export function registerRouteCommand(program: Command): void {
           matchHeaders: Array.isArray(spec.matchHeaders)
             ? parseKeyValuePairs(spec.matchHeaders as string[])
             : undefined,
+          matchJson,
           patchJson,
+          patchText,
           patchStatus: spec.patchStatus !== undefined ? Number(spec.patchStatus) : undefined,
           body,
           status: spec.status !== undefined ? Number(spec.status) : undefined,
           contentType: typeof spec.contentType === "string" ? spec.contentType : undefined,
           headers,
+          mergeHeaders,
           injectHeaders,
           method: typeof spec.method === "string" ? spec.method : undefined,
         });

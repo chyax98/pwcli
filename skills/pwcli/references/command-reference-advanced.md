@@ -271,6 +271,7 @@
 - 当前是 thin MCP surface，不覆盖全部 `pw` 命令
 - 当前只暴露最常用的 session/read/extract/diagnostics lanes
 - 仍然保留 CLI 为主，MCP 只是第二出口
+- CLI contract 是 authoritative truth；MCP 复用同一批 domain/service，不追求即时 command parity
 
 ## Batch
 

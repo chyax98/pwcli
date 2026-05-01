@@ -63,7 +63,7 @@ benchmark/artifacts/<taskId>/<runId>/
   - 写 `commands.jsonl`、`stdout.json`、`task-summary.json`
 - `benchmark/runners/suite/run-suite.mjs`
   - 聚合一个或多个 task
-  - 写 `summary.json`、`summary.md`
+  - 写 `summary.json`、`summary.md`、`score.json`
   - 聚合 failure family 计数
 - `benchmark/scripts/generate-matrix.mjs`
   - 生成 deterministic task matrix
@@ -88,10 +88,20 @@ benchmark/artifacts/<taskId>/<runId>/commands.jsonl
 ```text
 benchmark/reports/latest/summary.json
 benchmark/reports/latest/summary.md
+benchmark/reports/latest/score.json
 benchmark/artifacts/<taskId>/<runId>/stdout.json
 benchmark/artifacts/<taskId>/<runId>/commands.jsonl
 benchmark/artifacts/<taskId>/<runId>/task-summary.json
 ```
+
+`score.json` 当前包含：
+
+- `total`
+- `passed`
+- `failed`
+- `passRate`
+- `categories.<category>.passRate`
+- `overallScore`
 
 ## 300+ suite 策略
 

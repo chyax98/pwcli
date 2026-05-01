@@ -39,6 +39,7 @@
 
 - 只有出现真实跨工具接管场景，再评估 raw CDP named-session substrate
 - 当前 existing-browser enhancement 先停在 attachable server one-hop attach，不扩成 extension/native-host bridge
+- CLI 是 authoritative 命令面；MCP 是 thin second surface，共享同一批 domain/service substrate，不追求即时 parity
 
 ## 2. Workspace
 
@@ -280,10 +281,9 @@
 
 ### 当前限制
 
-- richer matching 当前只到 body substring
-- richer matching 现在扩到 query exact match 和 request header exact match；还不做 JSON body schema match
+- richer matching 当前已扩到 body substring、query exact match、request header exact match、JSON request body subset match；还不做 schema-level body matcher
 - inject 当前只到 request header merge + continue
-- response patch 当前只到 upstream JSON merge patch + status override
+- response patch 当前已支持 upstream JSON merge patch、text patch、status override、response header merge；GraphQL patch 走 `match-json + patch-json` 组合，不做单独 planner
 
 ### 后续扩展
 
