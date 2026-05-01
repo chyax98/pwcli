@@ -20,18 +20,21 @@ state / auth / batch 命令见 `command-reference-advanced.md`。
 
 - `--level info|warning|error`、`--source app|api|react|browser`
 - `--text <text>`、`--since <iso>`、`--limit <n>`
+- `--current`：只显示当前页面导航的记录，过滤跨页面噪声
 
 ### `pw network --session <name>`
 
 - `--url <substring>`、`--kind request|response|requestfailed|console-resource-error`
 - `--method <method>`、`--status <code>`、`--resource-type <type>`
 - `--text <text>`、`--since <iso>`、`--limit <n>`
+- `--current`：只显示当前页面导航的记录，过滤跨页面噪声
 - `--request-id <id>`：单请求详情
 - 文本类 request/response 带 `requestBodySnippet` / `responseBodySnippet`（裁剪后的诊断片段）
 
 ### `pw errors recent --session <name>`
 
 - `--text <substring>`、`--since <iso>`、`--limit <n>`
+- `--current`：只显示当前页面导航的错误
 
 ### `pw errors clear --session <name>`
 

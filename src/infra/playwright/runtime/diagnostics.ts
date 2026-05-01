@@ -256,9 +256,17 @@ function parseTraceArtifactPath(text: string) {
 
 export async function managedErrors(
   action: "recent" | "clear",
-  options?: { sessionName?: string; text?: string; limit?: number; since?: string },
+  options?: { sessionName?: string; text?: string; limit?: number; since?: string; current?: boolean },
 ) {
   await managedEnsureDiagnosticsHooks({ sessionName: options?.sessionName });
+
+  let currentNavId: string | null = null;
+  if (options?.current) {
+    const { managedWorkspaceProjection } = await import("./workspace.js");
+    const projection = await managedWorkspaceProjection({ sessionName: options?.sessionName });
+    currentNavId = projection.data?.workspace?.currentNavigationId ?? null;
+  }
+
   const result = await managedRunCode({
     sessionName: options?.sessionName,
     source: `async page => {
@@ -280,6 +288,7 @@ export async function managedErrors(
       const textFilter = ${JSON.stringify(options?.text ?? "")};
       const sinceFilter = ${JSON.stringify(options?.since ?? "")};
       const sinceTime = sinceFilter ? Date.parse(sinceFilter) : NaN;
+      const currentNavId = ${JSON.stringify(currentNavId)};
       const limit = ${JSON.stringify(options?.limit ?? 20)};
       const visible = allErrors.slice(clearedCount).map((error, index) => ({
         index: clearedCount + index + 1,
@@ -292,6 +301,8 @@ export async function managedErrors(
             if (Number.isNaN(recordTime) || recordTime < sinceTime)
               return false;
           }
+          if (currentNavId && error.navigationId !== currentNavId)
+            return false;
           return !textFilter || String(error.text || '').includes(textFilter);
         })
         .slice(-Math.max(0, Number(limit || 0) || 20));
@@ -300,6 +311,7 @@ export async function managedErrors(
         clearedCount,
         totalErrors: allErrors.length,
         visibleCount: visible.length,
+        currentNavigation: currentNavId || undefined,
         errors,
       });
     }`,
@@ -759,9 +771,19 @@ export async function managedConsole(
     text?: string;
     limit?: number;
     since?: string;
+    current?: boolean;
   },
 ) {
   await managedEnsureDiagnosticsHooks({ sessionName: options?.sessionName });
+
+  // Get current navigation ID from workspace projection if --current is set.
+  let currentNavId: string | null = null;
+  if (options?.current) {
+    const { managedWorkspaceProjection } = await import("./workspace.js");
+    const projection = await managedWorkspaceProjection({ sessionName: options?.sessionName });
+    currentNavId = projection.data?.workspace?.currentNavigationId ?? null;
+  }
+
   const result = await managedRunCode({
     sessionName: options?.sessionName,
     source: `async page => {
@@ -774,6 +796,7 @@ export async function managedConsole(
       const textFilter = ${JSON.stringify(options?.text ?? "")};
       const sinceFilter = ${JSON.stringify(options?.since ?? "")};
       const sinceTime = sinceFilter ? Date.parse(sinceFilter) : NaN;
+      const currentNavId = ${JSON.stringify(currentNavId)};
       const limit = ${JSON.stringify(options?.limit ?? 20)};
       const filtered = records.filter(record => {
         if ((order[record.level] ?? 1) < thresholdRank)
@@ -787,6 +810,8 @@ export async function managedConsole(
           return false;
         if (textFilter && !String(record.text || '').includes(textFilter))
           return false;
+        if (currentNavId && record.navigationId !== currentNavId)
+          return false;
         return true;
       });
       return JSON.stringify({
@@ -794,6 +819,7 @@ export async function managedConsole(
         errors: filtered.filter(record => record.level === 'error').length,
         warnings: filtered.filter(record => record.level === 'warning' || record.level === 'warn').length,
         source: sourceFilter || null,
+        currentNavigation: currentNavId || undefined,
         sample: filtered.slice(-Math.max(0, Number(limit || 0) || 20)),
       });
     }`,
@@ -821,8 +847,17 @@ export async function managedNetwork(options?: {
   kind?: "request" | "response" | "requestfailed" | "console-resource-error";
   limit?: number;
   since?: string;
+  current?: boolean;
 }) {
   await managedEnsureDiagnosticsHooks({ sessionName: options?.sessionName });
+
+  let currentNavId: string | null = null;
+  if (options?.current) {
+    const { managedWorkspaceProjection } = await import("./workspace.js");
+    const projection = await managedWorkspaceProjection({ sessionName: options?.sessionName });
+    currentNavId = projection.data?.workspace?.currentNavigationId ?? null;
+  }
+
   const result = await managedRunCode({
     sessionName: options?.sessionName,
     source: `async page => {
@@ -837,6 +872,7 @@ export async function managedNetwork(options?: {
       const kindFilter = ${JSON.stringify(options?.kind ?? "")};
       const sinceFilter = ${JSON.stringify(options?.since ?? "")};
       const sinceTime = sinceFilter ? Date.parse(sinceFilter) : NaN;
+      const currentNavId = ${JSON.stringify(currentNavId)};
       const limit = ${JSON.stringify(options?.limit ?? 20)};
       const filtered = records.filter(record => {
         if (requestId && record.requestId !== requestId)
@@ -855,6 +891,8 @@ export async function managedNetwork(options?: {
         if (resourceTypeFilter && String(record.resourceType || '') !== resourceTypeFilter)
           return false;
         if (urlFilter && !String(record.url || '').includes(urlFilter))
+          return false;
+        if (currentNavId && record.navigationId !== currentNavId)
           return false;
         if (textFilter) {
           const haystack = [
@@ -876,6 +914,7 @@ export async function managedNetwork(options?: {
       const detail = requestId ? filtered[filtered.length - 1] || null : null;
       return JSON.stringify({
         total: filtered.length,
+        currentNavigation: currentNavId || undefined,
         sample,
         detail,
       });

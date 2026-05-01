@@ -20,6 +20,7 @@ export function registerNetworkCommand(program: Command): void {
       .option("--resource-type <type>", "Filter by Playwright resource type")
       .option("--text <text>", "Filter by URL or failure text")
       .option("--since <iso>", "Keep only records at or after the given ISO timestamp")
+      .option("--current", "Only show records from the current page navigation")
       .option("--limit <n>", "Limit result sample size"),
   ).action(
     async (options: {
@@ -32,6 +33,7 @@ export function registerNetworkCommand(program: Command): void {
       resourceType?: string;
       text?: string;
       since?: string;
+      current?: boolean;
       limit?: string;
     }) => {
       try {
@@ -48,6 +50,7 @@ export function registerNetworkCommand(program: Command): void {
             resourceType: options.resourceType,
             text: options.text,
             since: options.since,
+            current: options.current,
             limit: options.limit ? Number(options.limit) : undefined,
           }),
         );
