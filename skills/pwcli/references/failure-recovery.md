@@ -455,19 +455,26 @@ If the check fails, retry `pw upload` after the page reaches the expected ready 
 
 ## Content limitations
 
-### Iframe content not accessible via `read-text`
+### Iframe 内容限制
 
-`read-text` uses `body.innerText` on the main frame. Content inside `<iframe>` elements is in a separate frame and returns empty.
+`read-text`、`fill`、`click` 等命令无法直接操作 iframe 内的元素。`read-text` 返回空，`fill`/`click` 的 ref 和 selector 无法定位 iframe 内元素。
 
 Recovery:
 
 1. Use `pw page frames --session <name>` to list available frames.
-2. Use `pw read-text --selector '<iframe-selector>' --session <name>` to verify the iframe exists.
-3. Use `pw code` to access iframe content directly:
+2. Use `pw code` to access iframe content directly:
    ```javascript
-   const frame = page.frameLocator('iframe').first();
+   // 读取 iframe 文本
+   const frame = page.frameLocator('#iframeResult');
    const text = await frame.locator('body').innerText();
    console.log(text);
+
+   // 填写 iframe 表单
+   await frame.locator('#fname').fill('John');
+   await frame.locator('#lname').fill('Doe');
+
+   // 点击 iframe 内按钮
+   await frame.locator('button[type="submit"]').click();
    ```
 
 ### Modal/overlay blocks interactions
