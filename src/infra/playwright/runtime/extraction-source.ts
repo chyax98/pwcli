@@ -320,8 +320,23 @@ export function buildExtractionSource(recipe: NormalizedExtractRecipe) {
             return normalizeText(node.innerText || node.textContent || '');
           return normalizeText(node.textContent || '');
         };
-        const extractField = (root, spec) => {
-          const values = visibleNodes(root, spec.selector)
+        const resolveCompanionRoot = root => {
+          if (!recipe.companionSelector || !(root instanceof Element))
+            return null;
+          let current = root.nextElementSibling;
+          while (current) {
+            if (current.matches(recipe.companionSelector))
+              return current;
+            current = current.nextElementSibling;
+          }
+          return null;
+        };
+        const extractField = (root, companionRoot, spec) => {
+          const sourceRoot =
+            spec.source === 'companion' && companionRoot instanceof Element
+              ? companionRoot
+              : root;
+          const values = visibleNodes(sourceRoot, spec.selector)
             .map(node => readNodeValue(node, spec.attr))
             .filter(Boolean);
           if (spec.multiple)
@@ -329,9 +344,10 @@ export function buildExtractionSource(recipe: NormalizedExtractRecipe) {
           return values[0] ?? null;
         };
         const extractRecord = root => {
+          const companionRoot = resolveCompanionRoot(root);
           const record = {};
           for (const [fieldName, spec] of Object.entries(recipe.fields))
-            record[fieldName] = extractField(root, spec);
+            record[fieldName] = extractField(root, companionRoot, spec);
           return record;
         };
         const collectVideoUrl = element => {

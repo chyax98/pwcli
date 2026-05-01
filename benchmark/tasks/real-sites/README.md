@@ -63,6 +63,19 @@ pw diagnostics digest --session gh-a
 
 - `extract run` 能提取标题、链接、分数/作者等可见字段
 
+推荐命令链：
+
+```bash
+pw session create hn-a --open 'https://news.ycombinator.com/'
+pw page assess --session hn-a
+pw read-text --session hn-a --max-chars 3000
+pw snapshot -i --session hn-a
+pw extract run --session hn-a \
+  --recipe "$(pw extract recipe-path hacker-news-list --output json | jq -r '.data.path')" \
+  --out ./hacker-news.json
+pw diagnostics digest --session hn-a
+```
+
 ### 3. Wikipedia
 
 测：

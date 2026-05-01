@@ -3,12 +3,14 @@ export type ExtractFieldRecipe =
   | {
       selector?: string;
       attr?: string;
+      source?: "item" | "companion";
       multiple?: boolean;
     };
 
 export type ExtractRecipeInput = {
   kind?: unknown;
   itemSelector?: unknown;
+  companionSelector?: unknown;
   containerSelector?: unknown;
   excludeSelectors?: unknown;
   fields?: unknown;
@@ -22,6 +24,7 @@ export type ExtractRecipeInput = {
 export type NormalizedExtractFieldRecipe = {
   selector: string | null;
   attr: string | null;
+  source: "item" | "companion";
   multiple: boolean;
 };
 
@@ -57,6 +60,7 @@ export type ExtractArtifactFormat = NormalizedExtractOutput["format"];
 export type NormalizedExtractRecipe = {
   kind: "list" | "article";
   itemSelector: string | null;
+  companionSelector: string | null;
   containerSelector: string | null;
   excludeSelectors: string[];
   fields: Record<string, NormalizedExtractFieldRecipe>;

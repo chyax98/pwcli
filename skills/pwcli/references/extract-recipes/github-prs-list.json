@@ -1,12 +1,11 @@
 {
   "kind": "list",
-  "itemSelector": "[data-testid='pull-request-row'], .js-issue-row",
+  "itemSelector": "li[role='listitem']:has(a[data-testid='issue-pr-title-link'])",
   "fields": {
-    "title": "[data-testid='issue-title'], .Link--primary",
+    "title": "a[data-testid='issue-pr-title-link']",
     "url": {
-      "selector": "[data-testid='issue-title'], .Link--primary",
+      "selector": "a[data-testid='issue-pr-title-link']",
       "attr": "href"
-    },
-    "status": "[aria-label*='Open'], [aria-label*='Closed'], [aria-label*='Merged']"
+    }
   }
 }

@@ -225,6 +225,10 @@
   - `excludeSelectors`
     - string array
     - 用于跳过已知噪声容器，例如 infobox / TOC / navbox / edit controls
+  - `companionSelector`
+    - string
+    - 只用于 `kind: "list"`
+    - 从当前 item root 向后寻找第一个匹配 sibling element，供 companion fields 读取
   - `pagination`
     - `mode: "next-page" | "load-more"`
     - `selector`
@@ -243,11 +247,13 @@
 {
   "kind": "list",
   "itemSelector": ".post-card",
+  "companionSelector": ".post-card-meta",
   "excludeSelectors": [".sponsored", ".sidebar"],
   "fields": {
     "title": "h2 a",
     "url": { "selector": "h2 a", "attr": "href" },
-    "summary": ".summary"
+    "summary": ".summary",
+    "publishedAt": { "selector": "time", "source": "companion" }
   },
   "pagination": {
     "mode": "next-page",
@@ -322,6 +328,7 @@
 - `runtimeGlobal` 只允许点路径，例如 `__NEXT_DATA__`、`app.state`
 - 不允许函数调用、括号访问、任意表达式
 - `excludeSelectors` 只做 recipe 级噪声过滤，不是新的脚本平台或语义层
+- `companionSelector` + field-level `source: "companion"` 只用于 title row / metadata row 这类相邻列表结构，不扩成任意关系查询系统
 - 分页和滚动必须是 bounded：
   - `pagination.maxPages`
   - `scroll.maxSteps`

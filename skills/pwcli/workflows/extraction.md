@@ -56,11 +56,13 @@ pw diagnostics digest --session bug-a
 {
   "kind": "list",
   "itemSelector": ".post-card",
+  "companionSelector": ".post-card-meta",
   "excludeSelectors": [".sponsored", ".sidebar"],
   "fields": {
     "title": "h2 a",
     "url": { "selector": "h2 a", "attr": "href" },
-    "summary": ".summary"
+    "summary": ".summary",
+    "publishedAt": { "selector": "time", "source": "companion" }
   }
 }
 ```
@@ -190,6 +192,20 @@ pw extract run --session gh-a \
 - 这是 public GitHub issue/PR 详情页的起手模板
 - 目标是把 `main` 里的原始讨论内容稳定采出来
 - 如果页面结构不匹配，复制 recipe 到本地修改，不要直接把临时站点细节写回内置模板
+
+Hacker News 列表页起手式：
+
+```bash
+pw extract run --session hn-a \
+  --recipe "$(pw extract recipe-path hacker-news-list --output json | jq -r '.data.path')" \
+  --out ./hacker-news.json
+```
+
+说明：
+
+- 这个模板依赖 `companionSelector`
+- 用来读取 title row 后面的 metadata row
+- 适合 HN 这种相邻行列表，不代表任意列表页都应共享这组结构假设
 
 ## 失败时怎么收缩
 

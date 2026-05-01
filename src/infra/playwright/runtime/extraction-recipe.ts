@@ -60,6 +60,7 @@ function normalizeFieldRecipe(value: unknown, fieldName: string): NormalizedExtr
     return {
       selector,
       attr: null,
+      source: "item",
       multiple: false,
     };
   }
@@ -77,6 +78,7 @@ function normalizeFieldRecipe(value: unknown, fieldName: string): NormalizedExtr
     typeof record.attr === "string" && record.attr.trim().length > 0
       ? record.attr.trim()
       : null;
+  const source = record.source === "companion" ? "companion" : "item";
   const multiple = Boolean(record.multiple);
 
   if (!selector && !attr) {
@@ -86,6 +88,7 @@ function normalizeFieldRecipe(value: unknown, fieldName: string): NormalizedExtr
   return {
     selector,
     attr,
+    source,
     multiple,
   };
 }
@@ -233,6 +236,7 @@ export function normalizeRecipe(value: unknown): NormalizedExtractRecipe {
   }
 
   const itemSelector = readNonEmptyString(recipe.itemSelector);
+  const companionSelector = readNonEmptyString(recipe.companionSelector);
   const containerSelector = readNonEmptyString(recipe.containerSelector);
 
   if (kind === "list" && !itemSelector) {
@@ -245,6 +249,7 @@ export function normalizeRecipe(value: unknown): NormalizedExtractRecipe {
   return {
     kind,
     itemSelector,
+    companionSelector,
     containerSelector,
     excludeSelectors,
     fields,

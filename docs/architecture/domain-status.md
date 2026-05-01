@@ -112,6 +112,7 @@
 - bounded recipe-driven extraction lane
 - `kind: "list"` visible DOM list extraction
 - `kind: "article"` single-container extraction
+- optional list companion-row extraction via `companionSelector` + field-level `source: "companion"`
 - bounded `next-page` pagination
 - bounded `load-more` pagination
 - bounded `until-stable` scroll driver
@@ -139,6 +140,7 @@
 - `document.blocks/media` 是原始内容采集结果，不做语义摘要或最终文档重写
 - extract stdout 和 `--out` JSON artifact 只保留新 contract：`recipeId`、`recipePath`、`url`、`generatedAt`、`items[]`、`document`、`stats`、`runtimeProbe?`、`limitation?`、`limitations?`
 - recipe-level `excludeSelectors` can suppress known noise containers before raw block/media collection
+- list recipes can optionally project adjacent metadata rows through `companionSelector`, but the lane still does not support arbitrary graph traversal or unbounded relationship queries
 - 当前分页/滚动只支持：
   - `next-page`
   - `load-more`
