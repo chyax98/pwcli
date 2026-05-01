@@ -703,6 +703,34 @@ export async function managedObserveStatus(options?: { sessionName?: string }) {
         initScriptCount: 0,
         headersApplied: false,
       };
+      // Detect visible HTML modals/overlays that may block interactions.
+      const visibleModals = await page.evaluate(() => {
+        const selectors = [
+          '[role="dialog"]',
+          '[role="alertdialog"]',
+          '[aria-modal="true"]',
+          '.modal',
+          '.ant-modal',
+          '.el-dialog',
+        ];
+        return Array.from(document.querySelectorAll(selectors.join(',')))
+          .filter(el => {
+            if (!(el instanceof HTMLElement)) return false;
+            const style = window.getComputedStyle(el);
+            if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') return false;
+            const rect = el.getBoundingClientRect();
+            return rect.width > 0 && rect.height > 0;
+          })
+          .map(el => {
+            const text = (el.innerText || el.textContent || '').replace(/\\s+/g, ' ').trim();
+            return {
+              role: el.getAttribute('role') || 'dialog',
+              text: text.substring(0, 200),
+            };
+          })
+          .filter(m => m.text);
+      });
+
       return JSON.stringify({
         console: {
           total: state.consoleRecords.length,
@@ -724,6 +752,10 @@ export async function managedObserveStatus(options?: { sessionName?: string }) {
           clearedCount,
           visibleCount,
           last: state.pageErrorRecords.at(-1) || null,
+        },
+        modals: {
+          count: visibleModals.length,
+          items: visibleModals,
         },
         trace,
         har,
@@ -755,6 +787,7 @@ export async function managedObserveStatus(options?: { sessionName?: string }) {
       routes: parsed.routes,
       dialogs: projection.data.dialogs,
       pageErrors: parsed.pageErrors,
+      modals: parsed.modals,
       trace: parsed.trace,
       har: parsed.har,
       bootstrap: parsed.bootstrap,

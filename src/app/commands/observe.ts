@@ -23,6 +23,7 @@ function compactObserveStatus(result: Awaited<ReturnType<typeof managedObserveSt
   const bootstrap =
     status.bootstrap && typeof status.bootstrap === "object" ? status.bootstrap : {};
   const stream = status.stream && typeof status.stream === "object" ? status.stream : {};
+  const modals = status.modals && typeof status.modals === "object" ? status.modals : {};
 
   const lastConsole =
     consoleSummary.last && typeof consoleSummary.last === "object"
@@ -90,6 +91,7 @@ function compactObserveStatus(result: Awaited<ReturnType<typeof managedObserveSt
         traceActive: trace.active === true,
         bootstrapApplied: bootstrap.applied === true,
         streamSupported: stream.supported === true,
+        modalCount: typeof modals.count === "number" ? modals.count : 0,
       },
       currentPage: result.page,
       dialogs: {
@@ -126,6 +128,10 @@ function compactObserveStatus(result: Awaited<ReturnType<typeof managedObserveSt
         initScriptCount:
           typeof bootstrap.initScriptCount === "number" ? bootstrap.initScriptCount : 0,
         headersApplied: bootstrap.headersApplied === true,
+      },
+      modals: {
+        count: typeof modals.count === "number" ? modals.count : 0,
+        items: Array.isArray(modals.items) ? modals.items : [],
       },
     },
   };
