@@ -30,7 +30,7 @@ export function registerUploadCommand(program: Command): void {
           selector: options.selector,
           files,
           sessionName,
-        })),
+        }), "upload"),
       );
     } catch (error) {
       printSessionAwareCommandError("upload", error, {

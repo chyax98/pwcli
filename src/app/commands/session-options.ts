@@ -1,7 +1,7 @@
 import { join } from "node:path";
 import type { Command } from "commander";
 import { isActionFailure } from "../../domain/interaction/action-failure.js";
-import { ensureRunDir } from "../../infra/fs/run-artifacts.js";
+import { appendRunEvent, ensureRunDir } from "../../infra/fs/run-artifacts.js";
 import { MAX_SESSION_NAME_LENGTH } from "../../infra/playwright/cli-client.js";
 import { managedRunCode } from "../../infra/playwright/runtime.js";
 import { sessionRoutingError } from "../../domain/session/routing.js";
@@ -92,6 +92,7 @@ export async function captureFailureScreenshot(
 export async function withActionFailureScreenshot<T>(
   sessionName: string,
   action: () => Promise<T>,
+  command?: string,
 ): Promise<T> {
   try {
     return await action();
@@ -104,6 +105,35 @@ export async function withActionFailureScreenshot<T>(
         (error as unknown as Record<string, unknown>).failureScreenshotPath = screenshotPath;
       }
     }
+    if (command) {
+      await recordCommandFailure(command, sessionName, error, screenshotPath).catch(() => {});
+    }
     throw error;
   }
+}
+
+async function recordCommandFailure(
+  command: string,
+  sessionName: string,
+  error: unknown,
+  screenshotPath?: string,
+) {
+  const run = await ensureRunDir(sessionName);
+  const code = isActionFailure(error) ? error.code : `${command.toUpperCase()}_FAILED`;
+  const message = error instanceof Error ? error.message : String(error);
+  await appendRunEvent(run.runDir, {
+    ts: new Date().toISOString(),
+    command,
+    sessionName: sessionName ?? null,
+    status: "failed",
+    failed: true,
+    failure: {
+      code,
+      message,
+      retryable: isActionFailure(error) ? error.retryable : null,
+      suggestions: isActionFailure(error) ? error.suggestions : [],
+      details: isActionFailure(error) ? error.details ?? null : null,
+    },
+    ...(screenshotPath ? { failureScreenshotPath: screenshotPath } : {}),
+  });
 }

@@ -92,7 +92,7 @@ export function registerTypeCommand(program: Command): void {
           semantic,
           value,
           sessionName,
-        })),
+        }), "type"),
       );
     } catch (error) {
       printSessionAwareCommandError("type", error, {

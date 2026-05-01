@@ -27,7 +27,7 @@ export function registerScrollCommand(program: Command): void {
             direction,
             distance: distance ? Number(distance) : undefined,
             sessionName,
-          })),
+          }), "scroll"),
         );
       } catch (error) {
         printSessionAwareCommandError("scroll", error, {

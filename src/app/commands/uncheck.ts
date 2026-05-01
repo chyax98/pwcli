@@ -38,7 +38,7 @@ export function registerUncheckCommand(program: Command): void {
             selector: options.selector,
             nth: options.selector ? nth : undefined,
             sessionName,
-          })),
+          }), "uncheck"),
         );
       } catch (error) {
         printSessionAwareCommandError("uncheck", error, {

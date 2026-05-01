@@ -35,7 +35,7 @@ export function registerWaitCommand(program: Command): void {
           method: typeof options.method === "string" ? options.method : undefined,
           status: typeof options.status === "string" ? options.status : undefined,
           networkidle: Boolean(options.networkidle) || isNetworkIdleTarget(target),
-        })),
+        }), "wait"),
       );
     } catch (error) {
       printSessionAwareCommandError("wait", error, {

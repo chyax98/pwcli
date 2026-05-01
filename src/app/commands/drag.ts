@@ -34,7 +34,7 @@ export function registerDragCommand(program: Command): void {
             sessionName,
             fromSelector: options.fromSelector,
             toSelector: options.toSelector,
-          })),
+          }), "drag"),
         );
       } catch (error) {
         printSessionAwareCommandError("drag", error, {

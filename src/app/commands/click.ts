@@ -78,7 +78,7 @@ export function registerClickCommand(program: Command): void {
           });
         }
         throw new Error("click requires a ref or one semantic locator");
-      });
+      }, "click");
       printCommandResult("click", result);
     } catch (error) {
       printSessionAwareCommandError("click", error, {

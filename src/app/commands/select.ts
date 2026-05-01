@@ -45,7 +45,7 @@ export function registerSelectCommand(program: Command): void {
             sessionName,
             nth: options.selector ? nth : undefined,
             value: selectedValue,
-          })),
+          }), "select"),
         );
       } catch (error) {
         printSessionAwareCommandError("select", error, {

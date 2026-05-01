@@ -38,7 +38,7 @@ export function registerCheckCommand(program: Command): void {
             selector: options.selector,
             nth: options.selector ? nth : undefined,
             sessionName,
-          })),
+          }), "check"),
         );
       } catch (error) {
         printSessionAwareCommandError("check", error, {

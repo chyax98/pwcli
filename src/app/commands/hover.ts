@@ -38,7 +38,7 @@ export function registerHoverCommand(program: Command): void {
             selector: options.selector,
             nth: options.selector ? nth : undefined,
             sessionName,
-          })),
+          }), "hover"),
         );
       } catch (error) {
         printSessionAwareCommandError("hover", error, {

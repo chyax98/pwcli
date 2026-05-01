@@ -120,7 +120,7 @@ export function registerVerifyCommand(program: Command): void {
       }
       const assertion = rawAssertion as VerifyAssertion;
       const sessionName = requireSessionName(options);
-      const result = await withActionFailureScreenshot(sessionName, () => managedVerify(parseVerifyOptions(assertion, sessionName, options)));
+      const result = await withActionFailureScreenshot(sessionName, () => managedVerify(parseVerifyOptions(assertion, sessionName, options)), "verify");
       if (result.data.passed) {
         printCommandResult("verify", result);
         return;

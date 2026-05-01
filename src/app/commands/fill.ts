@@ -86,7 +86,7 @@ export function registerFillCommand(program: Command): void {
           semantic,
           value,
           sessionName,
-        })),
+        }), "fill"),
       );
     } catch (error) {
       printSessionAwareCommandError("fill", error, {
