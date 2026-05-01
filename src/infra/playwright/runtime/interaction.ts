@@ -267,8 +267,6 @@ async function validateRefEpoch(options: {
   const result = await managedRunCode({
     sessionName: options.sessionName,
     source: `async page => {
-      const context = page.context();
-      const state = context[${JSON.stringify(DIAGNOSTICS_STATE_KEY)}] ||= {};
       ${pageIdRuntimePrelude()}
 
       const epoch = state.lastSnapshotRefEpoch || null;
@@ -403,8 +401,6 @@ export async function managedSnapshotStatus(options?: { sessionName?: string }) 
   const result = await managedRunCode({
     sessionName: options?.sessionName,
     source: `async page => {
-      const context = page.context();
-      const state = context[${JSON.stringify(DIAGNOSTICS_STATE_KEY)}] ||= {};
       ${pageIdRuntimePrelude()}
 
       const epoch = state.lastSnapshotRefEpoch || null;

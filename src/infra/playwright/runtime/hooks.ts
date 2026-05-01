@@ -6,8 +6,8 @@ export async function managedEnsureDiagnosticsHooks(options?: { sessionName?: st
   const result = await managedRunCode({
     sessionName: options?.sessionName,
     source: `async page => {
-      const context = page.context();
-      const state = context[${JSON.stringify(DIAGNOSTICS_STATE_KEY)}] ||= {};
+      ${pageIdRuntimePrelude()}
+
       const sessionName = ${JSON.stringify(options?.sessionName ?? null)};
       state.consoleRecords = Array.isArray(state.consoleRecords) ? state.consoleRecords : [];
       state.networkRecords = Array.isArray(state.networkRecords) ? state.networkRecords : [];
@@ -16,8 +16,6 @@ export async function managedEnsureDiagnosticsHooks(options?: { sessionName?: st
       state.nextRequestSeq = Number.isInteger(state.nextRequestSeq) ? state.nextRequestSeq : 1;
       state.nextConsoleResourceSeq = Number.isInteger(state.nextConsoleResourceSeq) ? state.nextConsoleResourceSeq : 1;
       state.nextDialogSeq = Number.isInteger(state.nextDialogSeq) ? state.nextDialogSeq : 1;
-
-      ${pageIdRuntimePrelude()}
 
       const now = () => new Date().toISOString();
       const keep = (list, entry, max = 200) => {
