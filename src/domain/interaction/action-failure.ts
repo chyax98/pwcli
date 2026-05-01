@@ -17,7 +17,7 @@ export class ActionFailure extends Error {
   readonly code: ActionFailureCode;
   readonly retryable: boolean;
   readonly suggestions: string[];
-  readonly details?: Record<string, unknown>;
+  details?: Record<string, unknown>;
 
   constructor(input: ActionFailureInput) {
     super(input.message);

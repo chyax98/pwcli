@@ -5,6 +5,7 @@ import {
   addSessionOption,
   printSessionAwareCommandError,
   requireSessionName,
+  withActionFailureScreenshot,
 } from "./session-options.js";
 
 export function registerWaitCommand(program: Command): void {
@@ -24,7 +25,7 @@ export function registerWaitCommand(program: Command): void {
     try {
       printCommandResult(
         "wait",
-        await managedWait({
+        await withActionFailureScreenshot(sessionName, () => managedWait({
           sessionName,
           target: isNetworkIdleTarget(target) ? undefined : target,
           text: typeof options.text === "string" ? options.text : undefined,
@@ -34,7 +35,7 @@ export function registerWaitCommand(program: Command): void {
           method: typeof options.method === "string" ? options.method : undefined,
           status: typeof options.status === "string" ? options.status : undefined,
           networkidle: Boolean(options.networkidle) || isNetworkIdleTarget(target),
-        }),
+        })),
       );
     } catch (error) {
       printSessionAwareCommandError("wait", error, {

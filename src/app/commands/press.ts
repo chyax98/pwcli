@@ -5,6 +5,7 @@ import {
   addSessionOption,
   printSessionAwareCommandError,
   requireSessionName,
+  withActionFailureScreenshot,
 } from "./session-options.js";
 
 export function registerPressCommand(program: Command): void {
@@ -13,7 +14,7 @@ export function registerPressCommand(program: Command): void {
   ).action(async (key: string, options: { session?: string }) => {
     try {
       const sessionName = requireSessionName(options);
-      printCommandResult("press", await managedPress(key, { sessionName }));
+      printCommandResult("press", await withActionFailureScreenshot(sessionName, () => managedPress(key, { sessionName })));
     } catch (error) {
       printSessionAwareCommandError("press", error, {
         code: "PRESS_FAILED",

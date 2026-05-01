@@ -5,6 +5,7 @@ import {
   addSessionOption,
   printSessionAwareCommandError,
   requireSessionName,
+  withActionFailureScreenshot,
 } from "./session-options.js";
 
 function parseNth(value?: string) {
@@ -32,12 +33,12 @@ export function registerCheckCommand(program: Command): void {
         const nth = parseNth(options.nth);
         printCommandResult(
           "check",
-          await managedCheck({
+          await withActionFailureScreenshot(sessionName, () => managedCheck({
             ref,
             selector: options.selector,
             nth: options.selector ? nth : undefined,
             sessionName,
-          }),
+          })),
         );
       } catch (error) {
         printSessionAwareCommandError("check", error, {

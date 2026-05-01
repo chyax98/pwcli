@@ -5,6 +5,7 @@ import {
   addSessionOption,
   printSessionAwareCommandError,
   requireSessionName,
+  withActionFailureScreenshot,
 } from "./session-options.js";
 
 export function registerUploadCommand(program: Command): void {
@@ -24,12 +25,12 @@ export function registerUploadCommand(program: Command): void {
       }
       printCommandResult(
         "upload",
-        await managedUpload({
+        await withActionFailureScreenshot(sessionName, () => managedUpload({
           ref,
           selector: options.selector,
           files,
           sessionName,
-        }),
+        })),
       );
     } catch (error) {
       printSessionAwareCommandError("upload", error, {

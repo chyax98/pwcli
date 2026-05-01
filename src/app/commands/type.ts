@@ -5,6 +5,7 @@ import {
   addSessionOption,
   printSessionAwareCommandError,
   requireSessionName,
+  withActionFailureScreenshot,
 } from "./session-options.js";
 
 type TypeOptions = {
@@ -84,14 +85,14 @@ export function registerTypeCommand(program: Command): void {
       }
       printCommandResult(
         "type",
-        await managedType({
+        await withActionFailureScreenshot(sessionName, () => managedType({
           ref,
           selector: options.selector,
           nth: options.selector ? nth : undefined,
           semantic,
           value,
           sessionName,
-        }),
+        })),
       );
     } catch (error) {
       printSessionAwareCommandError("type", error, {

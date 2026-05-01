@@ -5,6 +5,7 @@ import {
   addSessionOption,
   printSessionAwareCommandError,
   requireSessionName,
+  withActionFailureScreenshot,
 } from "./session-options.js";
 
 export function registerDialogCommand(program: Command): void {
@@ -17,7 +18,7 @@ export function registerDialogCommand(program: Command): void {
   ).action(async (prompt: string | undefined, options: { session?: string }, command: Command) => {
     try {
       const sessionName = requireSessionName(options, command);
-      printCommandResult("dialog accept", await managedDialog("accept", { prompt, sessionName }));
+      printCommandResult("dialog accept", await withActionFailureScreenshot(sessionName, () => managedDialog("accept", { prompt, sessionName })));
     } catch (error) {
       printSessionAwareCommandError("dialog accept", error, {
         code: "DIALOG_ACCEPT_FAILED",
@@ -35,7 +36,7 @@ export function registerDialogCommand(program: Command): void {
     async (options: { session?: string }, command: Command) => {
       try {
         const sessionName = requireSessionName(options, command);
-        printCommandResult("dialog dismiss", await managedDialog("dismiss", { sessionName }));
+        printCommandResult("dialog dismiss", await withActionFailureScreenshot(sessionName, () => managedDialog("dismiss", { sessionName })));
       } catch (error) {
         printSessionAwareCommandError("dialog dismiss", error, {
           code: "DIALOG_DISMISS_FAILED",

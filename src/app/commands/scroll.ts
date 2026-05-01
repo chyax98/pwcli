@@ -5,6 +5,7 @@ import {
   addSessionOption,
   printSessionAwareCommandError,
   requireSessionName,
+  withActionFailureScreenshot,
 } from "./session-options.js";
 
 export function registerScrollCommand(program: Command): void {
@@ -22,11 +23,11 @@ export function registerScrollCommand(program: Command): void {
         const sessionName = requireSessionName(options);
         printCommandResult(
           "scroll",
-          await managedScroll({
+          await withActionFailureScreenshot(sessionName, () => managedScroll({
             direction,
             distance: distance ? Number(distance) : undefined,
             sessionName,
-          }),
+          })),
         );
       } catch (error) {
         printSessionAwareCommandError("scroll", error, {

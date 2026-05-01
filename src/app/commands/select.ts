@@ -5,6 +5,7 @@ import {
   addSessionOption,
   printSessionAwareCommandError,
   requireSessionName,
+  withActionFailureScreenshot,
 } from "./session-options.js";
 
 function parseNth(value?: string) {
@@ -38,13 +39,13 @@ export function registerSelectCommand(program: Command): void {
         }
         printCommandResult(
           "select",
-          await managedSelect({
+          await withActionFailureScreenshot(sessionName, () => managedSelect({
             ref,
             selector: options.selector,
             sessionName,
             nth: options.selector ? nth : undefined,
             value: selectedValue,
-          }),
+          })),
         );
       } catch (error) {
         printSessionAwareCommandError("select", error, {

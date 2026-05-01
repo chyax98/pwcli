@@ -5,6 +5,7 @@ import {
   addSessionOption,
   printSessionAwareCommandError,
   requireSessionName,
+  withActionFailureScreenshot,
 } from "./session-options.js";
 
 export function registerDragCommand(program: Command): void {
@@ -27,13 +28,13 @@ export function registerDragCommand(program: Command): void {
         const to = options.toSelector ? undefined : values[index++];
         printCommandResult(
           "drag",
-          await managedDrag({
+          await withActionFailureScreenshot(sessionName, () => managedDrag({
             fromRef: from,
             toRef: to,
             sessionName,
             fromSelector: options.fromSelector,
             toSelector: options.toSelector,
-          }),
+          })),
         );
       } catch (error) {
         printSessionAwareCommandError("drag", error, {

@@ -5,6 +5,7 @@ import {
   addSessionOption,
   printSessionAwareCommandError,
   requireSessionName,
+  withActionFailureScreenshot,
 } from "./session-options.js";
 
 function parseNth(value?: string) {
@@ -32,12 +33,12 @@ export function registerHoverCommand(program: Command): void {
         const nth = parseNth(options.nth);
         printCommandResult(
           "hover",
-          await managedHover({
+          await withActionFailureScreenshot(sessionName, () => managedHover({
             ref,
             selector: options.selector,
             nth: options.selector ? nth : undefined,
             sessionName,
-          }),
+          })),
         );
       } catch (error) {
         printSessionAwareCommandError("hover", error, {

@@ -9,6 +9,7 @@ import {
   addSessionOption,
   printSessionAwareCommandError,
   requireSessionName,
+  withActionFailureScreenshot,
 } from "./session-options.js";
 import { parseStateTarget, type StateTargetOptions } from "./state-target.js";
 
@@ -119,7 +120,7 @@ export function registerVerifyCommand(program: Command): void {
       }
       const assertion = rawAssertion as VerifyAssertion;
       const sessionName = requireSessionName(options);
-      const result = await managedVerify(parseVerifyOptions(assertion, sessionName, options));
+      const result = await withActionFailureScreenshot(sessionName, () => managedVerify(parseVerifyOptions(assertion, sessionName, options)));
       if (result.data.passed) {
         printCommandResult("verify", result);
         return;

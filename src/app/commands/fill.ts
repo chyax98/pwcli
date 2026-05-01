@@ -5,6 +5,7 @@ import {
   addSessionOption,
   printSessionAwareCommandError,
   requireSessionName,
+  withActionFailureScreenshot,
 } from "./session-options.js";
 
 type FillOptions = {
@@ -78,14 +79,14 @@ export function registerFillCommand(program: Command): void {
       }
       printCommandResult(
         "fill",
-        await managedFill({
+        await withActionFailureScreenshot(sessionName, () => managedFill({
           ref,
           selector: options.selector,
           nth: options.selector ? nth : undefined,
           semantic,
           value,
           sessionName,
-        }),
+        })),
       );
     } catch (error) {
       printSessionAwareCommandError("fill", error, {

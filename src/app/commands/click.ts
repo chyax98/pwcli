@@ -5,6 +5,7 @@ import {
   addSessionOption,
   printSessionAwareCommandError,
   requireSessionName,
+  withActionFailureScreenshot,
 } from "./session-options.js";
 
 function parseNth(value?: string) {
@@ -32,23 +33,17 @@ export function registerClickCommand(program: Command): void {
     try {
       const sessionName = requireSessionName(options);
       const nth = parseNth(options.nth);
-      if (ref || options.selector) {
-        printCommandResult(
-          "click",
-          await managedClick({
+      const result = await withActionFailureScreenshot(sessionName, () => {
+        if (ref || options.selector) {
+          return managedClick({
             ref,
             selector: options.selector,
             nth: options.selector ? nth : undefined,
             sessionName,
-          }),
-        );
-        return;
-      }
-
-      if (options.role) {
-        printCommandResult(
-          "click",
-          await managedClick({
+          });
+        }
+        if (options.role) {
+          return managedClick({
             semantic: {
               kind: "role",
               role: options.role,
@@ -56,43 +51,35 @@ export function registerClickCommand(program: Command): void {
               nth,
             },
             sessionName,
-          }),
-        );
-      } else if (options.text) {
-        printCommandResult(
-          "click",
-          await managedClick({
+          });
+        }
+        if (options.text) {
+          return managedClick({
             semantic: { kind: "text", text: options.text, nth },
             sessionName,
-          }),
-        );
-      } else if (options.label) {
-        printCommandResult(
-          "click",
-          await managedClick({
+          });
+        }
+        if (options.label) {
+          return managedClick({
             semantic: { kind: "label", label: options.label, nth },
             sessionName,
-          }),
-        );
-      } else if (options.placeholder) {
-        printCommandResult(
-          "click",
-          await managedClick({
+          });
+        }
+        if (options.placeholder) {
+          return managedClick({
             semantic: { kind: "placeholder", placeholder: options.placeholder, nth },
             sessionName,
-          }),
-        );
-      } else if (options.testid) {
-        printCommandResult(
-          "click",
-          await managedClick({
+          });
+        }
+        if (options.testid) {
+          return managedClick({
             semantic: { kind: "testid", testid: options.testid, nth },
             sessionName,
-          }),
-        );
-      } else {
+          });
+        }
         throw new Error("click requires a ref or one semantic locator");
-      }
+      });
+      printCommandResult("click", result);
     } catch (error) {
       printSessionAwareCommandError("click", error, {
         code: "CLICK_FAILED",
