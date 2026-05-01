@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { runManagedSessionCommand } from "../../domain/session/service.js";
+import { runManagedSessionCommand } from "../../infra/playwright/cli-client.js";
 import { parsePageSummary } from "../../infra/playwright/output-parsers.js";
 
 type RawAttachTarget =

@@ -1,6 +1,5 @@
 import type { Command } from "commander";
-import { managedAuthProbe, managedStateSave } from "../../domain/identity-state/service.js";
-import { managedRunCode } from "../../domain/interaction/service.js";
+import { managedAuthProbe, managedStateSave, managedRunCode } from "../../infra/playwright/runtime.js";
 import {
   getAuthProvider,
   listAuthProviders,

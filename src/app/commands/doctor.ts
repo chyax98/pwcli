@@ -10,7 +10,7 @@ import {
   getManagedSessionStatus,
   listManagedSessions,
   runManagedSessionCommand,
-} from "../../domain/session/service.js";
+} from "../../infra/playwright/cli-client.js";
 import { getAuthProvider, listAuthProviders } from "../../infra/auth-providers/registry.js";
 import { parsePageSummary } from "../../infra/playwright/output-parsers.js";
 import { isModalStateBlockedMessage } from "../../infra/playwright/runtime/shared.js";

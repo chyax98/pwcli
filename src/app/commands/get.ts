@@ -1,5 +1,5 @@
 import type { Command } from "commander";
-import { managedGetFact } from "../../domain/interaction/service.js";
+import { managedGetFact } from "../../infra/playwright/runtime.js";
 import { printCommandError, printCommandResult } from "../output.js";
 import {
   addSessionOption,

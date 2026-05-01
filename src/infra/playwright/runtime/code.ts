@@ -9,6 +9,7 @@ import {
   parseSnapshotYaml,
 } from "../output-parsers.js";
 import { DIAGNOSTICS_STATE_KEY, isModalStateBlockedMessage, maybeRawOutput } from "./shared.js";
+import { pageIdRuntimePrelude } from "./workspace.js";
 
 function extractSnapshotRefs(snapshot: string) {
   return [...snapshot.matchAll(/\[ref=(e[0-9]+)\]/g)].map((match) => match[1]);
@@ -21,20 +22,10 @@ async function recordSnapshotRefEpoch(options: { sessionName?: string; snapshot:
     source: `async page => {
       const context = page.context();
       const state = context[${JSON.stringify(DIAGNOSTICS_STATE_KEY)}] ||= {};
-      state.nextPageSeq = Number.isInteger(state.nextPageSeq) ? state.nextPageSeq : 1;
-      state.nextNavigationSeq = Number.isInteger(state.nextNavigationSeq) ? state.nextNavigationSeq : 1;
       state.nextSnapshotSeq = Number.isInteger(state.nextSnapshotSeq) ? state.nextSnapshotSeq : 1;
 
-      const ensurePageId = (p) => {
-        if (!p.__pwcliPageId)
-          p.__pwcliPageId = 'p' + state.nextPageSeq++;
-        return p.__pwcliPageId;
-      };
-      const ensureNavigationId = (p) => {
-        if (!p.__pwcliNavigationId)
-          p.__pwcliNavigationId = 'nav-' + state.nextNavigationSeq++;
-        return p.__pwcliNavigationId;
-      };
+      ${pageIdRuntimePrelude()}
+
       const installRefEpochNavigationListener = (p) => {
         ensurePageId(p);
         ensureNavigationId(p);

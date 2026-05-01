@@ -1,5 +1,5 @@
 import type { Command } from "commander";
-import { managedScroll } from "../../domain/interaction/service.js";
+import { managedScroll } from "../../infra/playwright/runtime.js";
 import { printCommandResult } from "../output.js";
 import {
   addSessionOption,

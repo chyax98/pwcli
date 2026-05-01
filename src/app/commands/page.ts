@@ -5,7 +5,7 @@ import {
   managedPageDialogs,
   managedPageFrames,
   managedPageList,
-} from "../../domain/workspace/service.js";
+} from "../../infra/playwright/runtime.js";
 import { isModalStateBlockedMessage } from "../../infra/playwright/runtime.js";
 import { printCommandError, printCommandResult } from "../output.js";
 import {

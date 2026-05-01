@@ -1,5 +1,5 @@
 import type { Command } from "commander";
-import { managedClick } from "../../domain/interaction/service.js";
+import { managedClick } from "../../infra/playwright/runtime.js";
 import { printCommandResult } from "../output.js";
 import {
   addSessionOption,

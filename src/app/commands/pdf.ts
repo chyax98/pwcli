@@ -1,5 +1,5 @@
 import type { Command } from "commander";
-import { managedPdf } from "../../domain/interaction/service.js";
+import { managedPdf } from "../../infra/playwright/runtime.js";
 import { printCommandResult } from "../output.js";
 import {
   addSessionOption,

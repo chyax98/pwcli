@@ -570,14 +570,6 @@ export function printCommandResult(command: string, result: CommandResult) {
   printText(formatCommandText(command, result));
 }
 
-export function printNotImplemented(command: string, suggestions: string[]): void {
-  printCommandError(command, {
-    code: "NOT_IMPLEMENTED",
-    message: `Command '${command}' is not implemented yet`,
-    suggestions,
-  });
-}
-
 export function printCommandError(command: string, error: CommandError) {
   if (outputMode() === "json") {
     printJson(errorEnvelope(command, error));

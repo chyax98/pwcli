@@ -1,5 +1,5 @@
 import type { Command } from "commander";
-import { managedOpen } from "../../domain/session/service.js";
+import { managedOpen } from "../../infra/playwright/runtime.js";
 import { printCommandResult } from "../output.js";
 import {
   addSessionOption,

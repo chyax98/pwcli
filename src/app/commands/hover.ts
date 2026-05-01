@@ -1,5 +1,5 @@
 import type { Command } from "commander";
-import { managedHover } from "../../domain/interaction/service.js";
+import { managedHover } from "../../infra/playwright/runtime.js";
 import { printCommandResult } from "../output.js";
 import {
   addSessionOption,

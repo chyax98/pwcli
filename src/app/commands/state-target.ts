@@ -1,4 +1,4 @@
-import type { StateTarget } from "../../domain/interaction/service.js";
+import type { StateTarget } from "../../infra/playwright/runtime.js";
 
 export type StateTargetOptions = {
   selector?: string;

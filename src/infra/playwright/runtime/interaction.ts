@@ -16,7 +16,7 @@ import {
   maybeRawOutput,
   normalizeRef,
 } from "./shared.js";
-import { managedPageCurrent } from "./workspace.js";
+import { managedPageCurrent, pageIdRuntimePrelude } from "./workspace.js";
 
 type SemanticTarget =
   | { kind: "role"; role: string; name?: string; nth?: number }
@@ -269,18 +269,7 @@ async function validateRefEpoch(options: {
     source: `async page => {
       const context = page.context();
       const state = context[${JSON.stringify(DIAGNOSTICS_STATE_KEY)}] ||= {};
-      state.nextPageSeq = Number.isInteger(state.nextPageSeq) ? state.nextPageSeq : 1;
-      state.nextNavigationSeq = Number.isInteger(state.nextNavigationSeq) ? state.nextNavigationSeq : 1;
-      const ensurePageId = (p) => {
-        if (!p.__pwcliPageId)
-          p.__pwcliPageId = 'p' + state.nextPageSeq++;
-        return p.__pwcliPageId;
-      };
-      const ensureNavigationId = (p) => {
-        if (!p.__pwcliNavigationId)
-          p.__pwcliNavigationId = 'nav-' + state.nextNavigationSeq++;
-        return p.__pwcliNavigationId;
-      };
+      ${pageIdRuntimePrelude()}
 
       const epoch = state.lastSnapshotRefEpoch || null;
       const currentPageId = ensurePageId(page) || null;

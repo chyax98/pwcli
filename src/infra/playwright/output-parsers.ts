@@ -45,37 +45,6 @@ export function parseErrorText(text: string) {
   return section.trim();
 }
 
-export function parseConsoleSummary(text: string) {
-  const summary = parseResultText(text);
-  const totalMatch = summary.match(/Total messages:\s*(\d+)/i);
-  const errorMatch = summary.match(/Errors:\s*(\d+)/i);
-  const warningMatch = summary.match(/Warnings:\s*(\d+)/i);
-  const sample = summary
-    .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => line && !line.startsWith("Total messages:"));
-
-  return {
-    total: Number(totalMatch?.[1] ?? 0),
-    errors: Number(errorMatch?.[1] ?? 0),
-    warnings: Number(warningMatch?.[1] ?? 0),
-    sample,
-  };
-}
-
-export function parseNetworkSummary(text: string) {
-  const summary = parseResultText(text);
-  const lines = summary
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean);
-
-  return {
-    total: lines.length,
-    sample: lines.slice(0, 10),
-  };
-}
-
 export function parseEventLines(text: string) {
   const section = findSection(text, "Events");
   if (!section) {

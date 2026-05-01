@@ -1,5 +1,5 @@
 import type { Command } from "commander";
-import { managedIsState } from "../../domain/interaction/service.js";
+import { managedIsState } from "../../infra/playwright/runtime.js";
 import { printCommandResult } from "../output.js";
 import {
   addSessionOption,

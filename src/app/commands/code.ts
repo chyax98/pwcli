@@ -1,5 +1,5 @@
 import type { Command } from "commander";
-import { managedRunCode } from "../../domain/interaction/service.js";
+import { managedRunCode } from "../../infra/playwright/runtime.js";
 import { printCommandResult } from "../output.js";
 import {
   addSessionOption,

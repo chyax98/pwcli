@@ -114,7 +114,7 @@ function normalizeSessionName(name?: string) {
   return resolveSessionName(name ?? DEFAULT_SESSION_NAME);
 }
 
-export function validateSessionName(name?: string) {
+function validateSessionName(name?: string) {
   const sessionName = normalizeSessionName(name);
   if (sessionName.length > MAX_SESSION_NAME_LENGTH) {
     throw new Error(`SESSION_NAME_TOO_LONG:${sessionName}:${MAX_SESSION_NAME_LENGTH}`);

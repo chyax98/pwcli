@@ -1,5 +1,5 @@
 import type { Command } from "commander";
-import { managedReadText } from "../../domain/interaction/service.js";
+import { managedReadText } from "../../infra/playwright/runtime.js";
 import { printCommandResult } from "../output.js";
 import {
   addSessionOption,

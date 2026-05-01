@@ -1,5 +1,5 @@
 import type { Command } from "commander";
-import { managedDrag } from "../../domain/interaction/service.js";
+import { managedDrag } from "../../infra/playwright/runtime.js";
 import { printCommandResult } from "../output.js";
 import {
   addSessionOption,

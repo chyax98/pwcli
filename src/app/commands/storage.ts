@@ -3,7 +3,7 @@ import {
   managedStorageIndexedDbExport,
   managedStorageMutation,
   managedStorageRead,
-} from "../../domain/identity-state/service.js";
+} from "../../infra/playwright/runtime.js";
 import { printCommandError, printCommandResult } from "../output.js";
 import {
   addSessionOption,

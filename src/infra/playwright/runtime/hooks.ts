@@ -1,5 +1,6 @@
 import { managedRunCode } from "./code.js";
 import { DIAGNOSTICS_STATE_KEY } from "./shared.js";
+import { pageIdRuntimePrelude } from "./workspace.js";
 
 export async function managedEnsureDiagnosticsHooks(options?: { sessionName?: string }) {
   const result = await managedRunCode({
@@ -12,11 +13,11 @@ export async function managedEnsureDiagnosticsHooks(options?: { sessionName?: st
       state.networkRecords = Array.isArray(state.networkRecords) ? state.networkRecords : [];
       state.pageErrorRecords = Array.isArray(state.pageErrorRecords) ? state.pageErrorRecords : [];
       state.dialogRecords = Array.isArray(state.dialogRecords) ? state.dialogRecords : [];
-      state.nextPageSeq = Number.isInteger(state.nextPageSeq) ? state.nextPageSeq : 1;
       state.nextRequestSeq = Number.isInteger(state.nextRequestSeq) ? state.nextRequestSeq : 1;
       state.nextConsoleResourceSeq = Number.isInteger(state.nextConsoleResourceSeq) ? state.nextConsoleResourceSeq : 1;
       state.nextDialogSeq = Number.isInteger(state.nextDialogSeq) ? state.nextDialogSeq : 1;
-      state.nextNavigationSeq = Number.isInteger(state.nextNavigationSeq) ? state.nextNavigationSeq : 1;
+
+      ${pageIdRuntimePrelude()}
 
       const now = () => new Date().toISOString();
       const keep = (list, entry, max = 200) => {
@@ -59,16 +60,6 @@ export async function managedEnsureDiagnosticsHooks(options?: { sessionName?: st
       const parseConsoleHttpStatus = (text) => {
         const match = String(text || '').match(/(?:status of|status code|\\b)([45]\\d\\d)\\b/i);
         return match ? Number(match[1]) : null;
-      };
-      const ensurePageId = (p) => {
-        if (!p.__pwcliPageId)
-          p.__pwcliPageId = 'p' + state.nextPageSeq++;
-        return p.__pwcliPageId;
-      };
-      const ensureNavigationId = (p) => {
-        if (!p.__pwcliNavigationId)
-          p.__pwcliNavigationId = 'nav-' + state.nextNavigationSeq++;
-        return p.__pwcliNavigationId;
       };
       const installPage = (p) => {
         ensurePageId(p);

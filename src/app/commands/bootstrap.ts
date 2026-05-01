@@ -1,5 +1,5 @@
 import type { Command } from "commander";
-import { managedBootstrapApply } from "../../domain/bootstrap/service.js";
+import { managedBootstrapApply } from "../../infra/playwright/runtime.js";
 import { printCommandResult } from "../output.js";
 import {
   addSessionOption,

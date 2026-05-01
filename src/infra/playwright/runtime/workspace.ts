@@ -16,31 +16,7 @@ export async function managedWorkspaceProjection(options?: { sessionName?: strin
       const context = page.context();
       const state = context[${JSON.stringify(DIAGNOSTICS_STATE_KEY)}] ||= {};
       state.dialogRecords = Array.isArray(state.dialogRecords) ? state.dialogRecords : [];
-      state.nextPageSeq = Number.isInteger(state.nextPageSeq) ? state.nextPageSeq : 1;
-      state.nextNavigationSeq = Number.isInteger(state.nextNavigationSeq) ? state.nextNavigationSeq : 1;
-
-      const ensurePageId = (p) => {
-        if (!p.__pwcliPageId)
-          p.__pwcliPageId = 'p' + state.nextPageSeq++;
-        return p.__pwcliPageId;
-      };
-      const ensureNavigationId = (p) => {
-        if (!p.__pwcliNavigationId)
-          p.__pwcliNavigationId = 'nav-' + state.nextNavigationSeq++;
-        return p.__pwcliNavigationId;
-      };
-      const projectPage = async (p, index) => {
-        const opener = await p.opener().catch(() => null);
-        return {
-          index,
-          pageId: ensurePageId(p),
-          navigationId: ensureNavigationId(p),
-          url: p.url(),
-          title: await p.title().catch(() => ''),
-          current: p === page,
-          openerPageId: opener ? ensurePageId(opener) : null,
-        };
-      };
+      ${pageIdRuntimePrelude()}
 
       const pages = context.pages();
       const workspacePages = await Promise.all(pages.map((item, index) => projectPage(item, index)));
@@ -439,7 +415,7 @@ function pageById(pages: WorkspacePage[], pageId: string) {
   return pages.find((page) => page.pageId === pageId);
 }
 
-function pageIdRuntimePrelude() {
+export function pageIdRuntimePrelude() {
   return `
       const context = page.context();
       const state = context[${JSON.stringify(DIAGNOSTICS_STATE_KEY)}] ||= {};
@@ -472,7 +448,7 @@ function pageIdRuntimePrelude() {
     `;
 }
 
-function fallbackPageIdAfterCloseSource() {
+export function fallbackPageIdAfterCloseSource() {
   return `
       const fallbackPageIdAfterClose = (pages, target, currentPageId) => {
         if (!target.current && currentPageId && currentPageId !== target.pageId)

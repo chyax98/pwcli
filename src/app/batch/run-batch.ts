@@ -1,31 +1,30 @@
 import { readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
-import { managedBootstrapApply } from "../../domain/bootstrap/service.js";
 import {
-  managedErrors,
-  managedObserveStatus,
-  managedRoute,
-} from "../../domain/diagnostics/service.js";
-import { managedStateLoad, managedStateSave } from "../../domain/identity-state/service.js";
-import {
+  managedBootstrapApply,
   managedClick,
   managedFill,
+  managedOpen,
+  managedPageCurrent,
+  managedPageDialogs,
+  managedPageFrames,
+  managedPageList,
   managedPress,
   managedReadText,
   managedRunCode,
   managedScreenshot,
   managedScroll,
   managedSnapshot,
+  managedStateLoad,
+  managedStateSave,
   managedType,
   managedWait,
-} from "../../domain/interaction/service.js";
-import { managedOpen } from "../../domain/session/service.js";
+} from "../../infra/playwright/runtime.js";
 import {
-  managedPageCurrent,
-  managedPageDialogs,
-  managedPageFrames,
-  managedPageList,
-} from "../../domain/workspace/service.js";
+  managedErrors,
+  managedObserveStatus,
+  managedRoute,
+} from "../../domain/diagnostics/service.js";
 
 const SUPPORTED_BATCH_TOP_LEVEL = [
   "bootstrap",

@@ -1,5 +1,5 @@
 import type { Command } from "commander";
-import { managedUpload } from "../../domain/interaction/service.js";
+import { managedUpload } from "../../infra/playwright/runtime.js";
 import { printCommandResult } from "../output.js";
 import {
   addSessionOption,

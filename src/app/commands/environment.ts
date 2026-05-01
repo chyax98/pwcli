@@ -7,7 +7,7 @@ import {
   managedEnvironmentOffline,
   managedEnvironmentPermissionsClear,
   managedEnvironmentPermissionsGrant,
-} from "../../domain/environment/service.js";
+} from "../../infra/playwright/runtime/environment.js";
 import { printCommandError, printCommandResult } from "../output.js";
 import {
   addSessionOption,

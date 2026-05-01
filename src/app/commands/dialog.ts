@@ -1,5 +1,5 @@
 import type { Command } from "commander";
-import { managedDialog } from "../../domain/interaction/service.js";
+import { managedDialog } from "../../infra/playwright/runtime.js";
 import { printCommandResult } from "../output.js";
 import {
   addSessionOption,

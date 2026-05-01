@@ -2,22 +2,24 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Command } from "commander";
-import { managedStateLoad, managedStateSave } from "../../domain/identity-state/service.js";
+import { managedStateLoad, managedStateSave, managedOpen } from "../../infra/playwright/runtime.js";
 import { sessionRoutingError } from "../../domain/session/routing.js";
 import {
-  applySessionDefaults,
   getManagedSessionEntry,
   getManagedSessionStatus,
-  getSessionDefaults,
   listAttachableBrowserServers,
   listManagedSessions,
-  managedOpen,
-  resolveLifecycleHeaded,
-  resolveTraceEnabled,
+  MAX_SESSION_NAME_LENGTH,
   runManagedSessionCommand,
   stopAllManagedSessions,
   stopManagedSession,
-} from "../../domain/session/service.js";
+} from "../../infra/playwright/cli-client.js";
+import {
+  applySessionDefaults,
+  getSessionDefaults,
+  resolveLifecycleHeaded,
+  resolveTraceEnabled,
+} from "../../domain/session/defaults.js";
 import { parsePageSummary } from "../../infra/playwright/output-parsers.js";
 import { writeChromeProfileConfig } from "../../infra/system-chrome/profiles.js";
 import { printCommandError, printCommandResult } from "../output.js";
@@ -151,8 +153,8 @@ export function registerSessionCommand(program: Command): void {
         },
       ) => {
         try {
-          if (name.length > 16) {
-            throw new Error(`SESSION_NAME_TOO_LONG:${name}:16`);
+          if (name.length > MAX_SESSION_NAME_LENGTH) {
+            throw new Error(`SESSION_NAME_TOO_LONG:${name}:${MAX_SESSION_NAME_LENGTH}`);
           }
           if (!/^[a-zA-Z0-9_-]+$/.test(name)) {
             throw new Error(`SESSION_NAME_INVALID:${name}`);
@@ -269,8 +271,8 @@ export function registerSessionCommand(program: Command): void {
         },
       ) => {
         try {
-          if (name.length > 16) {
-            throw new Error(`SESSION_NAME_TOO_LONG:${name}:16`);
+          if (name.length > MAX_SESSION_NAME_LENGTH) {
+            throw new Error(`SESSION_NAME_TOO_LONG:${name}:${MAX_SESSION_NAME_LENGTH}`);
           }
           if (!/^[a-zA-Z0-9_-]+$/.test(name)) {
             throw new Error(`SESSION_NAME_INVALID:${name}`);
@@ -353,8 +355,8 @@ export function registerSessionCommand(program: Command): void {
       ) => {
         let tempDir: string | undefined;
         try {
-          if (name.length > 16) {
-            throw new Error(`SESSION_NAME_TOO_LONG:${name}:16`);
+          if (name.length > MAX_SESSION_NAME_LENGTH) {
+            throw new Error(`SESSION_NAME_TOO_LONG:${name}:${MAX_SESSION_NAME_LENGTH}`);
           }
           if (!/^[a-zA-Z0-9_-]+$/.test(name)) {
             throw new Error(`SESSION_NAME_INVALID:${name}`);

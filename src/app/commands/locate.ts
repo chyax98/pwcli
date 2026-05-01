@@ -1,5 +1,5 @@
 import type { Command } from "commander";
-import { managedLocate } from "../../domain/interaction/service.js";
+import { managedLocate } from "../../infra/playwright/runtime.js";
 import { printCommandResult } from "../output.js";
 import {
   addSessionOption,

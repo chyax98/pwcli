@@ -3,7 +3,7 @@ import {
   managedVerify,
   type VerifyAssertion,
   type VerifyOptions,
-} from "../../domain/interaction/service.js";
+} from "../../infra/playwright/runtime.js";
 import { printCommandError, printCommandResult } from "../output.js";
 import {
   addSessionOption,

@@ -1,5 +1,5 @@
 import type { Command } from "commander";
-import { managedTabClose, managedTabSelect } from "../../domain/workspace/service.js";
+import { managedTabClose, managedTabSelect } from "../../infra/playwright/runtime.js";
 import { printCommandResult } from "../output.js";
 import {
   addSessionOption,

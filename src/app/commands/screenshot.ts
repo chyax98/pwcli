@@ -1,5 +1,5 @@
 import type { Command } from "commander";
-import { managedScreenshot } from "../../domain/interaction/service.js";
+import { managedScreenshot } from "../../infra/playwright/runtime.js";
 import { printCommandResult } from "../output.js";
 import {
   addSessionOption,

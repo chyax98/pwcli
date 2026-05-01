@@ -1,5 +1,5 @@
 import type { Command } from "commander";
-import { managedResize } from "../../domain/session/service.js";
+import { managedResize } from "../../infra/playwright/runtime.js";
 import { printCommandResult } from "../output.js";
 import {
   addSessionOption,

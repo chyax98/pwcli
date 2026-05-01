@@ -1,5 +1,5 @@
 import type { Command } from "commander";
-import { managedCookiesList, managedCookiesSet } from "../../domain/identity-state/service.js";
+import { managedCookiesList, managedCookiesSet } from "../../infra/playwright/runtime.js";
 import { printCommandResult } from "../output.js";
 import {
   addSessionOption,
