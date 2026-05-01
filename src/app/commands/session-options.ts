@@ -72,10 +72,11 @@ export function printSessionAwareCommandError(
 
 export async function captureFailureScreenshot(
   sessionName: string,
+  existingRunDir?: string,
 ): Promise<string | undefined> {
   try {
-    const run = await ensureRunDir(sessionName);
-    const path = join(run.runDir, `failure-${Date.now()}.png`);
+    const runDir = existingRunDir ?? (await ensureRunDir(sessionName)).runDir;
+    const path = join(runDir, `failure-${Date.now()}.png`);
     await managedRunCode({
       sessionName,
       source: `async page => {
@@ -97,7 +98,8 @@ export async function withActionFailureScreenshot<T>(
   try {
     return await action();
   } catch (error) {
-    const screenshotPath = await captureFailureScreenshot(sessionName);
+    const existingRunDir = isActionFailure(error) ? (error.details?.run as Record<string, string>)?.runDir : undefined;
+    const screenshotPath = await captureFailureScreenshot(sessionName, existingRunDir);
     if (screenshotPath) {
       if (isActionFailure(error)) {
         error.details = { ...error.details, failureScreenshotPath: screenshotPath };
@@ -106,7 +108,7 @@ export async function withActionFailureScreenshot<T>(
       }
     }
     if (command) {
-      await recordCommandFailure(command, sessionName, error, screenshotPath).catch(() => {});
+      await recordCommandFailure(command, sessionName, error, screenshotPath, existingRunDir).catch(() => {});
     }
     throw error;
   }
@@ -117,11 +119,12 @@ async function recordCommandFailure(
   sessionName: string,
   error: unknown,
   screenshotPath?: string,
+  existingRunDir?: string,
 ) {
-  const run = await ensureRunDir(sessionName);
+  const runDir = existingRunDir ?? (await ensureRunDir(sessionName)).runDir;
   const code = isActionFailure(error) ? error.code : `${command.toUpperCase()}_FAILED`;
   const message = error instanceof Error ? error.message : String(error);
-  await appendRunEvent(run.runDir, {
+  await appendRunEvent(runDir, {
     ts: new Date().toISOString(),
     command,
     sessionName: sessionName ?? null,
