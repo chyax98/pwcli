@@ -284,11 +284,11 @@ function evaluateAuthTask(task, commandOutputs) {
 function evaluateExtractionTask(task, commandOutputs) {
   const expected = task.benchmark?.expectations ?? {};
   const extractResult = commandOutputs["extract run"];
-  const recordCount = asNumber(extractResult?.data?.recordCount) ?? -1;
-  const records = asArray(extractResult?.data?.records);
-  const firstTitle = asString(records[0]?.title) ?? "";
+  const itemCount = asNumber(extractResult?.data?.stats?.itemCount) ?? -1;
+  const items = asArray(extractResult?.data?.items);
+  const firstTitle = asString(items[0]?.title) ?? "";
   const checks = [
-    { id: "record-count", passed: recordCount === expected.count, detail: `count=${recordCount}` },
+    { id: "item-count", passed: itemCount === expected.count, detail: `count=${itemCount}` },
     {
       id: "first-title",
       passed: firstTitle === expected.firstTitle,

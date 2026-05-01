@@ -266,10 +266,8 @@
 
 返回：
 
-- `format: "json"`
 - `recipePath`
 - `recipeId`
-- `recipe`
 - `url`
 - `generatedAt`
 - `items[]`
@@ -298,8 +296,6 @@
   - `maxScrollSteps?`
   - `runtimeProbePath?`
   - `runtimeProbeFound?`
-- `recordCount`
-- `records[]`
 - `runtimeProbe`
 - `artifactPath`（仅 `--out`）
 - `artifactFormat`（仅 `--out` 且 `output.format !== "json"`）
@@ -310,10 +306,6 @@
 
 - `items[]` / `stats` 是稳定 artifact contract 的主字段
 - `document.blocks[]` / `document.media[]` 是给 Agent 用的原始结构采集结果
-- `recordCount` / `records[]` 目前保留为兼容别名：
-  - `recordCount -> stats.itemCount`
-  - `records[] -> items[]`
-- `recipe` 继续保留在 stdout 和 `--out` artifact 里，方便旧调用方平滑迁移
 - `--out` 写出的 artifact：
   - `output.format = "json"`：写完整 JSON artifact payload
   - `output.format = "csv"`：只写 CSV 文本

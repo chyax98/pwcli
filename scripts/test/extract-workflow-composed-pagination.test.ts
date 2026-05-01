@@ -298,9 +298,7 @@ try {
       data: {
         recipePath: string;
         artifactPath?: string;
-        recordCount: number;
         items: Array<{ title: string; url: string }>;
-        records: Array<{ title: string; url: string }>;
         document: ExtractDocument;
         stats: ExtractStats;
       };
@@ -310,14 +308,13 @@ try {
     assert.equal(envelope.page.url, composedUrl);
     assert.equal(envelope.page.title, "Composed Extraction Fixture");
     assert.equal(envelope.data.recipePath, recipePath);
-    assert.equal(envelope.data.recordCount, 4);
+    assert.equal(envelope.data.stats.itemCount, 4);
     assert.deepEqual(envelope.data.items, [
       { title: "Composed Alpha", url: `${baseUrl}/posts/composed-alpha` },
       { title: "Composed Beta", url: `${baseUrl}/posts/composed-beta` },
       { title: "Composed Gamma", url: `${baseUrl}/posts/composed-gamma` },
       { title: "Composed Delta", url: `${baseUrl}/posts/composed-delta` },
     ]);
-    assert.deepEqual(envelope.data.records, envelope.data.items);
     assert.deepEqual(envelope.data.document, {
       blocks: [
         {
@@ -424,13 +421,8 @@ try {
     });
     assert.equal(envelope.data.artifactPath, outFile);
 
-    const writtenArtifact = JSON.parse(await readFile(outFile, "utf8")) as ExtractArtifact & {
-      recordCount: number;
-      records: Array<{ title: string; url: string }>;
-    };
-    assert.equal(writtenArtifact.recordCount, 4);
+    const writtenArtifact = JSON.parse(await readFile(outFile, "utf8")) as ExtractArtifact;
     assert.deepEqual(writtenArtifact.items, envelope.data.items);
-    assert.deepEqual(writtenArtifact.records, envelope.data.records);
     assert.deepEqual(writtenArtifact.document, envelope.data.document);
     assert.deepEqual(writtenArtifact.stats, envelope.data.stats);
   } finally {

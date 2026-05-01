@@ -36,7 +36,7 @@ type ExtractDocument = {
       }
     | { kind: "list"; ordered: boolean; items: string[]; sectionPath: string[] }
     | { kind: "quote"; text: string; sectionPath: string[] }
-    | { kind: "code"; text: string; language?: string; languageHint?: string; sectionPath: string[] }
+    | { kind: "code"; text: string; languageHint?: string; sectionPath: string[] }
     | { kind: "table"; headers: string[]; rows: string[][]; caption?: string; sectionPath: string[] }
   >;
   media: Array<
@@ -335,7 +335,6 @@ try {
       {
         kind: "code",
         text: "const answer = 42;",
-        language: "ts",
         languageHint: "ts",
         sectionPath: ["Alpha Title", "Details"],
       },

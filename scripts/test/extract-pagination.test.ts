@@ -378,9 +378,7 @@ try {
       data: {
         recipePath: string;
         artifactPath?: string;
-        recordCount: number;
         items: Array<{ title: string; url: string }>;
-        records: Array<{ title: string; url: string }>;
         document: ExtractDocument;
         stats: ExtractArtifact["stats"];
       };
@@ -389,13 +387,12 @@ try {
     assert.equal(paginatedEnvelope.page.url, `${baseUrl}/page/2`);
     assert.equal(paginatedEnvelope.page.title, "Pagination Fixture Page 2");
     assert.equal(paginatedEnvelope.data.recipePath, paginatedRecipePath);
-    assert.equal(paginatedEnvelope.data.recordCount, 3);
+    assert.equal(paginatedEnvelope.data.stats.itemCount, 3);
     assert.deepEqual(paginatedEnvelope.data.items, [
       { title: "Alpha Title", url: `${baseUrl}/posts/alpha` },
       { title: "Beta Title", url: `${baseUrl}/posts/beta` },
       { title: "Gamma Title", url: `${baseUrl}/posts/gamma` },
     ]);
-    assert.deepEqual(paginatedEnvelope.data.records, paginatedEnvelope.data.items);
     assert.deepEqual(paginatedEnvelope.data.document, {
       blocks: [
         {
@@ -477,12 +474,7 @@ try {
     });
     assert.equal(paginatedEnvelope.data.artifactPath, outFile);
 
-    const writtenArtifact = JSON.parse(await readFile(outFile, "utf8")) as ExtractArtifact & {
-      recordCount: number;
-      records: Array<{ title: string; url: string }>;
-    };
-    assert.equal(writtenArtifact.recordCount, 3);
-    assert.deepEqual(writtenArtifact.records, paginatedEnvelope.data.records);
+    const writtenArtifact = JSON.parse(await readFile(outFile, "utf8")) as ExtractArtifact;
     assert.deepEqual(writtenArtifact.items, paginatedEnvelope.data.items);
     assert.deepEqual(writtenArtifact.document, paginatedEnvelope.data.document);
     assert.deepEqual(writtenArtifact.stats, paginatedEnvelope.data.stats);
