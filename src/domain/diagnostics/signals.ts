@@ -47,6 +47,12 @@ function isTrackingPixel(url: string | null): boolean {
   }
 }
 
+function isAbortedRequest(record: Record<string, unknown>): boolean {
+  const failureText = asString(record.failureText);
+  if (!failureText) return false;
+  return failureText.includes("net::ERR_ABORTED");
+}
+
 function isResourceLoadNoise(text: string | null): boolean {
   if (!text) return false;
   if (/^Failed to load resource:.*\b(404|403|401)\b/.test(text)) return true;
@@ -155,7 +161,7 @@ export function buildSessionDigestFromExport(
     (record) => asString(record.kind) === "requestfailed",
   );
   const firstPartyFailedRequests = failedRequests.filter(
-    (record) => !isTrackingPixel(asString(record.url)),
+    (record) => !isTrackingPixel(asString(record.url)) && !isAbortedRequest(record),
   );
   const httpErrors = networkRecords.filter((record) => {
     if (asString(record.kind) !== "response") {
