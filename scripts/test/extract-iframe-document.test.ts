@@ -237,6 +237,7 @@ try {
   assert.deepEqual(iframeImage, {
     kind: "image",
     url: `${baseUrl}/media/iframe.png`,
+    currentSrc: `${baseUrl}/media/iframe.png`,
     sectionPath: ["Host Title", "Embedded Content"],
   });
 
@@ -247,6 +248,7 @@ try {
     {
       kind: "image",
       url: `${baseUrl}/media/iframe.png`,
+      currentSrc: `${baseUrl}/media/iframe.png`,
       sectionPath: ["Host Title", "Embedded Content"],
     },
   );

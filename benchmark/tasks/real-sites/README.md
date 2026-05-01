@@ -1,6 +1,6 @@
 # Real-site Benchmark Pack
 
-这里放人工 dogfood 的真实站点基准，不进入日常 deterministic closure suite。
+这里放人工 dogfood 的真实站点稳定性检查，不进入日常 deterministic closure suite，也不是自动化 CI gate。
 
 ## 目标
 

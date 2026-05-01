@@ -39,7 +39,6 @@ node dist/cli.js --help
 | Identity state | `auth`、`state`、`cookies`、`storage`、`profile` | `auth.ts`、`state.ts`、`cookies.ts`、`storage.ts`、`profile.ts` | 登录态获取、存储导入导出、当前 origin 状态读写、本机 Chrome profile discovery | `command-reference-advanced.md` |
 | Environment | `environment offline|geolocation|permissions|clock` | `environment.ts` | 受控网络、位置、权限、时间 | `command-reference-advanced.md` |
 | Automation | `batch`、`code`、`skill` | `batch.ts`、`code.ts`、`skill.ts` | 结构化串行编排、Playwright escape hatch、分发 skill | `command-reference-advanced.md` |
-| MCP | `mcp schema|serve` | `mcp.ts`、`src/domain/mcp/service.ts`、`src/infra/mcp/server.ts` | 低优先级兼容出口；CLI 仍是 authoritative surface，不把 MCP 当主产品面 | `command-reference-advanced.md` |
 
 ## 3. 顶层命令清单
 
@@ -93,7 +92,6 @@ profile
 tab
 session
 skill
-mcp
 ```
 
 如果 `src/app/commands/index.ts` 新增或删除命令，必须同步这份清单和对应 reference。
@@ -129,14 +127,6 @@ errors clear -> reproduce action -> wait -> diagnostics digest -> diagnostics bu
 ```
 
 `diagnostics bundle` 是 failure handoff 的最小包；`diagnostics show|grep --run <runId>` 用 run evidence 做细查。
-
-### MCP 任务
-
-```text
-pw mcp schema -> pw mcp serve
-```
-
-MCP 只保留为兼容出口。它复用 CLI/domain contract，不单独发明第二套行为语义，也不作为后续主线扩展方向。
 
 ### 受控测试任务
 

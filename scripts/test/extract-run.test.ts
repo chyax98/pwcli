@@ -22,16 +22,58 @@ type ExtractArtifact = {
       | { kind: "heading"; text: string; level: number; sectionPath: string[] }
       | { kind: "paragraph"; text: string; sectionPath: string[] }
       | { kind: "link"; url: string; text?: string; sectionPath: string[] }
-      | { kind: "image"; url: string; sectionPath: string[] }
-      | { kind: "video"; url: string; sectionPath: string[] }
+      | {
+          kind: "image";
+          url: string;
+          currentSrc?: string;
+          srcset?: string;
+          caption?: string;
+          sectionPath: string[];
+        }
+      | {
+          kind: "video";
+          url: string;
+          currentSrc?: string;
+          poster?: string;
+          sources?: string[];
+          caption?: string;
+          sectionPath: string[];
+        }
       | { kind: "list"; ordered: boolean; items: string[]; sectionPath: string[] }
       | { kind: "quote"; text: string; sectionPath: string[] }
-      | { kind: "code"; text: string; language?: string; sectionPath: string[] }
-      | { kind: "table"; headers: string[]; rows: string[][]; sectionPath: string[] }
+      | {
+          kind: "code";
+          text: string;
+          language?: string;
+          languageHint?: string;
+          sectionPath: string[];
+        }
+      | {
+          kind: "table";
+          headers: string[];
+          rows: string[][];
+          caption?: string;
+          sectionPath: string[];
+        }
     >;
     media: Array<
-      | { kind: "image"; url: string; sectionPath: string[] }
-      | { kind: "video"; url: string; sectionPath: string[] }
+      | {
+          kind: "image";
+          url: string;
+          currentSrc?: string;
+          srcset?: string;
+          caption?: string;
+          sectionPath: string[];
+        }
+      | {
+          kind: "video";
+          url: string;
+          currentSrc?: string;
+          poster?: string;
+          sources?: string[];
+          caption?: string;
+          sectionPath: string[];
+        }
     >;
   };
   stats: {
@@ -140,6 +182,15 @@ const server = createServer((request, response) => {
               <h1>Article Marker</h1>
               <p class="lede">Visible body marker paragraph.</p>
               <a class="canonical" href="/docs/article-marker">Read more</a>
+              <figure class="hero">
+                <img
+                  class="hero-image"
+                  src="/media/hero-1x.png"
+                  srcset="/media/hero-1x.png 1x, /media/hero-2x.png 2x"
+                  alt="Hero image"
+                />
+                <figcaption>Hero caption.</figcaption>
+              </figure>
             </article>
           </main>
         </body>
@@ -341,6 +392,7 @@ try {
     itemCount: 2,
     fieldCount: 3,
     limit: 50,
+    dedupedBlockCount: 0,
     runtimeProbePath: "__PWCLI_RUNTIME__",
     runtimeProbeFound: true,
   });
@@ -509,14 +561,32 @@ try {
         text: "Read more",
         sectionPath: [],
       },
+      {
+        kind: "image",
+        url: `${baseUrl}/media/hero-1x.png`,
+        currentSrc: `${baseUrl}/media/hero-1x.png`,
+        srcset: "/media/hero-1x.png 1x, /media/hero-2x.png 2x",
+        caption: "Hero caption.",
+        sectionPath: [],
+      },
     ],
-    media: [],
+    media: [
+      {
+        kind: "image",
+        url: `${baseUrl}/media/hero-1x.png`,
+        currentSrc: `${baseUrl}/media/hero-1x.png`,
+        srcset: "/media/hero-1x.png 1x, /media/hero-2x.png 2x",
+        caption: "Hero caption.",
+        sectionPath: [],
+      },
+    ],
   });
   assert.deepEqual(articleEnvelope.data.stats, {
     kind: "article",
     itemCount: 1,
     fieldCount: 3,
     limit: 1,
+    dedupedBlockCount: 0,
   });
   assert.equal(articleEnvelope.data.recordCount, 1);
   assert.deepEqual(articleEnvelope.data.records, [

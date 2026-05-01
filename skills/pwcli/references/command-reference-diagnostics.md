@@ -75,6 +75,11 @@ state / auth / batch 命令见 `command-reference-advanced.md`。
 
 ## Route Mock
 
+边界：
+
+- route/mock 可以继续增强，但只在真实 controlled-testing、diagnostics、extraction 复现需求下增量补能力
+- 不把这一层扩成通用场景平台、GraphQL DSL 或第二套 runner
+
 ### `pw route list --session <name>`
 
 - 返回当前 session 的 active route metadata

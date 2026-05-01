@@ -86,9 +86,11 @@ type ExtractTraversalFacts = {
   pageCount?: number;
   paginationMode?: "next-page" | "load-more";
   scrollMode?: "until-stable";
+  scrollSteps?: number;
   scrollStepsUsed?: number;
   maxPages?: number;
   maxScrollSteps?: number;
+  dedupedBlockCount?: number;
 };
 
 type ExtractDocumentBlock =
@@ -109,16 +111,8 @@ type ExtractDocumentBlock =
       text?: string;
       sectionPath: string[];
     }
-  | {
-      kind: "image";
-      url: string;
-      sectionPath: string[];
-    }
-  | {
-      kind: "video";
-      url: string;
-      sectionPath: string[];
-    }
+  | ExtractDocumentImage
+  | ExtractDocumentVideo
   | {
       kind: "list";
       ordered: boolean;
@@ -134,26 +128,37 @@ type ExtractDocumentBlock =
       kind: "code";
       text: string;
       language?: string;
+      languageHint?: string;
       sectionPath: string[];
     }
   | {
       kind: "table";
       headers: string[];
       rows: string[][];
+      caption?: string;
       sectionPath: string[];
     };
 
-type ExtractDocumentMedia =
-  | {
-      kind: "image";
-      url: string;
-      sectionPath: string[];
-    }
-  | {
-      kind: "video";
-      url: string;
-      sectionPath: string[];
-    };
+type ExtractDocumentImage = {
+  kind: "image";
+  url: string;
+  currentSrc?: string;
+  srcset?: string;
+  caption?: string;
+  sectionPath: string[];
+};
+
+type ExtractDocumentVideo = {
+  kind: "video";
+  url: string;
+  currentSrc?: string;
+  poster?: string;
+  sources?: string[];
+  caption?: string;
+  sectionPath: string[];
+};
+
+type ExtractDocumentMedia = ExtractDocumentImage | ExtractDocumentVideo;
 
 type ExtractDocument = {
   blocks: ExtractDocumentBlock[];
@@ -194,9 +199,11 @@ type ExtractArtifact = {
     pageCount?: number;
     paginationMode?: "next-page" | "load-more";
     scrollMode?: "until-stable";
+    scrollSteps?: number;
     scrollStepsUsed?: number;
     maxPages?: number;
     maxScrollSteps?: number;
+    dedupedBlockCount: number;
     runtimeProbePath?: string;
     runtimeProbeFound?: boolean;
   };
@@ -775,6 +782,71 @@ function buildExtractionSource(recipe: NormalizedExtractRecipe) {
             return normalizeText(source.src);
           return '';
         };
+        const readFigureCaption = element => {
+          if (!(element instanceof Element))
+            return undefined;
+          const figure = element.closest('figure');
+          if (!(figure instanceof HTMLElement))
+            return undefined;
+          const caption = Array.from(figure.children).find(child => child.tagName?.toLowerCase() === 'figcaption');
+          if (!isHtmlLikeElement(caption) || !isVisible(caption))
+            return undefined;
+          const text = normalizeText(caption.innerText || caption.textContent || '');
+          return text || undefined;
+        };
+        const collectVideoSources = element => {
+          if (!(element instanceof HTMLVideoElement))
+            return [];
+          const sources = Array.from(element.querySelectorAll('source[src]'))
+            .map(source =>
+              typeof source.src === 'string'
+                ? normalizeText(source.src)
+                : normalizeText(source.getAttribute('src') ?? ''),
+            )
+            .filter(Boolean);
+          return [...new Set(sources)];
+        };
+        const readImageDetails = element => {
+          if (!isElementNode(element) || element.tagName?.toLowerCase() !== 'img')
+            return null;
+          const currentSrc =
+            typeof element.currentSrc === 'string' ? normalizeText(element.currentSrc) : '';
+          const src = typeof element.src === 'string' ? normalizeText(element.src) : '';
+          const url = currentSrc || src;
+          if (!url)
+            return null;
+          const srcset =
+            typeof element.srcset === 'string' ? normalizeText(element.srcset) : '';
+          const caption = readFigureCaption(element);
+          return {
+            url,
+            ...(currentSrc ? { currentSrc } : {}),
+            ...(srcset ? { srcset } : {}),
+            ...(caption ? { caption } : {}),
+          };
+        };
+        const readVideoDetails = element => {
+          if (!isElementNode(element) || element.tagName?.toLowerCase() !== 'video')
+            return null;
+          const currentSrc =
+            typeof element.currentSrc === 'string' ? normalizeText(element.currentSrc) : '';
+          const src =
+            typeof element.src === 'string' ? normalizeText(element.src) : '';
+          const sources = collectVideoSources(element);
+          const poster =
+            typeof element.poster === 'string' ? normalizeText(element.poster) : '';
+          const caption = readFigureCaption(element);
+          const url = currentSrc || src || sources[0] || '';
+          if (!url)
+            return null;
+          return {
+            url,
+            ...(currentSrc ? { currentSrc } : {}),
+            ...(poster ? { poster } : {}),
+            ...(sources.length > 0 ? { sources } : {}),
+            ...(caption ? { caption } : {}),
+          };
+        };
         const shouldSkipParagraph = element =>
           Boolean(element.closest('blockquote, li, td, th, figcaption'));
         const shouldSkipStandaloneCode = element =>
@@ -824,6 +896,17 @@ function buildExtractionSource(recipe: NormalizedExtractRecipe) {
               ? normalizeText(languageSource.getAttribute('data-language') ?? '')
               : '';
           return datasetLanguage || undefined;
+        };
+        const readTableCaption = table => {
+          if (!isElementNode(table) || table.tagName?.toLowerCase() !== 'table')
+            return undefined;
+          const caption = table.caption;
+          if (!caption)
+            return undefined;
+          if (!isVisible(caption))
+            return undefined;
+          const text = normalizeText(caption.innerText || caption.textContent || '');
+          return text || undefined;
         };
         const collectDirectListItems = element =>
           Array.from(element.children)
@@ -879,7 +962,7 @@ function buildExtractionSource(recipe: NormalizedExtractRecipe) {
           const pushBlock = block => {
             blocks.push(block);
             if (block.kind === 'image' || block.kind === 'video')
-              pushMedia({ kind: block.kind, url: block.url, sectionPath: block.sectionPath });
+              pushMedia(block);
           };
 
           const collectFrameRoot = (node, boundaryRoot, inheritedSectionPath) => {
@@ -973,27 +1056,24 @@ function buildExtractionSource(recipe: NormalizedExtractRecipe) {
               }
 
               if (tagName === 'img') {
-                const url =
-                  typeof node.currentSrc === 'string' || typeof node.src === 'string'
-                    ? normalizeText(node.currentSrc || node.src)
-                    : '';
-                if (!url)
+                const mediaEntry = readImageDetails(node);
+                if (!mediaEntry)
                   continue;
                 pushBlock({
                   kind: 'image',
-                  url,
+                  ...mediaEntry,
                   sectionPath,
                 });
                 continue;
               }
 
               if (tagName === 'video') {
-                const url = collectVideoUrl(node);
-                if (!url)
+                const mediaEntry = readVideoDetails(node);
+                if (!mediaEntry)
                   continue;
                 pushBlock({
                   kind: 'video',
-                  url,
+                  ...mediaEntry,
                   sectionPath,
                 });
                 continue;
@@ -1031,10 +1111,12 @@ function buildExtractionSource(recipe: NormalizedExtractRecipe) {
                 if (!text)
                   continue;
                 const language = readCodeLanguage(node);
+                const languageHint = language;
                 pushBlock({
                   kind: 'code',
                   text,
                   ...(language ? { language } : {}),
+                  ...(languageHint ? { languageHint } : {}),
                   sectionPath,
                 });
                 continue;
@@ -1057,10 +1139,12 @@ function buildExtractionSource(recipe: NormalizedExtractRecipe) {
                     : collectTableRows(Array.from(table.querySelectorAll('tr'))).slice(headerRows.length > 0 ? 1 : 0);
                 if (headers.length === 0 && fallbackRows.length === 0)
                   continue;
+                const caption = readTableCaption(table);
                 pushBlock({
                   kind: 'table',
                   headers,
                   rows: fallbackRows,
+                  ...(caption ? { caption } : {}),
                   sectionPath,
                 });
               }
@@ -1092,7 +1176,7 @@ function buildExtractionSource(recipe: NormalizedExtractRecipe) {
           return flattened;
         };
         const listRoots = recipe.kind === 'list'
-          ? visibleNodes(document, recipe.itemSelector).slice(0, recipe.limit)
+          ? visibleNodes(document, recipe.itemSelector)
           : [];
         const articleRoot =
           recipe.kind === 'article'
@@ -1173,13 +1257,25 @@ function buildExtractionSource(recipe: NormalizedExtractRecipe) {
     };
     const aggregatedLimitations = new Set();
     const seenSnapshots = new Set();
+    const seenRecordFingerprints = new Set();
+    const seenBlockFingerprints = new Set();
+    const seenMediaFingerprints = new Set();
+    const selectedRecordDocuments = new Map();
     let lastPayload;
     let pageCount = 0;
     let scrollStepsUsed = 0;
+    let dedupedBlockCount = 0;
+    let currentPageUrl = null;
+    let currentPageDocument = {
+      blocks: [],
+      media: [],
+    };
+    let currentPageDedupedBlockCount = 0;
 
     await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => null);
     await page.waitForTimeout(200).catch(() => null);
 
+    const fingerprintValue = value => JSON.stringify(value);
     const flattenDocuments = documents => {
       const flattened = {
         blocks: [],
@@ -1206,59 +1302,233 @@ function buildExtractionSource(recipe: NormalizedExtractRecipe) {
       };
     };
 
+    const appendUniqueEntries = (target, entries, seenFingerprints) => {
+      let duplicates = 0;
+      for (const entry of entries) {
+        const fingerprint = fingerprintValue(entry);
+        if (seenFingerprints.has(fingerprint)) {
+          duplicates += 1;
+          continue;
+        }
+        seenFingerprints.add(fingerprint);
+        target.push(entry);
+      }
+      return duplicates;
+    };
+
+    const dedupeEntries = entries => {
+      const deduped = [];
+      const seenFingerprints = new Set();
+      let duplicates = 0;
+      for (const entry of entries) {
+        const fingerprint = fingerprintValue(entry);
+        if (seenFingerprints.has(fingerprint)) {
+          duplicates += 1;
+          continue;
+        }
+        seenFingerprints.add(fingerprint);
+        deduped.push(entry);
+      }
+      return {
+        entries: deduped,
+        duplicates,
+      };
+    };
+
+    const buildSelectedPageDocument = (payload, selectedRecordFingerprints) => {
+      if (Array.isArray(payload.recordDocuments) && payload.recordDocuments.length > 0) {
+        const blocks = [];
+        const media = [];
+        const recordCount = Math.min(payload.records.length, payload.recordDocuments.length);
+        for (let index = 0; index < recordCount; index += 1) {
+          const record = payload.records[index];
+          const fingerprint = fingerprintValue(record);
+          if (!selectedRecordFingerprints.has(fingerprint))
+            continue;
+          const documentEntry = flattenDocuments([payload.recordDocuments[index]]);
+          if (documentEntry.blocks.length > 0)
+            blocks.push(...documentEntry.blocks);
+          if (documentEntry.media.length > 0)
+            media.push(...documentEntry.media);
+        }
+        const dedupedBlocks = dedupeEntries(blocks);
+        const dedupedMedia = dedupeEntries(media);
+        return {
+          document: {
+            blocks: dedupedBlocks.entries,
+            media: dedupedMedia.entries,
+          },
+          dedupedBlockCount: dedupedBlocks.duplicates,
+        };
+      }
+
+      const nextDocument = documentForRecordCount(payload, aggregatedRecords.length);
+      const dedupedBlocks = dedupeEntries(nextDocument.blocks);
+      const dedupedMedia = dedupeEntries(nextDocument.media);
+      return {
+        document: {
+          blocks: dedupedBlocks.entries,
+          media: dedupedMedia.entries,
+        },
+        dedupedBlockCount: dedupedBlocks.duplicates,
+      };
+    };
+
+    const flushCurrentPageDocument = () => {
+      if (currentPageDocument.blocks.length === 0 && currentPageDocument.media.length === 0)
+        return;
+      dedupedBlockCount += currentPageDedupedBlockCount;
+      dedupedBlockCount += appendUniqueEntries(
+        aggregatedDocument.blocks,
+        currentPageDocument.blocks,
+        seenBlockFingerprints,
+      );
+      appendUniqueEntries(aggregatedDocument.media, currentPageDocument.media, seenMediaFingerprints);
+      currentPageDocument = {
+        blocks: [],
+        media: [],
+      };
+      currentPageDedupedBlockCount = 0;
+    };
+
+    const dedupePayloadRecords = payload => {
+      if (!Array.isArray(payload.records) || payload.records.length === 0)
+        return [];
+      const deduped = [];
+      const seenPayloadFingerprints = new Set();
+      for (const record of payload.records) {
+        const fingerprint = fingerprintValue(record);
+        if (seenPayloadFingerprints.has(fingerprint))
+          continue;
+        seenPayloadFingerprints.add(fingerprint);
+        deduped.push({
+          fingerprint,
+          record,
+        });
+      }
+      return deduped;
+    };
+
+    const appendNewRecords = payload => {
+      if (!Array.isArray(payload.records) || payload.records.length === 0)
+        return;
+      const remainingSlots = Math.max(recipe.limit - aggregatedRecords.length, 0);
+      if (remainingSlots <= 0)
+        return;
+      const nextRecords = [];
+      for (const entry of dedupePayloadRecords(payload)) {
+        if (seenRecordFingerprints.has(entry.fingerprint))
+          continue;
+        nextRecords.push(entry);
+        if (nextRecords.length >= remainingSlots)
+          break;
+      }
+      for (const entry of nextRecords) {
+        seenRecordFingerprints.add(entry.fingerprint);
+        aggregatedRecords.push(entry.record);
+      }
+    };
+
+    const updateSelectedRecordDocuments = payload => {
+      if (!Array.isArray(payload.recordDocuments) || payload.recordDocuments.length === 0)
+        return;
+      const recordCount = Math.min(payload.records.length, payload.recordDocuments.length);
+      for (let index = 0; index < recordCount; index += 1) {
+        const record = payload.records[index];
+        const fingerprint = fingerprintValue(record);
+        if (!seenRecordFingerprints.has(fingerprint))
+          continue;
+        selectedRecordDocuments.set(
+          fingerprint,
+          flattenDocuments([payload.recordDocuments[index]]),
+        );
+      }
+    };
+
+    const buildAggregatedSelectedDocument = () => {
+      const flattened = flattenDocuments(Array.from(selectedRecordDocuments.values()));
+      const dedupedBlocks = dedupeEntries(flattened.blocks);
+      const dedupedMedia = dedupeEntries(flattened.media);
+      return {
+        document: {
+          blocks: dedupedBlocks.entries,
+          media: dedupedMedia.entries,
+        },
+        dedupedBlockCount: dedupedBlocks.duplicates,
+      };
+    };
+
+    const canScrollFurther = async () => {
+      if (
+        recipe.kind !== 'list' ||
+        !recipe.scroll ||
+        recipe.scroll.mode !== 'until-stable' ||
+        scrollStepsUsed >= recipe.scroll.maxSteps ||
+        aggregatedRecords.length >= recipe.limit
+      ) {
+        return false;
+      }
+      if (recipe.pagination?.mode === 'load-more')
+        return true;
+      return page.evaluate(() => {
+        const root = document.scrollingElement || document.documentElement || document.body;
+        if (!root)
+          return false;
+        const maxScrollTop = Math.max(root.scrollHeight - window.innerHeight, 0);
+        return window.scrollY + 1 < maxScrollTop;
+      });
+    };
+
     while (true) {
       if (recipe.kind === 'list' && aggregatedRecords.length >= recipe.limit)
         break;
 
       const payload = await extractPage();
+      if (currentPageUrl && payload.page?.url && currentPageUrl !== payload.page.url)
+        flushCurrentPageDocument();
+      currentPageUrl = payload.page?.url ?? currentPageUrl;
       const fingerprint = JSON.stringify({
         page: payload.page,
         records: payload.records,
         document: payload.document,
       });
-      if (seenSnapshots.has(fingerprint))
-        break;
-
-      seenSnapshots.add(fingerprint);
+      const isNewSnapshot = !seenSnapshots.has(fingerprint);
       lastPayload = payload;
-      pageCount += 1;
-      for (const limitation of Array.isArray(payload.document?.limitations) ? payload.document.limitations : []) {
-        if (typeof limitation === 'string' && limitation)
-          aggregatedLimitations.add(limitation);
-      }
-      if (
-        recipe.kind === 'list' &&
-        (recipe.pagination?.mode === 'load-more' ||
-          (!recipe.pagination && recipe.scroll?.mode === 'until-stable'))
-      ) {
-        const nextRecords = payload.records.slice(0, recipe.limit);
-        const nextDocument = documentForRecordCount(payload, nextRecords.length);
-        aggregatedRecords.splice(0, aggregatedRecords.length, ...nextRecords);
-        aggregatedDocument.blocks.splice(0, aggregatedDocument.blocks.length, ...nextDocument.blocks);
-        aggregatedDocument.media.splice(0, aggregatedDocument.media.length, ...nextDocument.media);
-      } else if (recipe.kind === 'list') {
-        const remainingSlots = Math.max(recipe.limit - aggregatedRecords.length, 0);
-        const nextRecords = remainingSlots > 0 ? payload.records.slice(0, remainingSlots) : [];
-        const nextDocument = documentForRecordCount(payload, nextRecords.length);
-        if (nextRecords.length > 0)
-          aggregatedRecords.push(...nextRecords);
-        aggregatedDocument.blocks.push(...nextDocument.blocks);
-        aggregatedDocument.media.push(...nextDocument.media);
-      } else {
-        aggregatedRecords.splice(0, aggregatedRecords.length, ...payload.records.slice(0, recipe.limit));
-        aggregatedDocument.blocks.splice(0, aggregatedDocument.blocks.length, ...payload.document.blocks);
-        aggregatedDocument.media.splice(0, aggregatedDocument.media.length, ...payload.document.media);
+      if (isNewSnapshot) {
+        seenSnapshots.add(fingerprint);
+        pageCount += 1;
+        for (const limitation of Array.isArray(payload.document?.limitations) ? payload.document.limitations : []) {
+          if (typeof limitation === 'string' && limitation)
+            aggregatedLimitations.add(limitation);
+        }
+        if (recipe.kind === 'list') {
+          appendNewRecords(payload);
+          updateSelectedRecordDocuments(payload);
+          const nextPageDocument =
+            recipe.pagination?.mode === 'next-page'
+              ? buildSelectedPageDocument(payload, seenRecordFingerprints)
+              : buildAggregatedSelectedDocument();
+          currentPageDocument = nextPageDocument.document;
+          currentPageDedupedBlockCount = nextPageDocument.dedupedBlockCount;
+        } else {
+          aggregatedRecords.splice(0, aggregatedRecords.length, ...payload.records.slice(0, recipe.limit));
+          aggregatedDocument.blocks.splice(0, aggregatedDocument.blocks.length, ...payload.document.blocks);
+          aggregatedDocument.media.splice(0, aggregatedDocument.media.length, ...payload.document.media);
+        }
       }
 
       if (recipe.kind === 'list' && aggregatedRecords.length >= recipe.limit)
         break;
+
+      const scrollPossible = await canScrollFurther();
 
       const canTraverseNextPage =
         recipe.kind === 'list' &&
         recipe.pagination &&
         recipe.pagination.mode === 'next-page' &&
         pageCount < recipe.pagination.maxPages &&
-        aggregatedRecords.length < recipe.limit;
+        aggregatedRecords.length < recipe.limit &&
+        !scrollPossible;
 
       if (canTraverseNextPage) {
         const nextPageLink = page.locator(recipe.pagination.selector).first();
@@ -1285,39 +1555,47 @@ function buildExtractionSource(recipe: NormalizedExtractRecipe) {
         aggregatedRecords.length < recipe.limit;
       if (canLoadMore) {
         const loadMoreButton = page.locator(recipe.pagination.selector).first();
-        if ((await loadMoreButton.count()) < 1)
-          break;
-        const isVisible = await loadMoreButton.isVisible().catch(() => false);
-        const isEnabled = await loadMoreButton.isEnabled().catch(() => false);
-        if (!isVisible || !isEnabled)
-          break;
-
-        await loadMoreButton.click();
-        await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => null);
-        await page.waitForTimeout(250);
-        continue;
+        if ((await loadMoreButton.count()) < 1) {
+          if (!scrollPossible)
+            break;
+        } else {
+          const isVisible = await loadMoreButton.isVisible().catch(() => false);
+          const isEnabled = await loadMoreButton.isEnabled().catch(() => false);
+          if (isVisible && isEnabled) {
+            await loadMoreButton.click();
+            await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => null);
+            await page.waitForTimeout(250);
+            continue;
+          }
+          if (!scrollPossible)
+            break;
+        }
       }
 
       const canScroll =
         recipe.kind === 'list' &&
-        !recipe.pagination &&
         recipe.scroll &&
         recipe.scroll.mode === 'until-stable' &&
         scrollStepsUsed < recipe.scroll.maxSteps &&
-        aggregatedRecords.length < recipe.limit;
+        aggregatedRecords.length < recipe.limit &&
+        scrollPossible;
       if (canScroll) {
         await page.evaluate((stepPx) => {
           window.scrollBy(0, stepPx);
+          window.dispatchEvent(new Event('scroll'));
         }, recipe.scroll.stepPx);
         scrollStepsUsed += 1;
-        if (recipe.scroll.settleMs > 0)
-          await page.waitForTimeout(recipe.scroll.settleMs);
+        const settleMs = Math.max(recipe.scroll.settleMs, 700);
+        if (settleMs > 0)
+          await page.waitForTimeout(settleMs);
         await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => null);
         continue;
       }
 
       break;
     }
+
+    flushCurrentPageDocument();
 
     const currentPage =
       lastPayload?.page ?? {
@@ -1332,9 +1610,11 @@ function buildExtractionSource(recipe: NormalizedExtractRecipe) {
     }
     if (recipe.scroll) {
       traversal.scrollMode = recipe.scroll.mode;
+      traversal.scrollSteps = scrollStepsUsed;
       traversal.scrollStepsUsed = scrollStepsUsed;
       traversal.maxScrollSteps = recipe.scroll.maxSteps;
     }
+    traversal.dedupedBlockCount = dedupedBlockCount;
 
     return JSON.stringify({
       page: currentPage,
@@ -1519,15 +1799,18 @@ function normalizeTraversal(value: unknown): ExtractTraversalFacts | undefined {
   }
 
   if (traversal.scrollMode === "until-stable") {
+    const scrollStepsValue =
+      typeof traversal.scrollSteps === "number" ? traversal.scrollSteps : traversal.scrollStepsUsed;
     if (
-      typeof traversal.scrollStepsUsed !== "number" ||
-      !Number.isFinite(traversal.scrollStepsUsed) ||
-      traversal.scrollStepsUsed < 0
+      typeof scrollStepsValue !== "number" ||
+      !Number.isFinite(scrollStepsValue) ||
+      scrollStepsValue < 0
     ) {
       return undefined;
     }
     normalized.scrollMode = traversal.scrollMode;
-    normalized.scrollStepsUsed = Math.floor(traversal.scrollStepsUsed);
+    normalized.scrollSteps = Math.floor(scrollStepsValue);
+    normalized.scrollStepsUsed = Math.floor(scrollStepsValue);
   }
 
   if (traversal.maxPages != null) {
@@ -1550,6 +1833,17 @@ function normalizeTraversal(value: unknown): ExtractTraversalFacts | undefined {
       return undefined;
     }
     normalized.maxScrollSteps = Math.floor(traversal.maxScrollSteps);
+  }
+
+  if (traversal.dedupedBlockCount != null) {
+    if (
+      typeof traversal.dedupedBlockCount !== "number" ||
+      !Number.isFinite(traversal.dedupedBlockCount) ||
+      traversal.dedupedBlockCount < 0
+    ) {
+      return undefined;
+    }
+    normalized.dedupedBlockCount = Math.floor(traversal.dedupedBlockCount);
   }
 
   return Object.keys(normalized).length > 0 ? normalized : undefined;
@@ -1620,6 +1914,10 @@ function normalizeTableRows(value: unknown): string[][] | null {
   return rows as string[][];
 }
 
+function normalizeOptionalString(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
+
 function normalizeDocumentBlock(value: unknown): ExtractDocumentBlock | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return null;
@@ -1655,9 +1953,26 @@ function normalizeDocumentBlock(value: unknown): ExtractDocumentBlock | null {
   }
 
   if ((block.kind === "image" || block.kind === "video") && typeof block.url === "string") {
+    const currentSrc = normalizeOptionalString(block.currentSrc);
+    const caption = normalizeOptionalString(block.caption);
     return {
       kind: block.kind,
       url: block.url,
+      ...(currentSrc ? { currentSrc } : {}),
+      ...(block.kind === "image"
+        ? (() => {
+            const srcset = normalizeOptionalString(block.srcset);
+            return srcset ? { srcset } : {};
+          })()
+        : (() => {
+            const poster = normalizeOptionalString(block.poster);
+            const sources = normalizeStringArray(block.sources) ?? undefined;
+            return {
+              ...(poster ? { poster } : {}),
+              ...(sources?.length ? { sources } : {}),
+            };
+          })()),
+      ...(caption ? { caption } : {}),
       sectionPath,
     };
   }
@@ -1684,10 +1999,21 @@ function normalizeDocumentBlock(value: unknown): ExtractDocumentBlock | null {
   }
 
   if (block.kind === "code" && typeof block.text === "string") {
+    const languageHint =
+      typeof block.languageHint === "string"
+        ? block.languageHint
+        : typeof block.language === "string"
+          ? block.language
+          : undefined;
+    const language =
+      typeof block.language === "string"
+        ? block.language
+        : languageHint;
     return {
       kind: "code",
       text: block.text,
-      ...(typeof block.language === "string" ? { language: block.language } : {}),
+      ...(language ? { language } : {}),
+      ...(languageHint ? { languageHint } : {}),
       sectionPath,
     };
   }
@@ -1698,10 +2024,12 @@ function normalizeDocumentBlock(value: unknown): ExtractDocumentBlock | null {
     if (!headers || !rows) {
       return null;
     }
+    const caption = normalizeOptionalString(block.caption);
     return {
       kind: "table",
       headers,
       rows,
+      ...(caption ? { caption } : {}),
       sectionPath,
     };
   }
@@ -1720,6 +2048,19 @@ function normalizeDocumentMedia(value: unknown): ExtractDocumentMedia | null {
   return {
     kind: media.kind,
     url: media.url,
+    ...(typeof media.currentSrc === "string" ? { currentSrc: media.currentSrc } : {}),
+    ...(typeof media.caption === "string" ? { caption: media.caption } : {}),
+    ...(media.kind === "image"
+      ? typeof media.srcset === "string"
+        ? { srcset: media.srcset }
+        : {}
+      : {
+          ...(typeof media.poster === "string" ? { poster: media.poster } : {}),
+          ...(() => {
+            const sources = normalizeStringArray(media.sources) ?? undefined;
+            return sources?.length ? { sources } : {};
+          })(),
+        }),
     sectionPath: normalizeSectionPath(media.sectionPath),
   };
 }
@@ -1816,6 +2157,7 @@ function buildArtifact(options: {
       ...(options.traversal?.scrollMode
         ? {
             scrollMode: options.traversal.scrollMode,
+            scrollSteps: options.traversal.scrollSteps,
             scrollStepsUsed: options.traversal.scrollStepsUsed,
           }
         : {}),
@@ -1824,6 +2166,7 @@ function buildArtifact(options: {
             maxScrollSteps: options.traversal.maxScrollSteps,
           }
         : {}),
+      dedupedBlockCount: options.traversal?.dedupedBlockCount ?? 0,
       ...(options.runtimeProbe
         ? {
             runtimeProbePath: options.runtimeProbe.path,

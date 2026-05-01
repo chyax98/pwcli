@@ -163,6 +163,7 @@
 - 当前 MVP 不调用站点特化 `/me` API，也不做站点 pack
 - `--url` 会改变当前页，但不做写操作
 - 结果是通用启发式判断，不等同于站点级强认证结论
+- 命令边界冻结在 generic probe：不把它扩成 site-aware auth intelligence
 
 ### `pw auth list`
 
@@ -355,59 +356,6 @@
   - Agent 读取 `document.blocks/media` 后自行理解和还原最终文档
 
 不要把 `pw extract run` 包装成 planner、userscript installer 或任意脚本执行器。
-
-## MCP
-
-### `pw mcp schema`
-
-- 返回 `pwcli` MCP server 的稳定 contract：
-  - `protocol`
-  - `server`
-  - `transport`
-  - `capabilities`
-  - `surface`
-- `surface` 额外给出：
-  - `contractVersion`
-  - `kind: "thin-wrapper"`
-  - `authoritativeSurface: "cli"`
-  - `commandParity: "subset"`
-  - `lanes[]`
-  - `toolCount`
-  - `tools[]`
-    - `name`
-    - `lane`
-    - `boundary`
-    - `authoritativeCommand`
-    - `readOnly`
-    - `inputSchema`
-
-### `pw mcp serve`
-
-- 启动 stdio MCP server
-- 当前内置 tools：
-  - `session_create`
-  - `session_list`
-  - `session_status`
-  - `session_attachable_list`
-  - `open`
-  - `page_assess`
-  - `auth_probe`
-  - `read_text`
-  - `snapshot_interactive`
-  - `diagnostics_digest`
-  - `extract_run`
-
-限制：
-
-- 当前是 thin MCP surface，不覆盖全部 `pw` 命令
-- 当前只暴露最常用的 session/read/extract/diagnostics lanes
-- 仍然保留 CLI 为主，MCP 只是第二出口
-- CLI contract 是 authoritative truth；MCP 复用同一批 domain/service，不追求即时 command parity
-- MCP tool 参数按 schema 严格校验：
-  - `arguments` 必须是 object
-  - unknown keys 会直接报错
-  - 不再静默吞掉超出 contract 的参数
-- 当前定位是兼容出口，不是后续主线能力面
 
 ## Batch
 

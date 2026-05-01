@@ -6,6 +6,7 @@ import { loadTask } from "../../shared/load-task.mjs";
 const repoRoot = resolve(import.meta.dirname, "..", "..", "..");
 const cliPath = resolve(repoRoot, "dist", "cli.js");
 const sourceCliPath = resolve(repoRoot, "src", "cli.ts");
+const tsxCliPath = resolve(repoRoot, "node_modules", "tsx", "dist", "cli.mjs");
 
 function parseArgs(argv) {
   const parsed = {
@@ -341,9 +342,10 @@ async function resolveCliInvocation() {
       argsPrefix: [cliPath],
     };
   } catch {
+    await access(tsxCliPath);
     return {
-      command: "pnpm",
-      argsPrefix: ["exec", "tsx", sourceCliPath],
+      command: process.execPath,
+      argsPrefix: [tsxCliPath, sourceCliPath],
     };
   }
 }

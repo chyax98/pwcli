@@ -17,16 +17,46 @@ type ExtractDocument = {
     | { kind: "heading"; text: string; level: number; sectionPath: string[] }
     | { kind: "paragraph"; text: string; sectionPath: string[] }
     | { kind: "link"; url: string; text?: string; sectionPath: string[] }
-    | { kind: "image"; url: string; sectionPath: string[] }
-    | { kind: "video"; url: string; sectionPath: string[] }
+    | {
+        kind: "image";
+        url: string;
+        currentSrc?: string;
+        srcset?: string;
+        caption?: string;
+        sectionPath: string[];
+      }
+    | {
+        kind: "video";
+        url: string;
+        currentSrc?: string;
+        poster?: string;
+        sources?: string[];
+        caption?: string;
+        sectionPath: string[];
+      }
     | { kind: "list"; ordered: boolean; items: string[]; sectionPath: string[] }
     | { kind: "quote"; text: string; sectionPath: string[] }
-    | { kind: "code"; text: string; language?: string; sectionPath: string[] }
-    | { kind: "table"; headers: string[]; rows: string[][]; sectionPath: string[] }
+    | { kind: "code"; text: string; language?: string; languageHint?: string; sectionPath: string[] }
+    | { kind: "table"; headers: string[]; rows: string[][]; caption?: string; sectionPath: string[] }
   >;
   media: Array<
-    | { kind: "image"; url: string; sectionPath: string[] }
-    | { kind: "video"; url: string; sectionPath: string[] }
+    | {
+        kind: "image";
+        url: string;
+        currentSrc?: string;
+        srcset?: string;
+        caption?: string;
+        sectionPath: string[];
+      }
+    | {
+        kind: "video";
+        url: string;
+        currentSrc?: string;
+        poster?: string;
+        sources?: string[];
+        caption?: string;
+        sectionPath: string[];
+      }
   >;
 };
 
@@ -88,8 +118,21 @@ const server = createServer((request, response) => {
                 <p class="summary">Alpha Summary</p>
                 <section class="gallery">
                   <h3>Gallery</h3>
-                  <img class="thumb" src="/media/alpha.png" alt="Alpha thumbnail" />
-                  <video class="clip" src="/media/alpha.mp4"></video>
+                  <figure class="thumb-figure">
+                    <img
+                      class="thumb"
+                      src="/media/alpha-1x.png"
+                      srcset="/media/alpha-1x.png 1x, /media/alpha-2x.png 2x"
+                      alt="Alpha thumbnail"
+                    />
+                    <figcaption>Alpha thumbnail caption.</figcaption>
+                  </figure>
+                  <figure class="clip-figure">
+                    <video class="clip" poster="/media/alpha-poster.jpg" controls>
+                      <source src="/media/alpha.mp4" type="video/mp4" />
+                    </video>
+                    <figcaption>Alpha clip caption.</figcaption>
+                  </figure>
                 </section>
                 <section class="details">
                   <h3>Details</h3>
@@ -100,6 +143,7 @@ const server = createServer((request, response) => {
                   <blockquote>Quoted line.</blockquote>
                   <pre><code class="language-ts">const answer = 42;</code></pre>
                   <table>
+                    <caption>Alpha metrics</caption>
                     <thead>
                       <tr><th>Name</th><th>Value</th></tr>
                     </thead>
@@ -256,12 +300,19 @@ try {
       },
       {
         kind: "image",
-        url: `${baseUrl}/media/alpha.png`,
+        url: `${baseUrl}/media/alpha-1x.png`,
+        currentSrc: `${baseUrl}/media/alpha-1x.png`,
+        srcset: "/media/alpha-1x.png 1x, /media/alpha-2x.png 2x",
+        caption: "Alpha thumbnail caption.",
         sectionPath: ["Alpha Title", "Gallery"],
       },
       {
         kind: "video",
         url: `${baseUrl}/media/alpha.mp4`,
+        currentSrc: `${baseUrl}/media/alpha.mp4`,
+        poster: `${baseUrl}/media/alpha-poster.jpg`,
+        sources: [`${baseUrl}/media/alpha.mp4`],
+        caption: "Alpha clip caption.",
         sectionPath: ["Alpha Title", "Gallery"],
       },
       {
@@ -285,24 +336,33 @@ try {
         kind: "code",
         text: "const answer = 42;",
         language: "ts",
+        languageHint: "ts",
         sectionPath: ["Alpha Title", "Details"],
       },
       {
         kind: "table",
         headers: ["Name", "Value"],
         rows: [["Alpha", "42"]],
+        caption: "Alpha metrics",
         sectionPath: ["Alpha Title", "Details"],
       },
     ],
     media: [
       {
         kind: "image",
-        url: `${baseUrl}/media/alpha.png`,
+        url: `${baseUrl}/media/alpha-1x.png`,
+        currentSrc: `${baseUrl}/media/alpha-1x.png`,
+        srcset: "/media/alpha-1x.png 1x, /media/alpha-2x.png 2x",
+        caption: "Alpha thumbnail caption.",
         sectionPath: ["Alpha Title", "Gallery"],
       },
       {
         kind: "video",
         url: `${baseUrl}/media/alpha.mp4`,
+        currentSrc: `${baseUrl}/media/alpha.mp4`,
+        poster: `${baseUrl}/media/alpha-poster.jpg`,
+        sources: [`${baseUrl}/media/alpha.mp4`],
+        caption: "Alpha clip caption.",
         sectionPath: ["Alpha Title", "Gallery"],
       },
     ],

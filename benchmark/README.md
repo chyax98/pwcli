@@ -27,7 +27,6 @@ session -> observe/read/snapshot -> act -> wait/verify -> diagnostics/evidence
 - `scripts/`
   - task matrix generator
   - closure suite launcher
-  - nightly regression launcher（当前保留，不作为继续扩张方向）
 - `scoring/`
   - machine-readable taxonomy 和最小稳定性聚合资产
 - `reports/`
@@ -81,7 +80,7 @@ benchmark/
 - 能替换 fixture `startUrl` 里的 `<port>`
 - 能运行最小 `pw` 命令链
 - 能为单 task 落 artifact
-- 能为 suite 写 `summary.json` 和 `summary.md`
+- 能为 suite 写 `summary.json`
 
 当前 deterministic family 支持：
 
@@ -117,12 +116,6 @@ node benchmark/runners/suite/run-suite.mjs \
   --port 43210
 ```
 
-nightly regression pack：
-
-```bash
-node benchmark/scripts/run-nightly-pack.mjs
-```
-
 生成并跑 closure suite：
 
 ```bash
@@ -140,17 +133,12 @@ node benchmark/scripts/run-closure-suite.mjs
 
 ```text
 benchmark/reports/latest/summary.json
-benchmark/reports/latest/summary.md
-benchmark/reports/latest/score.json
 benchmark/artifacts/<taskId>/<runId>/
 ```
 
-`score.json` / `summary.json` 当前只是内部稳定性聚合格式，至少包含：
+`summary.json` 是当前唯一稳定聚合输出，至少包含：
 
-- `contractVersion`
-- `surface`
-- `totals`
-- `passRate`
-- `overallScore`
-- `categories`
-- `failureFamilies`
+- `total`
+- `passed`
+- `failed`
+- `failures`

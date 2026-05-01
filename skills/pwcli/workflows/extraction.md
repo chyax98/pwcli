@@ -137,6 +137,8 @@ Agent 基于这些原始结果自行还原：
 - 文章
 - 摘要
 
+real-site dogfood 用这条 workflow 压稳定性即可；不要把真实站点跑法混进 deterministic regression gate。
+
 ## 明确限制
 
 - 只读提取

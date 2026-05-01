@@ -2,6 +2,13 @@
 
 主流程以 `SKILL.md` 为准。本文件补充 route、environment、bootstrap 的组合用法。
 
+边界：
+
+```text
+route/mock 只为真实 controlled-testing、diagnostics、extraction 复现场景服务
+不是通用 mocking 平台
+```
+
 ## Mock
 
 固定响应：

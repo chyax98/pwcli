@@ -211,23 +211,6 @@ pw state diff --session bug-a --before before.json --after after.json
 
 Recreate the snapshot files with `pw state diff` and compare again. Do not point the command at arbitrary JSON files.
 
-## MCP recovery
-
-### `MCP_SERVER_FAILED`
-
-Meaning:
-
-- `pw mcp serve` failed while starting or serving the stdio MCP surface
-
-Recovery:
-
-```bash
-pw mcp schema
-pw mcp serve
-```
-
-Make sure the MCP client is speaking stdio framing with `Content-Length` headers, then re-check the tool arguments being sent.
-
 ## System Chrome profile failures
 
 ### `CHROME_PROFILE_NOT_FOUND`
