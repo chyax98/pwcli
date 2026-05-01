@@ -3,7 +3,9 @@ import { dirname, resolve } from "node:path";
 import {
   managedBootstrapApply,
   managedClick,
+  managedErrors,
   managedFill,
+  managedObserveStatus,
   managedOpen,
   managedPageCurrent,
   managedPageDialogs,
@@ -11,6 +13,7 @@ import {
   managedPageList,
   managedPress,
   managedReadText,
+  managedRoute,
   managedRunCode,
   managedScreenshot,
   managedScroll,
@@ -20,11 +23,6 @@ import {
   managedType,
   managedWait,
 } from "../../infra/playwright/runtime.js";
-import {
-  managedErrors,
-  managedObserveStatus,
-  managedRoute,
-} from "../../domain/diagnostics/service.js";
 
 const SUPPORTED_BATCH_TOP_LEVEL = [
   "bootstrap",

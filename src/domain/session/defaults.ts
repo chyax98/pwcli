@@ -1,7 +1,7 @@
 import { constants } from "node:fs";
 import { access, readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { managedTrace } from "../diagnostics/service.js";
+import { managedTrace } from "../../infra/playwright/runtime.js";
 
 export type SessionDefaults = {
   headed: boolean;

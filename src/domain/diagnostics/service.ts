@@ -1,15 +1,5 @@
 import { listRunDirs, readRunEvents } from "../../infra/fs/run-artifacts.js";
-import {
-  managedConsole,
-  managedDiagnosticsExport,
-  managedErrors,
-  managedHar,
-  managedNetwork,
-  managedObserveStatus,
-  managedRoute,
-  managedTrace,
-  managedTraceInspect,
-} from "../../infra/playwright/runtime.js";
+import { managedDiagnosticsExport } from "../../infra/playwright/runtime.js";
 
 type SignalRecord = {
   kind: string;
@@ -743,15 +733,3 @@ export async function managedDiagnosticsBundle(options: { sessionName: string; l
     },
   };
 }
-
-export {
-  managedConsole,
-  managedDiagnosticsExport,
-  managedErrors,
-  managedHar,
-  managedNetwork,
-  managedObserveStatus,
-  managedRoute,
-  managedTrace,
-  managedTraceInspect,
-};

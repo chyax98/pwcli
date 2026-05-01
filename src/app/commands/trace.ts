@@ -1,5 +1,5 @@
 import type { Command } from "commander";
-import { managedTrace, managedTraceInspect } from "../../domain/diagnostics/service.js";
+import { managedTrace, managedTraceInspect } from "../../infra/playwright/runtime.js";
 import { printCommandError, printCommandResult } from "../output.js";
 import {
   addSessionOption,

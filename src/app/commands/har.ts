@@ -1,5 +1,5 @@
 import type { Command } from "commander";
-import { managedHar } from "../../domain/diagnostics/service.js";
+import { managedHar } from "../../infra/playwright/runtime.js";
 import { printCommandResult } from "../output.js";
 import {
   addSessionOption,

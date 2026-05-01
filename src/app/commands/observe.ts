@@ -1,5 +1,5 @@
 import type { Command } from "commander";
-import { managedObserveStatus } from "../../domain/diagnostics/service.js";
+import { managedObserveStatus } from "../../infra/playwright/runtime.js";
 import { printCommandResult } from "../output.js";
 import {
   addSessionOption,

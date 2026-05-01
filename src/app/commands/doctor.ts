@@ -4,7 +4,7 @@ import { homedir } from "node:os";
 import { resolve } from "node:path";
 import { connect as connectTls } from "node:tls";
 import type { Command } from "commander";
-import { managedObserveStatus } from "../../domain/diagnostics/service.js";
+import { managedObserveStatus } from "../../infra/playwright/runtime.js";
 import {
   getManagedSessionEntry,
   getManagedSessionStatus,

@@ -1,5 +1,5 @@
 import type { Command } from "commander";
-import { managedNetwork } from "../../domain/diagnostics/service.js";
+import { managedNetwork } from "../../infra/playwright/runtime.js";
 import { printCommandResult } from "../output.js";
 import {
   addSessionOption,

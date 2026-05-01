@@ -1,5 +1,5 @@
 import type { Command } from "commander";
-import { managedErrors } from "../../domain/diagnostics/service.js";
+import { managedErrors } from "../../infra/playwright/runtime.js";
 import { printCommandResult } from "../output.js";
 import {
   addSessionOption,
