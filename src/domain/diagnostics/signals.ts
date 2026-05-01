@@ -12,6 +12,10 @@ import {
 const TRACKING_DOMAINS = [
   "google-analytics.com",
   "googletagmanager.com",
+  "googlesyndication.com",
+  "googleadservices.com",
+  "adtrafficquality.google",
+  "adservice.google.com",
   "doubleclick.net",
   "facebook.com/tr",
   "connect.facebook.net",
@@ -39,7 +43,11 @@ function isTrackingPixel(url: string | null): boolean {
 
 function isResourceLoadNoise(text: string | null): boolean {
   if (!text) return false;
-  return /^Failed to load resource:.*\b(404|403|401)\b/.test(text);
+  if (/^Failed to load resource:.*\b(404|403|401)\b/.test(text)) return true;
+  if (/violates the following Content Security Policy/.test(text) &&
+      /adtrafficquality|googlesyndication|googleadservice|doubleclick|facebook\.com\/tr/.test(text)) return true;
+  if (/^Loading the image 'data:image\/svg/.test(text)) return true;
+  return false;
 }
 
 function toConsoleSignal(record: Record<string, unknown>): SignalRecord {
@@ -154,9 +162,9 @@ export function buildSessionDigestFromExport(
   const topSignals = limitSignals(
     [
       ...pageErrors.map(toPageErrorSignal),
-      ...consoleErrors.map(toConsoleSignal),
+      ...criticalConsoleErrors.map(toConsoleSignal),
       ...consoleWarnings.map(toConsoleSignal),
-      ...failedRequests.map(toNetworkSignal),
+      ...firstPartyFailedRequests.map(toNetworkSignal),
       ...httpErrors.map(toNetworkSignal),
     ],
     limit,
