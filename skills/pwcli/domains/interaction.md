@@ -130,8 +130,20 @@ Interaction domain 解决的是：
 
 ### 5.2 `--nth`
 
-当同一定位命中多个目标时，`--nth <n>` 是 disambiguation 手段。  
+当同一定位命中多个目标时，`--nth <n>` 是 disambiguation 手段。
 它是 1-based。
+
+### 5.3 语义定位是 substring 匹配
+
+`--text`、`--label`、`--placeholder`、`--role --name` 使用 substring 匹配（Playwright `exact: false`）。
+
+这意味着：
+
+- `--text 'Submit'` 匹配 "Submit order"
+- `--label 'Customer name'` 匹配 "Customer name:"
+- `--placeholder 'Search'` 匹配 "Search products..."
+
+多匹配时用 `--nth` 或更精确的 selector 消歧。
 
 ### 5.3 Snapshot refs are not permanent ids
 

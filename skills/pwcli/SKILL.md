@@ -170,6 +170,8 @@ pw verify text -s bug-a --text '保存成功'
 
 `locate/get/is/verify` 适合脚本断言和低噪声状态读取。`locate` 的 `count` 是总匹配数，候选最多展示前 10 个；根据 `href`、`role/name`、`region`、`ancestor`、`selectorHint` 决定下一步 selector 或语义 locator。需要 fresh ref 或页面结构时继续用 `snapshot -i`；不要把这些命令当 action planner。
 
+语义定位（`--text`、`--label`、`--placeholder`、`--role --name`）使用 substring 匹配。`--text 'Submit'` 匹配 "Submit order"，`--label 'Email'` 匹配 "Email address:"。多匹配时用 `--nth` 消歧。
+
 需要 ref 点击或结构定位：
 
 ```bash

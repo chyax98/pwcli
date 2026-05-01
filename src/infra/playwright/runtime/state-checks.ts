@@ -59,18 +59,18 @@ function targetBaseExpression(target: StateTarget) {
     return `page.locator(${JSON.stringify(target.selector)})`;
   }
   if ("text" in target) {
-    return `page.getByText(${JSON.stringify(target.text)}, { exact: true })`;
+    return `page.getByText(${JSON.stringify(target.text)}, { exact: false })`;
   }
   if ("role" in target) {
     return `page.getByRole(${JSON.stringify(target.role)}, ${
-      target.name ? `{ name: ${JSON.stringify(target.name)}, exact: true }` : "undefined"
+      target.name ? `{ name: ${JSON.stringify(target.name)}, exact: false }` : "undefined"
     })`;
   }
   if ("label" in target) {
-    return `page.getByLabel(${JSON.stringify(target.label)}, { exact: true })`;
+    return `page.getByLabel(${JSON.stringify(target.label)}, { exact: false })`;
   }
   if ("placeholder" in target) {
-    return `page.getByPlaceholder(${JSON.stringify(target.placeholder)}, { exact: true })`;
+    return `page.getByPlaceholder(${JSON.stringify(target.placeholder)}, { exact: false })`;
   }
   return `page.getByTestId(${JSON.stringify(target.testid)})`;
 }

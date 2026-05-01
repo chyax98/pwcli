@@ -112,6 +112,8 @@ state / auth / batch / environment 命令见 `command-reference-advanced.md`。
 
 低噪声定位，返回总匹配数 `count` 和最多 10 个候选摘要；不返回 ref，不生成动作计划。
 
+语义定位（`--text`、`--label`、`--placeholder`、`--role --name`）使用 substring 匹配。例如 `--text 'Submit'` 匹配 "Submit order"，`--label 'Customer name'` 匹配 "Customer name:"。多匹配时用 `--nth` 消歧。
+
 候选 metadata：
 
 - `index`：1-based candidate index；传 `--nth <n>` 时仍保留总 `count`，候选只返回该 index。
@@ -154,6 +156,8 @@ state / auth / batch / environment 命令见 `command-reference-advanced.md`。
 ### `pw verify <assertion> --session <name>`
 
 Read-only assertion command for agent loops after actions and waits. Success returns `{ assertion, passed: true, actual, expected, target?, count?, retryable: false, suggestions: [] }`. Failure exits non-zero with `VERIFY_FAILED` and the same assertion result under `error.details`.
+
+`text` / `text-absent` 使用 substring 匹配。`verify text --text 'Saved'` 匹配 "Saved successfully"。
 
 Assertions:
 
@@ -204,6 +208,8 @@ Use `locate/get/is/verify` for narrow state checks. Use `snapshot -i` when you n
 
 定位：aria ref / `--selector` / `--role <role> --name <name>` / `--text` / `--label` / `--placeholder` / `--test-id`；附加 `--nth <n>`（1-based）
 
+语义定位（`--text`、`--label`、`--placeholder`、`--role --name`）使用 substring 匹配。`--text 'Submit'` 匹配 "Submit order"。多匹配时用 `--nth` 消歧。
+
 `--nth` 对 selector 和语义定位都生效；多匹配 selector 会先应用 `.nth(n-1)` 再执行 click，不触发 Playwright strict-mode 多匹配。
 
 所有 click 定位方式都会记录 action evidence：`target`、`diagnosticsDelta`、`run`。需要追踪动作后信号时用 `diagnostics runs/show/grep` 查对应 run。
@@ -212,6 +218,8 @@ Use `locate/get/is/verify` for narrow state checks. Use `snapshot -i` when you n
 
 定位：aria ref / `--selector` / `--role <role> --name <name>` / `--text` / `--label` / `--placeholder` / `--test-id`；附加 `--nth <n>`（1-based）
 
+语义定位使用 substring 匹配。`--label 'Email'` 匹配 "Email address:"。多匹配时用 `--nth` 消歧。
+
 `--nth` 对 selector 和语义定位都生效；多匹配 selector 会先应用 `.nth(n-1)` 再填值。
 
 有 `--selector` 或语义定位参数时，所有 `parts` 拼成填充值；否则第一个 part 是 ref，后续 parts 拼成填充值。
@@ -219,6 +227,8 @@ Use `locate/get/is/verify` for narrow state checks. Use `snapshot -i` when you n
 ### `pw type [parts...] --session <name>`
 
 定位：focused element / aria ref / `--selector` / `--role <role> --name <name>` / `--text` / `--label` / `--placeholder` / `--test-id`；附加 `--nth <n>`（1-based）
+
+语义定位使用 substring 匹配。多匹配时用 `--nth` 消歧。
 
 `--nth` 对 selector 和语义定位都生效；多匹配 selector 会先应用 `.nth(n-1)` 再输入。
 
@@ -274,6 +284,8 @@ Use `locate/get/is/verify` for narrow state checks. Use `snapshot -i` when you n
 ### `pw wait [target] --session <name>`
 
 条件（一次只等一个）：毫秒 delay / aria ref / `--text` / `--selector` / `network-idle`（或 `--networkidle`）/ `--request <url>` / `--response <url>`
+
+`--text` 使用 substring 匹配。`wait --text 'Saved'` 匹配 "Saved successfully"。
 
 附加过滤：`--method <method>`、`--status <code>`
 

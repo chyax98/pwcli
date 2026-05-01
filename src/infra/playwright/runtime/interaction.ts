@@ -705,14 +705,14 @@ function selectorActionSource(
 function semanticLocatorExpression(target: ReturnType<typeof normalizeSemanticTarget>) {
   return target.kind === "role"
     ? `page.getByRole(${JSON.stringify(target.role)}, ${
-        target.name ? `{ name: ${JSON.stringify(target.name)}, exact: true }` : "undefined"
+        target.name ? `{ name: ${JSON.stringify(target.name)}, exact: false }` : "undefined"
       })`
     : target.kind === "text"
-      ? `page.getByText(${JSON.stringify(target.text)}, { exact: true })`
+      ? `page.getByText(${JSON.stringify(target.text)}, { exact: false })`
       : target.kind === "label"
-        ? `page.getByLabel(${JSON.stringify(target.label)}, { exact: true })`
+        ? `page.getByLabel(${JSON.stringify(target.label)}, { exact: false })`
         : target.kind === "placeholder"
-          ? `page.getByPlaceholder(${JSON.stringify(target.placeholder)}, { exact: true })`
+          ? `page.getByPlaceholder(${JSON.stringify(target.placeholder)}, { exact: false })`
           : `page.getByTestId(${JSON.stringify(target.testid)})`;
 }
 
@@ -1885,7 +1885,7 @@ export async function managedWait(options: {
     source = `async page => { await page.locator(${JSON.stringify(options.selector)}).waitFor(); return 'selector'; }`;
   } else if (options.text) {
     condition = { kind: "text", text: options.text };
-    source = `async page => { await page.getByText(${JSON.stringify(options.text)}, { exact: true }).waitFor(); return 'text'; }`;
+    source = `async page => { await page.getByText(${JSON.stringify(options.text)}, { exact: false }).waitFor(); return 'text'; }`;
   } else if (options.target) {
     condition = { kind: "ref", ref: normalizeRef(options.target) };
     source = `async page => { await page.locator(${JSON.stringify(`aria-ref=${normalizeRef(options.target)}`)}).waitFor(); return 'ref'; }`;
