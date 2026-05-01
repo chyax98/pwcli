@@ -445,14 +445,45 @@ export async function managedSnapshotStatus(options?: { sessionName?: string }) 
         });
       }
 
+      // Detect visible HTML modals that may block interactions.
+      const modalSelectors = [
+        '[role="dialog"]',
+        '[role="alertdialog"]',
+        '[aria-modal="true"]',
+        '.modal',
+        '.ant-modal',
+        '.el-dialog',
+      ];
+      const blockingModals = await page.evaluate((selectors) => {
+        return Array.from(document.querySelectorAll(selectors.join(',')))
+          .filter(el => {
+            if (!(el instanceof HTMLElement)) return false;
+            const style = window.getComputedStyle(el);
+            if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') return false;
+            const rect = el.getBoundingClientRect();
+            return rect.width > 0 && rect.height > 0;
+          })
+          .map(el => {
+            const text = (el.innerText || el.textContent || '').replace(/\\s+/g, ' ').trim();
+            return {
+              role: el.getAttribute('role') || 'dialog',
+              text: text.substring(0, 100),
+            };
+          })
+          .filter(m => m.text);
+      }, modalSelectors);
+
       return JSON.stringify({
         status: 'fresh',
-        detail: 'snapshot matches current page state',
+        detail: blockingModals.length > 0
+          ? 'snapshot matches current page state, but ' + blockingModals.length + ' modal(s) may block interactions'
+          : 'snapshot matches current page state',
         snapshotId: epoch.snapshotId,
         pageId: currentPageId,
         navigationId: currentNavigationId,
         refCount: Array.isArray(epoch.refs) ? epoch.refs.length : 0,
         currentUrl: page.url(),
+        blockingModals: blockingModals.length > 0 ? blockingModals : undefined,
       });
     }`,
   });
