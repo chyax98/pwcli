@@ -186,7 +186,7 @@ Use `locate/get/is/verify` for narrow state checks. Use `snapshot -i` when you n
 
 - `-i, --interactive`：只输出可交互节点（找 ref 首选）
 - `-c, --compact`：移除低信号结构节点
-- `snapshot status`：检查当前 snapshot 是否 fresh / stale / navigated / missing
+- `snapshot status`：检查当前 snapshot 是否 fresh / stale / navigated / missing；fresh 时检测 blockingModals（HTML modal 阻断交互）
 
 大页面顺序：先 `read-text --selector ... --max-chars ...` 或 `locate` 缩小范围，再 `snapshot -i` / `snapshot -c`，最后才跑全量 `snapshot`。如果当前命令面暴露 depth 参数，优先用 depth 限制层级；不要默认倾倒全量结构树。
 
