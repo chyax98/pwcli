@@ -13,9 +13,6 @@ export async function managedWorkspaceProjection(options?: { sessionName?: strin
   const result = await managedRunCode({
     sessionName: options?.sessionName,
     source: `async page => {
-      const context = page.context();
-      const state = context[${JSON.stringify(DIAGNOSTICS_STATE_KEY)}] ||= {};
-      state.dialogRecords = Array.isArray(state.dialogRecords) ? state.dialogRecords : [];
       ${pageIdRuntimePrelude()}
 
       const pages = context.pages();
@@ -197,11 +194,8 @@ type PageAssessSignals = {
   };
 };
 
-export async function managedPageAssess(options?: { sessionName?: string }) {
-  const projection = await managedWorkspaceProjection({ sessionName: options?.sessionName });
-  const assessment = await managedRunCode({
-    sessionName: options?.sessionName,
-    source: `async page => {
+function pageAssessSource() {
+  return `async page => {
       return await page.evaluate(() => {
         const bodyText = document.body?.innerText?.replace(/\\s+/g, ' ').trim() ?? '';
         const countVisible = (selector) =>
@@ -261,7 +255,14 @@ export async function managedPageAssess(options?: { sessionName?: string }) {
           runtimeHints,
         });
       });
-    }`,
+    }`;
+}
+
+export async function managedPageAssess(options?: { sessionName?: string }) {
+  const projection = await managedWorkspaceProjection({ sessionName: options?.sessionName });
+  const assessment = await managedRunCode({
+    sessionName: options?.sessionName,
+    source: pageAssessSource(),
   });
   const signals = assessment.data.result as PageAssessSignals;
   const runtimeHintCount = Object.values(signals.runtimeHints ?? {}).filter(Boolean).length;

@@ -683,11 +683,7 @@ export async function managedObserveStatus(options?: { sessionName?: string }) {
     sessionName: options?.sessionName,
     source: `async page => {
       const context = page.context();
-      const state = context[${JSON.stringify(DIAGNOSTICS_STATE_KEY)}] ||= {};
-      state.consoleRecords = Array.isArray(state.consoleRecords) ? state.consoleRecords : [];
-      state.networkRecords = Array.isArray(state.networkRecords) ? state.networkRecords : [];
-      state.pageErrorRecords = Array.isArray(state.pageErrorRecords) ? state.pageErrorRecords : [];
-      state.dialogRecords = Array.isArray(state.dialogRecords) ? state.dialogRecords : [];
+      const state = context[${JSON.stringify(DIAGNOSTICS_STATE_KEY)}] || {};
       const clearedCount = Number.isInteger(state.pageErrorClearedCount) ? state.pageErrorClearedCount : 0;
       const visibleCount = Math.max(0, state.pageErrorRecords.length - clearedCount);
       const routes = Array.isArray(state.routes) ? state.routes : [];
