@@ -125,6 +125,13 @@ try {
       confidence: string;
       blockedState: string;
       recommendedAction: string;
+      capability: {
+        capability: string;
+        supported: boolean;
+        available: boolean;
+        blocked: boolean;
+        reusableStateLikely: boolean;
+      };
       signals: {
         pageIdentity: unknown[];
         protectedResource: unknown[];
@@ -137,6 +144,11 @@ try {
   assert.equal(authenticatedEnvelope.data.confidence, "high");
   assert.equal(authenticatedEnvelope.data.blockedState, "none");
   assert.equal(authenticatedEnvelope.data.recommendedAction, "continue");
+  assert.equal(authenticatedEnvelope.data.capability.capability, "auth-state-probe");
+  assert.equal(authenticatedEnvelope.data.capability.supported, true);
+  assert.equal(authenticatedEnvelope.data.capability.available, true);
+  assert.equal(authenticatedEnvelope.data.capability.blocked, false);
+  assert.equal(authenticatedEnvelope.data.capability.reusableStateLikely, true);
   assert.ok(authenticatedEnvelope.data.signals.pageIdentity.length >= 2);
   assert.ok(authenticatedEnvelope.data.signals.protectedResource.length >= 2);
   assert.ok(authenticatedEnvelope.data.signals.storage.length >= 3);
@@ -159,6 +171,11 @@ try {
       blockedState: string;
       recommendedAction: string;
       requestedUrl: string;
+      capability: {
+        available: boolean;
+        blocked: boolean;
+        reusableStateLikely: boolean;
+      };
     };
   };
   assert.equal(anonymousEnvelope.ok, true);
@@ -166,6 +183,9 @@ try {
   assert.equal(anonymousEnvelope.data.blockedState, "none");
   assert.equal(anonymousEnvelope.data.recommendedAction, "reauth");
   assert.equal(anonymousEnvelope.data.requestedUrl, loginUrl);
+  assert.equal(anonymousEnvelope.data.capability.available, false);
+  assert.equal(anonymousEnvelope.data.capability.blocked, false);
+  assert.equal(anonymousEnvelope.data.capability.reusableStateLikely, false);
 
   const challengeProbe = await runPw([
     "auth",
@@ -184,12 +204,18 @@ try {
       status: string;
       blockedState: string;
       recommendedAction: string;
+      capability: {
+        available: boolean;
+        blocked: boolean;
+      };
     };
   };
   assert.equal(challengeEnvelope.ok, true);
   assert.equal(challengeEnvelope.data.status, "uncertain");
   assert.equal(challengeEnvelope.data.blockedState, "challenge");
   assert.equal(challengeEnvelope.data.recommendedAction, "human_handoff");
+  assert.equal(challengeEnvelope.data.capability.available, false);
+  assert.equal(challengeEnvelope.data.capability.blocked, true);
 
   const closeResult = await runPw(["session", "close", sessionName, "--output", "json"]);
   assert.equal(closeResult.code, 0, `session close failed: ${JSON.stringify(closeResult)}`);

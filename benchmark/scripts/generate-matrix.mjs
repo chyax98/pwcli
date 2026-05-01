@@ -3,6 +3,7 @@ import { dirname, resolve } from "node:path";
 
 const repoRoot = resolve(import.meta.dirname, "..", "..");
 const defaultGeneratedRoot = resolve(repoRoot, "benchmark", "tasks", "generated");
+const BENCHMARK_MATRIX_CONTRACT_VERSION = 1;
 
 function pad(value) {
   return String(value).padStart(2, "0");
@@ -170,6 +171,7 @@ export async function generateMatrix(options = {}) {
   }
 
   const manifest = {
+    contractVersion: BENCHMARK_MATRIX_CONTRACT_VERSION,
     generatedAt: new Date().toISOString(),
     total: tasks.length,
     families: {

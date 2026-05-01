@@ -16,6 +16,7 @@
 - `dashboard open` exposes Playwright-core's bundled session dashboard as a thin wrapper.
 - `session list --attachable` exposes Playwright server-registry discovery as read-only attach candidates.
 - `session attach --attachable-id <id>` attaches to one connectable server returned by `session list --attachable`
+- `session list --attachable` also projects machine-readable capability facts for workspace-level attachability and per-target attach capability
 - session 名硬限制：
   - 最长 16 字符
   - 只允许字母、数字、`-`、`_`
@@ -113,6 +114,12 @@
 - `kind: "article"` single-container extraction
 - optional dotted-path `runtimeGlobal` probe
 - optional artifact write via `--out`
+- stable extraction artifact contract:
+  - `recipeId`
+  - `url`
+  - `generatedAt`
+  - `items[]`
+  - `stats`
 - bundled recipe pack for GitHub issue/PR lists and generic table rows
 
 ### 当前限制
@@ -120,6 +127,7 @@
 - 只读，不做 mutation
 - `runtimeGlobal` 只允许 dotted path，不允许任意表达式
 - 当前只输出 JSON artifact
+- CLI payload and `--out` artifact still carry `recipe`, `recordCount`, and `records[]` as compatibility aliases over the newer contract
 - 不做自动分页、跨页抓取、site pack marketplace
 - 不替代 `pw code` 的 ad-hoc 调试能力，也不替代 `bootstrap apply --init-script` 的 preload/runtime patch lane
 
@@ -137,12 +145,15 @@
 - `mcp serve`
 - stdio MCP server
 - thin tool surface over session/read/extract/diagnostics lanes
+- schema contract includes protocol/server/transport/capabilities/surface metadata
+- tool argument validation rejects non-object arguments, unknown keys, and obvious type mismatches before dispatch
 
 ### 当前限制
 
 - 当前不是全量 command parity
 - 只暴露高频 tools：session create/list/status/attachable list、open、page assess、auth probe、read text、interactive snapshot、diagnostics digest、extract run
 - CLI 仍然是主入口，MCP 是第二出口
+- MCP tool registry/dispatch lives in `src/domain/mcp/service.ts`; `src/infra/mcp/server.ts` only holds stdio framing + JSON-RPC handling
 
 ### 后续扩展
 
@@ -158,8 +169,10 @@
 - `storage local|session` read + current-origin `get|set|delete|clear`
 - `storage indexeddb export` read-only current-origin summary + optional sampled previews
 - `auth probe` read-only auth-state heuristic with `authenticated|anonymous|uncertain`, `confidence`, `blockedState`, `recommendedAction`, and three signal layers (`pageIdentity` / `protectedResource` / `storage`)
+- `auth probe` also projects machine-readable capability facts: `available`, `blocked`, `reusableStateLikely`
 - `profile inspect`
 - `profile list-chrome` discovers local Chrome profiles for `session create --from-system-chrome`
+- `profile inspect` / `profile list-chrome` project capability facts for persistent-profile-path and system-chrome-profile-source
 - `auth` 内置 provider 执行 + `save-state`
 - `dc` 是内置 DC/Forge auth provider；默认手机号和验证码内聚在 provider 内，目标解析顺序为显式 `targetUrl`、当前 Forge 页面、默认本地 Forge
 - `fixture-auth` 是内部 contract 测试 provider，用于 smoke 验证 auth 执行链
@@ -229,12 +242,15 @@
 - machine-readable taxonomy
 - generated deterministic task matrix
 - closure suite script
+- nightly regression runner
+- versioned score/report contract
 
 ### 当前限制
 
 - 当前 benchmark 主体是 deterministic fixture suite，不是 real-site automation
 - runner 串行执行，不做并发调度
 - summary 目前输出 `summary.json` / `summary.md`，不做 HTML 报告
+- nightly surface still uses the same deterministic runner substrate; it is report promotion, not a new browser contract
 - 任务 corpus 通过 generator 产出，不承诺每个 JSON 都手工维护
 
 ### 后续扩展

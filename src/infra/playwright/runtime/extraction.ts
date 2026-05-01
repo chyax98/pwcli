@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { managedRunCode } from "./code.js";
@@ -54,8 +55,30 @@ type ExtractRunPayload = {
   format: "json";
   recipe: NormalizedExtractRecipe;
   recordCount: number;
-  records: Array<Record<string, unknown>>;
+  records: unknown[];
   runtimeProbe?: RuntimeProbeResult;
+};
+
+type ExtractArtifact = {
+  recipeId: string;
+  url: string;
+  generatedAt: string;
+  items: Array<Record<string, unknown>>;
+  stats: {
+    kind: "list" | "article";
+    itemCount: number;
+    fieldCount: number;
+    limit: number;
+    runtimeProbePath?: string;
+    runtimeProbeFound?: boolean;
+  };
+  runtimeProbe?: RuntimeProbeResult;
+};
+
+type ExtractArtifactPayload = ExtractArtifact & {
+  recipe: NormalizedExtractRecipe;
+  recordCount: number;
+  records: Array<Record<string, unknown>>;
 };
 
 function invalidRecipe(message: string): never {
@@ -311,11 +334,109 @@ async function loadRecipe(path: string) {
   };
 }
 
-async function writeArtifact(path: string, payload: ExtractRunPayload) {
+async function writeArtifact(path: string, payload: ExtractArtifactPayload) {
   const resolved = resolve(path);
   await mkdir(dirname(resolved), { recursive: true });
   await writeFile(resolved, JSON.stringify(payload, null, 2), "utf8");
   return resolved;
+}
+
+function recipeIdFor(recipe: NormalizedExtractRecipe) {
+  const hash = createHash("sha256").update(JSON.stringify(recipe)).digest("hex").slice(0, 12);
+  return `extract:${recipe.kind}:${hash}`;
+}
+
+function normalizeRuntimeProbe(value: unknown): RuntimeProbeResult | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+  const probe = value as Record<string, unknown>;
+  if (typeof probe.path !== "string" || typeof probe.found !== "boolean") {
+    return undefined;
+  }
+  return {
+    path: probe.path,
+    found: probe.found,
+    ...(Object.prototype.hasOwnProperty.call(probe, "value") ? { value: probe.value } : {}),
+  };
+}
+
+function normalizePage(
+  value: unknown,
+  fallback:
+    | {
+        url?: string;
+        title?: string;
+      }
+    | undefined,
+) {
+  const page =
+    value && typeof value === "object" && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : null;
+  const url =
+    typeof page?.url === "string"
+      ? page.url
+      : typeof fallback?.url === "string"
+        ? fallback.url
+        : "";
+  const title =
+    typeof page?.title === "string"
+      ? page.title
+      : typeof fallback?.title === "string"
+        ? fallback.title
+        : "";
+  return url || title ? { url, title } : undefined;
+}
+
+function normalizeItems(records: unknown[]) {
+  return records.filter(
+    (record): record is Record<string, unknown> =>
+      Boolean(record) && typeof record === "object" && !Array.isArray(record),
+  );
+}
+
+function buildArtifact(options: {
+  recipe: NormalizedExtractRecipe;
+  page: {
+    url?: string;
+    title?: string;
+  };
+  records: unknown[];
+  runtimeProbe?: RuntimeProbeResult;
+}): ExtractArtifact {
+  const items = normalizeItems(options.records);
+  return {
+    recipeId: recipeIdFor(options.recipe),
+    url: options.page.url ?? "",
+    generatedAt: new Date().toISOString(),
+    items,
+    stats: {
+      kind: options.recipe.kind,
+      itemCount: items.length,
+      fieldCount: Object.keys(options.recipe.fields).length,
+      limit: options.recipe.limit,
+      ...(options.runtimeProbe
+        ? {
+            runtimeProbePath: options.runtimeProbe.path,
+            runtimeProbeFound: options.runtimeProbe.found,
+          }
+        : {}),
+    },
+    ...(options.runtimeProbe ? { runtimeProbe: options.runtimeProbe } : {}),
+  };
+}
+
+function buildArtifactPayload(options: {
+  recipe: NormalizedExtractRecipe;
+  artifact: ExtractArtifact;
+}): ExtractArtifactPayload {
+  return {
+    ...options.artifact,
+    recipe: options.recipe,
+    recordCount: options.artifact.stats.itemCount,
+    records: options.artifact.items,
+  };
 }
 
 export async function managedExtractRun(options: ManagedExtractRunOptions) {
@@ -331,34 +452,27 @@ export async function managedExtractRun(options: ManagedExtractRunOptions) {
   if (!payload || !Array.isArray(payload.records) || typeof payload.recordCount !== "number") {
     throw new Error("EXTRACT_RESULT_INVALID");
   }
-
-  const normalizedPayload: ExtractRunPayload = {
-    format: "json",
+  const page = normalizePage(payload.page, result.page);
+  const runtimeProbe = normalizeRuntimeProbe(payload.runtimeProbe);
+  const artifact = buildArtifact({
     recipe,
-    recordCount: payload.recordCount,
-    records: payload.records.filter(
-      (record): record is Record<string, unknown> =>
-        Boolean(record) && typeof record === "object" && !Array.isArray(record),
-    ),
-    ...(payload.runtimeProbe && typeof payload.runtimeProbe === "object"
-      ? { runtimeProbe: payload.runtimeProbe as RuntimeProbeResult }
-      : {}),
-  };
-
-  const artifactPath = options.out ? await writeArtifact(options.out, normalizedPayload) : undefined;
+    page: page ?? {},
+    records: payload.records,
+    runtimeProbe,
+  });
+  const artifactPayload = buildArtifactPayload({
+    recipe,
+    artifact,
+  });
+  const artifactPath = options.out ? await writeArtifact(options.out, artifactPayload) : undefined;
 
   return {
     session: result.session,
-    page:
-      payload.page &&
-      typeof payload.page === "object" &&
-      typeof payload.page.url === "string" &&
-      typeof payload.page.title === "string"
-        ? payload.page
-        : result.page,
+    page: page ?? result.page,
     data: {
-      ...normalizedPayload,
+      format: "json",
       recipePath,
+      ...artifactPayload,
       ...(artifactPath ? { artifactPath } : {}),
     },
   };

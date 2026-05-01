@@ -99,6 +99,15 @@ try {
     params: {},
   });
   assert.equal(initialize.result.protocolVersion, "2024-11-05");
+  assert.deepEqual(initialize.result.serverInfo, {
+    name: "pwcli",
+    version: "0.0.0-dev",
+  });
+  assert.deepEqual(initialize.result.capabilities, {
+    tools: {
+      listChanged: false,
+    },
+  });
 
   const toolsList = await send({
     jsonrpc: "2.0",
@@ -109,6 +118,33 @@ try {
   const toolNames = toolsList.result.tools.map((tool: { name: string }) => tool.name);
   assert.ok(toolNames.includes("session_create"));
   assert.ok(toolNames.includes("page_assess"));
+  const sessionListTool = toolsList.result.tools.find(
+    (tool: { name: string }) => tool.name === "session_list",
+  );
+  assert.ok(sessionListTool);
+  assert.equal(sessionListTool.inputSchema.additionalProperties, false);
+  assert.equal(sessionListTool.annotations.readOnlyHint, true);
+  const openTool = toolsList.result.tools.find((tool: { name: string }) => tool.name === "open");
+  assert.ok(openTool);
+  assert.equal(openTool.inputSchema.additionalProperties, false);
+  assert.equal(openTool.annotations.readOnlyHint, false);
+
+  const invalidArgs = await send({
+    jsonrpc: "2.0",
+    id: 99,
+    method: "tools/call",
+    params: {
+      name: "session_list",
+      arguments: {
+        unexpected: true,
+      },
+    },
+  });
+  assert.equal(invalidArgs.error.code, -32000);
+  assert.match(
+    invalidArgs.error.message,
+    /unknown argument\(s\) for tool 'session_list': unexpected/,
+  );
 
   const createResult = await send({
     jsonrpc: "2.0",
@@ -124,9 +160,24 @@ try {
   });
   assert.equal(createResult.result.structuredContent.data.created, true);
 
+  const attachableResult = await send({
+    jsonrpc: "2.0",
+    id: 5,
+    method: "tools/call",
+    params: {
+      name: "session_attachable_list",
+      arguments: {},
+    },
+  });
+  assert.equal(
+    attachableResult.result.structuredContent.data.capability.capability,
+    "existing-browser-attach",
+  );
+  assert.ok(Array.isArray(attachableResult.result.structuredContent.data.attachable.servers));
+
   const assessResult = await send({
     jsonrpc: "2.0",
-    id: 4,
+    id: 6,
     method: "tools/call",
     params: {
       name: "page_assess",

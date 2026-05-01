@@ -35,6 +35,44 @@ async function getSessionPageSummary(name: string) {
   return parsePageSummary(result.text);
 }
 
+type AttachableBrowserServerList = Awaited<ReturnType<typeof listAttachableBrowserServers>>;
+type AttachableBrowserServer = AttachableBrowserServerList["servers"][number];
+
+function buildAttachableServerCapability(server: AttachableBrowserServer) {
+  return {
+    capability: "existing-browser-attach-target",
+    available: Boolean(server.canConnect && server.endpoint),
+    connectable: server.canConnect,
+    endpointExposed: Boolean(server.endpoint),
+    attachableId: server.id,
+  };
+}
+
+function buildAttachableCapabilityProbe(attachable: AttachableBrowserServerList) {
+  const connectableCount = attachable.servers.filter((server) => server.canConnect).length;
+  const endpointCount = attachable.servers.filter((server) => Boolean(server.endpoint)).length;
+  return {
+    capability: "existing-browser-attach",
+    supported: attachable.supported,
+    available: attachable.servers.some((server) => Boolean(server.canConnect && server.endpoint)),
+    attachableCount: attachable.count,
+    connectableCount,
+    endpointCount,
+    workspaceScoped: true,
+    ...(attachable.limitation ? { limitation: attachable.limitation } : {}),
+  };
+}
+
+function projectAttachableBrowserServers(attachable: AttachableBrowserServerList) {
+  return {
+    ...attachable,
+    servers: attachable.servers.map((server) => ({
+      ...server,
+      capability: buildAttachableServerCapability(server),
+    })),
+  };
+}
+
 export function registerSessionCommand(program: Command): void {
   const session = program.command("session").description("Manage named browser sessions");
 
@@ -46,6 +84,7 @@ export function registerSessionCommand(program: Command): void {
     .action(async (options: { withPage?: boolean; attachable?: boolean }) => {
       try {
         const sessions = await listManagedSessions();
+        const attachable = options.attachable ? await listAttachableBrowserServers() : undefined;
         const enriched = options.withPage
           ? await Promise.all(
               sessions.map(async (entry) => ({
@@ -61,7 +100,12 @@ export function registerSessionCommand(program: Command): void {
             count: enriched.length,
             withPage: Boolean(options.withPage),
             sessions: enriched,
-            ...(options.attachable ? { attachable: await listAttachableBrowserServers() } : {}),
+            ...(attachable
+              ? {
+                  attachable: projectAttachableBrowserServers(attachable),
+                  capability: buildAttachableCapabilityProbe(attachable),
+                }
+              : {}),
           },
         });
       } catch (error) {

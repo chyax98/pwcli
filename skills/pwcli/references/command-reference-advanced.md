@@ -107,12 +107,28 @@
 ### `pw profile inspect <path>`
 
 - 检查 profile 路径是否存在、可写、可用
+- 返回：
+  - `profile`
+  - `capability`
+    - `capability: "persistent-profile-path"`
+    - `supported`
+    - `available`
+    - `exists`
+    - `writable`
+    - `willCreateOnOpen`
 
 ### `pw profile list-chrome`
 
 - 列出本机 Chrome profiles，输出 `directory`、`name`、`userDataDir`、`profilePath`
 - 配合 `pw session create --from-system-chrome --chrome-profile <directory-or-name>` 使用
 - 这是 session 启动身份来源，不是 `auth provider`
+- 额外返回：
+  - `capability`
+    - `capability: "system-chrome-profile-source"`
+    - `supported`
+    - `available`
+    - `profileCount`
+    - `defaultProfileAvailable`
 
 ## Auth
 
@@ -124,6 +140,12 @@
   - `confidence`: `high | medium | low`
   - `blockedState`: `none | challenge | two_factor | interstitial | unknown`
   - `recommendedAction`: `continue | save_state | inspect | reauth | human_handoff`
+  - `capability`
+    - `capability: "auth-state-probe"`
+    - `supported`
+    - `available`
+    - `blocked`
+    - `reusableStateLikely`
   - `signals.pageIdentity[]`
   - `signals.protectedResource[]`
   - `signals.storage[]`
@@ -216,12 +238,32 @@
 返回：
 
 - `format: "json"`
+- `recipePath`
+- `recipeId`
 - `recipe`
+- `url`
+- `generatedAt`
+- `items[]`
+- `stats`
+  - `kind`
+  - `itemCount`
+  - `fieldCount`
+  - `limit`
+  - `runtimeProbePath?`
+  - `runtimeProbeFound?`
 - `recordCount`
 - `records[]`
 - `runtimeProbe`
-- `recipePath`
 - `artifactPath`（仅 `--out`）
+
+说明：
+
+- `items[]` / `stats` 是稳定 artifact contract 的主字段
+- `recordCount` / `records[]` 目前保留为兼容别名：
+  - `recordCount -> stats.itemCount`
+  - `records[] -> items[]`
+- `recipe` 继续保留在 stdout 和 `--out` artifact 里，方便旧调用方平滑迁移
+- `--out` 写出的 artifact 也采用同一组稳定字段
 
 限制：
 
@@ -248,7 +290,26 @@
 
 ### `pw mcp schema`
 
-- 返回 `pwcli` MCP server 的 transport 和入口信息
+- 返回 `pwcli` MCP server 的稳定 contract：
+  - `protocol`
+  - `server`
+  - `transport`
+  - `capabilities`
+  - `surface`
+- `surface` 额外给出：
+  - `contractVersion`
+  - `kind: "thin-wrapper"`
+  - `authoritativeSurface: "cli"`
+  - `commandParity: "subset"`
+  - `lanes[]`
+  - `toolCount`
+  - `tools[]`
+    - `name`
+    - `lane`
+    - `boundary`
+    - `authoritativeCommand`
+    - `readOnly`
+    - `inputSchema`
 
 ### `pw mcp serve`
 
@@ -272,6 +333,10 @@
 - 当前只暴露最常用的 session/read/extract/diagnostics lanes
 - 仍然保留 CLI 为主，MCP 只是第二出口
 - CLI contract 是 authoritative truth；MCP 复用同一批 domain/service，不追求即时 command parity
+- MCP tool 参数按 schema 严格校验：
+  - `arguments` 必须是 object
+  - unknown keys 会直接报错
+  - 不再静默吞掉超出 contract 的参数
 
 ## Batch
 

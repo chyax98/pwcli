@@ -12,6 +12,26 @@ type CliResult = {
   json: unknown;
 };
 
+type ExtractArtifact = {
+  recipeId: string;
+  url: string;
+  generatedAt: string;
+  items: Array<Record<string, unknown>>;
+  stats: {
+    kind: "list" | "article";
+    itemCount: number;
+    fieldCount: number;
+    limit: number;
+    runtimeProbePath?: string;
+    runtimeProbeFound?: boolean;
+  };
+  runtimeProbe?: {
+    path: string;
+    found: boolean;
+    value?: unknown;
+  };
+};
+
 const repoRoot = resolve(import.meta.dirname, "..", "..");
 const cliPath = resolve(repoRoot, "dist", "cli.js");
 const workspaceDir = await mkdtemp(join(tmpdir(), "pwcli-extract-run-"));
@@ -201,24 +221,39 @@ try {
     page: { url: string; title: string };
     data: {
       format: string;
+      recipePath: string;
+      recipeId: string;
+      url: string;
+      generatedAt: string;
+      items: Array<{ title: string; url: string; summary: string }>;
+      stats: ExtractArtifact["stats"];
       recordCount: number;
       records: Array<{ title: string; url: string; summary: string }>;
       artifactPath?: string;
-      runtimeProbe?: {
-        path: string;
-        found: boolean;
-        value: {
-          source: string;
-          topics: string[];
-          meta: { ready: boolean; visibleCount: number };
-        };
-      };
+      runtimeProbe?: ExtractArtifact["runtimeProbe"];
     };
   };
   assert.equal(listEnvelope.ok, true);
   assert.equal(listEnvelope.page.url, listUrl);
   assert.equal(listEnvelope.page.title, "Extraction Fixture List");
   assert.equal(listEnvelope.data.format, "json");
+  assert.equal(listEnvelope.data.recipePath, listRecipePath);
+  assert.match(listEnvelope.data.recipeId, /^extract:list:[0-9a-f]{12}$/);
+  assert.equal(listEnvelope.data.recipe.kind, "list");
+  assert.equal(listEnvelope.data.url, listUrl);
+  assert.equal(Number.isNaN(Date.parse(listEnvelope.data.generatedAt)), false);
+  assert.deepEqual(listEnvelope.data.items, [
+    { title: "Alpha Title", url: `${baseUrl}/posts/alpha`, summary: "Alpha Summary" },
+    { title: "Beta Title", url: `${baseUrl}/posts/beta`, summary: "Beta Summary" },
+  ]);
+  assert.deepEqual(listEnvelope.data.stats, {
+    kind: "list",
+    itemCount: 2,
+    fieldCount: 3,
+    limit: 50,
+    runtimeProbePath: "__PWCLI_RUNTIME__",
+    runtimeProbeFound: true,
+  });
   assert.equal(listEnvelope.data.recordCount, 2);
   assert.deepEqual(listEnvelope.data.records, [
     { title: "Alpha Title", url: `${baseUrl}/posts/alpha`, summary: "Alpha Summary" },
@@ -233,11 +268,21 @@ try {
   });
   assert.equal(listEnvelope.data.artifactPath, outFile);
 
-  const writtenArtifact = JSON.parse(await readFile(outFile, "utf8")) as {
-    recordCount: number;
-    runtimeProbe?: { path: string; found: boolean };
-  };
-  assert.equal(writtenArtifact.recordCount, 2);
+  const writtenArtifact = JSON.parse(await readFile(outFile, "utf8")) as ExtractArtifact;
+  assert.equal((writtenArtifact as ExtractArtifact & { recipe: { kind: string } }).recipe.kind, "list");
+  assert.equal(
+    (writtenArtifact as ExtractArtifact & { recordCount: number }).recordCount,
+    listEnvelope.data.recordCount,
+  );
+  assert.deepEqual(
+    (writtenArtifact as ExtractArtifact & { records: Array<Record<string, unknown>> }).records,
+    listEnvelope.data.records,
+  );
+  assert.equal(writtenArtifact.recipeId, listEnvelope.data.recipeId);
+  assert.equal(writtenArtifact.url, listUrl);
+  assert.equal(writtenArtifact.generatedAt, listEnvelope.data.generatedAt);
+  assert.deepEqual(writtenArtifact.items, listEnvelope.data.items);
+  assert.deepEqual(writtenArtifact.stats, listEnvelope.data.stats);
   assert.equal(writtenArtifact.runtimeProbe?.path, "__PWCLI_RUNTIME__");
   assert.equal(writtenArtifact.runtimeProbe?.found, true);
 
@@ -259,6 +304,13 @@ try {
     ok: boolean;
     page: { url: string; title: string };
     data: {
+      format: string;
+      recipePath: string;
+      recipeId: string;
+      url: string;
+      generatedAt: string;
+      items: Array<{ title: string; body: string; url: string }>;
+      stats: ExtractArtifact["stats"];
       recordCount: number;
       records: Array<{ title: string; body: string; url: string }>;
       runtimeProbe?: unknown;
@@ -267,6 +319,25 @@ try {
   assert.equal(articleEnvelope.ok, true);
   assert.equal(articleEnvelope.page.url, articleUrl);
   assert.equal(articleEnvelope.page.title, "Extraction Fixture Article");
+  assert.equal(articleEnvelope.data.format, "json");
+  assert.equal(articleEnvelope.data.recipePath, articleRecipePath);
+  assert.match(articleEnvelope.data.recipeId, /^extract:article:[0-9a-f]{12}$/);
+  assert.equal((articleEnvelope.data as typeof articleEnvelope.data & { recipe: { kind: string } }).recipe.kind, "article");
+  assert.equal(articleEnvelope.data.url, articleUrl);
+  assert.equal(Number.isNaN(Date.parse(articleEnvelope.data.generatedAt)), false);
+  assert.deepEqual(articleEnvelope.data.items, [
+    {
+      title: "Article Marker",
+      body: "Visible body marker paragraph.",
+      url: `${baseUrl}/docs/article-marker`,
+    },
+  ]);
+  assert.deepEqual(articleEnvelope.data.stats, {
+    kind: "article",
+    itemCount: 1,
+    fieldCount: 3,
+    limit: 1,
+  });
   assert.equal(articleEnvelope.data.recordCount, 1);
   assert.deepEqual(articleEnvelope.data.records, [
     {

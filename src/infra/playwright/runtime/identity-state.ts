@@ -33,6 +33,17 @@ type AuthProbeRecommendedAction =
   | "reauth"
   | "human_handoff";
 
+type AuthProbeCapability = {
+  capability: "auth-state-probe";
+  supported: true;
+  available: boolean;
+  blocked: boolean;
+  reusableStateLikely: boolean;
+  status: AuthProbeStatus;
+  confidence: AuthProbeConfidence;
+  recommendedAction: AuthProbeRecommendedAction;
+};
+
 type StateDiffSnapshotCookie = {
   name: string;
   domain: string;
@@ -956,6 +967,25 @@ function defaultStatePath(sessionName?: string) {
   return resolve(".pwcli", "state", `storage-state-${stamp}${suffix}.json`);
 }
 
+function buildAuthProbeCapability(
+  status: AuthProbeStatus,
+  blockedState: AuthProbeBlockedState,
+  confidence: AuthProbeConfidence,
+  recommendedAction: AuthProbeRecommendedAction,
+): AuthProbeCapability {
+  const available = status === "authenticated" && blockedState === "none";
+  return {
+    capability: "auth-state-probe",
+    supported: true,
+    available,
+    blocked: blockedState !== "none",
+    reusableStateLikely: available,
+    status,
+    confidence,
+    recommendedAction,
+  };
+}
+
 export async function managedStateSave(file?: string, options?: { sessionName?: string }) {
   const path = resolve(file ?? defaultStatePath(options?.sessionName));
   const result = await managedRunCode({
@@ -1143,6 +1173,12 @@ export async function managedAuthProbe(options?: AuthProbeOptions) {
       confidence,
       blockedState,
       recommendedAction,
+      capability: buildAuthProbeCapability(
+        status,
+        blockedState,
+        confidence,
+        recommendedAction,
+      ),
       signals: {
         pageIdentity: Array.isArray((signals as Record<string, unknown>).pageIdentity)
           ? (signals as Record<string, unknown>).pageIdentity

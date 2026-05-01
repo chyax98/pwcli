@@ -1,7 +1,11 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { discoverTaskPaths } from "../../shared/load-task.mjs";
-import { computeBenchmarkScore } from "../../shared/score.mjs";
+import {
+  createBenchmarkSummary,
+  computeBenchmarkScore,
+  renderBenchmarkReport,
+} from "../../shared/score.mjs";
 import { runTask } from "../task/run-task.mjs";
 
 const repoRoot = resolve(import.meta.dirname, "..", "..", "..");
@@ -55,33 +59,10 @@ function parseArgs(argv) {
   return parsed;
 }
 
-function renderSummaryMarkdown(summary) {
-  const familyLines = Object.entries(summary.failureFamilies)
-    .map(([family, count]) => `- ${family}: ${count}`)
-    .join("\n");
-  const lines = [
-    "# Benchmark Summary",
-    "",
-    `Total: ${summary.totals.total}`,
-    `Passed: ${summary.totals.passed}`,
-    `Failed: ${summary.totals.failed}`,
-    "",
-    "## Failure Families",
-    "",
-    familyLines || "- none",
-    "",
-    "| Task | Status | Failure Family |",
-    "|---|---|---|",
-    ...summary.tasks.map(
-      (task) => `| ${task.id} | ${task.status} | ${task.failureFamily ?? "-"} |`,
-    ),
-    "",
-  ];
-  return `${lines.join("\n")}\n`;
-}
-
 export async function runSuite(input) {
-  const taskPaths = await discoverTaskPaths(input.tasks);
+  const taskPaths = (await discoverTaskPaths(input.tasks)).filter(
+    (taskPath) => !taskPath.endsWith("/manifest.json") && !taskPath.endsWith("\\manifest.json"),
+  );
   const tasks = [];
   for (const taskPath of taskPaths) {
     const taskResult = await runTask({
@@ -94,31 +75,28 @@ export async function runSuite(input) {
     tasks.push(taskResult);
   }
 
-  const totals = {
-    total: tasks.length,
-    passed: tasks.filter((task) => task.status === "passed").length,
-    failed: tasks.filter((task) => task.status !== "passed").length,
-  };
-  const failureFamilies = {};
-  for (const task of tasks) {
-    if (!task.failureFamily) {
-      continue;
-    }
-    failureFamilies[task.failureFamily] = (failureFamilies[task.failureFamily] ?? 0) + 1;
-  }
-
-  const summary = {
-    generatedAt: new Date().toISOString(),
-    totals,
-    failureFamilies,
-    tasks,
-  };
-  const score = computeBenchmarkScore(tasks);
+  const generatedAt = new Date().toISOString();
+  const summary = createBenchmarkSummary(tasks, {
+    generatedAt,
+    surface: input.surface,
+    manifest: input.manifest,
+  });
+  const score = computeBenchmarkScore(tasks, {
+    generatedAt,
+    surface: summary.surface,
+  });
 
   const latestDir = resolve(input.reportsDir, "latest");
   await mkdir(latestDir, { recursive: true });
   await writeFile(resolve(latestDir, "summary.json"), JSON.stringify(summary, null, 2));
-  await writeFile(resolve(latestDir, "summary.md"), renderSummaryMarkdown(summary));
+  await writeFile(
+    resolve(latestDir, "summary.md"),
+    await renderBenchmarkReport(summary, {
+      score,
+      reportTitle: input.reportTitle,
+      templatePath: input.summaryTemplatePath,
+    }),
+  );
   await writeFile(resolve(latestDir, "score.json"), JSON.stringify(score, null, 2));
 
   return {

@@ -496,7 +496,11 @@ pw profile inspect ./profile
 pw profile list-chrome
 pw session create bug-a --profile ./profile --persistent --headed --open 'https://example.com'
 pw session create bug-a --from-system-chrome --chrome-profile Default --headed --open 'https://example.com'
+pw auth probe -s bug-a
+pw page assess -s bug-a
 ```
+
+`--from-system-chrome` 只说明 session 启动来源。要证明登录态是否真的可用，继续跑 `pw auth probe`，必要时再用 `pw page assess` 看页面是不是已经落到正确的受保护区域。
 
 ## 10. Controlled Testing
 

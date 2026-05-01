@@ -5,33 +5,18 @@ import { generateMatrix } from "./generate-matrix.mjs";
 import { startFixtureServer } from "../fixtures/server.mjs";
 import { createClosureSessionName, runLoadedTask, spawnPw } from "../runners/task/run-task.mjs";
 import { discoverTaskPaths, loadTaskList } from "../shared/load-task.mjs";
-import { computeBenchmarkScore } from "../shared/score.mjs";
+import {
+  createBenchmarkSummary,
+  computeBenchmarkScore,
+  renderBenchmarkReport,
+} from "../shared/score.mjs";
 
 const repoRoot = resolve(import.meta.dirname, "..", "..");
 
-function renderSummaryMarkdown(summary) {
-  const familyLines = Object.entries(summary.failureFamilies)
-    .map(([family, count]) => `- ${family}: ${count}`)
-    .join("\n");
-  const lines = [
-    "# Closure Benchmark Summary",
-    "",
-    `Total: ${summary.totals.total}`,
-    `Passed: ${summary.totals.passed}`,
-    `Failed: ${summary.totals.failed}`,
-    "",
-    "## Failure Families",
-    "",
-    familyLines || "- none",
-    "",
-    "| Task | Category | Status | Failure Family |",
-    "|---|---|---|---|",
-    ...summary.tasks.map(
-      (task) => `| ${task.id} | ${task.category} | ${task.status} | ${task.failureFamily ?? "-"} |`,
-    ),
-    "",
-  ];
-  return `${lines.join("\n")}\n`;
+function parseArgs(argv) {
+  return {
+    resume: argv.includes("--resume"),
+  };
 }
 
 function groupTasks(tasks) {
@@ -76,8 +61,8 @@ async function runGroupedTasks(tasks, context) {
   return summaries;
 }
 
-export async function runClosureSuite() {
-  const resume = process.argv.includes("--resume");
+export async function runClosureSuite(options = {}) {
+  const resume = options.resume === true;
   const manifest = await generateMatrix();
   const fixture = await startFixtureServer();
   const workspaceDir = await mkdtemp(join(tmpdir(), "pwcli-benchmark-closure-"));
@@ -99,29 +84,29 @@ export async function runClosureSuite() {
     const pendingTasks = allTasks.filter((task) => !completedIds.has(task.task.id));
     const newSummaries = await runGroupedTasks(pendingTasks, { workspaceDir, artifactsDir });
     const summaries = [...existingSummaries, ...newSummaries];
-    const totals = {
-      total: summaries.length,
-      passed: summaries.filter((task) => task.status === "passed").length,
-      failed: summaries.filter((task) => task.status !== "passed").length,
-    };
-    const failureFamilies = {};
-    for (const task of summaries) {
-      if (!task.failureFamily) {
-        continue;
-      }
-      failureFamilies[task.failureFamily] = (failureFamilies[task.failureFamily] ?? 0) + 1;
-    }
-    const summary = {
-      generatedAt: new Date().toISOString(),
-      totals,
-      failureFamilies,
-      tasks: summaries,
-    };
-    const score = computeBenchmarkScore(summaries);
+    const generatedAt = new Date().toISOString();
+    const summary = createBenchmarkSummary(summaries, {
+      generatedAt,
+      surface: {
+        kind: "closure",
+        name: "closure-suite",
+      },
+      manifest,
+    });
+    const score = computeBenchmarkScore(summaries, {
+      generatedAt,
+      surface: summary.surface,
+    });
     const latestDir = resolve(reportsDir, "latest");
     await mkdir(latestDir, { recursive: true });
     await writeFile(resolve(latestDir, "summary.json"), JSON.stringify(summary, null, 2));
-    await writeFile(resolve(latestDir, "summary.md"), renderSummaryMarkdown(summary));
+    await writeFile(
+      resolve(latestDir, "summary.md"),
+      await renderBenchmarkReport(summary, {
+        score,
+        reportTitle: "Closure Benchmark Summary",
+      }),
+    );
     await writeFile(resolve(latestDir, "score.json"), JSON.stringify(score, null, 2));
     return {
       manifest,
@@ -133,6 +118,7 @@ export async function runClosureSuite() {
     };
   } finally {
     await fixture.close();
+    await rm(workspaceDir, { recursive: true, force: true });
   }
 }
 
@@ -173,7 +159,7 @@ async function loadExistingSummaries(artifactsDir) {
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const result = await runClosureSuite();
+  const result = await runClosureSuite(parseArgs(process.argv.slice(2)));
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
   process.exitCode = result.summary.totals.failed === 0 ? 0 : 1;
 }

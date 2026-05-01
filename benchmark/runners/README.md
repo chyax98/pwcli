@@ -70,6 +70,9 @@ benchmark/artifacts/<taskId>/<runId>/
 - `benchmark/scripts/run-closure-suite.mjs`
   - 启动 fixture server
   - 执行 closure suite
+- `benchmark/scripts/run-nightly-pack.mjs`
+  - 执行 generated matrix 的 nightly regression surface
+  - 产出同一套 `summary.json` / `summary.md` / `score.json`
 
 ## 未来 runner 输出约定
 
@@ -96,12 +99,16 @@ benchmark/artifacts/<taskId>/<runId>/task-summary.json
 
 `score.json` 当前包含：
 
+- `contractVersion`
+- `surface`
 - `total`
 - `passed`
 - `failed`
 - `passRate`
 - `categories.<category>.passRate`
+- `failureFamilies`
 - `overallScore`
+- `verdict`
 
 ## 300+ suite 策略
 

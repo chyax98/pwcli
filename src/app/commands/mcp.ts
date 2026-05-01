@@ -1,4 +1,5 @@
 import type { Command } from "commander";
+import { getMcpSchemaContract } from "../../domain/mcp/service.js";
 import { runMcpServer } from "../../infra/mcp/server.js";
 import { printCommandError, printCommandResult } from "../output.js";
 
@@ -10,12 +11,7 @@ export function registerMcpCommand(program: Command): void {
     .description("Show MCP server availability and transport")
     .action(() => {
       printCommandResult("mcp schema", {
-        data: {
-          transport: "stdio",
-          command: "pw mcp serve",
-          server: "pwcli",
-          protocol: "MCP",
-        },
+        data: getMcpSchemaContract(),
       });
     });
 

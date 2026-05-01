@@ -27,10 +27,11 @@ session -> observe/read/snapshot -> act -> wait/verify -> diagnostics/evidence
 - `scripts/`
   - task matrix generator
   - closure suite launcher
+  - nightly regression launcher
 - `scoring/`
   - machine-readable taxonomy 和后续 scoring 资产
 - `reports/`
-  - benchmark 汇总输出目录占位
+  - benchmark 汇总输出目录和 markdown 模板
 - `artifacts/`
   - 单 task 单 run 原始工件目录占位
 
@@ -109,6 +110,12 @@ node benchmark/runners/suite/run-suite.mjs \
   --port 43210
 ```
 
+nightly regression pack：
+
+```bash
+node benchmark/scripts/run-nightly-pack.mjs
+```
+
 生成并跑 closure suite：
 
 ```bash
@@ -130,3 +137,13 @@ benchmark/reports/latest/summary.md
 benchmark/reports/latest/score.json
 benchmark/artifacts/<taskId>/<runId>/
 ```
+
+`score.json` / `summary.json` 当前是 versioned contract，至少包含：
+
+- `contractVersion`
+- `surface`
+- `totals`
+- `passRate`
+- `overallScore`
+- `categories`
+- `failureFamilies`
