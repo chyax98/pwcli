@@ -47,21 +47,26 @@ function isTrackingPixel(url: string | null): boolean {
   }
 }
 
+const NOISY_NET_ERRORS = [
+  "net::ERR_ABORTED",
+  "net::ERR_NAME_NOT_RESOLVED",
+  "net::ERR_CONNECTION_RESET",
+];
+
 function isNoisyNetworkFailure(record: Record<string, unknown>): boolean {
   const failureText = asString(record.failureText);
   if (!failureText) return false;
-  if (failureText.includes("net::ERR_ABORTED")) return true;
-  if (failureText.includes("net::ERR_NAME_NOT_RESOLVED")) return true;
-  return false;
+  return NOISY_NET_ERRORS.some((err) => failureText.includes(err));
 }
 
 function isResourceLoadNoise(text: string | null): boolean {
   if (!text) return false;
   if (/^Failed to load resource:.*\b(404|403|401)\b/.test(text)) return true;
-  if (/^Failed to load resource:.*net::ERR_NAME_NOT_RESOLVED/.test(text)) return true;
+  if (/^Failed to load resource:.*net::ERR_/.test(text)) return true;
   if (/violates the following Content Security Policy/.test(text) &&
       /adtrafficquality|googlesyndication|googleadservice|doubleclick|facebook\.com\/tr/.test(text)) return true;
   if (/^Loading the image 'data:image\/svg/.test(text)) return true;
+  if (/Attestation check.*googleadservices\.com/.test(text)) return true;
   return false;
 }
 
