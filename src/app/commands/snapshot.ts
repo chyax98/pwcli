@@ -1,5 +1,5 @@
 import type { Command } from "commander";
-import { managedSnapshot } from "../../infra/playwright/runtime.js";
+import { managedSnapshot, managedSnapshotStatus } from "../../infra/playwright/runtime.js";
 import { printCommandResult } from "../output.js";
 import {
   addSessionOption,
@@ -8,7 +8,7 @@ import {
 } from "./session-options.js";
 
 export function registerSnapshotCommand(program: Command): void {
-  addSessionOption(
+  const snapshot = addSessionOption(
     program
       .command("snapshot")
       .description("Capture an AI-friendly page snapshot")
@@ -29,6 +29,22 @@ export function registerSnapshotCommand(program: Command): void {
       printSessionAwareCommandError("snapshot", error, {
         code: "SNAPSHOT_FAILED",
         message: "snapshot failed",
+        suggestions: ["Run `pw session create <name> --open <url>` first"],
+      });
+      process.exitCode = 1;
+    }
+  });
+
+  addSessionOption(
+    snapshot.command("status").description("Check if the current snapshot is fresh, stale, or missing"),
+  ).action(async (options: { session?: string }) => {
+    try {
+      const sessionName = requireSessionName(options);
+      printCommandResult("snapshot status", await managedSnapshotStatus({ sessionName }));
+    } catch (error) {
+      printSessionAwareCommandError("snapshot status", error, {
+        code: "SNAPSHOT_STATUS_FAILED",
+        message: "snapshot status check failed",
         suggestions: ["Run `pw session create <name> --open <url>` first"],
       });
       process.exitCode = 1;

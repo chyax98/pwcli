@@ -363,6 +363,79 @@ async function assertFreshRefEpoch(options: { sessionName?: string; ref: string 
   });
 }
 
+export async function managedSnapshotStatus(options?: { sessionName?: string }) {
+  const result = await managedRunCode({
+    sessionName: options?.sessionName,
+    source: `async page => {
+      const context = page.context();
+      const state = context[${JSON.stringify(DIAGNOSTICS_STATE_KEY)}] ||= {};
+      ${pageIdRuntimePrelude()}
+
+      const epoch = state.lastSnapshotRefEpoch || null;
+      const currentPageId = ensurePageId(page) || null;
+      const currentNavigationId = ensureNavigationId(page) || null;
+
+      if (!epoch) {
+        return JSON.stringify({
+          status: 'missing',
+          detail: 'no snapshot has been taken for this session',
+          currentPageId,
+          currentNavigationId,
+          currentUrl: page.url(),
+        });
+      }
+
+      if (epoch.pageId && currentPageId && epoch.pageId !== currentPageId) {
+        return JSON.stringify({
+          status: 'navigated',
+          detail: 'page changed since snapshot',
+          snapshotId: epoch.snapshotId,
+          snapshotPageId: epoch.pageId,
+          snapshotNavigationId: epoch.navigationId || null,
+          snapshotRefCount: Array.isArray(epoch.refs) ? epoch.refs.length : 0,
+          currentPageId,
+          currentNavigationId,
+          currentUrl: page.url(),
+        });
+      }
+
+      if (epoch.navigationId && currentNavigationId && epoch.navigationId !== currentNavigationId) {
+        return JSON.stringify({
+          status: 'stale',
+          detail: 'navigation changed since snapshot',
+          snapshotId: epoch.snapshotId,
+          snapshotPageId: epoch.pageId || null,
+          snapshotNavigationId: epoch.navigationId,
+          snapshotRefCount: Array.isArray(epoch.refs) ? epoch.refs.length : 0,
+          currentPageId,
+          currentNavigationId,
+          currentUrl: page.url(),
+        });
+      }
+
+      return JSON.stringify({
+        status: 'fresh',
+        detail: 'snapshot matches current page state',
+        snapshotId: epoch.snapshotId,
+        pageId: currentPageId,
+        navigationId: currentNavigationId,
+        refCount: Array.isArray(epoch.refs) ? epoch.refs.length : 0,
+        currentUrl: page.url(),
+      });
+    }`,
+  });
+  const parsed =
+    typeof result.data.result === "object" && result.data.result ? result.data.result : {};
+  return {
+    session: result.session,
+    page: result.page,
+    data: {
+      ...parsed,
+      ...maybeRawOutput(result.rawText ?? ""),
+    },
+  };
+}
+
 export async function managedClick(options: {
   ref?: string;
   selector?: string;

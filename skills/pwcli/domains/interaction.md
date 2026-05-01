@@ -443,7 +443,7 @@ pw diagnostics show --run <runId>
 
 恢复原则：
 
-- `REF_STALE`：重新 `snapshot -i`
+- `REF_STALE`：重新 `snapshot -i`；提前检查用 `snapshot status`
 - `MODAL_STATE_BLOCKED`：先 `page dialogs` / `dialog accept|dismiss`
 - 多匹配：改 selector 或加 `--nth`
 - 页面没稳定：补明确 `wait`
