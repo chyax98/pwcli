@@ -23,8 +23,8 @@
 - `snapshot -i`
 - `auth probe`（如果使用登录态）
 - `extract run`
-  - 列表页：`github-issues-list` / `github-prs-list`
-  - 详情页：`github-discussion-document`
+  - 列表页：`./benchmark/tasks/real-sites/recipes/github-issues-list.json` / `./benchmark/tasks/real-sites/recipes/github-prs-list.json`
+  - 详情页：`./benchmark/tasks/real-sites/recipes/github-discussion-document.json`
 
 成功标准：
 
@@ -39,7 +39,7 @@ pw page assess --session gh-a
 pw read-text --session gh-a --max-chars 3000
 pw snapshot -i --session gh-a
 pw extract run --session gh-a \
-  --recipe "$(pw extract recipe-path github-discussion-document --output json | jq -r '.data.path')" \
+  --recipe ./benchmark/tasks/real-sites/recipes/github-discussion-document.json \
   --out ./github-pr-68.json
 pw diagnostics digest --session gh-a
 ```
@@ -71,7 +71,7 @@ pw page assess --session hn-a
 pw read-text --session hn-a --max-chars 3000
 pw snapshot -i --session hn-a
 pw extract run --session hn-a \
-  --recipe "$(pw extract recipe-path hacker-news-list --output json | jq -r '.data.path')" \
+  --recipe ./benchmark/tasks/real-sites/recipes/hacker-news-list.json \
   --out ./hacker-news.json
 pw diagnostics digest --session hn-a
 ```
@@ -82,7 +82,7 @@ pw diagnostics digest --session hn-a
 
 - 长文档 perception
 - `page assess` 与 `read-text` 的分工
-- `extract run` with `wikipedia-article-document`
+- `extract run` with `./benchmark/tasks/real-sites/recipes/wikipedia-article-document.json`
 
 成功标准：
 
@@ -96,7 +96,7 @@ pw page assess --session wiki-a
 pw read-text --session wiki-a --max-chars 3000
 pw snapshot -i --session wiki-a
 pw extract run --session wiki-a \
-  --recipe "$(pw extract recipe-path wikipedia-article-document --output json | jq -r '.data.path')" \
+  --recipe ./benchmark/tasks/real-sites/recipes/wikipedia-article-document.json \
   --out ./wikipedia-playwright.json
 pw diagnostics digest --session wiki-a
 ```

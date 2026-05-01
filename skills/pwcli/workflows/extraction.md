@@ -170,7 +170,7 @@ Wikipedia 长文章起手式：
 
 ```bash
 pw extract run --session wiki-a \
-  --recipe "$(pw extract recipe-path wikipedia-article-document --output json | jq -r '.data.path')" \
+  --recipe ./benchmark/tasks/real-sites/recipes/wikipedia-article-document.json \
   --out ./wikipedia-article.json
 ```
 
@@ -183,7 +183,7 @@ GitHub issue / PR 详情页起手式：
 
 ```bash
 pw extract run --session gh-a \
-  --recipe "$(pw extract recipe-path github-discussion-document --output json | jq -r '.data.path')" \
+  --recipe ./benchmark/tasks/real-sites/recipes/github-discussion-document.json \
   --out ./github-discussion.json
 ```
 
@@ -197,7 +197,7 @@ Hacker News 列表页起手式：
 
 ```bash
 pw extract run --session hn-a \
-  --recipe "$(pw extract recipe-path hacker-news-list --output json | jq -r '.data.path')" \
+  --recipe ./benchmark/tasks/real-sites/recipes/hacker-news-list.json \
   --out ./hacker-news.json
 ```
 
@@ -205,7 +205,7 @@ pw extract run --session hn-a \
 
 - 这个模板依赖 `companionSelector`
 - 用来读取 title row 后面的 metadata row
-- 适合 HN 这种相邻行列表，不代表任意列表页都应共享这组结构假设
+- 这是 real-site dogfood 资产，不是内置产品模板
 
 ## 失败时怎么收缩
 

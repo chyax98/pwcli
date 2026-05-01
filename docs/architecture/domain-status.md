@@ -130,7 +130,7 @@
   - JSON
   - CSV
   - Markdown
-- bundled recipe pack for GitHub issue/PR lists and generic table rows
+- bundled recipe pack only for generic templates; site-specific recipes live under real-site dogfood assets
 
 ### 当前限制
 

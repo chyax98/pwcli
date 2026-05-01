@@ -206,12 +206,13 @@
 
 ### `pw extract recipes`
 
-- 列出随包分发的 recipe 模板
+- 列出随包分发的**通用** recipe 模板
+- 站点型 dogfood recipe 不在这里暴露
 
 ### `pw extract recipe-path <name>`
 
-- 返回一个 bundled recipe 的绝对路径
-- 适合先拿模板，再复制到本地修改
+- 返回一个 bundled 通用 recipe 的绝对路径
+- 适合先拿通用模板，再复制到本地修改
 
 ### `pw extract run --session <name> --recipe <file>`
 
