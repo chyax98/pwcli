@@ -457,24 +457,19 @@ If the check fails, retry `pw upload` after the page reaches the expected ready 
 
 ### Iframe 内容限制
 
-`read-text`、`fill`、`click` 等命令无法直接操作 iframe 内的元素。`read-text` 返回空，`fill`/`click` 的 ref 和 selector 无法定位 iframe 内元素。
+- `read-text` 使用 `body.innerText`，无法读取 iframe 内容（返回空）
+- `fill`/`click` 可以通过 ref 操作 iframe 内元素（ref 格式为 `f1e4`，其中 `f1` 是 frame index）
+- `--selector` 无法直接定位 iframe 内元素
 
 Recovery:
 
-1. Use `pw page frames --session <name>` to list available frames.
-2. Use `pw code` to access iframe content directly:
+1. 用 `pw snapshot -i` 获取 iframe 内元素的 ref（格式如 `f1e4`）
+2. 用 ref 执行 `fill`/`click` 操作
+3. 读取 iframe 内容用 `pw code`：
    ```javascript
-   // 读取 iframe 文本
    const frame = page.frameLocator('#iframeResult');
    const text = await frame.locator('body').innerText();
    console.log(text);
-
-   // 填写 iframe 表单
-   await frame.locator('#fname').fill('John');
-   await frame.locator('#lname').fill('Doe');
-
-   // 点击 iframe 内按钮
-   await frame.locator('button[type="submit"]').click();
    ```
 
 ### Modal/overlay blocks interactions
