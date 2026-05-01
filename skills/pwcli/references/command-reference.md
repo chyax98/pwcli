@@ -263,8 +263,8 @@ Use `locate/get/is/verify` for narrow state checks. Use `snapshot -i` when you n
 
 ### `pw download [ref] --session <name>`
 
-- `--selector <selector>`、`--path <path>`、`--dir <dir>`、`--download-dir <dir>`
-- `--download-dir` 是 `--dir` alias；不能和 `--dir` 同时使用；`--path` 不能和任一目录参数同时使用
+- `--selector <selector>`、`--path <path>`、`--dir <dir>`
+- `--path` 不能和 `--dir` 同时使用
 
 ### `pw resize --session <name>`
 

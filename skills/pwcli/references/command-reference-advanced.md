@@ -204,16 +204,6 @@
 
 ## Extract
 
-### `pw extract recipes`
-
-- 列出随包分发的**通用** recipe 模板
-- 站点型 dogfood recipe 不在这里暴露
-
-### `pw extract recipe-path <name>`
-
-- 返回一个 bundled 通用 recipe 的绝对路径
-- 适合先拿通用模板，再复制到本地修改
-
 ### `pw extract run --session <name> --recipe <file>`
 
 - 运行 bounded extraction lane，把当前页面里的结构化数据导出成稳定 artifact
@@ -366,7 +356,7 @@
 
 ### `pw batch --session <name>`
 
-输入：`--stdin-json` / `--json`（别名）/ `--file <path>`，格式均为 `string[][]`。
+输入：`--stdin-json` / `--file <path>`，格式均为 `string[][]`。
 
 选项：`--continue-on-error`、`--include-results`、`--summary-only`
 

@@ -129,7 +129,7 @@ load-more + scroll：
 
 用途：
 
-- `items[]`：兼容当前字段提取路径
+- `items[]`：字段化提取结果
 - `document.blocks[]`：按 DOM 顺序给 Agent 原始内容块
 - `document.media[]`：聚合图片/视频引用
 

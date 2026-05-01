@@ -27,7 +27,6 @@ export function registerBatchCommand(program: Command): void {
     program
       .command("batch")
       .description("Run multiple structured commands against a named managed session")
-      .option("--json", "Read a JSON array of argv arrays from stdin")
       .option("--stdin-json", "Read a JSON array of argv arrays from stdin")
       .option("--file <path>", "Read a JSON array of argv arrays from a file")
       .option("--continue-on-error", "Continue after a failed step")
@@ -36,7 +35,6 @@ export function registerBatchCommand(program: Command): void {
   ).action(
     async (options: {
       session?: string;
-      json?: boolean;
       stdinJson?: boolean;
       file?: string;
       continueOnError?: boolean;
@@ -48,9 +46,9 @@ export function registerBatchCommand(program: Command): void {
         if (options.includeResults && options.summaryOnly) {
           throw new Error("batch accepts either --include-results or --summary-only, not both");
         }
-        const readsStdin = Boolean(options.json || options.stdinJson);
+        const readsStdin = Boolean(options.stdinJson);
         if (readsStdin && options.file) {
-          throw new Error("batch accepts either --stdin-json/--json or --file, not both");
+          throw new Error("batch accepts either --stdin-json or --file, not both");
         }
         const input = options.file
           ? await readFile(options.file, "utf8")

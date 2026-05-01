@@ -108,7 +108,6 @@
 ### 当前实现
 
 - `extract run`
-- `extract recipes` / `extract recipe-path`
 - bounded recipe-driven extraction lane
 - `kind: "list"` visible DOM list extraction
 - `kind: "article"` single-container extraction
@@ -130,7 +129,6 @@
   - JSON
   - CSV
   - Markdown
-- bundled recipe pack only for generic templates; site-specific recipes live under real-site dogfood assets
 
 ### 当前限制
 
