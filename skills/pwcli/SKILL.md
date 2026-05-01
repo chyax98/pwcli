@@ -162,7 +162,7 @@ pw verify text -s bug-a --text '保存成功'
 - `observe status`：页面、dialog、console、network、errors、routes、bootstrap、modals 的 compact 摘要。`summary.modalCount > 0` 表示有 HTML modal 阻断交互。
 - `page current`：当前 page projection。
 - `read-text`：可见文本，适合快速理解页面。
-- `read-text`：可见文本（`body.innerText`），overlay metadata 默认采集；用 `--no-include-overlay` 跳过 overlay 检测。
+- `read-text`：可见文本（含 shadow DOM 内容），overlay metadata 默认采集；用 `--no-include-overlay` 跳过 overlay 检测。
 - `locate/get/is`：窄状态检查；`locate` 返回总匹配数和候选 metadata，`get/is` 返回事实或布尔值，不生成动作计划。
 - `verify`：动作和 wait 之后的 read-only 断言；通过/失败都给 Agent 可消费结果，失败返回 `VERIFY_FAILED`。
 - `snapshot -i`：只看可交互节点，找 ref 首选。
