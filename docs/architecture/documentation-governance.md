@@ -30,8 +30,8 @@
    - `README.md`
 5. **贡献约束**
    - `AGENTS.md`
-6. **Codex 项目配置**
-   - `.codex/`
+6. **Agent 项目规则**
+   - `.claude/`
 
 如果文档和源码冲突，以源码和已通过验证的 shipped contract 为准。
 
@@ -74,16 +74,20 @@
 
 不要在这里重复命令教程。
 
-### `.codex/`
+### `.claude/`
 
-这是项目级 Codex 配置和维护规则。
+这是 Claude Code 官方项目配置面。
 
 这里维护：
 
-- `config.toml`
-- `skill-maintenance.md`
+- `CLAUDE.md`
+- `rules/*.md`
+- 可共享的 Claude Code project settings（如未来需要）
+- skill 维护规则
+- review 规则
+- auth provider authoring 规则
 
-不要在这里放个人 provider、token、cookie、session state。
+不要在这里放过程 planning、survey 原稿、迁移记录、review 笔记、工具缓存、项目 backlog 或 active project truth。机器本地配置继续使用 `settings.local.json` 或 gitignored local/cache 路径。
 
 ### `AGENTS.md`
 
@@ -100,12 +104,8 @@
 
 - `README.md`
 - `AGENTS.md`
-- `.codex/README.md`
-- `.codex/auth-provider-authoring.md`
-- `.codex/config.toml`
-- `.codex/review-guidelines.md`
-- `.codex/skill-maintenance.md`
-- `.codex/skill-writing-standard.md`
+- `.claude/CLAUDE.md`
+- `.claude/rules/**`
 - `docs/README.md`
 - `skills/pwcli/**`
 - `docs/architecture/README.md`
@@ -140,10 +140,9 @@
 - 临时问题拆解
 - 草案版真相整理
 
-规则：
-
-- `.claude/` 只做 agent 本地 scratch、临时上下文、工具缓存；不承载项目文档、项目规划、迁移记录
-- `.claude/` 不进入 git，也不能作为项目归档区
+- `.claude/` 只承载 Claude Code 项目指令和 rules；可以进入 git
+- `.claude/settings.local.json`、`.claude/local/`、`.claude/tmp/`、`.claude/cache/` 不进入 git
+- `.claude/` 不能作为项目规划、过程归档、迁移记录或 backlog 区
 - backlog、推进记录、临时结论放 GitHub issues / PR
 - 一旦决策稳定，必须吸收进 skill / ADR / `domain-status.md`
 - 过程稿如果没有转化为正式结论，就直接删除，不做仓内长期保存
@@ -172,7 +171,7 @@
 
 同时检查：
 
-4. `.codex/skill-maintenance.md`
+4. `.claude/rules/08-skill-maintenance.md`
 
 ### 架构边界变化
 
@@ -193,20 +192,20 @@
 2. 删除重复结论
 3. 删除过程稿；如果需要保留项目信息，就转成 GitHub issue / PR、ADR 或正式 docs
 
-### Codex 项目配置变化
+### Agent 项目规则变化
 
-只允许进入 `.codex/`：
+只允许进入 `.claude/`：
 
-1. 可共享的项目默认模型 / reasoning / review policy
-2. skill 维护规则
-3. 不含密钥的工具约束
+1. `CLAUDE.md`
+2. `rules/*.md`
+3. 可共享且不含密钥的 Claude Code project settings（如未来需要）
 
-个人配置继续留在 `~/.codex/config.toml`。
+个人配置继续留在用户级配置或 `.claude/settings.local.json`。
 
 ## 8. 当前明确结论
 
 1. `skills/pwcli/` 是唯一使用教程真相
 2. `docs/architecture/` 只放最终架构文档
-3. `.codex/` 是项目级 Codex 配置和 skill 维护说明
-4. `.claude/` 只做 agent scratch 并 gitignore
+3. `.claude/` 是项目级 Agent 规则入口，包含 Claude Code 指令、review 规则、skill 维护规则
+4. `.claude/settings.local.json` 和 local/cache 内容 gitignore
 5. 过程文档不再作为 shipped contract 的一部分

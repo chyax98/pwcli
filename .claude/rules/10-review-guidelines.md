@@ -1,10 +1,10 @@
-# pwcli Codex Review Guidelines
+# pwcli Review Guidelines
 
 状态：active
 
-这份文档定义 Codex PR review 在 `pwcli` 仓库里的项目特化审查规则。
+这份文档定义 `pwcli` 仓库里的项目特化审查规则。
 
-Codex review 只报告可验证的 P0/P1 问题。不要把拼写、表达风格、普通文档润色升级成阻塞问题，除非它改变 active contract、隐藏 limitation、或破坏未来 Agent 的入口。
+代码审查只报告可验证的 P0/P1 问题。不要把拼写、表达风格、普通文档润色升级成阻塞问题，除非它改变 active contract、隐藏 limitation、或破坏未来 Agent 的入口。
 
 ## 1. 审查优先级
 
@@ -93,7 +93,7 @@ pageId -> old snapshot index -> close/select live tab by index
 | 新 limitation / recoverability | `skills/pwcli/references/failure-recovery.md` |
 | 新工作流 | `skills/pwcli/references/workflows.md` 或 `skills/pwcli/workflows/*.md` |
 | 领域边界变化 | `docs/architecture/` |
-| Codex review / skill 维护规则变化 | `.codex/` 和 `AGENTS.md` |
+| review / skill 维护规则变化 | `.claude/` 和 `AGENTS.md` |
 
 文档问题只在下面情况升级：
 
@@ -167,7 +167,7 @@ pnpm test:dogfood:e2e
 - README 不能变成第二套命令教程
 - docs/architecture 不能重复 skill 教程
 - skill 不能放过程调研、历史迁移、业务账号、内部 token
-- `.claude/` 任何内容都不能回写 active truth；需要保留的项目结论必须进入 skill、ADR 或 architecture docs
+- `.claude/` 只允许承载 Claude Code 项目指令和 rules；需要保留的项目结论必须进入 skill、ADR 或 architecture docs
 
 ## 3. 报告格式
 

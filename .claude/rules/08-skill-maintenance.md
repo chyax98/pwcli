@@ -2,7 +2,7 @@
 
 `skills/pwcli/` 是唯一使用教程真相。任何命令、flag、错误码、输出、工作流、限制变化，都必须先让 skill 能教会下一个 Agent。
 
-写作标准见 [.codex/skill-writing-standard.md](skill-writing-standard.md)。维护时先按本文确认“改哪些文件”，再按写作标准确认“怎么写才合格”。
+写作标准见 [09-skill-writing-standard.md](09-skill-writing-standard.md)。维护时先按本文确认“改哪些文件”，再按写作标准确认“怎么写才合格”。
 
 ## 必改矩阵
 
@@ -13,7 +13,7 @@
 | error code、blocked state、recoverability 变化 | `skills/pwcli/references/failure-recovery.md` |
 | 高频使用路径变化 | `skills/pwcli/references/workflows.md`，必要时同步 `skills/pwcli/workflows/*.md` |
 | Forge/DC auth 变化 | `skills/pwcli/references/forge-dc-auth.md` |
-| 新增 / 修改 auth provider | `.codex/auth-provider-authoring.md`、`skills/pwcli/references/command-reference-advanced.md` |
+| 新增 / 修改 auth provider | `.claude/rules/07-auth-provider-authoring.md`、`skills/pwcli/references/command-reference-advanced.md` |
 | 架构边界、限制、扩展口变化 | `docs/architecture/domain-status.md` 或 ADR |
 | 命令注册面、命令家族、源码入口变化 | `docs/architecture/command-surface.md` |
 | 文档边界变化 | `docs/architecture/documentation-governance.md` |
@@ -49,7 +49,7 @@
 
 ## 禁止
 
-- 不把 `.claude/**` 的任何内容当 active truth。
+- 不把 `.claude/**` 的任何内容当 usage / architecture active truth；它只约束 Claude Code 行为。
 - 不新增第二套使用教程。
 - 不用“已支持”包装 limitation code。
 - 不为了统一文档而改动没有真实收益的命令 contract。

@@ -59,7 +59,7 @@ pw auth dc -s dc-main --arg targetUrl='https://developer.example.com/forge'
 | 维护者 | [docs/README.md](docs/README.md) | 架构和维护文档入口 |
 | 命令面审计 | [docs/architecture/command-surface.md](docs/architecture/command-surface.md) | 从源码和 CLI help 对齐的命令能力地图 |
 | 发布准备 | [docs/architecture/release-v0.1.0.md](docs/architecture/release-v0.1.0.md) | v0.1.0 发布前检查清单 |
-| Codex 协作 | [.codex/README.md](.codex/README.md) | 项目级维护规则 |
+| Claude Code 协作 | [.claude/CLAUDE.md](.claude/CLAUDE.md) | 项目级规则入口 |
 
 ## 仓库结构
 
@@ -72,7 +72,7 @@ skills/
   pwcli/      # Agent 使用教程的唯一真相
 docs/
   architecture/ # 架构事实、限制、扩展口、发布检查
-.codex/       # Codex 项目配置和 skill 维护规则
+.claude/      # Claude Code 项目指令和 rules
 ```
 
 ## 本地开发

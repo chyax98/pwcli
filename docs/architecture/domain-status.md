@@ -269,8 +269,7 @@
 
 - `skills/pwcli/` 是唯一使用教程真相
 - `docs/architecture/` 只维护设计与现状
-- `.codex/` 维护 Codex 项目配置和 skill 维护规则
-- `.claude/` 只做 agent 本地 scratch / 临时上下文，不承载项目文档、项目规划或 active truth
+- `.claude/` 维护 Agent 项目指令、review 规则、skill 维护规则，不承载项目文档、项目规划、过程归档或 active truth
 
 ### 当前限制
 
@@ -279,7 +278,7 @@
 ### 后续扩展
 
 - 新增命令或 limitation 时，优先改 skill
-- Codex review policy 只记录可验证问题，不把文档拼写类问题升级成阻塞问题
+- review policy 只记录可验证问题，不把文档拼写类问题升级成阻塞问题
 
 ## 10. 当前阶段目标（2026-04-28）
 

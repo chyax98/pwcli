@@ -8,11 +8,8 @@ benchmark/artifacts/closure/
 benchmark/reports/closure/
 benchmark/tasks/generated/
 .tmp*
-.codex/*.env
-.codex/*.local.toml
-.codex/*.secret*
-.codex/local/
-.codex/secrets/
-.codex/tmp/
-.claude/
+.claude/settings.local.json
+.claude/local/
+.claude/tmp/
+.claude/cache/
 docs/superpowers/

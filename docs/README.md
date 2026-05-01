@@ -31,5 +31,5 @@
 ## 不放这里
 
 - 命令教程：放 `skills/pwcli/`。
-- 过程计划、草案、迁移记录、review 笔记：放 `.claude/` 本地归档。
-- Codex 项目维护规则：放 `.codex/`。
+- 过程计划、草案、迁移记录、review 笔记：不进入 docs；需要跟踪时放 GitHub issues / PR，本地临时内容放 gitignored local/cache 路径。
+- Agent 项目规则、review 规则、skill 维护规则：放 `.claude/`。

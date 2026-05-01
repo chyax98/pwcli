@@ -7,16 +7,16 @@
 1. 源码真相：`src/app` / `src/domain` / `src/infra`
 2. 使用真相：`skills/pwcli/`
 3. 架构真相：`docs/architecture/`
-4. Codex 项目配置：`.codex/`
+4. Claude Code 项目规则：`.claude/`
 
-`.claude/` 只允许存放 agent 本地 scratch、临时上下文、工具缓存；不要放项目 planning、草案、survey、迁移记录。项目待办放 GitHub issues / PR，稳定结论写回 `skills/pwcli/`、`docs/architecture/` 或 ADR。
+`.claude/` 只允许存放 Claude Code 官方项目配置、`CLAUDE.md` 和 `rules/`。不要放过程 planning、草案、survey、迁移记录、工具缓存或 active project truth。项目待办放 GitHub issues / PR，稳定结论写回 `skills/pwcli/`、`docs/architecture/` 或 ADR。
 
 ## 工作顺序
 
 ```text
 1. 读 skills/pwcli/ 和 docs/architecture/
 2. 读 `docs/architecture/documentation-governance.md`
-3. 读 `.codex/skill-maintenance.md`
+3. 读 `.claude/CLAUDE.md` 和 `.claude/rules/`
 4. 改代码
 5. 同步 skill
 6. 同步 architecture docs（如果边界、限制、扩展方向有变化）
@@ -37,7 +37,7 @@ skills/
   pwcli/
 docs/
   architecture/
-.codex/
+.claude/
 ```
 
 ## 核心规则
@@ -48,7 +48,7 @@ docs/
 - `batch` 只走结构化 `string[][]`
 - skill 是唯一教程真相
 - docs 只维护架构、限制、扩展方向
-- `.codex` 只维护 Codex 项目配置和 skill 维护规则
+- `.claude` 只维护 Claude Code 项目指令和规则，不承载项目文档或 backlog
 - limitation code 不能包装成“已支持”
 
 ## 文件变更同步
@@ -59,7 +59,7 @@ docs/
 | 领域边界变化 | `docs/architecture/` |
 | 新 limitation / recoverability | `skills/pwcli/references/failure-recovery.md` |
 | 新工作流 | `skills/pwcli/references/workflows.md` |
-| Codex 项目策略 / skill 维护规则变化 | `.codex/` |
+| Agent 项目规则 / review / skill 维护规则变化 | `.claude/` |
 
 ## 验证
 
@@ -79,7 +79,7 @@ pw <affected-command> ...
 
 ## Review guidelines
 
-Codex review 只报告可验证的 P0/P1 问题。详细规则见 [`.codex/review-guidelines.md`](.codex/review-guidelines.md)。
+代码审查只报告可验证的 P0/P1 问题。详细规则见 [`.claude/rules/10-review-guidelines.md`](.claude/rules/10-review-guidelines.md)。
 
 必须优先检查：
 
