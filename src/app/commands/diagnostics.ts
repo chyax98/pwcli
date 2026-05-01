@@ -1,12 +1,14 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import type { Command } from "commander";
+import { readRunEvents } from "../../infra/fs/run-artifacts.js";
 import { managedDiagnosticsExport } from "../../infra/playwright/runtime.js";
 import {
+  applyDiagnosticsExportFilter,
+  buildRunDigest,
+  buildSessionDigest,
   listDiagnosticsRuns,
   managedDiagnosticsBundle,
-  managedDiagnosticsDigest,
-  managedDiagnosticsExportFiltered,
   readDiagnosticsRunView,
 } from "../../domain/diagnostics/service.js";
 import { printCommandResult } from "../output.js";
@@ -72,20 +74,20 @@ export function registerDiagnosticsCommand(program: Command): void {
         const useFilteredExport = Boolean(
           section || limit || options.since || options.text || options.fields,
         );
+        const exported = await managedDiagnosticsExport({ sessionName });
         const result = useFilteredExport
-          ? await managedDiagnosticsExportFiltered({
-              sessionName,
+          ? applyDiagnosticsExportFilter(exported, {
               section,
               limit,
               since: options.since,
               text: options.text,
               fields: options.fields,
             })
-          : await managedDiagnosticsExport({ sessionName });
+          : exported;
         await writeFile(out, JSON.stringify(result.data, null, 2), "utf8");
         printCommandResult("diagnostics export", {
-          session: result.session,
-          page: result.page,
+          session: result.session as Record<string, unknown>,
+          page: result.page as Record<string, unknown>,
           data: {
             exported: true,
             out,
@@ -135,7 +137,8 @@ export function registerDiagnosticsCommand(program: Command): void {
         if (!Number.isFinite(limit) || limit <= 0) {
           throw new Error("diagnostics bundle requires a positive integer for --limit");
         }
-        const result = await managedDiagnosticsBundle({ sessionName, limit });
+        const exported = await managedDiagnosticsExport({ sessionName });
+        const result = await managedDiagnosticsBundle({ sessionName, limit, exported });
         const bundleDir = resolve(out);
         await mkdir(bundleDir, { recursive: true });
         await writeFile(
@@ -144,14 +147,14 @@ export function registerDiagnosticsCommand(program: Command): void {
           "utf8",
         );
         printCommandResult("diagnostics bundle", {
-          session: result.session,
-          page: result.page,
+          session: result.session as Record<string, unknown>,
+          page: result.page as Record<string, unknown>,
           data: {
             bundled: true,
             out: bundleDir,
             limit,
-            latestRunId: result.data.latestRunId,
-            auditConclusion: result.data.auditConclusion,
+            latestRunId: (result.data as Record<string, unknown>).latestRunId,
+            auditConclusion: (result.data as Record<string, unknown>).auditConclusion,
           },
         });
       } catch (error) {
@@ -233,11 +236,17 @@ export function registerDiagnosticsCommand(program: Command): void {
           throw new Error("diagnostics digest requires a positive integer for --limit");
         }
         const result = runId
-          ? await managedDiagnosticsDigest({ runId, limit })
-          : await managedDiagnosticsDigest({
-              sessionName: requireSessionName(options, command),
-              limit,
-            });
+          ? { data: { source: "run", ...buildRunDigest(runId, await readRunEvents(runId), limit) } }
+          : await (async () => {
+              const sn = requireSessionName(options, command);
+              const exported = await managedDiagnosticsExport({ sessionName: sn });
+              const digest = buildSessionDigest(exported, limit);
+              return {
+                session: digest.session as Record<string, unknown> | undefined,
+                page: digest.page as Record<string, unknown> | undefined,
+                data: digest.data as Record<string, unknown>,
+              };
+            })();
         printCommandResult("diagnostics digest", result);
       } catch (error) {
         printSessionAwareCommandError("diagnostics digest", error, {
