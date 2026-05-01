@@ -1,6 +1,6 @@
 # Benchmark Runners
 
-`benchmark/runners/` 现在已经有一个可批量跑 deterministic matrix 的 runner。
+`benchmark/runners/` 当前只是稳定性评测执行面，不是独立 runner 平台。
 
 ## 任务边界
 
@@ -42,6 +42,7 @@ benchmark/artifacts/<taskId>/<runId>/
 - 不在 runner 里绕过目标站点风控
 - 不把 runner 写成第二个 `pwcli`
 - 不在这一版 runner 里支持所有 task category
+- 不继续优先扩成更重的 score/report/nightly 平台
 
 ## 当前实现边界
 
@@ -74,7 +75,7 @@ benchmark/artifacts/<taskId>/<runId>/
   - 执行 generated matrix 的 nightly regression surface
   - 产出同一套 `summary.json` / `summary.md` / `score.json`
 
-## 未来 runner 输出约定
+## 当前 runner 输出约定
 
 至少要能稳定写出：
 
@@ -120,4 +121,4 @@ benchmark/artifacts/<taskId>/<runId>/task-summary.json
 - 少量 family evaluator
 - generator 产出 320 deterministic tasks
 
-这样任务是真跑，同时不会把 benchmark 维护成本推到不可控。
+这样任务是真跑，同时不会把稳定性评测维护成本推到不可控。

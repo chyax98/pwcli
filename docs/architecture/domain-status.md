@@ -122,6 +122,8 @@
   - `url`
   - `generatedAt`
   - `items[]`
+  - `document.blocks[]`
+  - `document.media[]`
   - `stats`
 - artifact export formats:
   - JSON
@@ -134,18 +136,22 @@
 - 只读，不做 mutation
 - `runtimeGlobal` 只允许 dotted path，不允许任意表达式
 - stdout 仍然只输出 JSON envelope；CSV / Markdown 只用于 `--out` artifact
+- `document.blocks/media` 是原始内容采集结果，不做语义摘要或最终文档重写
 - CLI payload and `--out` artifact still carry `recipe`, `recordCount`, and `records[]` as compatibility aliases over the newer contract
 - 当前分页/滚动只支持：
   - `next-page`
   - `load-more`
   - `until-stable`
 - 所有分页/滚动都必须是 bounded
+- iframe：
+  - same-origin：支持
+  - cross-origin：不深采，只返回 limitation
 - 不支持 URL template / cursor/API pagination / site pack marketplace
 - 不替代 `pw code` 的 ad-hoc 调试能力，也不替代 `bootstrap apply --init-script` 的 preload/runtime patch lane
 
 ### 后续扩展
 
-- 如果 extraction lane 真实高频，再补 recipe pack、cursor/API pagination、组合 scroll+pagination strategy
+- 如果 extraction lane 真实高频，再补更完整的 raw block richness、cursor/API pagination、组合 scroll+pagination strategy
 - recipe pack 当前是模板级资产，不是站点强契约
 - 不把 extraction lane 扩成任意脚本平台
 
@@ -169,7 +175,7 @@
 
 ### 后续扩展
 
-- 只有真实 MCP client 消费稳定后，再扩更多 tool surface
+- 当前冻结为兼容出口，不再主动扩更多 tool surface
 
 ## 4. Identity State
 
@@ -246,7 +252,7 @@
 
 ### 当前实现
 
-- `benchmark/` deterministic scaffold
+- `benchmark/` deterministic stability scaffold
 - fixture server
 - recursive task discovery
 - task runner
@@ -255,7 +261,7 @@
 - generated deterministic task matrix
 - closure suite script
 - nightly regression runner
-- versioned score/report contract
+- versioned score/report contract（当前保留，但不继续优先扩张）
 
 ### 当前限制
 
@@ -267,9 +273,9 @@
 
 ### 后续扩展
 
-- real-site manual dogfood pack
-- richer scoring / category aggregation
-- selective rerun / flake policy
+- real-site manual stability dogfood pack
+- 只在真实回归需求下增补能力级 case
+- 不继续主动扩 benchmark 平台能力
 
 ## 6. Bootstrap
 

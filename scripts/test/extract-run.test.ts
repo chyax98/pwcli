@@ -17,6 +17,23 @@ type ExtractArtifact = {
   url: string;
   generatedAt: string;
   items: Array<Record<string, unknown>>;
+  document: {
+    blocks: Array<
+      | { kind: "heading"; text: string; level: number; sectionPath: string[] }
+      | { kind: "paragraph"; text: string; sectionPath: string[] }
+      | { kind: "link"; url: string; text?: string; sectionPath: string[] }
+      | { kind: "image"; url: string; sectionPath: string[] }
+      | { kind: "video"; url: string; sectionPath: string[] }
+      | { kind: "list"; ordered: boolean; items: string[]; sectionPath: string[] }
+      | { kind: "quote"; text: string; sectionPath: string[] }
+      | { kind: "code"; text: string; language?: string; sectionPath: string[] }
+      | { kind: "table"; headers: string[]; rows: string[][]; sectionPath: string[] }
+    >;
+    media: Array<
+      | { kind: "image"; url: string; sectionPath: string[] }
+      | { kind: "video"; url: string; sectionPath: string[] }
+    >;
+  };
   stats: {
     kind: "list" | "article";
     itemCount: number;
@@ -161,9 +178,9 @@ await writeFile(
       kind: "list",
       itemSelector: ".post-card",
       fields: {
-        title: "h2 a",
-        url: { selector: "h2 a", attr: "href" },
-        summary: ".summary",
+        primaryText: "h2 a",
+        primaryTarget: { selector: "h2 a", attr: "href" },
+        deck: ".summary",
       },
       runtimeGlobal: "__PWCLI_RUNTIME__",
     },
@@ -181,9 +198,9 @@ await writeFile(
       kind: "article",
       containerSelector: "article[data-kind='doc']",
       fields: {
-        title: "h1",
-        body: ".lede",
-        url: { selector: "a.canonical", attr: "href" },
+        marker: "h1",
+        detail: ".lede",
+        canonicalTarget: { selector: "a.canonical", attr: "href" },
       },
     },
     null,
@@ -199,13 +216,13 @@ await writeFile(
       kind: "list",
       itemSelector: ".post-card",
       fields: {
-        title: "h2 a",
-        url: { selector: "h2 a", attr: "href" },
-        summary: ".summary",
+        primaryText: "h2 a",
+        primaryTarget: { selector: "h2 a", attr: "href" },
+        deck: ".summary",
       },
       output: {
         format: "csv",
-        columns: ["summary", "title", "url"],
+        columns: ["deck", "primaryText", "primaryTarget"],
       },
     },
     null,
@@ -249,12 +266,14 @@ try {
       recipeId: string;
       url: string;
       generatedAt: string;
-      items: Array<{ title: string; url: string; summary: string }>;
+      items: Array<{ primaryText: string; primaryTarget: string; deck: string }>;
+      document: ExtractArtifact["document"];
       stats: ExtractArtifact["stats"];
       recordCount: number;
-      records: Array<{ title: string; url: string; summary: string }>;
+      records: Array<{ primaryText: string; primaryTarget: string; deck: string }>;
       artifactPath?: string;
       runtimeProbe?: ExtractArtifact["runtimeProbe"];
+      recipe: { kind: string };
     };
   };
   assert.equal(listEnvelope.ok, true);
@@ -267,9 +286,56 @@ try {
   assert.equal(listEnvelope.data.url, listUrl);
   assert.equal(Number.isNaN(Date.parse(listEnvelope.data.generatedAt)), false);
   assert.deepEqual(listEnvelope.data.items, [
-    { title: "Alpha Title", url: `${baseUrl}/posts/alpha`, summary: "Alpha Summary" },
-    { title: "Beta Title", url: `${baseUrl}/posts/beta`, summary: "Beta Summary" },
+    {
+      primaryText: "Alpha Title",
+      primaryTarget: `${baseUrl}/posts/alpha`,
+      deck: "Alpha Summary",
+    },
+    {
+      primaryText: "Beta Title",
+      primaryTarget: `${baseUrl}/posts/beta`,
+      deck: "Beta Summary",
+    },
   ]);
+  assert.deepEqual(listEnvelope.data.document, {
+    blocks: [
+      {
+        kind: "heading",
+        text: "Alpha Title",
+        level: 2,
+        sectionPath: [],
+      },
+      {
+        kind: "link",
+        text: "Alpha Title",
+        url: `${baseUrl}/posts/alpha`,
+        sectionPath: [],
+      },
+      {
+        kind: "paragraph",
+        text: "Alpha Summary",
+        sectionPath: [],
+      },
+      {
+        kind: "heading",
+        text: "Beta Title",
+        level: 2,
+        sectionPath: [],
+      },
+      {
+        kind: "link",
+        text: "Beta Title",
+        url: `${baseUrl}/posts/beta`,
+        sectionPath: [],
+      },
+      {
+        kind: "paragraph",
+        text: "Beta Summary",
+        sectionPath: [],
+      },
+    ],
+    media: [],
+  });
   assert.deepEqual(listEnvelope.data.stats, {
     kind: "list",
     itemCount: 2,
@@ -280,8 +346,16 @@ try {
   });
   assert.equal(listEnvelope.data.recordCount, 2);
   assert.deepEqual(listEnvelope.data.records, [
-    { title: "Alpha Title", url: `${baseUrl}/posts/alpha`, summary: "Alpha Summary" },
-    { title: "Beta Title", url: `${baseUrl}/posts/beta`, summary: "Beta Summary" },
+    {
+      primaryText: "Alpha Title",
+      primaryTarget: `${baseUrl}/posts/alpha`,
+      deck: "Alpha Summary",
+    },
+    {
+      primaryText: "Beta Title",
+      primaryTarget: `${baseUrl}/posts/beta`,
+      deck: "Beta Summary",
+    },
   ]);
   assert.equal(listEnvelope.data.runtimeProbe?.path, "__PWCLI_RUNTIME__");
   assert.equal(listEnvelope.data.runtimeProbe?.found, true);
@@ -306,6 +380,7 @@ try {
   assert.equal(writtenArtifact.url, listUrl);
   assert.equal(writtenArtifact.generatedAt, listEnvelope.data.generatedAt);
   assert.deepEqual(writtenArtifact.items, listEnvelope.data.items);
+  assert.deepEqual(writtenArtifact.document, listEnvelope.data.document);
   assert.deepEqual(writtenArtifact.stats, listEnvelope.data.stats);
   assert.equal(writtenArtifact.runtimeProbe?.path, "__PWCLI_RUNTIME__");
   assert.equal(writtenArtifact.runtimeProbe?.found, true);
@@ -332,8 +407,8 @@ try {
       recipePath: string;
       artifactPath?: string;
       recordCount: number;
-      items: Array<{ title: string; url: string; summary: string }>;
-      records: Array<{ title: string; url: string; summary: string }>;
+      items: Array<{ primaryText: string; primaryTarget: string; deck: string }>;
+      records: Array<{ primaryText: string; primaryTarget: string; deck: string }>;
     };
   };
   assert.equal(csvEnvelope.ok, true);
@@ -345,14 +420,22 @@ try {
   assert.equal(csvEnvelope.data.artifactPath, csvOutFile);
   assert.equal(csvEnvelope.data.recordCount, 2);
   assert.deepEqual(csvEnvelope.data.items, [
-    { title: "Alpha Title", url: `${baseUrl}/posts/alpha`, summary: "Alpha Summary" },
-    { title: "Beta Title", url: `${baseUrl}/posts/beta`, summary: "Beta Summary" },
+    {
+      primaryText: "Alpha Title",
+      primaryTarget: `${baseUrl}/posts/alpha`,
+      deck: "Alpha Summary",
+    },
+    {
+      primaryText: "Beta Title",
+      primaryTarget: `${baseUrl}/posts/beta`,
+      deck: "Beta Summary",
+    },
   ]);
   assert.deepEqual(csvEnvelope.data.records, csvEnvelope.data.items);
   assert.equal(
     await readFile(csvOutFile, "utf8"),
     [
-      "summary,title,url",
+      "deck,primaryText,primaryTarget",
       `Alpha Summary,Alpha Title,${baseUrl}/posts/alpha`,
       `Beta Summary,Beta Title,${baseUrl}/posts/beta`,
       "",
@@ -382,11 +465,13 @@ try {
       recipeId: string;
       url: string;
       generatedAt: string;
-      items: Array<{ title: string; body: string; url: string }>;
+      items: Array<{ marker: string; detail: string; canonicalTarget: string }>;
+      document: ExtractArtifact["document"];
       stats: ExtractArtifact["stats"];
       recordCount: number;
-      records: Array<{ title: string; body: string; url: string }>;
+      records: Array<{ marker: string; detail: string; canonicalTarget: string }>;
       runtimeProbe?: unknown;
+      recipe: { kind: string };
     };
   };
   assert.equal(articleEnvelope.ok, true);
@@ -400,11 +485,33 @@ try {
   assert.equal(Number.isNaN(Date.parse(articleEnvelope.data.generatedAt)), false);
   assert.deepEqual(articleEnvelope.data.items, [
     {
-      title: "Article Marker",
-      body: "Visible body marker paragraph.",
-      url: `${baseUrl}/docs/article-marker`,
+      marker: "Article Marker",
+      detail: "Visible body marker paragraph.",
+      canonicalTarget: `${baseUrl}/docs/article-marker`,
     },
   ]);
+  assert.deepEqual(articleEnvelope.data.document, {
+    blocks: [
+      {
+        kind: "heading",
+        text: "Article Marker",
+        level: 1,
+        sectionPath: [],
+      },
+      {
+        kind: "paragraph",
+        text: "Visible body marker paragraph.",
+        sectionPath: [],
+      },
+      {
+        kind: "link",
+        url: `${baseUrl}/docs/article-marker`,
+        text: "Read more",
+        sectionPath: [],
+      },
+    ],
+    media: [],
+  });
   assert.deepEqual(articleEnvelope.data.stats, {
     kind: "article",
     itemCount: 1,
@@ -414,9 +521,9 @@ try {
   assert.equal(articleEnvelope.data.recordCount, 1);
   assert.deepEqual(articleEnvelope.data.records, [
     {
-      title: "Article Marker",
-      body: "Visible body marker paragraph.",
-      url: `${baseUrl}/docs/article-marker`,
+      marker: "Article Marker",
+      detail: "Visible body marker paragraph.",
+      canonicalTarget: `${baseUrl}/docs/article-marker`,
     },
   ]);
   assert.equal(articleEnvelope.data.runtimeProbe, undefined);

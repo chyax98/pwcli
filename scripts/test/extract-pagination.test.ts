@@ -26,6 +26,7 @@ type ExtractArtifact = {
   url: string;
   generatedAt: string;
   items: Array<Record<string, unknown>>;
+  document: ExtractDocument;
   stats: {
     kind: "list" | "article";
     itemCount: number;
@@ -36,6 +37,16 @@ type ExtractArtifact = {
     runtimeProbePath?: string;
     runtimeProbeFound?: boolean;
   };
+};
+
+type ExtractDocument = {
+  blocks: Array<
+    | { kind: "heading"; text: string; level: number; sectionPath: string[] }
+    | { kind: "paragraph"; text: string; sectionPath: string[] }
+    | { kind: "link"; text?: string; url: string; sectionPath: string[] }
+    | { kind: "image"; url: string; sectionPath: string[] }
+  >;
+  media: Array<{ kind: "image"; url: string; sectionPath: string[] }>;
 };
 
 const repoRoot = resolve(import.meta.dirname, "..", "..");
@@ -202,30 +213,55 @@ try {
       string,
       {
         title: string;
-        posts: Array<{ title: string; href: string }>;
+        posts: Array<{ title: string; href: string; summary: string; imageUrl: string }>;
         nextHref?: string;
       }
     > = {
       "/page/1": {
         title: "Pagination Fixture Page 1",
         posts: [
-          { title: "Alpha Title", href: "/posts/alpha" },
-          { title: "Beta Title", href: "/posts/beta" },
+          {
+            title: "Alpha Title",
+            href: "/posts/alpha",
+            summary: "Alpha Summary",
+            imageUrl: "/media/alpha.png",
+          },
+          {
+            title: "Beta Title",
+            href: "/posts/beta",
+            summary: "Beta Summary",
+            imageUrl: "/media/beta.png",
+          },
         ],
         nextHref: "/page/2",
       },
       "/page/2": {
         title: "Pagination Fixture Page 2",
         posts: [
-          { title: "Gamma Title", href: "/posts/gamma" },
-          { title: "Delta Title", href: "/posts/delta" },
+          {
+            title: "Gamma Title",
+            href: "/posts/gamma",
+            summary: "Gamma Summary",
+            imageUrl: "/media/gamma.png",
+          },
+          {
+            title: "Delta Title",
+            href: "/posts/delta",
+            summary: "Delta Summary",
+            imageUrl: "/media/delta.png",
+          },
         ],
         nextHref: "/page/3",
       },
       "/page/3": {
         title: "Pagination Fixture Page 3",
         posts: [
-          { title: "Epsilon Title", href: "/posts/epsilon" },
+          {
+            title: "Epsilon Title",
+            href: "/posts/epsilon",
+            summary: "Epsilon Summary",
+            imageUrl: "/media/epsilon.png",
+          },
         ],
       },
     };
@@ -247,7 +283,11 @@ try {
               ${fixture.posts
                 .map(
                   (post) => `<article class="post-card">
-                <h2><a href="${post.href}">${post.title}</a></h2>
+                <section class="entry">
+                  <h2><a href="${post.href}">${post.title}</a></h2>
+                  <p class="summary">${post.summary}</p>
+                  <img class="thumb" src="${post.imageUrl}" alt="${post.title}" />
+                </section>
               </article>`,
                 )
                 .join("")}
@@ -283,7 +323,7 @@ try {
         title: "h2 a",
         url: { selector: "h2 a", attr: "href" },
       },
-      limit: 10,
+      limit: 3,
       pagination: {
         mode: "next-page",
         selector: "a.next",
@@ -331,6 +371,7 @@ try {
         recordCount: number;
         items: Array<{ title: string; url: string }>;
         records: Array<{ title: string; url: string }>;
+        document: ExtractDocument;
         stats: ExtractArtifact["stats"];
       };
     };
@@ -338,19 +379,105 @@ try {
     assert.equal(paginatedEnvelope.page.url, `${baseUrl}/page/2`);
     assert.equal(paginatedEnvelope.page.title, "Pagination Fixture Page 2");
     assert.equal(paginatedEnvelope.data.recipePath, paginatedRecipePath);
-    assert.equal(paginatedEnvelope.data.recordCount, 4);
+    assert.equal(paginatedEnvelope.data.recordCount, 3);
     assert.deepEqual(paginatedEnvelope.data.items, [
       { title: "Alpha Title", url: `${baseUrl}/posts/alpha` },
       { title: "Beta Title", url: `${baseUrl}/posts/beta` },
       { title: "Gamma Title", url: `${baseUrl}/posts/gamma` },
-      { title: "Delta Title", url: `${baseUrl}/posts/delta` },
     ]);
     assert.deepEqual(paginatedEnvelope.data.records, paginatedEnvelope.data.items);
+    assert.deepEqual(paginatedEnvelope.data.document, {
+      blocks: [
+        {
+          kind: "heading",
+          text: "Alpha Title",
+          level: 2,
+          sectionPath: ["Alpha Title"],
+        },
+        {
+          kind: "link",
+          text: "Alpha Title",
+          url: `${baseUrl}/posts/alpha`,
+          sectionPath: ["Alpha Title"],
+        },
+        {
+          kind: "paragraph",
+          text: "Alpha Summary",
+          sectionPath: ["Alpha Title"],
+        },
+        {
+          kind: "image",
+          url: `${baseUrl}/media/alpha.png`,
+          sectionPath: ["Alpha Title"],
+        },
+        {
+          kind: "heading",
+          text: "Beta Title",
+          level: 2,
+          sectionPath: ["Beta Title"],
+        },
+        {
+          kind: "link",
+          text: "Beta Title",
+          url: `${baseUrl}/posts/beta`,
+          sectionPath: ["Beta Title"],
+        },
+        {
+          kind: "paragraph",
+          text: "Beta Summary",
+          sectionPath: ["Beta Title"],
+        },
+        {
+          kind: "image",
+          url: `${baseUrl}/media/beta.png`,
+          sectionPath: ["Beta Title"],
+        },
+        {
+          kind: "heading",
+          text: "Gamma Title",
+          level: 2,
+          sectionPath: ["Gamma Title"],
+        },
+        {
+          kind: "link",
+          text: "Gamma Title",
+          url: `${baseUrl}/posts/gamma`,
+          sectionPath: ["Gamma Title"],
+        },
+        {
+          kind: "paragraph",
+          text: "Gamma Summary",
+          sectionPath: ["Gamma Title"],
+        },
+        {
+          kind: "image",
+          url: `${baseUrl}/media/gamma.png`,
+          sectionPath: ["Gamma Title"],
+        },
+      ],
+      media: [
+        {
+          kind: "image",
+          url: `${baseUrl}/media/alpha.png`,
+          sectionPath: ["Alpha Title"],
+        },
+        {
+          kind: "image",
+          url: `${baseUrl}/media/beta.png`,
+          sectionPath: ["Beta Title"],
+        },
+        {
+          kind: "image",
+          url: `${baseUrl}/media/gamma.png`,
+          sectionPath: ["Gamma Title"],
+        },
+      ],
+    });
     assert.deepEqual(paginatedEnvelope.data.stats, {
       kind: "list",
-      itemCount: 4,
+      itemCount: 3,
       fieldCount: 2,
-      limit: 10,
+      limit: 3,
       pageCount: 2,
       paginationMode: "next-page",
       maxPages: 2,
@@ -361,9 +488,10 @@ try {
       recordCount: number;
       records: Array<{ title: string; url: string }>;
     };
-    assert.equal(writtenArtifact.recordCount, 4);
+    assert.equal(writtenArtifact.recordCount, 3);
     assert.deepEqual(writtenArtifact.records, paginatedEnvelope.data.records);
     assert.deepEqual(writtenArtifact.items, paginatedEnvelope.data.items);
+    assert.deepEqual(writtenArtifact.document, paginatedEnvelope.data.document);
     assert.deepEqual(writtenArtifact.stats, paginatedEnvelope.data.stats);
   } finally {
     if (sessionCreated) {

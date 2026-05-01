@@ -32,7 +32,18 @@ type ExtractArtifact = {
   url: string;
   generatedAt: string;
   items: Array<Record<string, unknown>>;
+  document: ExtractDocument;
   stats: ExtractStats;
+};
+
+type ExtractDocument = {
+  blocks: Array<
+    | { kind: "heading"; text: string; level: number; sectionPath: string[] }
+    | { kind: "paragraph"; text: string; sectionPath: string[] }
+    | { kind: "link"; text?: string; url: string; sectionPath: string[] }
+    | { kind: "image"; url: string; sectionPath: string[] }
+  >;
+  media: Array<{ kind: "image"; url: string; sectionPath: string[] }>;
 };
 
 const repoRoot = resolve(import.meta.dirname, "..", "..");
@@ -107,15 +118,40 @@ const server = createServer((request, response) => {
           <script>
             const batches = [
               [
-                { title: "Alpha Title", href: "/posts/alpha" },
-                { title: "Beta Title", href: "/posts/beta" }
+                {
+                  title: "Alpha Title",
+                  href: "/posts/alpha",
+                  summary: "Alpha Summary",
+                  imageUrl: "/media/alpha.png"
+                },
+                {
+                  title: "Beta Title",
+                  href: "/posts/beta",
+                  summary: "Beta Summary",
+                  imageUrl: "/media/beta.png"
+                }
               ],
               [
-                { title: "Gamma Title", href: "/posts/gamma" },
-                { title: "Delta Title", href: "/posts/delta" }
+                {
+                  title: "Gamma Title",
+                  href: "/posts/gamma",
+                  summary: "Gamma Summary",
+                  imageUrl: "/media/gamma.png"
+                },
+                {
+                  title: "Delta Title",
+                  href: "/posts/delta",
+                  summary: "Delta Summary",
+                  imageUrl: "/media/delta.png"
+                }
               ],
               [
-                { title: "Epsilon Title", href: "/posts/epsilon" }
+                {
+                  title: "Epsilon Title",
+                  href: "/posts/epsilon",
+                  summary: "Epsilon Summary",
+                  imageUrl: "/media/epsilon.png"
+                }
               ]
             ];
             const feed = document.querySelector('[data-testid="feed"]');
@@ -126,7 +162,14 @@ const server = createServer((request, response) => {
                 'beforeend',
                 batch
                   .map(
-                    post => '<article class="post-card"><h2><a href="' + post.href + '">' + post.title + '</a></h2></article>',
+                    post =>
+                      '<article class="post-card">' +
+                      '<section class="entry">' +
+                      '<h2><a href="' + post.href + '">' + post.title + '</a></h2>' +
+                      '<p class="summary">' + post.summary + '</p>' +
+                      '<img class="thumb" src="' + post.imageUrl + '" alt="' + post.title + '" />' +
+                      '</section>' +
+                      '</article>',
                   )
                   .join(''),
               );
@@ -176,12 +219,32 @@ const server = createServer((request, response) => {
           <script>
             const batches = [
               [
-                { title: "Scroll Alpha", href: "/posts/scroll-alpha" },
-                { title: "Scroll Beta", href: "/posts/scroll-beta" }
+                {
+                  title: "Scroll Alpha",
+                  href: "/posts/scroll-alpha",
+                  summary: "Scroll Alpha Summary",
+                  imageUrl: "/media/scroll-alpha.png"
+                },
+                {
+                  title: "Scroll Beta",
+                  href: "/posts/scroll-beta",
+                  summary: "Scroll Beta Summary",
+                  imageUrl: "/media/scroll-beta.png"
+                }
               ],
               [
-                { title: "Scroll Gamma", href: "/posts/scroll-gamma" },
-                { title: "Scroll Delta", href: "/posts/scroll-delta" }
+                {
+                  title: "Scroll Gamma",
+                  href: "/posts/scroll-gamma",
+                  summary: "Scroll Gamma Summary",
+                  imageUrl: "/media/scroll-gamma.png"
+                },
+                {
+                  title: "Scroll Delta",
+                  href: "/posts/scroll-delta",
+                  summary: "Scroll Delta Summary",
+                  imageUrl: "/media/scroll-delta.png"
+                }
               ]
             ];
             const feed = document.querySelector('[data-testid="feed"]');
@@ -193,7 +256,14 @@ const server = createServer((request, response) => {
                 'beforeend',
                 batch
                   .map(
-                    post => '<article class="post-card"><h2><a href="' + post.href + '">' + post.title + '</a></h2></article>',
+                    post =>
+                      '<article class="post-card">' +
+                      '<section class="entry">' +
+                      '<h2><a href="' + post.href + '">' + post.title + '</a></h2>' +
+                      '<p class="summary">' + post.summary + '</p>' +
+                      '<img class="thumb" src="' + post.imageUrl + '" alt="' + post.title + '" />' +
+                      '</section>' +
+                      '</article>',
                   )
                   .join(''),
               );
@@ -252,7 +322,7 @@ try {
       title: "h2 a",
       url: { selector: "h2 a", attr: "href" },
     },
-    limit: 10,
+    limit: 3,
     pagination: {
       mode: "load-more",
       selector: "button.load-more",
@@ -266,7 +336,7 @@ try {
       title: "h2 a",
       url: { selector: "h2 a", attr: "href" },
     },
-    limit: 10,
+    limit: 3,
     pagination: {
       mode: "load-more",
       selector: "button.load-more",
@@ -283,7 +353,7 @@ try {
       title: "h2 a",
       url: { selector: "h2 a", attr: "href" },
     },
-    limit: 10,
+    limit: 3,
     scroll: {
       mode: "until-stable",
       stepPx: 900,
@@ -332,6 +402,7 @@ try {
         recordCount: number;
         items: Array<{ title: string; url: string }>;
         records: Array<{ title: string; url: string }>;
+        document: ExtractDocument;
         stats: ExtractStats;
       };
     };
@@ -339,19 +410,105 @@ try {
     assert.equal(loadMoreEnvelope.page.url, loadMoreUrl);
     assert.equal(loadMoreEnvelope.page.title, "Load More Fixture");
     assert.equal(loadMoreEnvelope.data.recipePath, loadMoreRecipePath);
-    assert.equal(loadMoreEnvelope.data.recordCount, 4);
+    assert.equal(loadMoreEnvelope.data.recordCount, 3);
     assert.deepEqual(loadMoreEnvelope.data.items, [
       { title: "Alpha Title", url: `${baseUrl}/posts/alpha` },
       { title: "Beta Title", url: `${baseUrl}/posts/beta` },
       { title: "Gamma Title", url: `${baseUrl}/posts/gamma` },
-      { title: "Delta Title", url: `${baseUrl}/posts/delta` },
     ]);
     assert.deepEqual(loadMoreEnvelope.data.records, loadMoreEnvelope.data.items);
+    assert.deepEqual(loadMoreEnvelope.data.document, {
+      blocks: [
+        {
+          kind: "heading",
+          text: "Alpha Title",
+          level: 2,
+          sectionPath: ["Alpha Title"],
+        },
+        {
+          kind: "link",
+          text: "Alpha Title",
+          url: `${baseUrl}/posts/alpha`,
+          sectionPath: ["Alpha Title"],
+        },
+        {
+          kind: "paragraph",
+          text: "Alpha Summary",
+          sectionPath: ["Alpha Title"],
+        },
+        {
+          kind: "image",
+          url: `${baseUrl}/media/alpha.png`,
+          sectionPath: ["Alpha Title"],
+        },
+        {
+          kind: "heading",
+          text: "Beta Title",
+          level: 2,
+          sectionPath: ["Beta Title"],
+        },
+        {
+          kind: "link",
+          text: "Beta Title",
+          url: `${baseUrl}/posts/beta`,
+          sectionPath: ["Beta Title"],
+        },
+        {
+          kind: "paragraph",
+          text: "Beta Summary",
+          sectionPath: ["Beta Title"],
+        },
+        {
+          kind: "image",
+          url: `${baseUrl}/media/beta.png`,
+          sectionPath: ["Beta Title"],
+        },
+        {
+          kind: "heading",
+          text: "Gamma Title",
+          level: 2,
+          sectionPath: ["Gamma Title"],
+        },
+        {
+          kind: "link",
+          text: "Gamma Title",
+          url: `${baseUrl}/posts/gamma`,
+          sectionPath: ["Gamma Title"],
+        },
+        {
+          kind: "paragraph",
+          text: "Gamma Summary",
+          sectionPath: ["Gamma Title"],
+        },
+        {
+          kind: "image",
+          url: `${baseUrl}/media/gamma.png`,
+          sectionPath: ["Gamma Title"],
+        },
+      ],
+      media: [
+        {
+          kind: "image",
+          url: `${baseUrl}/media/alpha.png`,
+          sectionPath: ["Alpha Title"],
+        },
+        {
+          kind: "image",
+          url: `${baseUrl}/media/beta.png`,
+          sectionPath: ["Beta Title"],
+        },
+        {
+          kind: "image",
+          url: `${baseUrl}/media/gamma.png`,
+          sectionPath: ["Gamma Title"],
+        },
+      ],
+    });
     assert.deepEqual(loadMoreEnvelope.data.stats, {
       kind: "list",
-      itemCount: 4,
+      itemCount: 3,
       fieldCount: 2,
-      limit: 10,
+      limit: 3,
       pageCount: 2,
       paginationMode: "load-more",
       maxPages: 2,
@@ -362,9 +519,10 @@ try {
       recordCount: number;
       records: Array<{ title: string; url: string }>;
     };
-    assert.equal(writtenLoadMoreArtifact.recordCount, 4);
+    assert.equal(writtenLoadMoreArtifact.recordCount, 3);
     assert.deepEqual(writtenLoadMoreArtifact.items, loadMoreEnvelope.data.items);
     assert.deepEqual(writtenLoadMoreArtifact.records, loadMoreEnvelope.data.records);
+    assert.deepEqual(writtenLoadMoreArtifact.document, loadMoreEnvelope.data.document);
     assert.deepEqual(writtenLoadMoreArtifact.stats, loadMoreEnvelope.data.stats);
 
     const loadMoreMarkdownOutFile = resolve(artifactDir, "load-more.md");
@@ -408,6 +566,7 @@ try {
         artifactPath?: string;
         items: Array<{ title: string; url: string }>;
         records: Array<{ title: string; url: string }>;
+        document: ExtractDocument;
       };
     };
     assert.equal(loadMoreMarkdownEnvelope.ok, true);
@@ -416,6 +575,7 @@ try {
     assert.equal(loadMoreMarkdownEnvelope.data.recipePath, loadMoreMarkdownRecipePath);
     assert.equal(loadMoreMarkdownEnvelope.data.artifactPath, loadMoreMarkdownOutFile);
     assert.deepEqual(loadMoreMarkdownEnvelope.data.records, loadMoreMarkdownEnvelope.data.items);
+    assert.deepEqual(loadMoreMarkdownEnvelope.data.document, loadMoreEnvelope.data.document);
     assert.equal(
       await readFile(loadMoreMarkdownOutFile, "utf8"),
       [
@@ -424,7 +584,6 @@ try {
         `| Alpha Title | ${baseUrl}/posts/alpha |`,
         `| Beta Title | ${baseUrl}/posts/beta |`,
         `| Gamma Title | ${baseUrl}/posts/gamma |`,
-        `| Delta Title | ${baseUrl}/posts/delta |`,
         "",
       ].join("\n"),
     );
@@ -466,6 +625,7 @@ try {
         recordCount: number;
         items: Array<{ title: string; url: string }>;
         records: Array<{ title: string; url: string }>;
+        document: ExtractDocument;
         stats: ExtractStats;
       };
     };
@@ -473,21 +633,107 @@ try {
     assert.equal(scrollEnvelope.page.url, scrollUrl);
     assert.equal(scrollEnvelope.page.title, "Scroll Fixture");
     assert.equal(scrollEnvelope.data.recipePath, scrollRecipePath);
-    assert.equal(scrollEnvelope.data.recordCount, 4);
+    assert.equal(scrollEnvelope.data.recordCount, 3);
     assert.deepEqual(scrollEnvelope.data.items, [
       { title: "Scroll Alpha", url: `${baseUrl}/posts/scroll-alpha` },
       { title: "Scroll Beta", url: `${baseUrl}/posts/scroll-beta` },
       { title: "Scroll Gamma", url: `${baseUrl}/posts/scroll-gamma` },
-      { title: "Scroll Delta", url: `${baseUrl}/posts/scroll-delta` },
     ]);
     assert.deepEqual(scrollEnvelope.data.records, scrollEnvelope.data.items);
+    assert.deepEqual(scrollEnvelope.data.document, {
+      blocks: [
+        {
+          kind: "heading",
+          text: "Scroll Alpha",
+          level: 2,
+          sectionPath: ["Scroll Alpha"],
+        },
+        {
+          kind: "link",
+          text: "Scroll Alpha",
+          url: `${baseUrl}/posts/scroll-alpha`,
+          sectionPath: ["Scroll Alpha"],
+        },
+        {
+          kind: "paragraph",
+          text: "Scroll Alpha Summary",
+          sectionPath: ["Scroll Alpha"],
+        },
+        {
+          kind: "image",
+          url: `${baseUrl}/media/scroll-alpha.png`,
+          sectionPath: ["Scroll Alpha"],
+        },
+        {
+          kind: "heading",
+          text: "Scroll Beta",
+          level: 2,
+          sectionPath: ["Scroll Beta"],
+        },
+        {
+          kind: "link",
+          text: "Scroll Beta",
+          url: `${baseUrl}/posts/scroll-beta`,
+          sectionPath: ["Scroll Beta"],
+        },
+        {
+          kind: "paragraph",
+          text: "Scroll Beta Summary",
+          sectionPath: ["Scroll Beta"],
+        },
+        {
+          kind: "image",
+          url: `${baseUrl}/media/scroll-beta.png`,
+          sectionPath: ["Scroll Beta"],
+        },
+        {
+          kind: "heading",
+          text: "Scroll Gamma",
+          level: 2,
+          sectionPath: ["Scroll Gamma"],
+        },
+        {
+          kind: "link",
+          text: "Scroll Gamma",
+          url: `${baseUrl}/posts/scroll-gamma`,
+          sectionPath: ["Scroll Gamma"],
+        },
+        {
+          kind: "paragraph",
+          text: "Scroll Gamma Summary",
+          sectionPath: ["Scroll Gamma"],
+        },
+        {
+          kind: "image",
+          url: `${baseUrl}/media/scroll-gamma.png`,
+          sectionPath: ["Scroll Gamma"],
+        },
+      ],
+      media: [
+        {
+          kind: "image",
+          url: `${baseUrl}/media/scroll-alpha.png`,
+          sectionPath: ["Scroll Alpha"],
+        },
+        {
+          kind: "image",
+          url: `${baseUrl}/media/scroll-beta.png`,
+          sectionPath: ["Scroll Beta"],
+        },
+        {
+          kind: "image",
+          url: `${baseUrl}/media/scroll-gamma.png`,
+          sectionPath: ["Scroll Gamma"],
+        },
+      ],
+    });
     assert.deepEqual(scrollEnvelope.data.stats, {
       kind: "list",
-      itemCount: 4,
+      itemCount: 3,
       fieldCount: 2,
-      limit: 10,
+      limit: 3,
       scrollMode: "until-stable",
-      scrollStepsUsed: 2,
+      scrollStepsUsed: 1,
       maxScrollSteps: 4,
     });
     assert.equal(scrollEnvelope.data.artifactPath, scrollOutFile);
@@ -496,9 +742,10 @@ try {
       recordCount: number;
       records: Array<{ title: string; url: string }>;
     };
-    assert.equal(writtenScrollArtifact.recordCount, 4);
+    assert.equal(writtenScrollArtifact.recordCount, 3);
     assert.deepEqual(writtenScrollArtifact.items, scrollEnvelope.data.items);
     assert.deepEqual(writtenScrollArtifact.records, scrollEnvelope.data.records);
+    assert.deepEqual(writtenScrollArtifact.document, scrollEnvelope.data.document);
     assert.deepEqual(writtenScrollArtifact.stats, scrollEnvelope.data.stats);
   } finally {
     if (loadMoreCreated) {

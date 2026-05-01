@@ -272,6 +272,18 @@
 - `url`
 - `generatedAt`
 - `items[]`
+- `document`
+  - `blocks[]`
+    - `heading`
+    - `paragraph`
+    - `link`
+    - `image`
+    - `video`
+    - `list`
+    - `quote`
+    - `code`
+    - `table`
+  - `media[]`
 - `stats`
   - `kind`
   - `itemCount`
@@ -290,10 +302,13 @@
 - `runtimeProbe`
 - `artifactPath`（仅 `--out`）
 - `artifactFormat`（仅 `--out` 且 `output.format !== "json"`）
+- `limitation?`
+- `limitations[]?`
 
 说明：
 
 - `items[]` / `stats` 是稳定 artifact contract 的主字段
+- `document.blocks[]` / `document.media[]` 是给 Agent 用的原始结构采集结果
 - `recordCount` / `records[]` 目前保留为兼容别名：
   - `recordCount -> stats.itemCount`
   - `records[] -> items[]`
@@ -306,6 +321,7 @@
 限制：
 
 - 只读，不做 DOM mutation
+- stdout 的主输出仍然是 JSON 原始采集结果；最终 Markdown / 报告 /文章由 Agent 还原
 - `runtimeGlobal` 只允许点路径，例如 `__NEXT_DATA__`、`app.state`
 - 不允许函数调用、括号访问、任意表达式
 - 分页和滚动必须是 bounded：
@@ -319,6 +335,9 @@
   - URL template pagination
   - cursor/API pagination
   - site marketplace
+- iframe：
+  - same-origin iframe：支持
+  - cross-origin iframe：不深采，只返回 limitation
 - 不替代 `pw code` 的 ad-hoc 调试能力
 
 ### `pw code` / `bootstrap apply --init-script` / `pw extract run` 的边界
@@ -333,6 +352,7 @@
   - repeatable structured extraction lane
   - 适合固定 recipe、固定 artifact、固定验证
   - stdout 始终保持 JSON；CSV/Markdown 只用于 `--out` artifact
+  - Agent 读取 `document.blocks/media` 后自行理解和还原最终文档
 
 不要把 `pw extract run` 包装成 planner、userscript installer 或任意脚本执行器。
 
@@ -387,6 +407,7 @@
   - `arguments` 必须是 object
   - unknown keys 会直接报错
   - 不再静默吞掉超出 contract 的参数
+- 当前定位是兼容出口，不是后续主线能力面
 
 ## Batch
 

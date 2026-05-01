@@ -2,6 +2,13 @@
 
 目标：把当前页面上的结构化内容导出成稳定 artifact，而不是停留在一次性 `pw code`。
 
+边界：
+
+```text
+pwcli 负责采集
+Agent 负责理解和还原
+```
+
 ## 适用场景
 
 - 列表页首屏结构化提取
@@ -28,6 +35,7 @@ pw diagnostics digest --session bug-a
 - recipe 可结构化表达
 - 只读提取
 - 需要稳定 artifact
+- 需要原始文档结构而不是最终重写结果
 
 不要用在：
 
@@ -109,6 +117,26 @@ load-more + scroll：
 - `output.format = "csv"`：写 CSV 文本
 - `output.format = "markdown"`：写 Markdown 表格
 
+## 原始结构输出
+
+`extract run` 现在不仅返回 `items[]`，也返回：
+
+- `document.blocks[]`
+- `document.media[]`
+
+用途：
+
+- `items[]`：兼容当前字段提取路径
+- `document.blocks[]`：按 DOM 顺序给 Agent 原始内容块
+- `document.media[]`：聚合图片/视频引用
+
+Agent 基于这些原始结果自行还原：
+
+- Markdown
+- 报告
+- 文章
+- 摘要
+
 ## 明确限制
 
 - 只读提取
@@ -116,6 +144,8 @@ load-more + scroll：
 - 不支持 URL template / cursor/API pagination
 - 不支持 site marketplace
 - 不支持把 `extract run` 当成任意脚本平台
+- same-origin iframe 支持
+- cross-origin iframe 不深采，只会返回 limitation
 
 文章：
 

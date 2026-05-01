@@ -91,6 +91,77 @@ type ExtractTraversalFacts = {
   maxScrollSteps?: number;
 };
 
+type ExtractDocumentBlock =
+  | {
+      kind: "heading";
+      text: string;
+      level: number;
+      sectionPath: string[];
+    }
+  | {
+      kind: "paragraph";
+      text: string;
+      sectionPath: string[];
+    }
+  | {
+      kind: "link";
+      url: string;
+      text?: string;
+      sectionPath: string[];
+    }
+  | {
+      kind: "image";
+      url: string;
+      sectionPath: string[];
+    }
+  | {
+      kind: "video";
+      url: string;
+      sectionPath: string[];
+    }
+  | {
+      kind: "list";
+      ordered: boolean;
+      items: string[];
+      sectionPath: string[];
+    }
+  | {
+      kind: "quote";
+      text: string;
+      sectionPath: string[];
+    }
+  | {
+      kind: "code";
+      text: string;
+      language?: string;
+      sectionPath: string[];
+    }
+  | {
+      kind: "table";
+      headers: string[];
+      rows: string[][];
+      sectionPath: string[];
+    };
+
+type ExtractDocumentMedia =
+  | {
+      kind: "image";
+      url: string;
+      sectionPath: string[];
+    }
+  | {
+      kind: "video";
+      url: string;
+      sectionPath: string[];
+    };
+
+type ExtractDocument = {
+  blocks: ExtractDocumentBlock[];
+  media: ExtractDocumentMedia[];
+};
+
+type ExtractLimitation = string;
+
 type ExtractRunPayload = {
   page?: {
     url?: string;
@@ -100,6 +171,9 @@ type ExtractRunPayload = {
   recipe: NormalizedExtractRecipe;
   recordCount: number;
   records: unknown[];
+  document?: unknown;
+  limitation?: unknown;
+  limitations?: unknown;
   runtimeProbe?: RuntimeProbeResult;
   traversal?: ExtractTraversalFacts;
 };
@@ -109,6 +183,9 @@ type ExtractArtifact = {
   url: string;
   generatedAt: string;
   items: Array<Record<string, unknown>>;
+  document: ExtractDocument;
+  limitation?: ExtractLimitation;
+  limitations?: ExtractLimitation[];
   stats: {
     kind: "list" | "article";
     itemCount: number;
@@ -364,13 +441,287 @@ function normalizeRecipe(value: unknown): NormalizedExtractRecipe {
 function buildExtractionSource(recipe: NormalizedExtractRecipe) {
   return `async page => {
     const recipe = ${JSON.stringify(recipe)};
+    const collectIframeContexts = async () => {
+      return await page.evaluate(() => {
+        const normalizeText = value => String(value ?? '').replace(/\\s+/g, ' ').trim();
+        const readDirectHeadingText = element => {
+          const heading = element.querySelector(
+            ':scope > h1, :scope > h2, :scope > h3, :scope > h4, :scope > h5, :scope > h6'
+          );
+          return heading instanceof HTMLElement
+            ? normalizeText(heading.innerText || heading.textContent || '')
+            : '';
+        };
+        const toSectionPath = (node, boundaryRoot) => {
+          const path = [];
+          let current = node.parentElement;
+          while (current && current !== boundaryRoot && path.length < 4) {
+            const headingText = readDirectHeadingText(current);
+            if (headingText && path[0] !== headingText)
+              path.unshift(headingText);
+            current = current.parentElement;
+          }
+          return path;
+        };
+        return Array.from(document.querySelectorAll('iframe, frame')).map(node => ({
+          url:
+            typeof node.src === 'string' && node.src.trim().length > 0
+              ? node.src
+              : typeof node.getAttribute === 'function'
+                ? normalizeText(node.getAttribute('src') ?? '')
+                : '',
+          sectionPath: toSectionPath(node, document.body || document.documentElement),
+        }));
+      });
+    };
+
+    const collectSameOriginFrameDocument = async (frame, inheritedSectionPath) => {
+      return await frame.evaluate((inheritedSectionPath) => {
+        const normalizeText = value => String(value ?? '').replace(/\\s+/g, ' ').trim();
+        const isElementNode = node =>
+          Boolean(node) && typeof node === 'object' && node.nodeType === Node.ELEMENT_NODE;
+        const isHtmlLikeElement = node =>
+          isElementNode(node)
+          && typeof node.getBoundingClientRect === 'function'
+          && typeof node.getClientRects === 'function';
+        const isVisible = node => {
+          if (!isHtmlLikeElement(node))
+            return false;
+          const ownerView = node.ownerDocument?.defaultView || window;
+          const style = ownerView.getComputedStyle(node);
+          if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0')
+            return false;
+          return true;
+        };
+        const readDirectHeadingText = element => {
+          const heading = Array.from(element.children).find((child) => /^H[1-6]$/.test(child.tagName));
+          if (!isElementNode(heading))
+            return '';
+          return normalizeText(heading.innerText || heading.textContent || '');
+        };
+        const mergeSectionPath = (prefix, suffix) => {
+          const merged = [...prefix, ...suffix]
+            .filter(item => typeof item === 'string' && item.trim().length > 0)
+            .map(item => item.trim());
+          const deduped = [];
+          for (const item of merged) {
+            if (deduped[deduped.length - 1] !== item)
+              deduped.push(item);
+          }
+          return deduped.slice(0, 4);
+        };
+        const toSectionPath = (node, boundaryRoot) => {
+          const path = [];
+          let current = node.parentElement;
+          while (current && current !== boundaryRoot && path.length < 4) {
+            const headingText = readDirectHeadingText(current);
+            if (headingText && path[0] !== headingText)
+              path.unshift(headingText);
+            current = current.parentElement;
+          }
+          return path;
+        };
+        const collectVideoUrl = element => {
+          if (!isElementNode(element) || element.tagName?.toLowerCase() !== 'video')
+            return '';
+          if (typeof element.currentSrc === 'string' && element.currentSrc.trim())
+            return normalizeText(element.currentSrc);
+          if (typeof element.src === 'string' && element.src.trim())
+            return normalizeText(element.src);
+          const source = element.querySelector('source[src]');
+          if (source && typeof source.src === 'string')
+            return normalizeText(source.src);
+          return '';
+        };
+        const readCodeText = element =>
+          String(
+            isHtmlLikeElement(element)
+              ? element.innerText || element.textContent || ''
+              : element.textContent || ''
+          ).trim();
+        const readCodeLanguage = element => {
+          const languageSource =
+            element.tagName.toLowerCase() === 'pre'
+              ? element.querySelector('code')
+              : element;
+          const className =
+            typeof languageSource?.getAttribute === 'function'
+              ? (languageSource.getAttribute('class') ?? '')
+              : '';
+          const classTokens = className.split(/\\s+/).filter(Boolean);
+          const token = classTokens.find(item => item.startsWith('language-'));
+          return token ? token.slice('language-'.length) : undefined;
+        };
+        const collectDirectListItems = element =>
+          Array.from(element.children)
+            .filter(child => child.tagName.toLowerCase() === 'li')
+            .map(child => normalizeText(child.innerText || child.textContent || ''))
+            .filter(Boolean);
+        const collectTableRows = rows =>
+          rows
+            .map(row =>
+              Array.from(row.children)
+                .filter(cell => ['td', 'th'].includes(cell.tagName.toLowerCase()))
+                .map(cell => normalizeText(cell.innerText || cell.textContent || '')),
+            )
+            .filter(cells => cells.length > 0);
+        const blocks = [];
+        const media = [];
+        const selectors = 'h1, h2, h3, h4, h5, h6, p, a[href], img[src], video, ul, ol, blockquote, pre, code, table';
+        const nodes = Array.from((document.body || document.documentElement).querySelectorAll(selectors));
+        for (const node of nodes) {
+          if (!(node instanceof Element))
+            continue;
+          const tagName = node.tagName.toLowerCase();
+          const sectionPath = mergeSectionPath(inheritedSectionPath, toSectionPath(node, document.body || document.documentElement));
+          if (/^h[1-6]$/.test(tagName)) {
+            const text = normalizeText(node.textContent || '');
+            if (text) blocks.push({ kind: 'heading', text, level: Number.parseInt(tagName.slice(1), 10), sectionPath });
+            continue;
+          }
+          if (tagName === 'p') {
+            const text = normalizeText(node.textContent || '');
+            if (text) blocks.push({ kind: 'paragraph', text, sectionPath });
+            continue;
+          }
+          if (tagName === 'a') {
+            const url = typeof node.href === 'string' ? normalizeText(node.href) : '';
+            const text = normalizeText(node.textContent || '');
+            if (url) blocks.push({ kind: 'link', url, ...(text ? { text } : {}), sectionPath });
+            continue;
+          }
+          if (tagName === 'img') {
+            const url = typeof node.currentSrc === 'string' || typeof node.src === 'string'
+              ? normalizeText(node.currentSrc || node.src)
+              : '';
+            if (url) {
+              const block = { kind: 'image', url, sectionPath };
+              blocks.push(block);
+              media.push(block);
+            }
+            continue;
+          }
+          if (tagName === 'video') {
+            const url = collectVideoUrl(node);
+            if (url) {
+              const block = { kind: 'video', url, sectionPath };
+              blocks.push(block);
+              media.push(block);
+            }
+            continue;
+          }
+          if (tagName === 'ul' || tagName === 'ol') {
+            const items = collectDirectListItems(node);
+            if (items.length) blocks.push({ kind: 'list', ordered: tagName === 'ol', items, sectionPath });
+            continue;
+          }
+          if (tagName === 'blockquote') {
+            const text = normalizeText(node.textContent || '');
+            if (text) blocks.push({ kind: 'quote', text, sectionPath });
+            continue;
+          }
+          if (tagName === 'pre' || tagName === 'code') {
+            const text = readCodeText(node);
+            if (text) {
+              const language = readCodeLanguage(node);
+              blocks.push({ kind: 'code', text, ...(language ? { language } : {}), sectionPath });
+            }
+            continue;
+          }
+          if (tagName === 'table') {
+            const headers = collectTableRows(Array.from(node.querySelectorAll('thead tr')))[0] ?? [];
+            const rows = collectTableRows(Array.from(node.querySelectorAll('tbody tr')));
+            if (headers.length || rows.length) blocks.push({ kind: 'table', headers, rows, sectionPath });
+          }
+        }
+        return { blocks, media };
+      }, inheritedSectionPath);
+    };
+
+    const collectSameOriginFrameDocumentFallback = async (frame, inheritedSectionPath) => {
+      return await frame.evaluate((inheritedSectionPath) => {
+        const normalizeText = value => String(value ?? '').replace(/\\s+/g, ' ').trim();
+        const mergeSectionPath = (prefix, suffix) => {
+          const merged = [...prefix, ...suffix]
+            .filter(item => typeof item === 'string' && item.trim().length > 0)
+            .map(item => item.trim());
+          const deduped = [];
+          for (const item of merged) {
+            if (deduped[deduped.length - 1] !== item)
+              deduped.push(item);
+          }
+          return deduped.slice(0, 4);
+        };
+        const readDirectHeadingText = element => {
+          const heading = element.querySelector(
+            ':scope > h1, :scope > h2, :scope > h3, :scope > h4, :scope > h5, :scope > h6'
+          );
+          return heading instanceof HTMLElement
+            ? normalizeText(heading.innerText || heading.textContent || '')
+            : '';
+        };
+        const toSectionPath = (node, boundaryRoot) => {
+          const path = [];
+          let current = node.parentElement;
+          while (current && current !== boundaryRoot && path.length < 4) {
+            const headingText = readDirectHeadingText(current);
+            if (headingText && path[0] !== headingText)
+              path.unshift(headingText);
+            current = current.parentElement;
+          }
+          return path;
+        };
+        const root = document.body || document.documentElement;
+        const blocks = [];
+        const media = [];
+        for (const node of Array.from(root.querySelectorAll('h1,h2,h3,h4,h5,h6,p,a[href],img[src]'))) {
+          const tagName = node.tagName.toLowerCase();
+          const sectionPath = mergeSectionPath(inheritedSectionPath, toSectionPath(node, root));
+          if (/^h[1-6]$/.test(tagName)) {
+            const text = normalizeText(node.textContent || '');
+            if (text) blocks.push({ kind: 'heading', text, level: Number.parseInt(tagName.slice(1), 10), sectionPath });
+            continue;
+          }
+          if (tagName === 'p') {
+            const text = normalizeText(node.textContent || '');
+            if (text) blocks.push({ kind: 'paragraph', text, sectionPath });
+            continue;
+          }
+          if (tagName === 'a') {
+            const url = typeof node.href === 'string' ? normalizeText(node.href) : '';
+            const text = normalizeText(node.textContent || '');
+            if (url) blocks.push({ kind: 'link', url, ...(text ? { text } : {}), sectionPath });
+            continue;
+          }
+          if (tagName === 'img') {
+            const url = typeof node.currentSrc === 'string' || typeof node.src === 'string'
+              ? normalizeText(node.currentSrc || node.src)
+              : '';
+            if (url) {
+              const block = { kind: 'image', url, sectionPath };
+              blocks.push(block);
+              media.push(block);
+            }
+          }
+        }
+        return { blocks, media };
+      }, inheritedSectionPath);
+    };
+
     const extractPage = async () => {
       return await page.evaluate((recipe) => {
         const normalizeText = value => String(value ?? '').replace(/\\s+/g, ' ').trim();
+        const isElementNode = node =>
+          Boolean(node) && typeof node === 'object' && node.nodeType === Node.ELEMENT_NODE;
+        const isHtmlLikeElement = node =>
+          isElementNode(node)
+          && typeof node.getBoundingClientRect === 'function'
+          && typeof node.getClientRects === 'function';
         const isVisible = node => {
-          if (!(node instanceof HTMLElement))
+          if (!isHtmlLikeElement(node))
             return false;
-          const style = window.getComputedStyle(node);
+          const ownerView = node.ownerDocument?.defaultView || window;
+          const style = ownerView.getComputedStyle(node);
           if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0')
             return false;
           const rect = node.getBoundingClientRect();
@@ -379,9 +730,9 @@ function buildExtractionSource(recipe: NormalizedExtractRecipe) {
         const visibleNodes = (root, selector) => {
           const nodes = selector ? Array.from(root.querySelectorAll(selector)) : [root];
           return nodes.filter(node => {
-            if (node instanceof HTMLElement)
+            if (isHtmlLikeElement(node))
               return isVisible(node);
-            if (node instanceof SVGElement)
+            if (typeof SVGElement !== 'undefined' && node instanceof SVGElement)
               return true;
             return false;
           });
@@ -394,7 +745,7 @@ function buildExtractionSource(recipe: NormalizedExtractRecipe) {
               return normalizeText(node.getAttribute(attr) ?? '');
             return '';
           }
-          if (node instanceof HTMLElement)
+          if (isHtmlLikeElement(node))
             return normalizeText(node.innerText || node.textContent || '');
           return normalizeText(node.textContent || '');
         };
@@ -412,6 +763,334 @@ function buildExtractionSource(recipe: NormalizedExtractRecipe) {
             record[fieldName] = extractField(root, spec);
           return record;
         };
+        const collectVideoUrl = element => {
+          if (!isElementNode(element) || element.tagName?.toLowerCase() !== 'video')
+            return '';
+          if (typeof element.currentSrc === 'string' && element.currentSrc.trim())
+            return normalizeText(element.currentSrc);
+          if (typeof element.src === 'string' && element.src.trim())
+            return normalizeText(element.src);
+          const source = element.querySelector('source[src]');
+          if (source instanceof HTMLSourceElement && typeof source.src === 'string')
+            return normalizeText(source.src);
+          return '';
+        };
+        const shouldSkipParagraph = element =>
+          Boolean(element.closest('blockquote, li, td, th, figcaption'));
+        const shouldSkipStandaloneCode = element =>
+          element.tagName.toLowerCase() === 'code' && Boolean(element.closest('pre'));
+        const readDirectHeadingText = element => {
+          if (!(element instanceof Element))
+            return '';
+          const heading = element.querySelector(
+            ':scope > h1, :scope > h2, :scope > h3, :scope > h4, :scope > h5, :scope > h6'
+          );
+          if (!isHtmlLikeElement(heading) || !isVisible(heading))
+            return '';
+          return normalizeText(heading.innerText || heading.textContent || '');
+        };
+        const toSectionPath = (node, boundaryRoot) => {
+          const path = [];
+          let current = node.parentElement;
+          while (current && current !== boundaryRoot && path.length < 4) {
+            const headingText = readDirectHeadingText(current);
+            if (headingText && path[0] !== headingText)
+              path.unshift(headingText);
+            current = current.parentElement;
+          }
+          return path;
+        };
+        const readCodeText = element =>
+          String(
+            isHtmlLikeElement(element)
+              ? element.innerText || element.textContent || ''
+              : element.textContent || ''
+          ).trim();
+        const readCodeLanguage = element => {
+          const languageSource =
+            element.tagName.toLowerCase() === 'pre'
+              ? element.querySelector('code')
+              : element;
+          const className =
+            typeof languageSource?.getAttribute === 'function'
+              ? (languageSource.getAttribute('class') ?? '')
+              : '';
+          const classTokens = className.split(/\\s+/).filter(Boolean);
+          const token = classTokens.find(item => item.startsWith('language-'));
+          if (token)
+            return token.slice('language-'.length);
+          const datasetLanguage =
+            typeof languageSource?.getAttribute === 'function'
+              ? normalizeText(languageSource.getAttribute('data-language') ?? '')
+              : '';
+          return datasetLanguage || undefined;
+        };
+        const collectDirectListItems = element =>
+          Array.from(element.children)
+            .filter(child => child.tagName.toLowerCase() === 'li' && isVisible(child))
+            .map(child => normalizeText(child.innerText || child.textContent || ''))
+            .filter(Boolean);
+        const collectTableRows = rows =>
+          rows
+            .map(row =>
+              Array.from(row.children)
+                .filter(cell => {
+                  const tagName = cell.tagName.toLowerCase();
+                  return (tagName === 'td' || tagName === 'th') && isVisible(cell);
+                })
+                .map(cell => normalizeText(cell.innerText || cell.textContent || '')),
+            )
+            .filter(cells => cells.length > 0);
+        const collectDocument = roots => {
+          const blocks = [];
+          const media = [];
+          const limitations = [];
+          const seenMedia = new Set();
+          const seenFrameDocuments = new WeakSet();
+          const selectors =
+            'h1, h2, h3, h4, h5, h6, p, a[href], img[src], video, ul, ol, blockquote, pre, code, table, iframe, frame';
+
+          const pushLimitation = limitation => {
+            if (typeof limitation !== 'string' || !limitation || limitations.includes(limitation))
+              return;
+            limitations.push(limitation);
+          };
+
+          const mergeSectionPath = (prefix, suffix) => {
+            const merged = [...prefix, ...suffix]
+              .filter(item => typeof item === 'string' && item.trim().length > 0)
+              .map(item => item.trim());
+            const deduped = [];
+            for (const item of merged) {
+              if (deduped[deduped.length - 1] !== item)
+                deduped.push(item);
+            }
+            return deduped.slice(0, 4);
+          };
+
+          const pushMedia = entry => {
+            const key = entry.kind + ':' + entry.url;
+            if (seenMedia.has(key))
+              return;
+            seenMedia.add(key);
+            media.push(entry);
+          };
+
+          const pushBlock = block => {
+            blocks.push(block);
+            if (block.kind === 'image' || block.kind === 'video')
+              pushMedia({ kind: block.kind, url: block.url, sectionPath: block.sectionPath });
+          };
+
+          const collectFrameRoot = (node, boundaryRoot, inheritedSectionPath) => {
+            let frameDocument = null;
+            try {
+              frameDocument = node.contentDocument || node.contentWindow?.document || null;
+            } catch {
+              pushLimitation('cross-origin iframe content is not extracted');
+              return;
+            }
+            if (!frameDocument || !frameDocument.documentElement)
+              return;
+            if (seenFrameDocuments.has(frameDocument))
+              return;
+            seenFrameDocuments.add(frameDocument);
+
+            const frameRoot = frameDocument.body || frameDocument.documentElement;
+            if (!frameRoot)
+              return;
+            collectRoot(
+              frameRoot,
+              frameRoot,
+              mergeSectionPath(inheritedSectionPath, toSectionPath(node, boundaryRoot)),
+              true,
+            );
+          };
+
+          const collectRoot = (root, boundaryRoot, inheritedSectionPath, relaxedVisibility = false) => {
+            const nodes = [
+              ...(isElementNode(root) && typeof root.matches === 'function' && root.matches(selectors) ? [root] : []),
+              ...Array.from(root.querySelectorAll(selectors)),
+            ];
+            for (const node of nodes) {
+              if (!isElementNode(node))
+                continue;
+              const tagName = node.tagName.toLowerCase();
+
+              if (!relaxedVisibility && isHtmlLikeElement(node) && !isVisible(node))
+                continue;
+
+              if (tagName === 'iframe' || tagName === 'frame') {
+                collectFrameRoot(node, boundaryRoot, inheritedSectionPath);
+                continue;
+              }
+
+              const sectionPath = mergeSectionPath(
+                inheritedSectionPath,
+                toSectionPath(node, boundaryRoot),
+              );
+
+              if (/^h[1-6]$/.test(tagName)) {
+                const text = normalizeText(node.textContent || '');
+                if (!text)
+                  continue;
+                pushBlock({
+                  kind: 'heading',
+                  text,
+                  level: Number.parseInt(tagName.slice(1), 10),
+                  sectionPath,
+                });
+                continue;
+              }
+
+              if (tagName === 'p') {
+                if (shouldSkipParagraph(node))
+                  continue;
+                const text = normalizeText(node.textContent || '');
+                if (!text)
+                  continue;
+                pushBlock({
+                  kind: 'paragraph',
+                  text,
+                  sectionPath,
+                });
+                continue;
+              }
+
+              if (tagName === 'a') {
+                const url =
+                  typeof node.href === 'string' ? normalizeText(node.href) : '';
+                if (!url)
+                  continue;
+                const text = normalizeText(node.textContent || '');
+                pushBlock({
+                  kind: 'link',
+                  url,
+                  ...(text ? { text } : {}),
+                  sectionPath,
+                });
+                continue;
+              }
+
+              if (tagName === 'img') {
+                const url =
+                  typeof node.currentSrc === 'string' || typeof node.src === 'string'
+                    ? normalizeText(node.currentSrc || node.src)
+                    : '';
+                if (!url)
+                  continue;
+                pushBlock({
+                  kind: 'image',
+                  url,
+                  sectionPath,
+                });
+                continue;
+              }
+
+              if (tagName === 'video') {
+                const url = collectVideoUrl(node);
+                if (!url)
+                  continue;
+                pushBlock({
+                  kind: 'video',
+                  url,
+                  sectionPath,
+                });
+                continue;
+              }
+
+              if (tagName === 'ul' || tagName === 'ol') {
+                const items = collectDirectListItems(node).filter(Boolean);
+                if (items.length === 0)
+                  continue;
+                pushBlock({
+                  kind: 'list',
+                  ordered: tagName === 'ol',
+                  items,
+                  sectionPath,
+                });
+                continue;
+              }
+
+              if (tagName === 'blockquote') {
+                const text = normalizeText(node.textContent || '');
+                if (!text)
+                  continue;
+                pushBlock({
+                  kind: 'quote',
+                  text,
+                  sectionPath,
+                });
+                continue;
+              }
+
+              if (tagName === 'pre' || tagName === 'code') {
+                if (shouldSkipStandaloneCode(node))
+                  continue;
+                const text = readCodeText(node);
+                if (!text)
+                  continue;
+                const language = readCodeLanguage(node);
+                pushBlock({
+                  kind: 'code',
+                  text,
+                  ...(language ? { language } : {}),
+                  sectionPath,
+                });
+                continue;
+              }
+
+              if (tagName === 'table') {
+                const table = node.tagName?.toLowerCase() === 'table' ? node : null;
+                if (!table)
+                  continue;
+                const headerRows = collectTableRows(Array.from(table.tHead?.rows ?? []));
+                const headers =
+                  headerRows[0]
+                  ?? collectTableRows(Array.from(table.querySelectorAll('tr')))
+                    .find(row => row.length > 0)
+                  ?? [];
+                const bodyRows = collectTableRows(Array.from(table.tBodies).flatMap(section => Array.from(section.rows)));
+                const fallbackRows =
+                  bodyRows.length > 0
+                    ? bodyRows
+                    : collectTableRows(Array.from(table.querySelectorAll('tr'))).slice(headerRows.length > 0 ? 1 : 0);
+                if (headers.length === 0 && fallbackRows.length === 0)
+                  continue;
+                pushBlock({
+                  kind: 'table',
+                  headers,
+                  rows: fallbackRows,
+                  sectionPath,
+                });
+              }
+            }
+          };
+
+          for (const root of roots) {
+            collectRoot(root, root, []);
+          }
+
+          return { blocks, media, limitations };
+        };
+        const flattenDocuments = documents => {
+          const flattened = {
+            blocks: [],
+            media: [],
+            limitations: [],
+          };
+          for (const documentEntry of documents) {
+            if (!documentEntry || typeof documentEntry !== 'object')
+              continue;
+            if (Array.isArray(documentEntry.blocks))
+              flattened.blocks.push(...documentEntry.blocks);
+            if (Array.isArray(documentEntry.media))
+              flattened.media.push(...documentEntry.media);
+            if (Array.isArray(documentEntry.limitations))
+              flattened.limitations.push(...documentEntry.limitations);
+          }
+          return flattened;
+        };
         const listRoots = recipe.kind === 'list'
           ? visibleNodes(document, recipe.itemSelector).slice(0, recipe.limit)
           : [];
@@ -419,6 +1098,12 @@ function buildExtractionSource(recipe: NormalizedExtractRecipe) {
           recipe.kind === 'article'
             ? visibleNodes(document, recipe.containerSelector)[0] ?? null
             : null;
+        const recordDocuments = recipe.kind === 'list'
+          ? listRoots.map(root => collectDocument([root]))
+          : [];
+        const documentPayload = recipe.kind === 'list'
+          ? flattenDocuments(recordDocuments)
+          : collectDocument(articleRoot ? [articleRoot] : []);
         const records = recipe.kind === 'list'
           ? listRoots.map(extractRecord)
           : articleRoot
@@ -474,16 +1159,52 @@ function buildExtractionSource(recipe: NormalizedExtractRecipe) {
           },
           recordCount: records.length,
           records,
+          document: documentPayload,
+          ...(recordDocuments.length > 0 ? { recordDocuments } : {}),
           ...(runtimeProbe ? { runtimeProbe } : {}),
         };
       }, recipe);
     };
 
     const aggregatedRecords = [];
+    const aggregatedDocument = {
+      blocks: [],
+      media: [],
+    };
+    const aggregatedLimitations = new Set();
     const seenSnapshots = new Set();
     let lastPayload;
     let pageCount = 0;
     let scrollStepsUsed = 0;
+
+    await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => null);
+    await page.waitForTimeout(200).catch(() => null);
+
+    const flattenDocuments = documents => {
+      const flattened = {
+        blocks: [],
+        media: [],
+      };
+      for (const documentEntry of documents) {
+        if (!documentEntry || typeof documentEntry !== 'object')
+          continue;
+        if (Array.isArray(documentEntry.blocks))
+          flattened.blocks.push(...documentEntry.blocks);
+        if (Array.isArray(documentEntry.media))
+          flattened.media.push(...documentEntry.media);
+      }
+      return flattened;
+    };
+
+    const documentForRecordCount = (payload, recordCount) => {
+      if (Array.isArray(payload.recordDocuments) && payload.recordDocuments.length > 0) {
+        return flattenDocuments(payload.recordDocuments.slice(0, recordCount));
+      }
+      return {
+        blocks: Array.isArray(payload.document?.blocks) ? payload.document.blocks : [],
+        media: Array.isArray(payload.document?.media) ? payload.document.media : [],
+      };
+    };
 
     while (true) {
       if (recipe.kind === 'list' && aggregatedRecords.length >= recipe.limit)
@@ -493,6 +1214,7 @@ function buildExtractionSource(recipe: NormalizedExtractRecipe) {
       const fingerprint = JSON.stringify({
         page: payload.page,
         records: payload.records,
+        document: payload.document,
       });
       if (seenSnapshots.has(fingerprint))
         break;
@@ -500,18 +1222,32 @@ function buildExtractionSource(recipe: NormalizedExtractRecipe) {
       seenSnapshots.add(fingerprint);
       lastPayload = payload;
       pageCount += 1;
+      for (const limitation of Array.isArray(payload.document?.limitations) ? payload.document.limitations : []) {
+        if (typeof limitation === 'string' && limitation)
+          aggregatedLimitations.add(limitation);
+      }
       if (
         recipe.kind === 'list' &&
         (recipe.pagination?.mode === 'load-more' ||
           (!recipe.pagination && recipe.scroll?.mode === 'until-stable'))
       ) {
-        aggregatedRecords.splice(0, aggregatedRecords.length, ...payload.records.slice(0, recipe.limit));
+        const nextRecords = payload.records.slice(0, recipe.limit);
+        const nextDocument = documentForRecordCount(payload, nextRecords.length);
+        aggregatedRecords.splice(0, aggregatedRecords.length, ...nextRecords);
+        aggregatedDocument.blocks.splice(0, aggregatedDocument.blocks.length, ...nextDocument.blocks);
+        aggregatedDocument.media.splice(0, aggregatedDocument.media.length, ...nextDocument.media);
       } else if (recipe.kind === 'list') {
         const remainingSlots = Math.max(recipe.limit - aggregatedRecords.length, 0);
-        if (remainingSlots > 0)
-          aggregatedRecords.push(...payload.records.slice(0, remainingSlots));
+        const nextRecords = remainingSlots > 0 ? payload.records.slice(0, remainingSlots) : [];
+        const nextDocument = documentForRecordCount(payload, nextRecords.length);
+        if (nextRecords.length > 0)
+          aggregatedRecords.push(...nextRecords);
+        aggregatedDocument.blocks.push(...nextDocument.blocks);
+        aggregatedDocument.media.push(...nextDocument.media);
       } else {
         aggregatedRecords.splice(0, aggregatedRecords.length, ...payload.records.slice(0, recipe.limit));
+        aggregatedDocument.blocks.splice(0, aggregatedDocument.blocks.length, ...payload.document.blocks);
+        aggregatedDocument.media.splice(0, aggregatedDocument.media.length, ...payload.document.media);
       }
 
       if (recipe.kind === 'list' && aggregatedRecords.length >= recipe.limit)
@@ -606,6 +1342,13 @@ function buildExtractionSource(recipe: NormalizedExtractRecipe) {
       recipe,
       recordCount: aggregatedRecords.length,
       records: aggregatedRecords,
+      document: aggregatedDocument,
+      ...(aggregatedLimitations.size > 0
+        ? {
+            limitation: Array.from(aggregatedLimitations).join('; '),
+            limitations: Array.from(aggregatedLimitations),
+          }
+        : {}),
       ...(lastPayload?.runtimeProbe ? { runtimeProbe: lastPayload.runtimeProbe } : {}),
       ...(Object.keys(traversal).length > 0 ? { traversal } : {}),
     });
@@ -847,6 +1590,188 @@ function normalizeItems(records: unknown[]) {
   );
 }
 
+function normalizeSectionPath(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value
+    .filter((entry): entry is string => typeof entry === "string")
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+    .slice(0, 4);
+}
+
+function normalizeStringArray(value: unknown): string[] | null {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+  const values = value.filter((entry): entry is string => typeof entry === "string");
+  return values.length === value.length ? values : null;
+}
+
+function normalizeTableRows(value: unknown): string[][] | null {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+  const rows = value.map((row) => normalizeStringArray(row));
+  if (rows.some((row) => row == null)) {
+    return null;
+  }
+  return rows as string[][];
+}
+
+function normalizeDocumentBlock(value: unknown): ExtractDocumentBlock | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const block = value as Record<string, unknown>;
+  const sectionPath = normalizeSectionPath(block.sectionPath);
+
+  if (block.kind === "heading" && typeof block.text === "string" && typeof block.level === "number") {
+    return {
+      kind: "heading",
+      text: block.text,
+      level: Math.max(1, Math.floor(block.level)),
+      sectionPath,
+    };
+  }
+
+  if (block.kind === "paragraph" && typeof block.text === "string") {
+    return {
+      kind: "paragraph",
+      text: block.text,
+      sectionPath,
+    };
+  }
+
+  if (block.kind === "link" && typeof block.url === "string") {
+    return {
+      kind: "link",
+      url: block.url,
+      ...(typeof block.text === "string" ? { text: block.text } : {}),
+      sectionPath,
+    };
+  }
+
+  if ((block.kind === "image" || block.kind === "video") && typeof block.url === "string") {
+    return {
+      kind: block.kind,
+      url: block.url,
+      sectionPath,
+    };
+  }
+
+  if (block.kind === "list" && typeof block.ordered === "boolean") {
+    const items = normalizeStringArray(block.items);
+    if (!items) {
+      return null;
+    }
+    return {
+      kind: "list",
+      ordered: block.ordered,
+      items,
+      sectionPath,
+    };
+  }
+
+  if (block.kind === "quote" && typeof block.text === "string") {
+    return {
+      kind: "quote",
+      text: block.text,
+      sectionPath,
+    };
+  }
+
+  if (block.kind === "code" && typeof block.text === "string") {
+    return {
+      kind: "code",
+      text: block.text,
+      ...(typeof block.language === "string" ? { language: block.language } : {}),
+      sectionPath,
+    };
+  }
+
+  if (block.kind === "table") {
+    const headers = normalizeStringArray(block.headers);
+    const rows = normalizeTableRows(block.rows);
+    if (!headers || !rows) {
+      return null;
+    }
+    return {
+      kind: "table",
+      headers,
+      rows,
+      sectionPath,
+    };
+  }
+
+  return null;
+}
+
+function normalizeDocumentMedia(value: unknown): ExtractDocumentMedia | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+  const media = value as Record<string, unknown>;
+  if ((media.kind !== "image" && media.kind !== "video") || typeof media.url !== "string") {
+    return null;
+  }
+  return {
+    kind: media.kind,
+    url: media.url,
+    sectionPath: normalizeSectionPath(media.sectionPath),
+  };
+}
+
+function normalizeDocument(value: unknown): ExtractDocument {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {
+      blocks: [],
+      media: [],
+    };
+  }
+
+  const documentValue = value as Record<string, unknown>;
+  const blocks = Array.isArray(documentValue.blocks)
+    ? documentValue.blocks
+        .map((block) => normalizeDocumentBlock(block))
+        .filter((block): block is ExtractDocumentBlock => block != null)
+    : [];
+  const media = Array.isArray(documentValue.media)
+    ? documentValue.media
+        .map((entry) => normalizeDocumentMedia(entry))
+        .filter((entry): entry is ExtractDocumentMedia => entry != null)
+    : [];
+
+  return {
+    blocks,
+    media,
+  };
+}
+
+function normalizeLimitations(value: unknown, fallback?: unknown): ExtractLimitation[] {
+  const normalized = new Set<string>();
+
+  const push = (entry: unknown) => {
+    if (typeof entry !== "string") {
+      return;
+    }
+    const limitation = entry.trim();
+    if (!limitation) {
+      return;
+    }
+    normalized.add(limitation);
+  };
+
+  if (Array.isArray(value)) {
+    value.forEach(push);
+  }
+  push(fallback);
+
+  return [...normalized];
+}
+
 function buildArtifact(options: {
   recipe: NormalizedExtractRecipe;
   page: {
@@ -854,6 +1779,8 @@ function buildArtifact(options: {
     title?: string;
   };
   records: unknown[];
+  document: ExtractDocument;
+  limitations?: ExtractLimitation[];
   runtimeProbe?: RuntimeProbeResult;
   traversal?: ExtractTraversalFacts;
 }): ExtractArtifact {
@@ -863,6 +1790,13 @@ function buildArtifact(options: {
     url: options.page.url ?? "",
     generatedAt: new Date().toISOString(),
     items,
+    document: options.document,
+    ...(options.limitations && options.limitations.length > 0
+      ? {
+          limitation: options.limitations.join("; "),
+          limitations: options.limitations,
+        }
+      : {}),
     stats: {
       kind: options.recipe.kind,
       itemCount: items.length,
@@ -929,10 +1863,14 @@ export async function managedExtractRun(options: ManagedExtractRunOptions) {
   const page = normalizePage(payload.page, result.page);
   const runtimeProbe = normalizeRuntimeProbe(payload.runtimeProbe);
   const traversal = normalizeTraversal(payload.traversal);
+  const document = normalizeDocument(payload.document);
+  const limitations = normalizeLimitations(payload.limitations, payload.limitation);
   const artifact = buildArtifact({
     recipe,
     page: page ?? {},
     records: payload.records,
+    document,
+    limitations,
     runtimeProbe,
     traversal,
   });

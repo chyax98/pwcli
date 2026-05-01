@@ -1,8 +1,8 @@
 # pwcli Benchmark
 
-`benchmark/` 是 `pwcli` 的 repo-local benchmark scaffold。
+`benchmark/` 是 `pwcli` 的 repo-local 稳定性评测面。
 
-这里评测的不是某个 LLM 的文案能力，而是 `pwcli` 作为 Agent-facing Browser CLI 的命令链、证据链和恢复链：
+这里不是独立评测平台。它只负责验证 `pwcli` 作为 Agent-facing Browser CLI 的关键能力是否稳定：
 
 ```text
 session -> observe/read/snapshot -> act -> wait/verify -> diagnostics/evidence
@@ -11,8 +11,8 @@ session -> observe/read/snapshot -> act -> wait/verify -> diagnostics/evidence
 ## 目标
 
 - 用 deterministic fixture 验证主链 contract
-- 用 machine-readable taxonomy 收口失败分类
-- 为后续 runner、scoring、reports、real-site dogfood 提供固定目录面
+- 用少量固定能力用例做稳定性回归
+- 为 real-site manual dogfood 提供最小工件面
 
 ## 当前范围
 
@@ -27,11 +27,11 @@ session -> observe/read/snapshot -> act -> wait/verify -> diagnostics/evidence
 - `scripts/`
   - task matrix generator
   - closure suite launcher
-  - nightly regression launcher
+  - nightly regression launcher（当前保留，不作为继续扩张方向）
 - `scoring/`
-  - machine-readable taxonomy 和后续 scoring 资产
+  - machine-readable taxonomy 和最小稳定性聚合资产
 - `reports/`
-  - benchmark 汇总输出目录和 markdown 模板
+  - 最小汇总输出目录
 - `artifacts/`
   - 单 task 单 run 原始工件目录占位
 
@@ -49,7 +49,7 @@ benchmark/
   artifacts/
 ```
 
-后续会继续补：
+后续只在真实需要时补：
 
 - `tasks/action/`
 - `tasks/auth/`
@@ -91,6 +91,13 @@ benchmark/
 - `extraction-list`
 
 其他 task spec 还属于后续 tranche，不要包装成“当前已支持完整 suite”。
+
+## 明确边界
+
+- benchmark 在这个项目里是**稳定性回归工具**
+- 不是独立产品
+- 不继续优先扩 `score` / `report` / `nightly orchestration`
+- 任何新增 benchmark 资产都必须服务某个已存在能力的稳定性验证
 
 ### 直接运行
 
@@ -138,7 +145,7 @@ benchmark/reports/latest/score.json
 benchmark/artifacts/<taskId>/<runId>/
 ```
 
-`score.json` / `summary.json` 当前是 versioned contract，至少包含：
+`score.json` / `summary.json` 当前只是内部稳定性聚合格式，至少包含：
 
 - `contractVersion`
 - `surface`
