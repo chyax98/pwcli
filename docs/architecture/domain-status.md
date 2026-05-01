@@ -138,6 +138,7 @@
 - stdout 仍然只输出 JSON envelope；CSV / Markdown 只用于 `--out` artifact
 - `document.blocks/media` 是原始内容采集结果，不做语义摘要或最终文档重写
 - extract stdout 和 `--out` JSON artifact 只保留新 contract：`recipeId`、`recipePath`、`url`、`generatedAt`、`items[]`、`document`、`stats`、`runtimeProbe?`、`limitation?`、`limitations?`
+- recipe-level `excludeSelectors` can suppress known noise containers before raw block/media collection
 - 当前分页/滚动只支持：
   - `next-page`
   - `load-more`

@@ -165,6 +165,22 @@ function normalizeOutput(value: unknown): NormalizedExtractOutput {
   };
 }
 
+function normalizeExcludeSelectors(value: unknown): string[] {
+  if (value == null) {
+    return [];
+  }
+  if (!Array.isArray(value)) {
+    invalidRecipe("excludeSelectors must be a string array");
+  }
+  return value.map((entry, index) => {
+    const normalized = readNonEmptyString(entry);
+    if (!normalized) {
+      invalidRecipe(`excludeSelectors[${index}] must be a non-empty string`);
+    }
+    return normalized;
+  });
+}
+
 export function normalizeRecipe(value: unknown): NormalizedExtractRecipe {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     invalidRecipe("recipe file must contain a JSON object");
@@ -193,6 +209,7 @@ export function normalizeRecipe(value: unknown): NormalizedExtractRecipe {
   const pagination = normalizePagination(recipe.pagination);
   const scroll = normalizeScroll(recipe.scroll);
   const output = normalizeOutput(recipe.output);
+  const excludeSelectors = normalizeExcludeSelectors(recipe.excludeSelectors);
 
   const limitRaw = recipe.limit;
   const limit =
@@ -229,6 +246,7 @@ export function normalizeRecipe(value: unknown): NormalizedExtractRecipe {
     kind,
     itemSelector,
     containerSelector,
+    excludeSelectors,
     fields,
     limit: Math.min(Math.floor(limit), kind === "list" ? 200 : 1),
     runtimeGlobal,

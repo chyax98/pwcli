@@ -10,6 +10,7 @@ export type ExtractRecipeInput = {
   kind?: unknown;
   itemSelector?: unknown;
   containerSelector?: unknown;
+  excludeSelectors?: unknown;
   fields?: unknown;
   limit?: unknown;
   runtimeGlobal?: unknown;
@@ -57,6 +58,7 @@ export type NormalizedExtractRecipe = {
   kind: "list" | "article";
   itemSelector: string | null;
   containerSelector: string | null;
+  excludeSelectors: string[];
   fields: Record<string, NormalizedExtractFieldRecipe>;
   limit: number;
   runtimeGlobal: string | null;

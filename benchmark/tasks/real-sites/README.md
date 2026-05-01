@@ -69,10 +69,24 @@ pw diagnostics digest --session gh-a
 
 - 长文档 perception
 - `page assess` 与 `read-text` 的分工
+- `extract run` with `wikipedia-article-document`
 
 成功标准：
 
 - 可稳定识别主标题、导语、正文片段
+
+推荐命令链：
+
+```bash
+pw session create wiki-a --open 'https://en.wikipedia.org/wiki/Playwright_(software)'
+pw page assess --session wiki-a
+pw read-text --session wiki-a --max-chars 3000
+pw snapshot -i --session wiki-a
+pw extract run --session wiki-a \
+  --recipe "$(pw extract recipe-path wikipedia-article-document --output json | jq -r '.data.path')" \
+  --out ./wikipedia-playwright.json
+pw diagnostics digest --session wiki-a
+```
 
 ### 4. 一个内部后台 / CMS
 

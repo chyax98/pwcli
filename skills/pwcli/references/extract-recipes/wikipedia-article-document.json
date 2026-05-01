@@ -1,0 +1,9 @@
+{
+  "kind": "article",
+  "containerSelector": "#bodyContent, #mw-content-text, .mw-parser-output",
+  "excludeSelectors": [".infobox", ".toc", ".navbox", ".mw-editsection", ".metadata"],
+  "fields": {
+    "title": "h1, .firstHeading",
+    "lead": "p"
+  }
+}

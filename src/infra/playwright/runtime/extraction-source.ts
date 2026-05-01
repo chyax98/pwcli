@@ -291,7 +291,16 @@ export function buildExtractionSource(recipe: NormalizedExtractRecipe) {
         };
         const visibleNodes = (root, selector) => {
           const nodes = selector ? Array.from(root.querySelectorAll(selector)) : [root];
+          const isExcluded = node => {
+            if (!(node instanceof Element))
+              return false;
+            return recipe.excludeSelectors.some(selector =>
+              node.matches(selector) || node.closest(selector)
+            );
+          };
           return nodes.filter(node => {
+            if (isExcluded(node))
+              return false;
             if (isHtmlLikeElement(node))
               return isVisible(node);
             if (typeof SVGElement !== 'undefined' && node instanceof SVGElement)
@@ -487,6 +496,13 @@ export function buildExtractionSource(recipe: NormalizedExtractRecipe) {
           const seenFrameDocuments = new WeakSet();
           const selectors =
             'h1, h2, h3, h4, h5, h6, p, a[href], img[src], video, ul, ol, blockquote, pre, code, table, iframe, frame';
+          const isExcluded = node => {
+            if (!(node instanceof Element))
+              return false;
+            return recipe.excludeSelectors.some(selector =>
+              node.matches(selector) || node.closest(selector)
+            );
+          };
 
           const pushLimitation = limitation => {
             if (typeof limitation !== 'string' || !limitation || limitations.includes(limitation))
@@ -552,6 +568,8 @@ export function buildExtractionSource(recipe: NormalizedExtractRecipe) {
             ];
             for (const node of nodes) {
               if (!isElementNode(node))
+                continue;
+              if (isExcluded(node))
                 continue;
               const tagName = node.tagName.toLowerCase();
 
