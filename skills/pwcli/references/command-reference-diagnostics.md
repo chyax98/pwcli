@@ -48,6 +48,7 @@ state / auth / batch 命令见 `command-reference-advanced.md`。
 - 导出失败现场最小证据包（`manifest.json`）
 - 默认包含：session digest、filtered diagnostics、latest run events（如果存在）
 - 包含 `auditConclusion`（`status/failedAt/failedCommand/failureKind/failureSummary/agentNextSteps`），供 Agent 自主闭环：先做归因，再定位，再修复，再复验
+- 包含 `timeline`（filtered）：只保留 `action:*`、`failure:*`、`console:error`、`pageerror`、`requestfailed`，按时间排序，快速看因果链
 - `--limit <n>`：每类记录的保留上限（默认 `20`）
 
 ### `pw diagnostics runs`

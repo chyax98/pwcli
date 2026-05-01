@@ -347,6 +347,23 @@ export async function managedDiagnosticsBundle(options: {
     latestRunEvents: latestRunView,
   });
 
+  // Build a signal-dense timeline summary for the bundle
+  const fullTimeline = await buildSessionTimeline({
+    sessionName: options.sessionName,
+    limit: 200,
+    exported: options.exported,
+  });
+  const signalKinds = new Set(["pageerror", "requestfailed"]);
+  const timelineSummary = fullTimeline.entries
+    .filter(
+      (e) =>
+        e.kind.startsWith("action:") ||
+        e.kind.startsWith("failure:") ||
+        e.kind.startsWith("console:error") ||
+        signalKinds.has(e.kind),
+    )
+    .slice(-limit);
+
   return {
     session: options.exported.session,
     page: options.exported.page,
@@ -359,6 +376,11 @@ export async function managedDiagnosticsBundle(options: {
       digest: digest.data,
       diagnostics: asObject(options.exported.data),
       latestRunEvents: latestRunView,
+      timeline: {
+        count: timelineSummary.length,
+        total: fullTimeline.total,
+        entries: timelineSummary,
+      },
     },
   };
 }
