@@ -96,7 +96,7 @@ pw batch --stdin-json
 默认先用：
 
 ```bash
-pw read-text --session <name> --max-chars 2000
+pw read-text --session <name>
 ```
 
 只有需要 aria ref 或结构定位时才用：
@@ -108,7 +108,7 @@ pw snapshot -i --session <name>
 大页面顺序：
 
 ```bash
-pw read-text --session <name> --selector '<main-or-panel>' --max-chars 2000
+pw read-text --session <name> --selector '<main-or-panel>'
 pw locate --session <name> --selector '<candidate-selector>'
 pw snapshot -i --session <name>
 pw snapshot -c --session <name>

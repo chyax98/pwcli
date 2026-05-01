@@ -271,7 +271,7 @@ pw diagnostics digest ...
 hover 后如果要读浮层，继续：
 
 ```bash
-pw read-text --include-overlay ...
+pw read-text ...
 ```
 
 ### 7.6 `drag`
@@ -469,7 +469,7 @@ pw verify text -s bug-a --text '保存成功'
 
 ```bash
 pw hover -s bug-a --selector '.menu-trigger'
-pw read-text -s bug-a --include-overlay --max-chars 800
+pw read-text -s bug-a --max-chars 800
 ```
 
 ### 失败后追证据

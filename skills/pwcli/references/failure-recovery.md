@@ -77,7 +77,7 @@ Recovery:
 ```bash
 pw page current --session bug-a
 pw auth probe --session bug-a --url 'https://example.com/protected'
-pw read-text --session bug-a --max-chars 2000
+pw read-text --session bug-a
 pw storage local --session bug-a
 pw cookies list --session bug-a
 ```
@@ -221,7 +221,7 @@ Recovery:
 
 ```bash
 pw page current --session bug-a
-pw read-text --session bug-a --max-chars 2000
+pw read-text --session bug-a
 pw snapshot -i --session bug-a
 ```
 
@@ -333,7 +333,7 @@ Meaning:
 Recovery depends on the assertion:
 
 ```bash
-pw read-text --session bug-a --include-overlay --max-chars 4000
+pw read-text --session bug-a --max-chars 4000
 pw locate --session bug-a --text '<expected text>'
 pw snapshot -i --session bug-a
 pw page current --session bug-a
@@ -373,7 +373,7 @@ Recovery:
 
 ```bash
 pw open --session bug-a '<direct-url-or-docs-url>'
-pw read-text --session bug-a --max-chars 2000
+pw read-text --session bug-a
 ```
 
 If a human must clear the challenge:

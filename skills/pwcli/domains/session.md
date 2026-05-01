@@ -181,7 +181,7 @@ session create|attach|recreate
 ```bash
 pw session create bug-a --headed --open 'https://example.com'
 pw observe status -s bug-a
-pw read-text -s bug-a --max-chars 2000
+pw read-text -s bug-a
 ```
 
 ### 5.2 复用本机 Chrome 登录态

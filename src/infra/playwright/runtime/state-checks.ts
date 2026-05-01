@@ -319,7 +319,7 @@ function verifySuggestions(assertion: VerifyAssertion): string[] {
   }
   if (assertion === "text" || assertion === "text-absent") {
     return [
-      "Run `pw read-text --session <name> --include-overlay --max-chars 4000` to inspect visible text",
+      "Run `pw read-text --session <name> --max-chars 4000` to inspect visible text",
       "Run `pw locate --session <name> --text '<text>'` to inspect text candidates",
       "Run `pw diagnostics bundle --session <name> --out .pwcli/bundles/verify-failure --limit 20` if the missing text follows an action",
     ];

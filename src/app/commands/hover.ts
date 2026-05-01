@@ -46,7 +46,7 @@ export function registerHoverCommand(program: Command): void {
           suggestions: [
             "Use `pw hover --session bug-a e6` or `pw hover --session bug-a --selector '.menu-trigger'`",
             "If the page changed, refresh refs with `pw snapshot -i --session <name>`",
-            "After hovering, inspect revealed menus with `pw read-text --session <name> --include-overlay`",
+            "After hovering, inspect revealed menus with `pw read-text --session <name>`",
           ],
         });
         process.exitCode = 1;

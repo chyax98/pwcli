@@ -217,7 +217,7 @@
 - `fill <ref> <value>`、`fill --selector <selector> <value>`
 - `press <key>`、`scroll <direction> [distance]`、`type [ref] <value>`
 - `open <url>`
-- `read-text`、`read-text --max-chars <n>`、`read-text --selector <selector>`、`read-text --include-overlay`
+- `read-text`、`read-text --max-chars <n>`、`read-text --selector <selector>`、`read-text --no-include-overlay`
 - `wait network-idle`（或 `--networkidle`）、`wait --text`、`wait --selector`、`wait --request`、`wait --response`
 - `screenshot ...`、`observe status`、`errors recent|clear`
 - `route list|add|load|remove ...`、`bootstrap apply ...`

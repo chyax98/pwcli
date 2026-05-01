@@ -24,7 +24,7 @@ pw session create <name> --headless --open '<url>'
 pw session list --with-page
 pw observe status -s <name>
 pw page current -s <name>
-pw read-text -s <name> --max-chars 2000
+pw read-text -s <name>
 ```
 
 ## 观察
@@ -32,13 +32,13 @@ pw read-text -s <name> --max-chars 2000
 ```bash
 pw observe status -s <name>
 pw page current -s <name>
-pw read-text -s <name> --max-chars 2000
+pw read-text -s <name>
 ```
 
 如果页面很大，先 scoped，再 compact，不要直接全量 snapshot：
 
 ```bash
-pw read-text -s <name> --selector '<main-or-panel>' --max-chars 2000
+pw read-text -s <name> --selector '<main-or-panel>'
 pw locate -s <name> --text '<visible text>'
 pw snapshot -i -s <name>
 pw snapshot -c -s <name>
@@ -84,7 +84,7 @@ pw wait -s <name> --selector '<selector>'
 ## 复查
 
 ```bash
-pw read-text -s <name> --max-chars 2000
+pw read-text -s <name>
 pw diagnostics digest -s <name>
 ```
 

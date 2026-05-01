@@ -106,7 +106,7 @@ state / auth / batch / environment 命令见 `command-reference-advanced.md`。
 
 ### `pw read-text --session <name>`
 
-- `--selector <selector>`、`--include-overlay`、`--max-chars <count>`
+- `--selector <selector>`、`--no-include-overlay`、`--max-chars <count>`（默认 8000，overlay 默认纳入）
 
 ### `pw locate --session <name>`
 
@@ -230,7 +230,7 @@ Use `locate/get/is/verify` for narrow state checks. Use `snapshot -i` when you n
 - `--selector <selector>`
 - `--nth <n>`：selector 多匹配时的 1-based 目标序号
 - 支持 hover 触发的 menu / popover / tooltip；输出复用 action evidence：`target`、`diagnosticsDelta`、`run`
-- hover 后需要读取浮层时，用 `pw read-text --session <name> --include-overlay`
+- hover 后读取浮层时，用 `pw read-text --session <name>`（overlay 默认包含）
 
 ### `pw check [ref] --session <name>`
 

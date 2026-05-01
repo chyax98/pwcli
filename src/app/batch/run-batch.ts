@@ -374,15 +374,15 @@ async function executeBatchStep(tokens: string[], sessionName: string) {
     }
     case "read-text": {
       let selector: string | undefined;
-      let includeOverlay = false;
+      let includeOverlay = true;
       let maxChars: number | undefined;
       for (let index = 0; index < args.length; index += 1) {
         const arg = args[index];
         if (arg === "--selector") {
           selector = args[index + 1];
           index += 1;
-        } else if (arg === "--include-overlay") {
-          includeOverlay = true;
+        } else if (arg === "--no-include-overlay") {
+          includeOverlay = false;
         } else if (arg === "--max-chars") {
           maxChars = args[index + 1] ? Number(args[index + 1]) : undefined;
           index += 1;

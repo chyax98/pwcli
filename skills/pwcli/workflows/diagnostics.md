@@ -11,7 +11,7 @@
 先确认内容事实：
 
 ```bash
-pw read-text --session <name> --max-chars 2000
+pw read-text --session <name>
 ```
 
 如果目标内容已读到，diagnostics 里的背景噪声不要升级成失败；只记录和目标路径有关的 console/network/page error。

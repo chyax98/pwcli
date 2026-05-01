@@ -13,8 +13,8 @@ export function registerReadTextCommand(program: Command): void {
       .command("read-text")
       .description("Read visible text from the current page or a selector")
       .option("--selector <selector>", "Read text from a specific selector")
-      .option("--include-overlay", "Append visible modal/dropdown/popover overlay text")
-      .option("--max-chars <count>", "Limit output length"),
+      .option("--no-include-overlay", "Skip modal/dropdown/popover overlay text (included by default)")
+      .option("--max-chars <count>", "Limit output length (default: 8000)"),
   ).action(
     async (options: {
       session?: string;
@@ -29,8 +29,8 @@ export function registerReadTextCommand(program: Command): void {
           await managedReadText({
             sessionName,
             selector: options.selector,
-            includeOverlay: options.includeOverlay,
-            maxChars: options.maxChars ? Number(options.maxChars) : 2000,
+            includeOverlay: options.includeOverlay !== false,
+            maxChars: options.maxChars ? Number(options.maxChars) : 8000,
           }),
         );
       } catch (error) {

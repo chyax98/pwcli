@@ -96,7 +96,7 @@
 
 ```bash
 pw observe status -s bug-a
-pw read-text -s bug-a --max-chars 2000
+pw read-text -s bug-a
 pw snapshot -i -s bug-a
 pw diagnostics digest -s bug-a
 pw network -s bug-a --limit 20
@@ -262,7 +262,7 @@ pw code -s bug-a --file ./script.js
 
 ```bash
 pw observe status -s bug-a
-pw read-text -s bug-a --max-chars 2000
+pw read-text -s bug-a
 pw snapshot -i -s bug-a
 pw code -s bug-a --file ./script.js
 ```
