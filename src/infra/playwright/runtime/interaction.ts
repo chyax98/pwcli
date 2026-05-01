@@ -1952,7 +1952,24 @@ export async function managedReadText(options?: {
     : `async page => {
       const includeOverlay = ${JSON.stringify(options?.includeOverlay !== false)};
       const data = await page.evaluate((includeOverlay) => {
-        const bodyText = document.body?.innerText ?? '';
+        const walkText = (root) => {
+          let result = '';
+          const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+          while (walker.nextNode()) {
+            const node = walker.currentNode;
+            const parent = node.parentElement;
+            if (!parent) continue;
+            const style = getComputedStyle(parent);
+            if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') continue;
+            const t = node.textContent?.trim();
+            if (t) result += t + ' ';
+          }
+          for (const el of root.querySelectorAll('*')) {
+            if (el.shadowRoot) result += walkText(el.shadowRoot);
+          }
+          return result;
+        };
+        const bodyText = walkText(document.body).replace(/\\s+/g, ' ').trim();
         let overlays = [];
         if (includeOverlay) {
           const visible = (el) => {
