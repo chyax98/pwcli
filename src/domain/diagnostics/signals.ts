@@ -29,6 +29,9 @@ const TRACKING_DOMAINS = [
   "amplitude.com",
   "heapanalytics.com",
   "fullstory.com",
+  "telemetry.mozilla.org",
+  "sentry.io",
+  "browser-intake-datadoghq.com",
 ];
 
 function isTrackingPixel(url: string | null): boolean {
