@@ -47,15 +47,18 @@ function isTrackingPixel(url: string | null): boolean {
   }
 }
 
-function isAbortedRequest(record: Record<string, unknown>): boolean {
+function isNoisyNetworkFailure(record: Record<string, unknown>): boolean {
   const failureText = asString(record.failureText);
   if (!failureText) return false;
-  return failureText.includes("net::ERR_ABORTED");
+  if (failureText.includes("net::ERR_ABORTED")) return true;
+  if (failureText.includes("net::ERR_NAME_NOT_RESOLVED")) return true;
+  return false;
 }
 
 function isResourceLoadNoise(text: string | null): boolean {
   if (!text) return false;
   if (/^Failed to load resource:.*\b(404|403|401)\b/.test(text)) return true;
+  if (/^Failed to load resource:.*net::ERR_NAME_NOT_RESOLVED/.test(text)) return true;
   if (/violates the following Content Security Policy/.test(text) &&
       /adtrafficquality|googlesyndication|googleadservice|doubleclick|facebook\.com\/tr/.test(text)) return true;
   if (/^Loading the image 'data:image\/svg/.test(text)) return true;
@@ -161,7 +164,7 @@ export function buildSessionDigestFromExport(
     (record) => asString(record.kind) === "requestfailed",
   );
   const firstPartyFailedRequests = failedRequests.filter(
-    (record) => !isTrackingPixel(asString(record.url)) && !isAbortedRequest(record),
+    (record) => !isTrackingPixel(asString(record.url)) && !isNoisyNetworkFailure(record),
   );
   const httpErrors = networkRecords.filter((record) => {
     if (asString(record.kind) !== "response") {
