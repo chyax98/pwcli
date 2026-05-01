@@ -167,7 +167,7 @@ pnpm test:dogfood:e2e
 - README 不能变成第二套命令教程
 - docs/architecture 不能重复 skill 教程
 - skill 不能放过程调研、历史迁移、业务账号、内部 token
-- `.claude/` 过程稿不能回写 active truth
+- `.claude/` 任何内容都不能回写 active truth；需要保留的项目结论必须进入 skill、ADR 或 architecture docs
 
 ## 3. 报告格式
 

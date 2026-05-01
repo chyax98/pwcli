@@ -20,3 +20,4 @@
 - 核心交互命令：`./command-reference.md`
 - 诊断命令：`./command-reference-diagnostics.md`
 - 高级命令（state/auth/batch/environment）：`./command-reference-advanced.md`
+- 领域详细说明：`../domains/README.md`

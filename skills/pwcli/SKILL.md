@@ -18,6 +18,7 @@ description: "Use pwcli for browser automation, page exploration, diagnostics, s
 - 你在做 auth/state/batch/environment：跳转 `references/command-reference-advanced.md`。
 - 你遇到错误码或阻断态：跳转 `references/failure-recovery.md`。
 - 你需要任务链路模板：跳转 `references/workflows.md`（再按索引进入 `workflows/*.md`）。
+- 你需要某个 command domain 的详细说明：跳转 `domains/README.md`。
 
 ## 总原则
 

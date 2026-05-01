@@ -99,4 +99,4 @@ session attach -> state/profile/auth provider -> continue
 - 新命令、flag、错误码、输出变化：先同步 `skills/pwcli/`。
 - 领域边界变化：同步 `domain-status.md` 或新增 ADR。
 - 新 limitation 或 recoverability：同步 `skills/pwcli/references/failure-recovery.md`。
-- 过程计划、survey 原稿、迁移记录、review 笔记：放 `.claude/` 本地归档，不进入 docs 展示面。
+- 过程计划、survey 原稿、迁移记录、review 笔记不进入 docs 展示面；`.claude/` 只允许 agent 本地 scratch，项目过程记录应放 GitHub issues / PR，稳定结论回写 ADR 或 `domain-status.md`。

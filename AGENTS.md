@@ -9,7 +9,7 @@
 3. 架构真相：`docs/architecture/`
 4. Codex 项目配置：`.codex/`
 
-过程 planning、草案、survey、迁移记录都放 `.claude/` 本地归档，不再进入 git，也不再回写 active contract。
+`.claude/` 只允许存放 agent 本地 scratch、临时上下文、工具缓存；不要放项目 planning、草案、survey、迁移记录。项目待办放 GitHub issues / PR，稳定结论写回 `skills/pwcli/`、`docs/architecture/` 或 ADR。
 
 ## 工作顺序
 

@@ -49,7 +49,7 @@
 
 ## 禁止
 
-- 不把 `.claude/archive/**` 的历史 plan 当 active truth。
+- 不把 `.claude/**` 的任何内容当 active truth。
 - 不新增第二套使用教程。
 - 不用“已支持”包装 limitation code。
 - 不为了统一文档而改动没有真实收益的命令 contract。

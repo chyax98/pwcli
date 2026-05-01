@@ -272,7 +272,7 @@
 - `skills/pwcli/` 是唯一使用教程真相
 - `docs/architecture/` 只维护设计与现状
 - `.codex/` 维护 Codex 项目配置和 skill 维护规则
-- `.claude/` 只做本地过程归档，不进入 git
+- `.claude/` 只做 agent 本地 scratch / 临时上下文，不承载项目文档、项目规划或 active truth
 
 ### 当前限制
 

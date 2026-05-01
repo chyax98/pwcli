@@ -20,7 +20,7 @@
 - `.codex/` 是 Codex 项目配置和维护说明。
 - `skills/pwcli/` 是唯一使用教程真相。
 - `docs/` 只展示架构、限制、扩展方向、命令面审计、验证体系和发布检查。
-- `.claude/` 只保留本地过程归档，不再作为 active truth。
+- `.claude/` 只保留 agent 本地 scratch / 临时上下文，不承载项目文档、项目规划或 active truth。
 
 ## 默认工作流
 

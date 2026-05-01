@@ -129,9 +129,9 @@
 
 挂不上就不该进最终文档面。
 
-## 5. 过程文档规则
+## 5. 过程信息规则
 
-过程文档包括：
+过程信息包括：
 
 - planning
 - survey 原稿
@@ -140,15 +140,13 @@
 - 临时问题拆解
 - 草案版真相整理
 
-这些文件统一放在：
-
-- `.claude/`
-
 规则：
 
-- `.claude/` 只做本地过程归档
-- `.claude/` 不再进入 git
-- 一旦决策已经吸收进 skill / ADR / domain-status，过程文档就停止作为正式依据
+- `.claude/` 只做 agent 本地 scratch、临时上下文、工具缓存；不承载项目文档、项目规划、迁移记录
+- `.claude/` 不进入 git，也不能作为项目归档区
+- backlog、推进记录、临时结论放 GitHub issues / PR
+- 一旦决策稳定，必须吸收进 skill / ADR / `domain-status.md`
+- 过程稿如果没有转化为正式结论，就直接删除，不做仓内长期保存
 
 ## 6. 不允许的重复
 
@@ -156,7 +154,7 @@
 
 1. 在 `README.md` 和 `skills/pwcli/` 同时维护完整命令教程
 2. 在 `docs/architecture/` 再写一套“如何使用”
-3. 在 `.claude/` 里保留另一套 active truth
+3. 在 `.claude/` 里保留任何项目级 truth、归档或待办
 4. 在多个位置维护同一 limitation 的不同表述
 
 ## 7. 更新流程
@@ -193,7 +191,7 @@
 
 1. 把最终结论写进 ADR / domain-status / skill
 2. 删除重复结论
-3. 把过程稿留在 `.claude/` 本地归档或直接删除
+3. 删除过程稿；如果需要保留项目信息，就转成 GitHub issue / PR、ADR 或正式 docs
 
 ### Codex 项目配置变化
 
@@ -210,5 +208,5 @@
 1. `skills/pwcli/` 是唯一使用教程真相
 2. `docs/architecture/` 只放最终架构文档
 3. `.codex/` 是项目级 Codex 配置和 skill 维护说明
-4. `.claude/` 只做本地过程归档并 gitignore
+4. `.claude/` 只做 agent scratch 并 gitignore
 5. 过程文档不再作为 shipped contract 的一部分
