@@ -333,7 +333,7 @@ STALE_SESSION_CLOSED="1"
 overlay_code_json="$(run_json overlay-code code --session "$SESSION_NAME" "async page => { await page.evaluate(() => { const el = document.createElement('div'); el.className = 'ant-dropdown'; el.style.position = 'fixed'; el.style.left = '10px'; el.style.top = '10px'; el.textContent = 'overlay smoke option'; document.body.appendChild(el); }); return 'overlay-ready'; }")"
 assert_json "$overlay_code_json" "overlay fixture installed" \
   "data.ok === true && data.data.result === 'overlay-ready'"
-overlay_read_json="$(run_json overlay-read read-text --session "$SESSION_NAME" --include-overlay --max-chars 4000)"
+overlay_read_json="$(run_json overlay-read read-text --session "$SESSION_NAME" --max-chars 4000)"
 assert_json "$overlay_read_json" "read-text can include overlay text" \
   "data.ok === true && data.data.source === 'body-visible+overlay' && data.data.overlays.some(item => item.text.includes('overlay smoke option')) && data.data.text.includes('overlay smoke option')"
 

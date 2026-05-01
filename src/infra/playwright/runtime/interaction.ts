@@ -286,21 +286,6 @@ async function validateRefEpoch(options: {
         });
       }
 
-      if (!Array.isArray(epoch.refs) || !epoch.refs.includes(ref)) {
-        return JSON.stringify({
-          ok: false,
-          code: 'REF_STALE',
-          ref,
-          reason: 'missing-ref',
-          snapshotId: epoch.snapshotId,
-          snapshotPageId: epoch.pageId || null,
-          snapshotNavigationId: epoch.navigationId || null,
-          currentPageId,
-          currentNavigationId,
-          currentUrl: page.url(),
-        });
-      }
-
       if (epoch.pageId && currentPageId && epoch.pageId !== currentPageId) {
         return JSON.stringify({
           ok: false,
@@ -331,6 +316,21 @@ async function validateRefEpoch(options: {
         });
       }
 
+      if (!Array.isArray(epoch.refs) || !epoch.refs.includes(ref)) {
+        return JSON.stringify({
+          ok: false,
+          code: 'REF_STALE',
+          ref,
+          reason: 'missing-ref',
+          snapshotId: epoch.snapshotId,
+          snapshotPageId: epoch.pageId || null,
+          snapshotNavigationId: epoch.navigationId || null,
+          currentPageId,
+          currentNavigationId,
+          currentUrl: page.url(),
+        });
+      }
+
       return JSON.stringify({
         ok: true,
         ref,
@@ -352,7 +352,7 @@ async function assertFreshRefEpoch(options: { sessionName?: string; ref: string 
   let freshSnapshotCaptured = false;
   let freshSnapshotRefCount: number | undefined;
   try {
-    const fresh = await managedSnapshot({ sessionName: options.sessionName, interactive: true });
+    const fresh = await managedSnapshot({ sessionName: options.sessionName, interactive: true, skipEpoch: true });
     freshSnapshotCaptured = true;
     const snapshotText = typeof fresh.data?.snapshot === "string" ? fresh.data.snapshot : "";
     const refMatches = snapshotText.match(/\[ref=[^\]]+\]/g);
@@ -1950,7 +1950,7 @@ export async function managedReadText(options?: {
       return JSON.stringify({ source: 'selector', selector: ${JSON.stringify(options.selector)}, text });
     }`
     : `async page => {
-      const includeOverlay = ${JSON.stringify(Boolean(options?.includeOverlay))};
+      const includeOverlay = ${JSON.stringify(options?.includeOverlay !== false)};
       const data = await page.evaluate((includeOverlay) => {
         const bodyText = document.body?.innerText ?? '';
         let overlays = [];
@@ -1998,7 +1998,7 @@ export async function managedReadText(options?: {
               .filter((item) => item.text);
         }
         return {
-          source: 'body-visible',
+          source: includeOverlay ? 'body-visible+overlay' : 'body-visible',
           text: bodyText,
           overlays,
         };

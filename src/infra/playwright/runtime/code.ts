@@ -54,6 +54,7 @@ export async function managedSnapshot(options?: {
   sessionName?: string;
   interactive?: boolean;
   compact?: boolean;
+  skipEpoch?: boolean;
 }) {
   const args = ["snapshot"];
   if (options?.depth) {
@@ -72,7 +73,9 @@ export async function managedSnapshot(options?: {
     interactive: Boolean(options?.interactive),
     compact: Boolean(options?.compact),
   });
-  await recordSnapshotRefEpoch({ sessionName: options?.sessionName, snapshot: projectedSnapshot });
+  if (!options?.skipEpoch) {
+    await recordSnapshotRefEpoch({ sessionName: options?.sessionName, snapshot: projectedSnapshot });
+  }
   return {
     session: {
       scope: "managed",
