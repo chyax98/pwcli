@@ -1,11 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { discoverTaskPaths } from "../../shared/load-task.mjs";
-import {
-  createBenchmarkSummary,
-  computeBenchmarkScore,
-  renderBenchmarkReport,
-} from "../../shared/score.mjs";
 import { runTask } from "../task/run-task.mjs";
 
 const repoRoot = resolve(import.meta.dirname, "..", "..", "..");
@@ -59,6 +54,26 @@ function parseArgs(argv) {
   return parsed;
 }
 
+function toFailure(task) {
+  return {
+    id: task.id,
+    category: task.category,
+    failureFamily: task.failureFamily,
+    runnerError: task.runnerError,
+    artifactDir: task.artifactDir,
+  };
+}
+
+export function createStabilitySummary(tasks) {
+  const failures = tasks.filter((task) => task.status !== "passed").map(toFailure);
+  return {
+    total: tasks.length,
+    passed: tasks.length - failures.length,
+    failed: failures.length,
+    failures,
+  };
+}
+
 export async function runSuite(input) {
   const taskPaths = (await discoverTaskPaths(input.tasks)).filter(
     (taskPath) => !taskPath.endsWith("/manifest.json") && !taskPath.endsWith("\\manifest.json"),
@@ -75,39 +90,16 @@ export async function runSuite(input) {
     tasks.push(taskResult);
   }
 
-  const generatedAt = new Date().toISOString();
-  const summary = createBenchmarkSummary(tasks, {
-    generatedAt,
-    surface: input.surface,
-    manifest: input.manifest,
-  });
-  const score = computeBenchmarkScore(tasks, {
-    generatedAt,
-    surface: summary.surface,
-  });
-
+  const summary = createStabilitySummary(tasks);
   const latestDir = resolve(input.reportsDir, "latest");
   await mkdir(latestDir, { recursive: true });
   await writeFile(resolve(latestDir, "summary.json"), JSON.stringify(summary, null, 2));
-  await writeFile(
-    resolve(latestDir, "summary.md"),
-    await renderBenchmarkReport(summary, {
-      score,
-      reportTitle: input.reportTitle,
-      templatePath: input.summaryTemplatePath,
-    }),
-  );
-  await writeFile(resolve(latestDir, "score.json"), JSON.stringify(score, null, 2));
-
-  return {
-    ...summary,
-    score,
-  };
+  return summary;
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const options = parseArgs(process.argv.slice(2));
   const result = await runSuite(options);
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
-  process.exitCode = result.totals.failed === 0 ? 0 : 1;
+  process.exitCode = result.failed === 0 ? 0 : 1;
 }

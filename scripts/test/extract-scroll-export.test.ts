@@ -20,9 +20,11 @@ type ExtractStats = {
   pageCount?: number;
   paginationMode?: "next-page" | "load-more";
   scrollMode?: "until-stable";
+  scrollSteps?: number;
   scrollStepsUsed?: number;
   maxPages?: number;
   maxScrollSteps?: number;
+  dedupedBlockCount: number;
   runtimeProbePath?: string;
   runtimeProbeFound?: boolean;
 };
@@ -41,9 +43,9 @@ type ExtractDocument = {
     | { kind: "heading"; text: string; level: number; sectionPath: string[] }
     | { kind: "paragraph"; text: string; sectionPath: string[] }
     | { kind: "link"; text?: string; url: string; sectionPath: string[] }
-    | { kind: "image"; url: string; sectionPath: string[] }
+    | { kind: "image"; url: string; currentSrc?: string; sectionPath: string[] }
   >;
-  media: Array<{ kind: "image"; url: string; sectionPath: string[] }>;
+  media: Array<{ kind: "image"; url: string; currentSrc?: string; sectionPath: string[] }>;
 };
 
 const repoRoot = resolve(import.meta.dirname, "..", "..");
@@ -96,6 +98,15 @@ async function writeRecipe(name: string, recipe: Record<string, unknown>) {
   const path = resolve(recipeDir, name);
   await writeFile(path, JSON.stringify(recipe, null, 2), "utf8");
   return path;
+}
+
+function imageEntry(url: string, sectionPath: string[]) {
+  return {
+    kind: "image" as const,
+    url,
+    currentSrc: url,
+    sectionPath,
+  };
 }
 
 const server = createServer((request, response) => {
@@ -399,9 +410,7 @@ try {
       data: {
         recipePath: string;
         artifactPath?: string;
-        recordCount: number;
         items: Array<{ title: string; url: string }>;
-        records: Array<{ title: string; url: string }>;
         document: ExtractDocument;
         stats: ExtractStats;
       };
@@ -410,13 +419,12 @@ try {
     assert.equal(loadMoreEnvelope.page.url, loadMoreUrl);
     assert.equal(loadMoreEnvelope.page.title, "Load More Fixture");
     assert.equal(loadMoreEnvelope.data.recipePath, loadMoreRecipePath);
-    assert.equal(loadMoreEnvelope.data.recordCount, 3);
+    assert.equal(loadMoreEnvelope.data.stats.itemCount, 3);
     assert.deepEqual(loadMoreEnvelope.data.items, [
       { title: "Alpha Title", url: `${baseUrl}/posts/alpha` },
       { title: "Beta Title", url: `${baseUrl}/posts/beta` },
       { title: "Gamma Title", url: `${baseUrl}/posts/gamma` },
     ]);
-    assert.deepEqual(loadMoreEnvelope.data.records, loadMoreEnvelope.data.items);
     assert.deepEqual(loadMoreEnvelope.data.document, {
       blocks: [
         {
@@ -437,9 +445,7 @@ try {
           sectionPath: ["Alpha Title"],
         },
         {
-          kind: "image",
-          url: `${baseUrl}/media/alpha.png`,
-          sectionPath: ["Alpha Title"],
+          ...imageEntry(`${baseUrl}/media/alpha.png`, ["Alpha Title"]),
         },
         {
           kind: "heading",
@@ -459,9 +465,7 @@ try {
           sectionPath: ["Beta Title"],
         },
         {
-          kind: "image",
-          url: `${baseUrl}/media/beta.png`,
-          sectionPath: ["Beta Title"],
+          ...imageEntry(`${baseUrl}/media/beta.png`, ["Beta Title"]),
         },
         {
           kind: "heading",
@@ -481,27 +485,13 @@ try {
           sectionPath: ["Gamma Title"],
         },
         {
-          kind: "image",
-          url: `${baseUrl}/media/gamma.png`,
-          sectionPath: ["Gamma Title"],
+          ...imageEntry(`${baseUrl}/media/gamma.png`, ["Gamma Title"]),
         },
       ],
       media: [
-        {
-          kind: "image",
-          url: `${baseUrl}/media/alpha.png`,
-          sectionPath: ["Alpha Title"],
-        },
-        {
-          kind: "image",
-          url: `${baseUrl}/media/beta.png`,
-          sectionPath: ["Beta Title"],
-        },
-        {
-          kind: "image",
-          url: `${baseUrl}/media/gamma.png`,
-          sectionPath: ["Gamma Title"],
-        },
+        imageEntry(`${baseUrl}/media/alpha.png`, ["Alpha Title"]),
+        imageEntry(`${baseUrl}/media/beta.png`, ["Beta Title"]),
+        imageEntry(`${baseUrl}/media/gamma.png`, ["Gamma Title"]),
       ],
     });
     assert.deepEqual(loadMoreEnvelope.data.stats, {
@@ -512,16 +502,12 @@ try {
       pageCount: 2,
       paginationMode: "load-more",
       maxPages: 2,
+      dedupedBlockCount: 0,
     });
     assert.equal(loadMoreEnvelope.data.artifactPath, loadMoreOutFile);
 
-    const writtenLoadMoreArtifact = JSON.parse(await readFile(loadMoreOutFile, "utf8")) as ExtractArtifact & {
-      recordCount: number;
-      records: Array<{ title: string; url: string }>;
-    };
-    assert.equal(writtenLoadMoreArtifact.recordCount, 3);
+    const writtenLoadMoreArtifact = JSON.parse(await readFile(loadMoreOutFile, "utf8")) as ExtractArtifact;
     assert.deepEqual(writtenLoadMoreArtifact.items, loadMoreEnvelope.data.items);
-    assert.deepEqual(writtenLoadMoreArtifact.records, loadMoreEnvelope.data.records);
     assert.deepEqual(writtenLoadMoreArtifact.document, loadMoreEnvelope.data.document);
     assert.deepEqual(writtenLoadMoreArtifact.stats, loadMoreEnvelope.data.stats);
 
@@ -560,21 +546,17 @@ try {
     const loadMoreMarkdownEnvelope = loadMoreMarkdownExtract.json as {
       ok: boolean;
       data: {
-        format: string;
         artifactFormat?: string;
         recipePath: string;
         artifactPath?: string;
         items: Array<{ title: string; url: string }>;
-        records: Array<{ title: string; url: string }>;
         document: ExtractDocument;
       };
     };
     assert.equal(loadMoreMarkdownEnvelope.ok, true);
-    assert.equal(loadMoreMarkdownEnvelope.data.format, "json");
     assert.equal(loadMoreMarkdownEnvelope.data.artifactFormat, "markdown");
     assert.equal(loadMoreMarkdownEnvelope.data.recipePath, loadMoreMarkdownRecipePath);
     assert.equal(loadMoreMarkdownEnvelope.data.artifactPath, loadMoreMarkdownOutFile);
-    assert.deepEqual(loadMoreMarkdownEnvelope.data.records, loadMoreMarkdownEnvelope.data.items);
     assert.deepEqual(loadMoreMarkdownEnvelope.data.document, loadMoreEnvelope.data.document);
     assert.equal(
       await readFile(loadMoreMarkdownOutFile, "utf8"),
@@ -622,9 +604,7 @@ try {
       data: {
         recipePath: string;
         artifactPath?: string;
-        recordCount: number;
         items: Array<{ title: string; url: string }>;
-        records: Array<{ title: string; url: string }>;
         document: ExtractDocument;
         stats: ExtractStats;
       };
@@ -633,13 +613,12 @@ try {
     assert.equal(scrollEnvelope.page.url, scrollUrl);
     assert.equal(scrollEnvelope.page.title, "Scroll Fixture");
     assert.equal(scrollEnvelope.data.recipePath, scrollRecipePath);
-    assert.equal(scrollEnvelope.data.recordCount, 3);
+    assert.equal(scrollEnvelope.data.stats.itemCount, 3);
     assert.deepEqual(scrollEnvelope.data.items, [
       { title: "Scroll Alpha", url: `${baseUrl}/posts/scroll-alpha` },
       { title: "Scroll Beta", url: `${baseUrl}/posts/scroll-beta` },
       { title: "Scroll Gamma", url: `${baseUrl}/posts/scroll-gamma` },
     ]);
-    assert.deepEqual(scrollEnvelope.data.records, scrollEnvelope.data.items);
     assert.deepEqual(scrollEnvelope.data.document, {
       blocks: [
         {
@@ -660,9 +639,7 @@ try {
           sectionPath: ["Scroll Alpha"],
         },
         {
-          kind: "image",
-          url: `${baseUrl}/media/scroll-alpha.png`,
-          sectionPath: ["Scroll Alpha"],
+          ...imageEntry(`${baseUrl}/media/scroll-alpha.png`, ["Scroll Alpha"]),
         },
         {
           kind: "heading",
@@ -682,9 +659,7 @@ try {
           sectionPath: ["Scroll Beta"],
         },
         {
-          kind: "image",
-          url: `${baseUrl}/media/scroll-beta.png`,
-          sectionPath: ["Scroll Beta"],
+          ...imageEntry(`${baseUrl}/media/scroll-beta.png`, ["Scroll Beta"]),
         },
         {
           kind: "heading",
@@ -704,27 +679,13 @@ try {
           sectionPath: ["Scroll Gamma"],
         },
         {
-          kind: "image",
-          url: `${baseUrl}/media/scroll-gamma.png`,
-          sectionPath: ["Scroll Gamma"],
+          ...imageEntry(`${baseUrl}/media/scroll-gamma.png`, ["Scroll Gamma"]),
         },
       ],
       media: [
-        {
-          kind: "image",
-          url: `${baseUrl}/media/scroll-alpha.png`,
-          sectionPath: ["Scroll Alpha"],
-        },
-        {
-          kind: "image",
-          url: `${baseUrl}/media/scroll-beta.png`,
-          sectionPath: ["Scroll Beta"],
-        },
-        {
-          kind: "image",
-          url: `${baseUrl}/media/scroll-gamma.png`,
-          sectionPath: ["Scroll Gamma"],
-        },
+        imageEntry(`${baseUrl}/media/scroll-alpha.png`, ["Scroll Alpha"]),
+        imageEntry(`${baseUrl}/media/scroll-beta.png`, ["Scroll Beta"]),
+        imageEntry(`${baseUrl}/media/scroll-gamma.png`, ["Scroll Gamma"]),
       ],
     });
     assert.deepEqual(scrollEnvelope.data.stats, {
@@ -733,18 +694,15 @@ try {
       fieldCount: 2,
       limit: 3,
       scrollMode: "until-stable",
+      scrollSteps: 1,
       scrollStepsUsed: 1,
       maxScrollSteps: 4,
+      dedupedBlockCount: 0,
     });
     assert.equal(scrollEnvelope.data.artifactPath, scrollOutFile);
 
-    const writtenScrollArtifact = JSON.parse(await readFile(scrollOutFile, "utf8")) as ExtractArtifact & {
-      recordCount: number;
-      records: Array<{ title: string; url: string }>;
-    };
-    assert.equal(writtenScrollArtifact.recordCount, 3);
+    const writtenScrollArtifact = JSON.parse(await readFile(scrollOutFile, "utf8")) as ExtractArtifact;
     assert.deepEqual(writtenScrollArtifact.items, scrollEnvelope.data.items);
-    assert.deepEqual(writtenScrollArtifact.records, scrollEnvelope.data.records);
     assert.deepEqual(writtenScrollArtifact.document, scrollEnvelope.data.document);
     assert.deepEqual(writtenScrollArtifact.stats, scrollEnvelope.data.stats);
   } finally {

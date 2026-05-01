@@ -34,6 +34,7 @@ type ExtractArtifact = {
     limit: number;
     pageCount?: number;
     paginationMode?: "next-page" | "load-more";
+    dedupedBlockCount: number;
     runtimeProbePath?: string;
     runtimeProbeFound?: boolean;
   };
@@ -44,9 +45,9 @@ type ExtractDocument = {
     | { kind: "heading"; text: string; level: number; sectionPath: string[] }
     | { kind: "paragraph"; text: string; sectionPath: string[] }
     | { kind: "link"; text?: string; url: string; sectionPath: string[] }
-    | { kind: "image"; url: string; sectionPath: string[] }
+    | { kind: "image"; url: string; currentSrc?: string; sectionPath: string[] }
   >;
-  media: Array<{ kind: "image"; url: string; sectionPath: string[] }>;
+  media: Array<{ kind: "image"; url: string; currentSrc?: string; sectionPath: string[] }>;
 };
 
 const repoRoot = resolve(import.meta.dirname, "..", "..");
@@ -98,6 +99,15 @@ async function writeRecipe(name: string, recipe: Record<string, unknown>) {
   const path = resolve(recipeDir, name);
   await writeFile(path, JSON.stringify(recipe, null, 2), "utf8");
   return path;
+}
+
+function imageEntry(url: string, sectionPath: string[]) {
+  return {
+    kind: "image" as const,
+    url,
+    currentSrc: url,
+    sectionPath,
+  };
 }
 
 function assertInvalidRecipe(
@@ -368,9 +378,7 @@ try {
       data: {
         recipePath: string;
         artifactPath?: string;
-        recordCount: number;
         items: Array<{ title: string; url: string }>;
-        records: Array<{ title: string; url: string }>;
         document: ExtractDocument;
         stats: ExtractArtifact["stats"];
       };
@@ -379,13 +387,12 @@ try {
     assert.equal(paginatedEnvelope.page.url, `${baseUrl}/page/2`);
     assert.equal(paginatedEnvelope.page.title, "Pagination Fixture Page 2");
     assert.equal(paginatedEnvelope.data.recipePath, paginatedRecipePath);
-    assert.equal(paginatedEnvelope.data.recordCount, 3);
+    assert.equal(paginatedEnvelope.data.stats.itemCount, 3);
     assert.deepEqual(paginatedEnvelope.data.items, [
       { title: "Alpha Title", url: `${baseUrl}/posts/alpha` },
       { title: "Beta Title", url: `${baseUrl}/posts/beta` },
       { title: "Gamma Title", url: `${baseUrl}/posts/gamma` },
     ]);
-    assert.deepEqual(paginatedEnvelope.data.records, paginatedEnvelope.data.items);
     assert.deepEqual(paginatedEnvelope.data.document, {
       blocks: [
         {
@@ -406,9 +413,7 @@ try {
           sectionPath: ["Alpha Title"],
         },
         {
-          kind: "image",
-          url: `${baseUrl}/media/alpha.png`,
-          sectionPath: ["Alpha Title"],
+          ...imageEntry(`${baseUrl}/media/alpha.png`, ["Alpha Title"]),
         },
         {
           kind: "heading",
@@ -428,9 +433,7 @@ try {
           sectionPath: ["Beta Title"],
         },
         {
-          kind: "image",
-          url: `${baseUrl}/media/beta.png`,
-          sectionPath: ["Beta Title"],
+          ...imageEntry(`${baseUrl}/media/beta.png`, ["Beta Title"]),
         },
         {
           kind: "heading",
@@ -450,27 +453,13 @@ try {
           sectionPath: ["Gamma Title"],
         },
         {
-          kind: "image",
-          url: `${baseUrl}/media/gamma.png`,
-          sectionPath: ["Gamma Title"],
+          ...imageEntry(`${baseUrl}/media/gamma.png`, ["Gamma Title"]),
         },
       ],
       media: [
-        {
-          kind: "image",
-          url: `${baseUrl}/media/alpha.png`,
-          sectionPath: ["Alpha Title"],
-        },
-        {
-          kind: "image",
-          url: `${baseUrl}/media/beta.png`,
-          sectionPath: ["Beta Title"],
-        },
-        {
-          kind: "image",
-          url: `${baseUrl}/media/gamma.png`,
-          sectionPath: ["Gamma Title"],
-        },
+        imageEntry(`${baseUrl}/media/alpha.png`, ["Alpha Title"]),
+        imageEntry(`${baseUrl}/media/beta.png`, ["Beta Title"]),
+        imageEntry(`${baseUrl}/media/gamma.png`, ["Gamma Title"]),
       ],
     });
     assert.deepEqual(paginatedEnvelope.data.stats, {
@@ -481,15 +470,11 @@ try {
       pageCount: 2,
       paginationMode: "next-page",
       maxPages: 2,
+      dedupedBlockCount: 0,
     });
     assert.equal(paginatedEnvelope.data.artifactPath, outFile);
 
-    const writtenArtifact = JSON.parse(await readFile(outFile, "utf8")) as ExtractArtifact & {
-      recordCount: number;
-      records: Array<{ title: string; url: string }>;
-    };
-    assert.equal(writtenArtifact.recordCount, 3);
-    assert.deepEqual(writtenArtifact.records, paginatedEnvelope.data.records);
+    const writtenArtifact = JSON.parse(await readFile(outFile, "utf8")) as ExtractArtifact;
     assert.deepEqual(writtenArtifact.items, paginatedEnvelope.data.items);
     assert.deepEqual(writtenArtifact.document, paginatedEnvelope.data.document);
     assert.deepEqual(writtenArtifact.stats, paginatedEnvelope.data.stats);

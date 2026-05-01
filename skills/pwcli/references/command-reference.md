@@ -95,6 +95,7 @@ state / auth / batch / environment 命令见 `command-reference-advanced.md`。
 - 不是 action planner，不返回具体点击目标，不替代 extractor / auth probe / diagnostics bundle
 - `nextSteps` 只给“下一类观察命令”，不替 Agent 决定业务动作
 - 当前结论是 inference-only；涉及 runtime / network / storage 的 authoritative 事实，要继续跑对应命令家族
+- 当前边界冻结在 compact summary，不继续把它扩成页面智能层
 
 ### `pw tab select|close <pageId> --session <name>`
 
@@ -262,8 +263,8 @@ Use `locate/get/is/verify` for narrow state checks. Use `snapshot -i` when you n
 
 ### `pw download [ref] --session <name>`
 
-- `--selector <selector>`、`--path <path>`、`--dir <dir>`、`--download-dir <dir>`
-- `--download-dir` 是 `--dir` alias；不能和 `--dir` 同时使用；`--path` 不能和任一目录参数同时使用
+- `--selector <selector>`、`--path <path>`、`--dir <dir>`
+- `--path` 不能和 `--dir` 同时使用
 
 ### `pw resize --session <name>`
 

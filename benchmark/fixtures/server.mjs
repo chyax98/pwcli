@@ -102,42 +102,6 @@ function api500Page(url) {
   );
 }
 
-function extractionPage(url) {
-  const variant = getString(url.searchParams, "variant", "extract-00");
-  const count = Math.max(1, Math.min(6, getInt(url.searchParams, "count", 3)));
-  const mode = getString(url.searchParams, "mode", "dom");
-  const cards = Array.from({ length: count }, (_, index) => {
-    const itemIndex = index + 1;
-    return {
-      title: `${variant} title ${itemIndex}`,
-      href: `/items/${variant}/${itemIndex}`,
-      summary: `${variant} summary ${itemIndex}`,
-    };
-  });
-  const cardsMarkup = cards
-    .map(
-      (item) => `<article class="card">
-        <h2>${item.title}</h2>
-        <a href="${item.href}">Open ${item.title}</a>
-        <p>${item.summary}</p>
-      </article>`,
-    )
-    .join("\n");
-  const runtimeScript =
-    mode === "runtime"
-      ? `<script>window.__PWCLI_FIXTURE__ = ${JSON.stringify({ variant, items: cards })};</script>`
-      : "";
-  return html(
-    `<main>
-      <section data-extract-variant="${variant}" data-mode="${mode}">
-        ${cardsMarkup}
-      </section>
-      ${runtimeScript}
-    </main>`,
-    `Extraction fixture ${variant}`,
-  );
-}
-
 function notFound(response) {
   response.writeHead(404, { "content-type": "text/plain; charset=utf-8" });
   response.end("not found");
@@ -159,11 +123,6 @@ export async function startFixtureServer() {
     if (url.pathname === "/api-500") {
       response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
       response.end(api500Page(url));
-      return;
-    }
-    if (url.pathname === "/extract-list") {
-      response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
-      response.end(extractionPage(url));
       return;
     }
     if (url.pathname === "/fixture-api/fail") {

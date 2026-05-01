@@ -10,7 +10,6 @@ fixture 是 benchmark 的 substrate，不是 `pwcli` shipped 功能的一部分�
 
 - fixture server
 - mock API
-- extraction recipes
 - fixture lifecycle scripts
 
 这里不应该放：
@@ -32,7 +31,6 @@ fixture 是 benchmark 的 substrate，不是 `pwcli` shipped 功能的一部分�
 ```text
 benchmark/fixtures/
   server.mjs
-  recipes/
 ```
 
 ## 和 real-site benchmark 的关系

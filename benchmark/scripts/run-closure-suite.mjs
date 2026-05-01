@@ -4,12 +4,8 @@ import { join, resolve } from "node:path";
 import { generateMatrix } from "./generate-matrix.mjs";
 import { startFixtureServer } from "../fixtures/server.mjs";
 import { createClosureSessionName, runLoadedTask, spawnPw } from "../runners/task/run-task.mjs";
+import { createStabilitySummary } from "../runners/suite/run-suite.mjs";
 import { discoverTaskPaths, loadTaskList } from "../shared/load-task.mjs";
-import {
-  createBenchmarkSummary,
-  computeBenchmarkScore,
-  renderBenchmarkReport,
-} from "../shared/score.mjs";
 
 const repoRoot = resolve(import.meta.dirname, "..", "..");
 
@@ -63,7 +59,7 @@ async function runGroupedTasks(tasks, context) {
 
 export async function runClosureSuite(options = {}) {
   const resume = options.resume === true;
-  const manifest = await generateMatrix();
+  await generateMatrix();
   const fixture = await startFixtureServer();
   const workspaceDir = await mkdtemp(join(tmpdir(), "pwcli-benchmark-closure-"));
   const reportsDir = resolve(repoRoot, "benchmark", "reports", "closure");
@@ -84,38 +80,11 @@ export async function runClosureSuite(options = {}) {
     const pendingTasks = allTasks.filter((task) => !completedIds.has(task.task.id));
     const newSummaries = await runGroupedTasks(pendingTasks, { workspaceDir, artifactsDir });
     const summaries = [...existingSummaries, ...newSummaries];
-    const generatedAt = new Date().toISOString();
-    const summary = createBenchmarkSummary(summaries, {
-      generatedAt,
-      surface: {
-        kind: "closure",
-        name: "closure-suite",
-      },
-      manifest,
-    });
-    const score = computeBenchmarkScore(summaries, {
-      generatedAt,
-      surface: summary.surface,
-    });
+    const summary = createStabilitySummary(summaries);
     const latestDir = resolve(reportsDir, "latest");
     await mkdir(latestDir, { recursive: true });
     await writeFile(resolve(latestDir, "summary.json"), JSON.stringify(summary, null, 2));
-    await writeFile(
-      resolve(latestDir, "summary.md"),
-      await renderBenchmarkReport(summary, {
-        score,
-        reportTitle: "Closure Benchmark Summary",
-      }),
-    );
-    await writeFile(resolve(latestDir, "score.json"), JSON.stringify(score, null, 2));
-    return {
-      manifest,
-      port: fixture.port,
-      summary: {
-        ...summary,
-        score,
-      },
-    };
+    return summary;
   } finally {
     await fixture.close();
     await rm(workspaceDir, { recursive: true, force: true });
@@ -161,5 +130,5 @@ async function loadExistingSummaries(artifactsDir) {
 if (import.meta.url === `file://${process.argv[1]}`) {
   const result = await runClosureSuite(parseArgs(process.argv.slice(2)));
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
-  process.exitCode = result.summary.totals.failed === 0 ? 0 : 1;
+  process.exitCode = result.failed === 0 ? 0 : 1;
 }

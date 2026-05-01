@@ -22,16 +22,57 @@ type ExtractArtifact = {
       | { kind: "heading"; text: string; level: number; sectionPath: string[] }
       | { kind: "paragraph"; text: string; sectionPath: string[] }
       | { kind: "link"; url: string; text?: string; sectionPath: string[] }
-      | { kind: "image"; url: string; sectionPath: string[] }
-      | { kind: "video"; url: string; sectionPath: string[] }
+      | {
+          kind: "image";
+          url: string;
+          currentSrc?: string;
+          srcset?: string;
+          caption?: string;
+          sectionPath: string[];
+        }
+      | {
+          kind: "video";
+          url: string;
+          currentSrc?: string;
+          poster?: string;
+          sources?: string[];
+          caption?: string;
+          sectionPath: string[];
+        }
       | { kind: "list"; ordered: boolean; items: string[]; sectionPath: string[] }
       | { kind: "quote"; text: string; sectionPath: string[] }
-      | { kind: "code"; text: string; language?: string; sectionPath: string[] }
-      | { kind: "table"; headers: string[]; rows: string[][]; sectionPath: string[] }
+      | {
+          kind: "code";
+          text: string;
+          languageHint?: string;
+          sectionPath: string[];
+        }
+      | {
+          kind: "table";
+          headers: string[];
+          rows: string[][];
+          caption?: string;
+          sectionPath: string[];
+        }
     >;
     media: Array<
-      | { kind: "image"; url: string; sectionPath: string[] }
-      | { kind: "video"; url: string; sectionPath: string[] }
+      | {
+          kind: "image";
+          url: string;
+          currentSrc?: string;
+          srcset?: string;
+          caption?: string;
+          sectionPath: string[];
+        }
+      | {
+          kind: "video";
+          url: string;
+          currentSrc?: string;
+          poster?: string;
+          sources?: string[];
+          caption?: string;
+          sectionPath: string[];
+        }
     >;
   };
   stats: {
@@ -140,6 +181,15 @@ const server = createServer((request, response) => {
               <h1>Article Marker</h1>
               <p class="lede">Visible body marker paragraph.</p>
               <a class="canonical" href="/docs/article-marker">Read more</a>
+              <figure class="hero">
+                <img
+                  class="hero-image"
+                  src="/media/hero-1x.png"
+                  srcset="/media/hero-1x.png 1x, /media/hero-2x.png 2x"
+                  alt="Hero image"
+                />
+                <figcaption>Hero caption.</figcaption>
+              </figure>
             </article>
           </main>
         </body>
@@ -261,7 +311,6 @@ try {
     ok: boolean;
     page: { url: string; title: string };
     data: {
-      format: string;
       recipePath: string;
       recipeId: string;
       url: string;
@@ -269,20 +318,15 @@ try {
       items: Array<{ primaryText: string; primaryTarget: string; deck: string }>;
       document: ExtractArtifact["document"];
       stats: ExtractArtifact["stats"];
-      recordCount: number;
-      records: Array<{ primaryText: string; primaryTarget: string; deck: string }>;
       artifactPath?: string;
       runtimeProbe?: ExtractArtifact["runtimeProbe"];
-      recipe: { kind: string };
     };
   };
   assert.equal(listEnvelope.ok, true);
   assert.equal(listEnvelope.page.url, listUrl);
   assert.equal(listEnvelope.page.title, "Extraction Fixture List");
-  assert.equal(listEnvelope.data.format, "json");
   assert.equal(listEnvelope.data.recipePath, listRecipePath);
   assert.match(listEnvelope.data.recipeId, /^extract:list:[0-9a-f]{12}$/);
-  assert.equal(listEnvelope.data.recipe.kind, "list");
   assert.equal(listEnvelope.data.url, listUrl);
   assert.equal(Number.isNaN(Date.parse(listEnvelope.data.generatedAt)), false);
   assert.deepEqual(listEnvelope.data.items, [
@@ -341,22 +385,10 @@ try {
     itemCount: 2,
     fieldCount: 3,
     limit: 50,
+    dedupedBlockCount: 0,
     runtimeProbePath: "__PWCLI_RUNTIME__",
     runtimeProbeFound: true,
   });
-  assert.equal(listEnvelope.data.recordCount, 2);
-  assert.deepEqual(listEnvelope.data.records, [
-    {
-      primaryText: "Alpha Title",
-      primaryTarget: `${baseUrl}/posts/alpha`,
-      deck: "Alpha Summary",
-    },
-    {
-      primaryText: "Beta Title",
-      primaryTarget: `${baseUrl}/posts/beta`,
-      deck: "Beta Summary",
-    },
-  ]);
   assert.equal(listEnvelope.data.runtimeProbe?.path, "__PWCLI_RUNTIME__");
   assert.equal(listEnvelope.data.runtimeProbe?.found, true);
   assert.deepEqual(listEnvelope.data.runtimeProbe?.value, {
@@ -367,15 +399,7 @@ try {
   assert.equal(listEnvelope.data.artifactPath, outFile);
 
   const writtenArtifact = JSON.parse(await readFile(outFile, "utf8")) as ExtractArtifact;
-  assert.equal((writtenArtifact as ExtractArtifact & { recipe: { kind: string } }).recipe.kind, "list");
-  assert.equal(
-    (writtenArtifact as ExtractArtifact & { recordCount: number }).recordCount,
-    listEnvelope.data.recordCount,
-  );
-  assert.deepEqual(
-    (writtenArtifact as ExtractArtifact & { records: Array<Record<string, unknown>> }).records,
-    listEnvelope.data.records,
-  );
+  assert.equal(writtenArtifact.recipePath, listRecipePath);
   assert.equal(writtenArtifact.recipeId, listEnvelope.data.recipeId);
   assert.equal(writtenArtifact.url, listUrl);
   assert.equal(writtenArtifact.generatedAt, listEnvelope.data.generatedAt);
@@ -402,23 +426,20 @@ try {
     ok: boolean;
     page: { url: string; title: string };
     data: {
-      format: string;
       artifactFormat?: string;
       recipePath: string;
       artifactPath?: string;
-      recordCount: number;
       items: Array<{ primaryText: string; primaryTarget: string; deck: string }>;
-      records: Array<{ primaryText: string; primaryTarget: string; deck: string }>;
+      stats: ExtractArtifact["stats"];
     };
   };
   assert.equal(csvEnvelope.ok, true);
   assert.equal(csvEnvelope.page.url, listUrl);
   assert.equal(csvEnvelope.page.title, "Extraction Fixture List");
-  assert.equal(csvEnvelope.data.format, "json");
   assert.equal(csvEnvelope.data.artifactFormat, "csv");
   assert.equal(csvEnvelope.data.recipePath, csvRecipePath);
   assert.equal(csvEnvelope.data.artifactPath, csvOutFile);
-  assert.equal(csvEnvelope.data.recordCount, 2);
+  assert.equal(csvEnvelope.data.stats.itemCount, 2);
   assert.deepEqual(csvEnvelope.data.items, [
     {
       primaryText: "Alpha Title",
@@ -431,7 +452,6 @@ try {
       deck: "Beta Summary",
     },
   ]);
-  assert.deepEqual(csvEnvelope.data.records, csvEnvelope.data.items);
   assert.equal(
     await readFile(csvOutFile, "utf8"),
     [
@@ -460,7 +480,6 @@ try {
     ok: boolean;
     page: { url: string; title: string };
     data: {
-      format: string;
       recipePath: string;
       recipeId: string;
       url: string;
@@ -468,19 +487,14 @@ try {
       items: Array<{ marker: string; detail: string; canonicalTarget: string }>;
       document: ExtractArtifact["document"];
       stats: ExtractArtifact["stats"];
-      recordCount: number;
-      records: Array<{ marker: string; detail: string; canonicalTarget: string }>;
       runtimeProbe?: unknown;
-      recipe: { kind: string };
     };
   };
   assert.equal(articleEnvelope.ok, true);
   assert.equal(articleEnvelope.page.url, articleUrl);
   assert.equal(articleEnvelope.page.title, "Extraction Fixture Article");
-  assert.equal(articleEnvelope.data.format, "json");
   assert.equal(articleEnvelope.data.recipePath, articleRecipePath);
   assert.match(articleEnvelope.data.recipeId, /^extract:article:[0-9a-f]{12}$/);
-  assert.equal((articleEnvelope.data as typeof articleEnvelope.data & { recipe: { kind: string } }).recipe.kind, "article");
   assert.equal(articleEnvelope.data.url, articleUrl);
   assert.equal(Number.isNaN(Date.parse(articleEnvelope.data.generatedAt)), false);
   assert.deepEqual(articleEnvelope.data.items, [
@@ -509,23 +523,33 @@ try {
         text: "Read more",
         sectionPath: [],
       },
+      {
+        kind: "image",
+        url: `${baseUrl}/media/hero-1x.png`,
+        currentSrc: `${baseUrl}/media/hero-1x.png`,
+        srcset: "/media/hero-1x.png 1x, /media/hero-2x.png 2x",
+        caption: "Hero caption.",
+        sectionPath: [],
+      },
     ],
-    media: [],
+    media: [
+      {
+        kind: "image",
+        url: `${baseUrl}/media/hero-1x.png`,
+        currentSrc: `${baseUrl}/media/hero-1x.png`,
+        srcset: "/media/hero-1x.png 1x, /media/hero-2x.png 2x",
+        caption: "Hero caption.",
+        sectionPath: [],
+      },
+    ],
   });
   assert.deepEqual(articleEnvelope.data.stats, {
     kind: "article",
     itemCount: 1,
     fieldCount: 3,
     limit: 1,
+    dedupedBlockCount: 0,
   });
-  assert.equal(articleEnvelope.data.recordCount, 1);
-  assert.deepEqual(articleEnvelope.data.records, [
-    {
-      marker: "Article Marker",
-      detail: "Visible body marker paragraph.",
-      canonicalTarget: `${baseUrl}/docs/article-marker`,
-    },
-  ]);
   assert.equal(articleEnvelope.data.runtimeProbe, undefined);
 
   const closeResult = await runPw(["session", "close", sessionName, "--output", "json"]);

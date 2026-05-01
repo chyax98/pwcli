@@ -51,7 +51,6 @@ benchmark/artifacts/<taskId>/<runId>/
 - `perception-article`
 - `diagnostics-api500`
 - `auth-state`
-- `extraction-list`
 
 当前结构：
 
@@ -64,24 +63,20 @@ benchmark/artifacts/<taskId>/<runId>/
   - 写 `commands.jsonl`、`stdout.json`、`task-summary.json`
 - `benchmark/runners/suite/run-suite.mjs`
   - 聚合一个或多个 task
-  - 写 `summary.json`、`summary.md`、`score.json`
+  - 写 `summary.json`
   - 聚合 failure family 计数
 - `benchmark/scripts/generate-matrix.mjs`
   - 生成 deterministic task matrix
 - `benchmark/scripts/run-closure-suite.mjs`
   - 启动 fixture server
   - 执行 closure suite
-- `benchmark/scripts/run-nightly-pack.mjs`
-  - 执行 generated matrix 的 nightly regression surface
-  - 产出同一套 `summary.json` / `summary.md` / `score.json`
 
 ## 当前 runner 输出约定
 
 至少要能稳定写出：
 
 ```text
-benchmark/reports/latest/summary.md
-benchmark/reports/latest/score.json
+benchmark/reports/latest/summary.json
 benchmark/reports/latest/tasks/<taskId>.json
 benchmark/artifacts/<taskId>/<runId>/stdout.json
 benchmark/artifacts/<taskId>/<runId>/commands.jsonl
@@ -91,25 +86,17 @@ benchmark/artifacts/<taskId>/<runId>/commands.jsonl
 
 ```text
 benchmark/reports/latest/summary.json
-benchmark/reports/latest/summary.md
-benchmark/reports/latest/score.json
 benchmark/artifacts/<taskId>/<runId>/stdout.json
 benchmark/artifacts/<taskId>/<runId>/commands.jsonl
 benchmark/artifacts/<taskId>/<runId>/task-summary.json
 ```
 
-`score.json` 当前包含：
+`summary.json` 当前包含：
 
-- `contractVersion`
-- `surface`
 - `total`
 - `passed`
 - `failed`
-- `passRate`
-- `categories.<category>.passRate`
-- `failureFamilies`
-- `overallScore`
-- `verdict`
+- `failures`
 
 ## 300+ suite 策略
 
