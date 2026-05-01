@@ -57,11 +57,16 @@ export function printSessionAwareCommandError(
     return;
   }
 
+  const screenshotPath =
+    error instanceof Error ? (error as unknown as Record<string, unknown>).failureScreenshotPath : undefined;
   printCommandError(command, {
     code: fallback.code,
     message: error instanceof Error ? error.message : fallback.message,
     suggestions: fallback.suggestions,
-    details: fallback.details,
+    details: {
+      ...fallback.details,
+      ...(screenshotPath ? { failureScreenshotPath: screenshotPath } : {}),
+    },
   });
 }
 
@@ -91,10 +96,12 @@ export async function withActionFailureScreenshot<T>(
   try {
     return await action();
   } catch (error) {
-    if (isActionFailure(error)) {
-      const screenshotPath = await captureFailureScreenshot(sessionName);
-      if (screenshotPath) {
+    const screenshotPath = await captureFailureScreenshot(sessionName);
+    if (screenshotPath) {
+      if (isActionFailure(error)) {
         error.details = { ...error.details, failureScreenshotPath: screenshotPath };
+      } else if (error instanceof Error) {
+        (error as unknown as Record<string, unknown>).failureScreenshotPath = screenshotPath;
       }
     }
     throw error;
