@@ -1,8 +1,0 @@
-{
-  "kind": "article",
-  "containerSelector": ".js-discussion, [data-testid='issue-viewer-issue-container'], [data-testid='pull-request-viewer-content']",
-  "fields": {
-    "title": ".gh-header-title .js-issue-title, h1",
-    "lead": ".comment-body, .js-comment-body, [data-testid='issue-body']"
-  }
-}

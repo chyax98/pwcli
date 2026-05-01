@@ -103,59 +103,6 @@
 - batch 只在真实高频场景下增量扩命令，不追求全量 parity
 - `verify` 后续只补真实场景断言覆盖，不扩大成动作规划器
 
-## 3.5 Extraction
-
-### 当前实现
-
-- `extract run`
-- bounded recipe-driven extraction lane
-- `kind: "list"` visible DOM list extraction
-- `kind: "article"` single-container extraction
-- optional list companion-row extraction via `companionSelector` + field-level `source: "companion"`
-- bounded `next-page` pagination
-- bounded `load-more` pagination
-- bounded `until-stable` scroll driver
-- optional dotted-path `runtimeGlobal` probe
-- optional artifact write via `--out`
-- stable extraction artifact contract:
-  - `recipeId`
-  - `url`
-  - `generatedAt`
-  - `items[]`
-  - `document.blocks[]`
-  - `document.media[]`
-  - `stats`
-- artifact export formats:
-  - JSON
-  - CSV
-  - Markdown
-
-### 当前限制
-
-- 只读，不做 mutation
-- `runtimeGlobal` 只允许 dotted path，不允许任意表达式
-- stdout 仍然只输出 JSON envelope；CSV / Markdown 只用于 `--out` artifact
-- `document.blocks/media` 是原始内容采集结果，不做语义摘要或最终文档重写
-- extract stdout 和 `--out` JSON artifact 只保留新 contract：`recipeId`、`recipePath`、`url`、`generatedAt`、`items[]`、`document`、`stats`、`runtimeProbe?`、`limitation?`、`limitations?`
-- recipe-level `excludeSelectors` can suppress known noise containers before raw block/media collection
-- list recipes can optionally project adjacent metadata rows through `companionSelector`, but the lane still does not support arbitrary graph traversal or unbounded relationship queries
-- 当前分页/滚动只支持：
-  - `next-page`
-  - `load-more`
-  - `until-stable`
-- 所有分页/滚动都必须是 bounded
-- iframe：
-  - same-origin：支持
-  - cross-origin：不深采，只返回 limitation
-- 不支持 URL template / cursor/API pagination / site pack marketplace
-- 不替代 `pw code` 的 ad-hoc 调试能力，也不替代 `bootstrap apply --init-script` 的 preload/runtime patch lane
-
-### 后续扩展
-
-- 如果 extraction lane 真实高频，再补更完整的 raw block richness、cursor/API pagination、组合 scroll+pagination strategy
-- recipe pack 当前是模板级资产，不是站点强契约
-- 不把 extraction lane 扩成任意脚本平台
-
 ## 4. Identity State
 
 ### 当前实现
@@ -188,7 +135,7 @@
 
 ### 后续扩展
 
-- `auth probe` 当前冻结在 generic probe 边界；只有真实重复场景出现时，才评估更深层 value diff、Cache Storage probe 或额外 extraction recipe
+- `auth probe` 当前冻结在 generic probe 边界；只有真实重复场景出现时，才评估更深层 value diff、Cache Storage probe 或额外页面事实采集能力
 
 ## 5. Diagnostics
 

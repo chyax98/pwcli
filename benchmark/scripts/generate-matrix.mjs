@@ -109,38 +109,6 @@ function authTask(index) {
   };
 }
 
-function extractionTask(index) {
-  const variant = `extract-${pad(index)}`;
-  const count = 3 + (index % 3);
-  const mode = index % 2 === 0 ? "dom" : "runtime";
-  const recipePath = `benchmark/fixtures/recipes/${mode === "dom" ? "dom-card-list.json" : "runtime-card-list.json"}`;
-  return {
-    id: `fixture-extract-${pad(index)}`,
-    title: `Extraction fixture ${variant}`,
-    category: "extraction",
-    mode: "fixture",
-    site: {
-      name: "deterministic-fixture",
-      startUrl: `http://127.0.0.1:<port>/extract-list?variant=${variant}&count=${count}&mode=${mode}`,
-      requiresLogin: false,
-      authMode: "none",
-    },
-    goal: "Extract deterministic card records into a structured artifact.",
-    allowedCommands: ["session", "open", "extract"],
-    failureTaxonomy: ["EXTRACTION_INCOMPLETE", "SCRIPT_INJECTION_FAILED", "VERIFY_FAILED"],
-    evidenceRequired: ["extract artifact"],
-    benchmark: {
-      planKind: "extraction-list",
-      recipePath,
-      expectations: {
-        count,
-        firstTitle: `${variant} title 1`,
-        mode,
-      },
-    },
-  };
-}
-
 export async function generateMatrix(options = {}) {
   const generatedRoot = resolve(options.outputDir ?? defaultGeneratedRoot);
   await rm(generatedRoot, { recursive: true, force: true });
@@ -164,12 +132,6 @@ export async function generateMatrix(options = {}) {
     await writeTask(generatedRoot, `auth-state/${task.id}.json`, task);
   }
 
-  for (let index = 0; index < 32; index += 1) {
-    const task = extractionTask(index);
-    tasks.push(task);
-    await writeTask(generatedRoot, `extraction/${task.id}.json`, task);
-  }
-
   const manifest = {
     contractVersion: BENCHMARK_MATRIX_CONTRACT_VERSION,
     generatedAt: new Date().toISOString(),
@@ -178,7 +140,6 @@ export async function generateMatrix(options = {}) {
       perception: 96,
       diagnostics: 96,
       "auth-state": 96,
-      extraction: 32,
     },
   };
   await writeFile(resolve(generatedRoot, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);

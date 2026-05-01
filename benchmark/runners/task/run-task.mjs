@@ -177,33 +177,6 @@ function buildAuthPlan(task, sessionName, options = {}) {
   ];
 }
 
-function buildExtractionPlan(task, sessionName, artifactPath, options = {}) {
-  const recipePath = task.benchmark?.recipePath;
-  if (typeof recipePath !== "string" || recipePath.length === 0) {
-    throw new Error(`task ${task.id} is missing benchmark.recipePath`);
-  }
-  assertAllowed(task, "session");
-  assertAllowed(task, "extract");
-  assertAllowed(task, "open");
-  return [
-    navigationStep(task, sessionName, options.manageLifecycle),
-    {
-      family: "extract",
-      label: "extract run",
-      args: [
-        "extract",
-        "run",
-        "--session",
-        sessionName,
-        "--recipe",
-        resolve(repoRoot, recipePath),
-        "--out",
-        artifactPath,
-      ],
-    },
-  ];
-}
-
 function navigationStep(task, sessionName, manageLifecycle = true) {
   return manageLifecycle
     ? {
@@ -218,7 +191,7 @@ function navigationStep(task, sessionName, manageLifecycle = true) {
       };
 }
 
-function planForTask(task, sessionName, screenshotPath, extractionArtifactPath, options = {}) {
+function planForTask(task, sessionName, screenshotPath, options = {}) {
   switch (task.benchmark?.planKind) {
     case "perception-article":
       return buildPerceptionPlan(task, sessionName, screenshotPath, options);
@@ -226,8 +199,6 @@ function planForTask(task, sessionName, screenshotPath, extractionArtifactPath, 
       return buildDiagnosticsPlan(task, sessionName, screenshotPath, options);
     case "auth-state":
       return buildAuthPlan(task, sessionName, options);
-    case "extraction-list":
-      return buildExtractionPlan(task, sessionName, extractionArtifactPath, options);
     default:
       throw new Error(`RUNNER_UNSUPPORTED_TASK:${task.id}`);
   }
@@ -281,23 +252,6 @@ function evaluateAuthTask(task, commandOutputs) {
   return finalizeEvaluation(task, commandOutputs, checks, "AUTH_NOT_REUSED");
 }
 
-function evaluateExtractionTask(task, commandOutputs) {
-  const expected = task.benchmark?.expectations ?? {};
-  const extractResult = commandOutputs["extract run"];
-  const itemCount = asNumber(extractResult?.data?.stats?.itemCount) ?? -1;
-  const items = asArray(extractResult?.data?.items);
-  const firstTitle = asString(items[0]?.title) ?? "";
-  const checks = [
-    { id: "item-count", passed: itemCount === expected.count, detail: `count=${itemCount}` },
-    {
-      id: "first-title",
-      passed: firstTitle === expected.firstTitle,
-      detail: firstTitle,
-    },
-  ];
-  return finalizeEvaluation(task, commandOutputs, checks, "EXTRACTION_INCOMPLETE");
-}
-
 function finalizeEvaluation(task, commandOutputs, checks, failureFamily) {
   const passed = checks.every((check) => check.passed);
   return {
@@ -319,8 +273,6 @@ function evaluateTask(task, commandOutputs) {
       return evaluateDiagnosticsTask(task, commandOutputs);
     case "auth-state":
       return evaluateAuthTask(task, commandOutputs);
-    case "extraction-list":
-      return evaluateExtractionTask(task, commandOutputs);
     default:
       return {
         passed: false,
@@ -399,7 +351,6 @@ export async function runLoadedTask(input) {
   const sessionName = input.sessionName ?? createSessionName();
   const artifactDir = resolve(input.artifactsDir, task.id, runId);
   const screenshotPath = resolve(artifactDir, "page.png");
-  const extractionArtifactPath = resolve(artifactDir, "extract.json");
   const commandLogPath = resolve(artifactDir, "commands.jsonl");
   const stdoutPath = resolve(artifactDir, "stdout.json");
 
@@ -408,7 +359,7 @@ export async function runLoadedTask(input) {
 
   const commandOutputs = {};
   const stdoutRecords = [];
-  const plan = planForTask(task, sessionName, screenshotPath, extractionArtifactPath, {
+  const plan = planForTask(task, sessionName, screenshotPath, {
     manageLifecycle: input.manageLifecycle !== false,
   });
   let taskError = null;

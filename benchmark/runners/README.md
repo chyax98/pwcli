@@ -51,7 +51,6 @@ benchmark/artifacts/<taskId>/<runId>/
 - `perception-article`
 - `diagnostics-api500`
 - `auth-state`
-- `extraction-list`
 
 当前结构：
 

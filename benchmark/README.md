@@ -55,7 +55,6 @@ benchmark/
 - `tasks/state-reuse/`
 - `tasks/controlled-testing/`
 - `tasks/script-injection/`
-- `tasks/extraction/`
 - `tasks/real-sites/`（当前先是 manual pack）
 
 ## 任务 spec 原则
@@ -87,7 +86,6 @@ benchmark/
 - `perception-article`
 - `diagnostics-api500`
 - `auth-state`
-- `extraction-list`
 
 其他 task spec 还属于后续 tranche，不要包装成“当前已支持完整 suite”。
 
