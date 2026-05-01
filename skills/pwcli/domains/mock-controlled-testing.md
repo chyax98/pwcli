@@ -189,6 +189,20 @@ pw route load ./routes.json -s bug-a
 只按真实 controlled-testing / diagnostics / 复现场景补能力
 ```
 
+### 允许增强的理由
+
+1. 稳定复现 diagnostics bug
+2. 构造受控页面状态验证场景
+3. 固定后端波动以验证 Agent workflow
+4. 复现 interaction 失败场景（dialog 阻塞、upload 超时等）
+
+### 不允许增强的理由
+
+1. 抽象完整性
+2. 为了"功能看起来更全"
+3. 先做一套通用 scenario engine 再找用途
+4. 没有真实复现场景就先做 GraphQL DSL
+
 ---
 
 ## 10. Common Misuse
