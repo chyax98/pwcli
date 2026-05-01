@@ -94,17 +94,10 @@ export function registerExtractCommand(program: Command): void {
             suggestions: [
               'Use `kind: "list"` with `itemSelector` or `kind: "article"` with `containerSelector`',
               "Keep field specs to selector strings or `{ selector?, attr?, multiple? }` objects",
-            ],
-          });
-          process.exitCode = 1;
-          return;
-        }
-        if (message === "EXTRACT_RUNTIME_GLOBAL_INVALID") {
-          printCommandError("extract run", {
-            code: "EXTRACT_RUNTIME_GLOBAL_INVALID",
-            message: "runtimeGlobal must be a dotted global path like __NEXT_DATA__ or app.state",
-            suggestions: [
-              "Use only dotted global names; do not pass function calls, brackets, or arbitrary expressions",
+              'Use `pagination.mode: "next-page" | "load-more"` with a non-empty `selector` and positive `maxPages`',
+              'Use `scroll.mode: "until-stable"` with bounded `stepPx`, `settleMs`, and `maxSteps` values',
+              'Use `output.format: "json" | "csv" | "markdown"` and optional string `columns` only',
+              "Use only dotted `runtimeGlobal` paths; do not pass function calls, brackets, or arbitrary expressions",
             ],
           });
           process.exitCode = 1;

@@ -214,12 +214,25 @@
 
 ### `pw extract run --session <name> --recipe <file>`
 
-- 运行 bounded extraction lane，把当前页面里的结构化数据导出成 JSON
+- 运行 bounded extraction lane，把当前页面里的结构化数据导出成稳定 artifact
 - 可选：
   - `--out <file>`：把 artifact 额外写盘
-- 当前 MVP 支持两类 recipe：
+- 当前支持两类 recipe：
   - `kind: "list"`：可见 DOM 列表提取
   - `kind: "article"`：单篇文章容器提取
+- recipe 可选扩展：
+  - `pagination`
+    - `mode: "next-page" | "load-more"`
+    - `selector`
+    - `maxPages`
+  - `scroll`
+    - `mode: "until-stable"`
+    - `stepPx`
+    - `settleMs`
+    - `maxSteps`
+  - `output`
+    - `format: "json" | "csv" | "markdown"`
+    - `columns`
 - recipe 例子：
 
 ```json
@@ -230,6 +243,21 @@
     "title": "h2 a",
     "url": { "selector": "h2 a", "attr": "href" },
     "summary": ".summary"
+  },
+  "pagination": {
+    "mode": "next-page",
+    "selector": "a.next",
+    "maxPages": 3
+  },
+  "scroll": {
+    "mode": "until-stable",
+    "stepPx": 1200,
+    "settleMs": 250,
+    "maxSteps": 5
+  },
+  "output": {
+    "format": "csv",
+    "columns": ["title", "url", "summary"]
   },
   "runtimeGlobal": "__PWCLI_RUNTIME__"
 }
@@ -249,12 +277,19 @@
   - `itemCount`
   - `fieldCount`
   - `limit`
+  - `pageCount?`
+  - `paginationMode?`
+  - `scrollMode?`
+  - `scrollStepsUsed?`
+  - `maxPages?`
+  - `maxScrollSteps?`
   - `runtimeProbePath?`
   - `runtimeProbeFound?`
 - `recordCount`
 - `records[]`
 - `runtimeProbe`
 - `artifactPath`（仅 `--out`）
+- `artifactFormat`（仅 `--out` 且 `output.format !== "json"`）
 
 说明：
 
@@ -263,13 +298,27 @@
   - `recordCount -> stats.itemCount`
   - `records[] -> items[]`
 - `recipe` 继续保留在 stdout 和 `--out` artifact 里，方便旧调用方平滑迁移
-- `--out` 写出的 artifact 也采用同一组稳定字段
+- `--out` 写出的 artifact：
+  - `output.format = "json"`：写完整 JSON artifact payload
+  - `output.format = "csv"`：只写 CSV 文本
+  - `output.format = "markdown"`：只写 Markdown 表格文本
 
 限制：
 
 - 只读，不做 DOM mutation
 - `runtimeGlobal` 只允许点路径，例如 `__NEXT_DATA__`、`app.state`
 - 不允许函数调用、括号访问、任意表达式
+- 分页和滚动必须是 bounded：
+  - `pagination.maxPages`
+  - `scroll.maxSteps`
+- 当前只支持：
+  - `next-page`
+  - `load-more`
+  - `until-stable`
+- 当前不支持：
+  - URL template pagination
+  - cursor/API pagination
+  - site marketplace
 - 不替代 `pw code` 的 ad-hoc 调试能力
 
 ### `pw code` / `bootstrap apply --init-script` / `pw extract run` 的边界
@@ -283,6 +332,7 @@
 - `pw extract run`
   - repeatable structured extraction lane
   - 适合固定 recipe、固定 artifact、固定验证
+  - stdout 始终保持 JSON；CSV/Markdown 只用于 `--out` artifact
 
 不要把 `pw extract run` 包装成 planner、userscript installer 或任意脚本执行器。
 

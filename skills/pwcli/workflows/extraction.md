@@ -7,6 +7,9 @@
 - 列表页首屏结构化提取
 - 文章/文档容器提取
 - 想把提取流程固化成可重复 recipe
+- 多页列表提取
+- load-more / 虚拟列表式滚动补齐
+- 导出 CSV / Markdown / JSON artifact
 
 ## 最短闭环
 
@@ -15,6 +18,7 @@ pw page assess --session bug-a
 pw read-text --session bug-a --max-chars 2000
 pw snapshot -i --session bug-a
 pw extract run --session bug-a --recipe ./recipe.json --out ./artifact.json
+pw diagnostics digest --session bug-a
 ```
 
 ## 什么时候用 `pw extract run`
@@ -51,6 +55,67 @@ pw extract run --session bug-a --recipe ./recipe.json --out ./artifact.json
   }
 }
 ```
+
+多页列表：
+
+```json
+{
+  "kind": "list",
+  "itemSelector": ".post-card",
+  "fields": {
+    "title": "h2 a",
+    "url": { "selector": "h2 a", "attr": "href" }
+  },
+  "pagination": {
+    "mode": "next-page",
+    "selector": "a.next",
+    "maxPages": 3
+  }
+}
+```
+
+load-more + scroll：
+
+```json
+{
+  "kind": "list",
+  "itemSelector": ".feed-item",
+  "fields": {
+    "title": ".title",
+    "url": { "selector": "a", "attr": "href" }
+  },
+  "pagination": {
+    "mode": "load-more",
+    "selector": "button.load-more",
+    "maxPages": 3
+  },
+  "scroll": {
+    "mode": "until-stable",
+    "stepPx": 1200,
+    "settleMs": 250,
+    "maxSteps": 5
+  },
+  "output": {
+    "format": "markdown"
+  }
+}
+```
+
+## 导出规则
+
+- stdout 始终是 JSON envelope
+- `--out` 决定 artifact 文件
+- `output.format = "json"`：写完整 JSON payload
+- `output.format = "csv"`：写 CSV 文本
+- `output.format = "markdown"`：写 Markdown 表格
+
+## 明确限制
+
+- 只读提取
+- 所有分页/滚动都必须是 bounded
+- 不支持 URL template / cursor/API pagination
+- 不支持 site marketplace
+- 不支持把 `extract run` 当成任意脚本平台
 
 文章：
 

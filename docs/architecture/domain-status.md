@@ -112,6 +112,9 @@
 - bounded recipe-driven extraction lane
 - `kind: "list"` visible DOM list extraction
 - `kind: "article"` single-container extraction
+- bounded `next-page` pagination
+- bounded `load-more` pagination
+- bounded `until-stable` scroll driver
 - optional dotted-path `runtimeGlobal` probe
 - optional artifact write via `--out`
 - stable extraction artifact contract:
@@ -120,20 +123,29 @@
   - `generatedAt`
   - `items[]`
   - `stats`
+- artifact export formats:
+  - JSON
+  - CSV
+  - Markdown
 - bundled recipe pack for GitHub issue/PR lists and generic table rows
 
 ### 当前限制
 
 - 只读，不做 mutation
 - `runtimeGlobal` 只允许 dotted path，不允许任意表达式
-- 当前只输出 JSON artifact
+- stdout 仍然只输出 JSON envelope；CSV / Markdown 只用于 `--out` artifact
 - CLI payload and `--out` artifact still carry `recipe`, `recordCount`, and `records[]` as compatibility aliases over the newer contract
-- 不做自动分页、跨页抓取、site pack marketplace
+- 当前分页/滚动只支持：
+  - `next-page`
+  - `load-more`
+  - `until-stable`
+- 所有分页/滚动都必须是 bounded
+- 不支持 URL template / cursor/API pagination / site pack marketplace
 - 不替代 `pw code` 的 ad-hoc 调试能力，也不替代 `bootstrap apply --init-script` 的 preload/runtime patch lane
 
 ### 后续扩展
 
-- 如果 extraction lane 真实高频，再补 recipe pack、CSV/Markdown 输出、分页 driver
+- 如果 extraction lane 真实高频，再补 recipe pack、cursor/API pagination、组合 scroll+pagination strategy
 - recipe pack 当前是模板级资产，不是站点强契约
 - 不把 extraction lane 扩成任意脚本平台
 

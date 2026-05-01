@@ -147,8 +147,10 @@ const listUrl = `${baseUrl}/list`;
 const articleUrl = `${baseUrl}/article`;
 const recipeDir = resolve(workspaceDir, "recipes");
 const outFile = resolve(workspaceDir, "artifacts", "list.json");
+const csvOutFile = resolve(workspaceDir, "artifacts", "list.csv");
 const listRecipePath = resolve(recipeDir, "list.json");
 const articleRecipePath = resolve(recipeDir, "article.json");
+const csvRecipePath = resolve(recipeDir, "list-csv.json");
 
 await mkdir(recipeDir, { recursive: true });
 
@@ -182,6 +184,28 @@ await writeFile(
         title: "h1",
         body: ".lede",
         url: { selector: "a.canonical", attr: "href" },
+      },
+    },
+    null,
+    2,
+  ),
+  "utf8",
+);
+
+await writeFile(
+  csvRecipePath,
+  JSON.stringify(
+    {
+      kind: "list",
+      itemSelector: ".post-card",
+      fields: {
+        title: "h2 a",
+        url: { selector: "h2 a", attr: "href" },
+        summary: ".summary",
+      },
+      output: {
+        format: "csv",
+        columns: ["summary", "title", "url"],
       },
     },
     null,
@@ -285,6 +309,55 @@ try {
   assert.deepEqual(writtenArtifact.stats, listEnvelope.data.stats);
   assert.equal(writtenArtifact.runtimeProbe?.path, "__PWCLI_RUNTIME__");
   assert.equal(writtenArtifact.runtimeProbe?.found, true);
+
+  const csvExtract = await runPw([
+    "extract",
+    "run",
+    "--session",
+    sessionName,
+    "--recipe",
+    csvRecipePath,
+    "--out",
+    csvOutFile,
+    "--output",
+    "json",
+  ]);
+  assert.equal(csvExtract.code, 0, `extract run csv failed: ${JSON.stringify(csvExtract)}`);
+  const csvEnvelope = csvExtract.json as {
+    ok: boolean;
+    page: { url: string; title: string };
+    data: {
+      format: string;
+      artifactFormat?: string;
+      recipePath: string;
+      artifactPath?: string;
+      recordCount: number;
+      items: Array<{ title: string; url: string; summary: string }>;
+      records: Array<{ title: string; url: string; summary: string }>;
+    };
+  };
+  assert.equal(csvEnvelope.ok, true);
+  assert.equal(csvEnvelope.page.url, listUrl);
+  assert.equal(csvEnvelope.page.title, "Extraction Fixture List");
+  assert.equal(csvEnvelope.data.format, "json");
+  assert.equal(csvEnvelope.data.artifactFormat, "csv");
+  assert.equal(csvEnvelope.data.recipePath, csvRecipePath);
+  assert.equal(csvEnvelope.data.artifactPath, csvOutFile);
+  assert.equal(csvEnvelope.data.recordCount, 2);
+  assert.deepEqual(csvEnvelope.data.items, [
+    { title: "Alpha Title", url: `${baseUrl}/posts/alpha`, summary: "Alpha Summary" },
+    { title: "Beta Title", url: `${baseUrl}/posts/beta`, summary: "Beta Summary" },
+  ]);
+  assert.deepEqual(csvEnvelope.data.records, csvEnvelope.data.items);
+  assert.equal(
+    await readFile(csvOutFile, "utf8"),
+    [
+      "summary,title,url",
+      `Alpha Summary,Alpha Title,${baseUrl}/posts/alpha`,
+      `Beta Summary,Beta Title,${baseUrl}/posts/beta`,
+      "",
+    ].join("\n"),
+  );
 
   const openArticle = await runPw(["open", articleUrl, "--session", sessionName, "--output", "json"]);
   assert.equal(openArticle.code, 0, `open article failed: ${JSON.stringify(openArticle)}`);
