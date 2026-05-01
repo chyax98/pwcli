@@ -67,6 +67,16 @@ state / auth / batch 命令见 `command-reference-advanced.md`。
 
 - `--command <name>`、`--since <iso>`、`--fields <list>`、`--limit <n>`
 
+### `pw diagnostics timeline --session <name>`
+
+- 统一时间线：合并 console、network、pageerror、run events（action + failure）为单一时间序列
+- `--limit <n>`：最大条目数（默认 `50`）
+- `--since <iso>`：只保留该时间戳之后的条目
+- 每条 entry 包含：`timestamp`、`kind`、`summary`、`details`
+- kind 类型：`console:<level>`、`response`、`request`、`requestfailed`、`pageerror`、`action:<command>`、`failure:<code>`
+- failure entry 包含 `runId`、`failureCode`、`screenshotPath`（如有）
+- 用途：动作失败后快速看"按时间排序到底发生了什么"，比单独查 console/network/run 更直观
+
 ### `pw doctor --session <name>`
 
 - `--auth-provider <name>`、`--profile <path>`、`--state <file>`、`--endpoint <url>`

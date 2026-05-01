@@ -194,6 +194,133 @@ export async function readDiagnosticsRunView(options: {
   };
 }
 
+export async function buildSessionTimeline(options: {
+  sessionName: string;
+  limit?: number;
+  since?: string;
+  exported: DiagnosticsExport;
+}) {
+  const limit = options.limit && options.limit > 0 ? options.limit : 50;
+  const since = normalizeSince(options.since);
+  const data = asObject(options.exported.data);
+
+  type TimelineEntry = {
+    timestamp: string;
+    kind: string;
+    summary: string;
+    details?: Record<string, unknown>;
+  };
+
+  const entries: TimelineEntry[] = [];
+
+  // Console signals
+  for (const item of asArray(data.console)) {
+    const ts = asString((item as Record<string, unknown>).timestamp);
+    if (!ts || !timestampAtOrAfter(ts, since)) continue;
+    const record = item as Record<string, unknown>;
+    const level = asString(record.level) ?? "info";
+    const text = asString(record.text) ?? "";
+    entries.push({
+      timestamp: ts,
+      kind: `console:${level}`,
+      summary: text.length > 120 ? text.slice(0, 120) + "…" : text,
+      details: record,
+    });
+  }
+
+  // Network signals
+  for (const item of asArray(data.network)) {
+    const record = item as Record<string, unknown>;
+    const ts = asString(record.timestamp);
+    if (!ts || !timestampAtOrAfter(ts, since)) continue;
+    const method = asString(record.method) ?? "GET";
+    const url = asString(record.url) ?? "";
+    const status = record.status;
+    const failureText = asString(record.failureText);
+    const shortUrl = url.length > 80 ? "…" + url.slice(-77) : url;
+    const summary = failureText
+      ? `${method} ${shortUrl} -> ${failureText}`
+      : `${method} ${shortUrl} -> ${status ?? "?"}`;
+    entries.push({
+      timestamp: ts,
+      kind: record.status ? "response" : record.failureText ? "requestfailed" : "request",
+      summary,
+      details: record,
+    });
+  }
+
+  // Page errors
+  for (const item of asArray(data.errors)) {
+    const record = item as Record<string, unknown>;
+    const ts = asString(record.timestamp);
+    if (!ts || !timestampAtOrAfter(ts, since)) continue;
+    const text = asString(record.text) ?? "";
+    entries.push({
+      timestamp: ts,
+      kind: "pageerror",
+      summary: text.length > 120 ? text.slice(0, 120) + "…" : text,
+      details: record,
+    });
+  }
+
+  // Run events (actions + failures)
+  const runs = await listDiagnosticsRuns({
+    sessionName: options.sessionName,
+    limit: 10,
+  });
+  for (const run of runs) {
+    const events = await readRunEvents(run.runId).catch(() => []);
+    for (const event of events) {
+      const ts = asString(event.ts ?? event.timestamp);
+      if (!ts || !timestampAtOrAfter(ts, since)) continue;
+      const command = asString(event.command) ?? "?";
+      const failed = Boolean(event.failed);
+      const failure = asObject(event.failure);
+      const failureCode = asString(failure.code);
+      const screenshotPath = asString(event.failureScreenshotPath);
+      let kind: string;
+      let summary: string;
+      if (failed && failureCode) {
+        kind = `failure:${failureCode}`;
+        summary = asString(failure.message) ?? `${command} failed`;
+      } else if (failed) {
+        kind = `failure:${command}`;
+        summary = `${command} failed`;
+      } else {
+        kind = `action:${command}`;
+        const target = asObject(event.target);
+        const ref = asString(target.ref);
+        const selector = asString(target.selector);
+        summary = ref ? `${command} ${ref}` : selector ? `${command} ${selector}` : command;
+      }
+      entries.push({
+        timestamp: ts,
+        kind,
+        summary: summary.length > 120 ? summary.slice(0, 120) + "…" : summary,
+        details: {
+          runId: run.runId,
+          command,
+          failed,
+          ...(failureCode ? { failureCode } : {}),
+          ...(screenshotPath ? { screenshotPath } : {}),
+        },
+      });
+    }
+  }
+
+  // Sort ascending by timestamp
+  entries.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+
+  // Apply limit (take last N)
+  const limited = entries.slice(-limit);
+
+  return {
+    count: limited.length,
+    total: entries.length,
+    entries: limited,
+  };
+}
+
 export async function managedDiagnosticsBundle(options: {
   sessionName: string;
   limit?: number;

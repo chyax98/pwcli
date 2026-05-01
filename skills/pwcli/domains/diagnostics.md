@@ -7,7 +7,7 @@
 - `console`
 - `network`
 - `errors recent|clear`
-- `diagnostics digest|bundle|export|runs|show|grep`
+- `diagnostics digest|bundle|export|runs|show|grep|timeline`
 - `trace start|stop|inspect`
 - `har start|stop`
 - `doctor`
@@ -93,6 +93,7 @@ Diagnostics 不是“另一个浏览器”。
 - `diagnostics show`
 - `diagnostics grep`
 - `diagnostics digest --run`
+- `diagnostics timeline`
 
 ### 4.4 Evidence export
 
@@ -200,6 +201,31 @@ Diagnostics 不是“另一个浏览器”。
 
 对单个 run 做 compact 摘要。
 
+### 6.6 `diagnostics timeline`
+
+统一时间线视图。
+
+合并 console、network、pageerror、run events（action + failure）为单一时间序列，按 timestamp 升序排列。
+
+每条 entry：
+
+```json
+{
+  "timestamp": "2026-05-01T17:57:21.145Z",
+  "kind": "failure:REF_STALE",
+  "summary": "Ref e9999 is stale for the current page snapshot",
+  "details": {
+    "runId": "2026-05-01T17-57-21-145Z-timeline-test",
+    "command": "click",
+    "failed": true,
+    "failureCode": "REF_STALE",
+    "screenshotPath": "/path/to/failure.png"
+  }
+}
+```
+
+用途：动作失败后，一条命令看"按时间排序到底发生了什么"，比分别查 console/network/run 更快定位因果链。
+
 ---
 
 ## 7. Export And Bundle
@@ -291,6 +317,7 @@ Diagnostics 不是“另一个浏览器”。
 ### 10.1 动作失败后最短闭环
 
 ```bash
+pw diagnostics timeline -s bug-a --limit 50
 pw diagnostics digest -s bug-a
 pw diagnostics runs --session bug-a
 pw diagnostics show --run <runId>
@@ -386,7 +413,7 @@ run evidence 是 run artifact，不是持久化诊断数据库。
 
 常见恢复思路：
 
-- 失败但原因不明：`diagnostics digest`
+- 失败但原因不明：`diagnostics timeline` 或 `diagnostics digest`
 - 需要动作细节：`diagnostics runs/show`
 - 需要离线交接：`diagnostics bundle`
 - endpoint 疑似坏掉：`doctor`

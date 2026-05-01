@@ -7,6 +7,7 @@ import {
   applyDiagnosticsExportFilter,
   buildRunDigest,
   buildSessionDigest,
+  buildSessionTimeline,
   listDiagnosticsRuns,
   managedDiagnosticsBundle,
   readDiagnosticsRunView,
@@ -363,4 +364,47 @@ export function registerDiagnosticsCommand(program: Command): void {
         }
       },
     );
+
+  addSessionOption(
+    diagnostics
+      .command("timeline")
+      .description("Unified chronological view of actions, console, network, errors, and failures")
+      .option("--limit <n>", "Max timeline entries to return", "50")
+      .option("--since <iso>", "Keep only entries at or after the given ISO timestamp"),
+  ).action(
+    async (
+      options: { session?: string; limit?: string; since?: string },
+      command: Command,
+    ) => {
+      try {
+        const sessionName = requireSessionName(options, command);
+        const limit = options.limit ? Number(options.limit) : 50;
+        if (!Number.isFinite(limit) || limit <= 0) {
+          throw new Error("diagnostics timeline requires a positive integer for --limit");
+        }
+        const exported = await managedDiagnosticsExport({ sessionName });
+        const timeline = await buildSessionTimeline({
+          sessionName,
+          limit,
+          since: options.since,
+          exported,
+        });
+        printCommandResult("diagnostics timeline", {
+          session: exported.session as Record<string, unknown>,
+          page: exported.page as Record<string, unknown>,
+          data: timeline,
+        });
+      } catch (error) {
+        printSessionAwareCommandError("diagnostics timeline", error, {
+          code: "DIAGNOSTICS_TIMELINE_FAILED",
+          message: "diagnostics timeline failed",
+          suggestions: [
+            "Run `pw session create <name> --open <url>` first",
+            "Use `pw diagnostics timeline --session <name>`",
+          ],
+        });
+        process.exitCode = 1;
+      }
+    },
+  );
 }

@@ -360,6 +360,13 @@ pw diagnostics show --run <runId> --command click --limit 10
 pw diagnostics grep --run <runId> --text 'CHECKOUT_TIMEOUT' --limit 10
 ```
 
+统一时间线（按时间排序看所有事件）：
+
+```bash
+pw diagnostics timeline --session bug-a --limit 50
+pw diagnostics timeline --session bug-a --since 2026-05-01T10:00:00Z
+```
+
 报告 bug 必须给：页面 URL、复现动作、console/network/errors 证据、严重级别、是否阻塞主流程。
 
 Trace / HAR：

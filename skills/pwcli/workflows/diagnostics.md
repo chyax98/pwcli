@@ -93,6 +93,20 @@ pw diagnostics show --run <runId> --command click --limit 10
 pw diagnostics grep --run <runId> --text '<substring>' --limit 10
 ```
 
+## 6.5 统一时间线
+
+一条命令看按时间排序的所有事件（console、network、pageerror、action、failure）：
+
+```bash
+pw diagnostics timeline --session <name> --limit 50
+```
+
+成功判断：
+
+- 能看到 failure entry 带 `failureCode` 和 `screenshotPath`
+- 能看到 failure 前后的 network/console 事件，帮助定位因果链
+- 用 `--since` 缩小范围
+
 ## 7. 离线 trace triage
 
 已有 trace zip 时，用 Trace CLI 查重放证据包，不要把它当 `.pwcli/runs` 事件日志：
