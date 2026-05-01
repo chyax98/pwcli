@@ -1,3 +1,12 @@
+---
+paths:
+  - "src/infra/auth-providers/**/*.ts"
+  - "src/app/commands/auth.ts"
+  - "skills/pwcli/references/command-reference-advanced.md"
+  - "skills/pwcli/references/forge-dc-auth.md"
+  - "docs/architecture/domain-status.md"
+---
+
 # Auth Provider Authoring
 
 `pwcli` 没有外部 plugin 系统。登录扩展只允许走内置 auth provider。

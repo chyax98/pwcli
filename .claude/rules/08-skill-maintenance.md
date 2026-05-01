@@ -1,3 +1,14 @@
+---
+paths:
+  - "src/app/**/*.ts"
+  - "src/domain/**/*.ts"
+  - "src/infra/**/*.ts"
+  - "skills/pwcli/**/*.md"
+  - "docs/architecture/**/*.md"
+  - "AGENTS.md"
+  - "README.md"
+---
+
 # pwcli Skill Maintenance
 
 `skills/pwcli/` 是唯一使用教程真相。任何命令、flag、错误码、输出、工作流、限制变化，都必须先让 skill 能教会下一个 Agent。

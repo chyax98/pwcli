@@ -1,3 +1,13 @@
+---
+paths:
+  - "src/app/**/*.ts"
+  - "src/domain/**/*.ts"
+  - "src/infra/playwright/**/*.ts"
+  - "skills/pwcli/**/*.md"
+  - "docs/architecture/command-surface.md"
+  - "docs/architecture/domain-status.md"
+---
+
 # Command Contract Rules
 
 ## Command Ownership

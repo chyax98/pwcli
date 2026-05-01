@@ -1,3 +1,8 @@
+---
+paths:
+  - "skills/pwcli/**/*.md"
+---
+
 # pwcli Skill Writing Standard
 
 目标：让 Agent 只读 `skills/pwcli/SKILL.md` 就能稳定完成高频任务；需要精确参数时再跳到 reference。不要把 skill 写成散乱命令百科。

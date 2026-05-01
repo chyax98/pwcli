@@ -45,6 +45,11 @@ The main value is:
 
 ## Rule Index
 
+Claude Code discovers `.claude/rules/**/*.md` automatically. Rules without
+`paths` frontmatter are global. Rules with `paths` frontmatter are scoped to
+matching files. Do not manually load every rule unless the task needs a full
+governance audit.
+
 - `rules/01-product-boundaries.md`: what this product is and is not
 - `rules/02-command-contracts.md`: command, flag, output, batch, and docs sync
 - `rules/03-architecture-boundaries.md`: app/domain/infra ownership rules

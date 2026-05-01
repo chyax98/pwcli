@@ -1,3 +1,12 @@
+---
+paths:
+  - "src/**/*.ts"
+  - "skills/pwcli/**/*.md"
+  - "docs/architecture/**/*.md"
+  - "AGENTS.md"
+  - "README.md"
+---
+
 # pwcli Review Guidelines
 
 状态：active

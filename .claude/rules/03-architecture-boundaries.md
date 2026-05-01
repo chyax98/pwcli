@@ -1,3 +1,11 @@
+---
+paths:
+  - "src/app/**/*.ts"
+  - "src/domain/**/*.ts"
+  - "src/infra/**/*.ts"
+  - "docs/architecture/**/*.md"
+---
+
 # Architecture Boundary Rules
 
 ## Layer Roles

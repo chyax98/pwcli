@@ -1,3 +1,14 @@
+---
+paths:
+  - "src/infra/playwright/runtime/**/*.ts"
+  - "src/domain/diagnostics/**/*.ts"
+  - "src/domain/interaction/**/*.ts"
+  - "src/app/commands/**/*.ts"
+  - "skills/pwcli/references/failure-recovery.md"
+  - "skills/pwcli/workflows/**/*.md"
+  - "docs/architecture/domain-status.md"
+---
+
 # Recovery And Evidence Rules
 
 ## Failure Philosophy
