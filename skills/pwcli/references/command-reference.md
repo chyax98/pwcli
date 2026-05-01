@@ -75,7 +75,9 @@ state / auth / batch / environment 命令见 `command-reference-advanced.md`。
 
 ### `pw observe status --session <name>`
 
-- compact 摘要：summary / currentPage / dialogs / routes / pageErrors / console / network / trace / har / bootstrap
+- compact 摘要：summary / currentPage / dialogs / routes / pageErrors / console / network / trace / har / bootstrap / modals
+- `summary.modalCount > 0` 表示有 HTML modal/overlay 阻断交互
+- `modals.items` 包含每个可见 modal 的 role 和文本摘要
 - `--verbose` 返回完整载荷
 
 ### `pw page current|list|frames|dialogs --session <name>`

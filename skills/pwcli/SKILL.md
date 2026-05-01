@@ -159,7 +159,7 @@ pw verify text -s bug-a --text '保存成功'
 
 用途：
 
-- `observe status`：页面、dialog、console、network、errors、routes、bootstrap 的 compact 摘要。
+- `observe status`：页面、dialog、console、network、errors、routes、bootstrap、modals 的 compact 摘要。`summary.modalCount > 0` 表示有 HTML modal 阻断交互。
 - `page current`：当前 page projection。
 - `read-text`：可见文本，适合快速理解页面。
 - `read-text`：可见文本（`body.innerText`），overlay metadata 默认采集；用 `--no-include-overlay` 跳过 overlay 检测。
