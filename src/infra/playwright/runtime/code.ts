@@ -15,7 +15,8 @@ import {
 import { pageIdRuntimePrelude } from "./workspace.js";
 
 function extractSnapshotRefs(snapshot: string) {
-  return [...snapshot.matchAll(/\[ref=(e[0-9]+)\]/g)].map((match) => match[1]);
+  // Match both main frame refs (e1, e2) and iframe refs (f1e1, f2e3)
+  return [...snapshot.matchAll(/\[ref=((?:f[0-9]+)?e[0-9]+)\]/g)].map((match) => match[1]);
 }
 
 async function recordSnapshotRefEpoch(options: { sessionName?: string; snapshot: string }) {
