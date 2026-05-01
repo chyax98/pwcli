@@ -63,9 +63,9 @@ export function registerSelectCommand(program: Command): void {
       .option("--selector <selector>", "Selector target")
       .option("--role <role>", "Role locator")
       .option("--name <name>", "Accessible name for --role")
-      .option("--text <text>", "Text locator")
-      .option("--label <label>", "Label locator")
-      .option("--placeholder <text>", "Placeholder locator")
+      .option("--text <text>", "Exact text locator")
+      .option("--label <label>", "Exact label locator")
+      .option("--placeholder <text>", "Exact placeholder locator")
       .option("--test-id <id>", "Test id locator")
       .addOption(new Option("--testid <id>").hideHelp())
       .option("--nth <number>", "1-based match index", "1"),

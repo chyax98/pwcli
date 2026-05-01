@@ -172,13 +172,13 @@ export function registerDiagnosticsCommand(program: Command): void {
     },
   );
 
-  diagnostics
-    .command("runs")
-    .description("List known run ids")
-    .option("--limit <n>", "Limit returned runs")
-    .option("--session <name>", "Keep only runs recorded under the given session name")
-    .option("--since <iso>", "Keep only runs whose last activity is at or after the ISO timestamp")
-    .action(async (options: { limit?: string; session?: string; since?: string }) => {
+  addSessionOption(
+    diagnostics
+      .command("runs")
+      .description("List known run ids")
+      .option("--limit <n>", "Limit returned runs")
+      .option("--since <iso>", "Keep only runs whose last activity is at or after the ISO timestamp"),
+  ).action(async (options: { limit?: string; session?: string; since?: string }) => {
       try {
         const limit = options.limit ? Number(options.limit) : undefined;
         if (limit !== undefined && (!Number.isFinite(limit) || limit <= 0)) {

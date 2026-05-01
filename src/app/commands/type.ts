@@ -16,6 +16,7 @@ type TypeOptions = {
   text?: string;
   label?: string;
   placeholder?: string;
+  testId?: string;
   testid?: string;
   nth?: string;
 };
@@ -70,6 +71,8 @@ export function registerTypeCommand(program: Command): void {
   ).action(async (parts: string[], options: TypeOptions) => {
     try {
       const sessionName = requireSessionName(options);
+      // Merge --test-id (camelCase from commander) with hidden --testid alias.
+      options.testid = options.testId || options.testid;
       const values = Array.isArray(parts) ? parts : [];
       const nth = parseNth(options.nth);
       const semantic = buildSemanticTarget(options);
