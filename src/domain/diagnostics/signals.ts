@@ -30,8 +30,11 @@ const TRACKING_DOMAINS = [
   "heapanalytics.com",
   "fullstory.com",
   "telemetry.mozilla.org",
+  "intake-analytics.wikimedia.org",
   "sentry.io",
   "browser-intake-datadoghq.com",
+  "stats.wp.com",
+  "pixel.wp.com",
 ];
 
 function isTrackingPixel(url: string | null): boolean {
