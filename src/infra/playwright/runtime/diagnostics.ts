@@ -7,7 +7,7 @@ import { runManagedSessionCommand } from "../cli-client.js";
 import { parsePageSummary } from "../output-parsers.js";
 import { managedRunCode } from "./code.js";
 import { managedEnsureDiagnosticsHooks } from "./hooks.js";
-import { DIAGNOSTICS_STATE_KEY, maybeRawOutput } from "./shared.js";
+import { maybeRawOutput, stateAccessPrelude } from "./shared.js";
 import { managedWorkspaceProjection } from "./workspace.js";
 
 const TRACE_INSPECT_OUTPUT_LIMIT = 50_000;
@@ -210,8 +210,7 @@ export async function managedTrace(action: "start" | "stop", options?: { session
   const traceState = await managedRunCode({
     sessionName: options?.sessionName,
     source: `async page => {
-      const context = page.context();
-      const state = context[${JSON.stringify(DIAGNOSTICS_STATE_KEY)}] ||= {};
+      ${stateAccessPrelude()}
       state.trace = {
         active: ${action === "start" ? "true" : "false"},
         supported: true,
@@ -263,8 +262,7 @@ export async function managedErrors(
   const result = await managedRunCode({
     sessionName: options?.sessionName,
     source: `async page => {
-      const context = page.context();
-      const state = context[${JSON.stringify(DIAGNOSTICS_STATE_KEY)}] ||= {};
+      ${stateAccessPrelude()}
       state.pageErrorRecords = Array.isArray(state.pageErrorRecords) ? state.pageErrorRecords : [];
       const allErrors = state.pageErrorRecords;
       const clearedCount = Number.isInteger(state.pageErrorClearedCount) ? state.pageErrorClearedCount : 0;
@@ -390,8 +388,7 @@ export async function managedRoute(
     source:
       action === "list"
         ? `async page => {
-      const context = page.context();
-      const state = context[${JSON.stringify(DIAGNOSTICS_STATE_KEY)}] ||= {};
+      ${stateAccessPrelude()}
       state.routes = Array.isArray(state.routes) ? state.routes : [];
       return JSON.stringify({
         action: 'list',
@@ -401,8 +398,7 @@ export async function managedRoute(
     }`
         : action === "add"
           ? `async page => {
-      const context = page.context();
-      const state = context[${JSON.stringify(DIAGNOSTICS_STATE_KEY)}] ||= {};
+      ${stateAccessPrelude()}
       state.routes = Array.isArray(state.routes) ? state.routes : [];
       const pattern = ${JSON.stringify(options.pattern)};
       const config = ${JSON.stringify(config)};
@@ -599,8 +595,7 @@ export async function managedRoute(
       });
     }`
           : `async page => {
-      const context = page.context();
-      const state = context[${JSON.stringify(DIAGNOSTICS_STATE_KEY)}] ||= {};
+      ${stateAccessPrelude()}
       const pattern = ${JSON.stringify(options.pattern ?? null)};
       const existing = Array.isArray(state.routes) ? state.routes : [];
       if (pattern) {
@@ -647,8 +642,7 @@ export async function managedHar(
   const result = await managedRunCode({
     sessionName: options?.sessionName,
     source: `async page => {
-      const context = page.context();
-      const state = context[${JSON.stringify(DIAGNOSTICS_STATE_KEY)}] ||= {};
+      ${stateAccessPrelude()}
       state.har = {
         supported: false,
         active: false,
@@ -682,8 +676,7 @@ export async function managedObserveStatus(options?: { sessionName?: string }) {
   const result = await managedRunCode({
     sessionName: options?.sessionName,
     source: `async page => {
-      const context = page.context();
-      const state = context[${JSON.stringify(DIAGNOSTICS_STATE_KEY)}] || {};
+      ${stateAccessPrelude({ readonly: true })}
       const clearedCount = Number.isInteger(state.pageErrorClearedCount) ? state.pageErrorClearedCount : 0;
       const visibleCount = Math.max(0, state.pageErrorRecords.length - clearedCount);
       const routes = Array.isArray(state.routes) ? state.routes : [];
@@ -772,8 +765,7 @@ export async function managedConsole(
   const result = await managedRunCode({
     sessionName: options?.sessionName,
     source: `async page => {
-      const context = page.context();
-      const state = context[${JSON.stringify(DIAGNOSTICS_STATE_KEY)}] || {};
+      ${stateAccessPrelude({ readonly: true })}
       const records = Array.isArray(state.consoleRecords) ? state.consoleRecords : [];
       const order = { error: 3, warning: 2, warn: 2, info: 1, log: 1, debug: 0 };
       const threshold = ${JSON.stringify(level ?? "info")};
@@ -834,8 +826,7 @@ export async function managedNetwork(options?: {
   const result = await managedRunCode({
     sessionName: options?.sessionName,
     source: `async page => {
-      const context = page.context();
-      const state = context[${JSON.stringify(DIAGNOSTICS_STATE_KEY)}] || {};
+      ${stateAccessPrelude({ readonly: true })}
       const records = Array.isArray(state.networkRecords) ? state.networkRecords : [];
       const requestId = ${JSON.stringify(options?.requestId ?? "")};
       const methodFilter = ${JSON.stringify(options?.method?.toUpperCase() ?? "")};
@@ -932,8 +923,7 @@ export async function managedDiagnosticsExport(options?: { sessionName?: string 
   const records = await managedRunCode({
     sessionName: options?.sessionName,
     source: `async page => {
-      const context = page.context();
-      const state = context[${JSON.stringify(DIAGNOSTICS_STATE_KEY)}] || {};
+      ${stateAccessPrelude({ readonly: true })}
       return JSON.stringify({
         console: Array.isArray(state.consoleRecords) ? state.consoleRecords : [],
         network: Array.isArray(state.networkRecords) ? state.networkRecords : [],

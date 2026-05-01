@@ -51,27 +51,7 @@ type StateCandidate = {
 
 function targetExpression(target: StateTarget) {
   const nth = "nth" in target && target.nth ? Math.max(1, Math.floor(Number(target.nth))) : 1;
-  const locator = (() => {
-    if ("selector" in target) {
-      return `page.locator(${JSON.stringify(target.selector)})`;
-    }
-    if ("text" in target) {
-      return `page.getByText(${JSON.stringify(target.text)}, { exact: true })`;
-    }
-    if ("role" in target) {
-      return `page.getByRole(${JSON.stringify(target.role)}, ${
-        target.name ? `{ name: ${JSON.stringify(target.name)}, exact: true }` : "undefined"
-      })`;
-    }
-    if ("label" in target) {
-      return `page.getByLabel(${JSON.stringify(target.label)}, { exact: true })`;
-    }
-    if ("placeholder" in target) {
-      return `page.getByPlaceholder(${JSON.stringify(target.placeholder)}, { exact: true })`;
-    }
-    return `page.getByTestId(${JSON.stringify(target.testid)})`;
-  })();
-  return `${locator}.nth(${nth - 1})`;
+  return `${targetBaseExpression(target)}.nth(${nth - 1})`;
 }
 
 function targetBaseExpression(target: StateTarget) {

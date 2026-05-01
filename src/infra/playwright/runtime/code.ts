@@ -8,7 +8,11 @@ import {
   parseResultText,
   parseSnapshotYaml,
 } from "../output-parsers.js";
-import { DIAGNOSTICS_STATE_KEY, isModalStateBlockedMessage, maybeRawOutput } from "./shared.js";
+import {
+  isModalStateBlockedMessage,
+  maybeRawOutput,
+  stateAccessPrelude,
+} from "./shared.js";
 import { pageIdRuntimePrelude } from "./workspace.js";
 
 function extractSnapshotRefs(snapshot: string) {
@@ -20,26 +24,15 @@ async function recordSnapshotRefEpoch(options: { sessionName?: string; snapshot:
   const result = await managedRunCode({
     sessionName: options.sessionName,
     source: `async page => {
-      const context = page.context();
-      const state = context[${JSON.stringify(DIAGNOSTICS_STATE_KEY)}] ||= {};
+      ${stateAccessPrelude()}
       state.nextSnapshotSeq = Number.isInteger(state.nextSnapshotSeq) ? state.nextSnapshotSeq : 1;
 
       ${pageIdRuntimePrelude()}
 
-      const installRefEpochNavigationListener = (p) => {
-        ensurePageId(p);
-        ensureNavigationId(p);
-        if (p.__pwcliRefEpochNavigationInstalled || p.__pwcliDiagnosticsInstalled)
-          return;
-        p.__pwcliRefEpochNavigationInstalled = true;
-        p.on('framenavigated', frame => {
-          if (frame === p.mainFrame())
-            p.__pwcliNavigationId = 'nav-' + state.nextNavigationSeq++;
-        });
-      };
-
-      for (const current of context.pages())
-        installRefEpochNavigationListener(current);
+      for (const current of context.pages()) {
+        ensurePageId(current);
+        ensureNavigationId(current);
+      }
 
       const snapshotId = 'snap-' + state.nextSnapshotSeq++;
       const epoch = {
