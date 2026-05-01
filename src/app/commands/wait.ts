@@ -1,4 +1,4 @@
-import type { Command } from "commander";
+import { type Command, Option } from "commander";
 import { managedWait } from "../../infra/playwright/runtime.js";
 import { printCommandResult } from "../output.js";
 import {
@@ -16,12 +16,14 @@ export function registerWaitCommand(program: Command): void {
       .option("--text <text>", "Wait for exact text to appear")
       .option("--selector <selector>", "Wait for selector")
       .option("--networkidle", "Wait until the page reaches networkidle")
+      .addOption(new Option("--network-idle").hideHelp())
       .option("--request <url>", "Wait for a matching request")
       .option("--response <url>", "Wait for a matching response")
       .option("--method <method>", "Restrict request/response by method")
       .option("--status <code>", "Restrict response by status"),
   ).action(async (target: string | undefined, options: Record<string, string | boolean>) => {
     const sessionName = requireSessionName(options as { session?: string });
+    const networkidle = Boolean(options.networkidle || options.networkIdle || options["network-idle"]);
     try {
       printCommandResult(
         "wait",
@@ -34,7 +36,7 @@ export function registerWaitCommand(program: Command): void {
           response: typeof options.response === "string" ? options.response : undefined,
           method: typeof options.method === "string" ? options.method : undefined,
           status: typeof options.status === "string" ? options.status : undefined,
-          networkidle: Boolean(options.networkidle) || isNetworkIdleTarget(target),
+          networkidle: networkidle || isNetworkIdleTarget(target),
         }), "wait"),
       );
     } catch (error) {
@@ -52,5 +54,5 @@ export function registerWaitCommand(program: Command): void {
 }
 
 function isNetworkIdleTarget(target: string | undefined) {
-  return target === "networkidle";
+  return /^network[-_]?idle$/i.test(target ?? "");
 }

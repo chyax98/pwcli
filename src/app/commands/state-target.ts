@@ -7,6 +7,7 @@ export type StateTargetOptions = {
   name?: string;
   label?: string;
   placeholder?: string;
+  testId?: string;
   testid?: string;
   nth?: string;
 };
@@ -23,17 +24,18 @@ function parseNth(value?: string): number | undefined {
 }
 
 export function parseStateTarget(options: StateTargetOptions): StateTarget {
+  const testid = options.testId || options.testid;
   const targets = [
     options.selector,
     options.text,
     options.role,
     options.label,
     options.placeholder,
-    options.testid,
+    testid,
   ].filter(Boolean);
   if (targets.length !== 1) {
     throw new Error(
-      "provide exactly one target: --selector, --text, --role, --label, --placeholder, or --testid",
+      "provide exactly one target: --selector, --text, --role, --label, --placeholder, or --test-id",
     );
   }
   const nth = parseNth(options.nth);
@@ -56,5 +58,5 @@ export function parseStateTarget(options: StateTargetOptions): StateTarget {
   if (options.placeholder) {
     return { placeholder: options.placeholder, ...(nth ? { nth } : {}) };
   }
-  return { testid: options.testid as string, ...(nth ? { nth } : {}) };
+  return { testid: testid as string, ...(nth ? { nth } : {}) };
 }

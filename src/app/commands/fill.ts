@@ -1,4 +1,4 @@
-import type { Command } from "commander";
+import { type Command, Option } from "commander";
 import { managedFill } from "../../infra/playwright/runtime.js";
 import { printCommandResult } from "../output.js";
 import {
@@ -16,6 +16,7 @@ type FillOptions = {
   text?: string;
   label?: string;
   placeholder?: string;
+  testId?: string;
   testid?: string;
   nth?: string;
 };
@@ -30,6 +31,7 @@ function parseNth(value?: string) {
 
 function buildSemanticTarget(options: FillOptions) {
   const nth = parseNth(options.nth);
+  const testid = options.testId || options.testid;
   if (options.role) {
     return {
       kind: "role" as const,
@@ -47,8 +49,8 @@ function buildSemanticTarget(options: FillOptions) {
   if (options.placeholder) {
     return { kind: "placeholder" as const, placeholder: options.placeholder, nth };
   }
-  if (options.testid) {
-    return { kind: "testid" as const, testid: options.testid, nth };
+  if (testid) {
+    return { kind: "testid" as const, testid, nth };
   }
   return undefined;
 }
@@ -64,13 +66,15 @@ export function registerFillCommand(program: Command): void {
       .option("--text <text>", "Exact text locator")
       .option("--label <label>", "Exact label locator")
       .option("--placeholder <text>", "Exact placeholder locator")
-      .option("--testid <id>", "Test id locator")
+      .option("--test-id <id>", "Test id locator")
+      .addOption(new Option("--testid <id>").hideHelp())
       .option("--nth <number>", "1-based match index", "1"),
   ).action(async (parts: string[], options: FillOptions) => {
     try {
       const sessionName = requireSessionName(options);
       const values = Array.isArray(parts) ? parts : [];
       const nth = parseNth(options.nth);
+      options.testid = options.testId || options.testid;
       const semantic = buildSemanticTarget(options);
       const ref = options.selector || semantic ? undefined : values[0];
       const value = options.selector || semantic ? values.join(" ") : values.slice(1).join(" ");

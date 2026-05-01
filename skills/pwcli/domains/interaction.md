@@ -126,7 +126,7 @@ Interaction domain 解决的是：
 4. `--text`
 5. `--label`
 6. `--placeholder`
-7. `--testid`
+7. `--test-id`
 
 ### 5.2 `--nth`
 

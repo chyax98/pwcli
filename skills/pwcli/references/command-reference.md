@@ -128,7 +128,7 @@ state / auth / batch / environment 命令见 `command-reference-advanced.md`。
 - `--role <role> --name <name>`
 - `--label <label>`
 - `--placeholder <text>`
-- `--testid <id>`
+- `--test-id <id>`
 - `--nth <n>`：1-based disambiguation
 
 ### `pw get <fact> --session <name>`
@@ -202,7 +202,7 @@ Use `locate/get/is/verify` for narrow state checks. Use `snapshot -i` when you n
 
 ### `pw click [ref] --session <name>`
 
-定位：aria ref / `--selector` / `--role <role> --name <name>` / `--text` / `--label` / `--placeholder` / `--testid`；附加 `--nth <n>`（1-based）
+定位：aria ref / `--selector` / `--role <role> --name <name>` / `--text` / `--label` / `--placeholder` / `--test-id`；附加 `--nth <n>`（1-based）
 
 `--nth` 对 selector 和语义定位都生效；多匹配 selector 会先应用 `.nth(n-1)` 再执行 click，不触发 Playwright strict-mode 多匹配。
 
@@ -210,7 +210,7 @@ Use `locate/get/is/verify` for narrow state checks. Use `snapshot -i` when you n
 
 ### `pw fill [parts...] --session <name>`
 
-定位：aria ref / `--selector` / `--role <role> --name <name>` / `--text` / `--label` / `--placeholder` / `--testid`；附加 `--nth <n>`（1-based）
+定位：aria ref / `--selector` / `--role <role> --name <name>` / `--text` / `--label` / `--placeholder` / `--test-id`；附加 `--nth <n>`（1-based）
 
 `--nth` 对 selector 和语义定位都生效；多匹配 selector 会先应用 `.nth(n-1)` 再填值。
 
@@ -218,7 +218,7 @@ Use `locate/get/is/verify` for narrow state checks. Use `snapshot -i` when you n
 
 ### `pw type [parts...] --session <name>`
 
-定位：focused element / aria ref / `--selector` / `--role <role> --name <name>` / `--text` / `--label` / `--placeholder` / `--testid`；附加 `--nth <n>`（1-based）
+定位：focused element / aria ref / `--selector` / `--role <role> --name <name>` / `--text` / `--label` / `--placeholder` / `--test-id`；附加 `--nth <n>`（1-based）
 
 `--nth` 对 selector 和语义定位都生效；多匹配 selector 会先应用 `.nth(n-1)` 再输入。
 

@@ -1,4 +1,4 @@
-import type { Command } from "commander";
+import { type Command, Option } from "commander";
 import { managedIsState } from "../../infra/playwright/runtime.js";
 import { printCommandResult } from "../output.js";
 import {
@@ -21,7 +21,8 @@ export function registerIsCommand(program: Command): void {
       .option("--name <name>", "Accessible name for --role")
       .option("--label <label>", "Exact label locator")
       .option("--placeholder <text>", "Exact placeholder locator")
-      .option("--testid <id>", "Test id locator")
+      .option("--test-id <id>", "Test id locator")
+      .addOption(new Option("--testid <id>").hideHelp())
       .option("--nth <number>", "1-based match index"),
   ).action(async (state: string, options: StateTargetOptions & { session?: string }) => {
     try {
