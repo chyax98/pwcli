@@ -1,8 +1,11 @@
 import { ActionFailure } from "../../../domain/interaction/action-failure.js";
 import {
   type RefEpochValidation,
+  type NormalizedSemanticTarget,
+  type SelectorTarget,
+  buildRunEvent,
+  type RunEventTargetKind,
 } from "../../../domain/interaction/model.js";
-import { buildRunEvent, type RunEventTargetKind } from "../../../domain/interaction/model.js";
 import { appendRunEvent, ensureRunDir } from "../../fs/run-artifacts.js";
 import { runManagedSessionCommand } from "../cli-client.js";
 import { parsePageSummary } from "../output-parsers.js";
@@ -437,4 +440,62 @@ export async function finalizeAction(options: {
       ...(options.rawText ? maybeRawOutput(options.rawText) : {}),
     },
   };
+}
+
+export async function dispatchLocatorAction(options: {
+  command: string;
+  sessionName?: string;
+  before: DiagnosticsBaseline;
+  locator:
+    | { kind: "semantic"; target: NormalizedSemanticTarget; source: string }
+    | { kind: "selector"; target: SelectorTarget; source: string }
+    | { kind: "ref"; ref: string; argv: string[] };
+  resultData: Record<string, unknown>;
+  runDetails?: Record<string, unknown>;
+  allowModal?: boolean;
+}): Promise<ActionResultEnvelope> {
+  const { command, sessionName, before, locator, allowModal } = options;
+  const runDetails = options.runDetails ?? options.resultData;
+
+  if (locator.kind === "semantic" || locator.kind === "selector") {
+    const targetRecord = locator.target as Record<string, unknown>;
+    let result: ManagedCodeResult;
+    try {
+      result = await executeCodeAction({ command, sessionName, source: locator.source, before, target: targetRecord });
+    } catch (error) {
+      if (allowModal && isModalStateBlockedMessage(errorMessage(error))) {
+        return buildDialogPendingResult({ command, sessionName, target: targetRecord, before });
+      }
+      await recordFailedActionRun(command, sessionName, undefined, before, error, { target: targetRecord });
+      throw error;
+    }
+    if (allowModal) {
+      const delta = await buildDiagnosticsDeltaOrSignal(sessionName, before);
+      if (isModalBlockedDelta(delta)) {
+        return buildDialogPendingResult({ command, sessionName, page: result.page, target: targetRecord, before, diagnosticsDelta: delta });
+      }
+    }
+    return finalizeAction({ command, sessionName, page: result.page, before, resultData: options.resultData, runDetails, targetKind: locator.kind });
+  }
+
+  // ref path
+  const { ref, argv } = locator;
+  await assertFreshRefEpoch({ sessionName, ref });
+  const { sessionName: resolvedSession, text, page } = await runManagedCommand({ sessionName, argv });
+  try {
+    throwIfManagedActionError(text, { command, sessionName: resolvedSession });
+  } catch (error) {
+    if (allowModal && isModalStateBlockedMessage(errorMessage(error))) {
+      return buildDialogPendingResult({ command, sessionName: resolvedSession, resultText: text, page, target: { ref }, before });
+    }
+    await recordFailedActionRun(command, resolvedSession, page, before, error, { target: { ref } });
+    throw error;
+  }
+  if (allowModal) {
+    const delta = await buildDiagnosticsDeltaOrSignal(sessionName, before);
+    if (isModalBlockedDelta(delta)) {
+      return buildDialogPendingResult({ command, sessionName: resolvedSession, resultText: text, page, target: { ref }, before, diagnosticsDelta: delta });
+    }
+  }
+  return finalizeAction({ command, sessionName: resolvedSession, page, before, resultData: options.resultData, runDetails, targetKind: "ref", rawText: text });
 }

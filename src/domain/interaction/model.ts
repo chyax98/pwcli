@@ -1,3 +1,8 @@
+export type SelectorTarget = {
+  selector: string;
+  nth: number;
+};
+
 export type SemanticTarget =
   | { kind: "role"; role: string; name?: string; nth?: number }
   | { kind: "text"; text: string; nth?: number }
