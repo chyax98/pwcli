@@ -46,6 +46,8 @@ import { registerTypeCommand } from "./type.js";
 import { registerUncheckCommand } from "./uncheck.js";
 import { registerUploadCommand } from "./upload.js";
 import { registerVerifyCommand } from "./verify.js";
+import { registerMouseCommand } from "./mouse.js";
+import { registerVideoCommand } from "./video.js";
 import { registerWaitCommand } from "./wait.js";
 
 export function registerCommands(program: Command): void {
@@ -90,6 +92,8 @@ export function registerCommands(program: Command): void {
   registerRouteCommand(program);
   registerWaitCommand(program);
   registerTraceCommand(program);
+  registerMouseCommand(program);
+  registerVideoCommand(program);
   registerCookiesCommand(program);
   registerStateCommand(program);
   registerStorageCommand(program);

@@ -375,6 +375,23 @@ function formatTrace(result: CommandResult): string {
   return lines.join("\n");
 }
 
+function formatVideo(result: CommandResult): string {
+  const command = asString(result.data.command) ?? "video";
+  const facts = [
+    result.data.started === true ? "started=true" : null,
+    result.data.stopped === true ? "stopped=true" : null,
+  ].filter(Boolean);
+  const lines = [`video ${command}${facts.length > 0 ? ` ${facts.join(" ")}` : ""}`];
+  const videoPath = asString(result.data.videoPath);
+  if (videoPath) {
+    lines.push(`videoPath=${videoPath}`);
+  }
+  if (result.data.noVideo === true) {
+    lines.push("noVideo=true");
+  }
+  return lines.join("\n");
+}
+
 function formatPage(result: CommandResult): string {
   const current = asRecord(result.data.currentPage);
   const pages = asArray(result.data.pages);
@@ -602,6 +619,9 @@ function formatCommandText(command: string, result: CommandResult): string {
   if (command === "trace start" || command === "trace stop") {
     return formatTrace(result);
   }
+  if (command === "video start" || command === "video stop") {
+    return formatVideo(result);
+  }
   if (command.startsWith("page ")) {
     return formatPage(result);
   }
@@ -625,6 +645,11 @@ function formatCommandText(command: string, result: CommandResult): string {
       "uncheck",
       "select",
       "pdf",
+      "mouse move",
+      "mouse click",
+      "mouse dblclick",
+      "mouse wheel",
+      "mouse drag",
     ].includes(command)
   ) {
     return formatAction(command, result);

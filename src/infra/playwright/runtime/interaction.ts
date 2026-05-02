@@ -1131,3 +1131,266 @@ export async function managedWait(options: {
     rawText: typeof result.data.output === "string" ? result.data.output : undefined,
   });
 }
+
+// =============================================================================
+// managedMouseMove
+// =============================================================================
+
+export async function managedMouseMove(options: {
+  x: number;
+  y: number;
+  sessionName?: string;
+}) {
+  const before = await captureDiagnosticsBaseline(options.sessionName);
+  const result = await managedRunCode({
+    sessionName: options.sessionName,
+    source: `async page => {
+      await page.mouse.move(${options.x}, ${options.y});
+      return JSON.stringify({ x: ${options.x}, y: ${options.y} });
+    }`,
+  });
+  const diagnosticsDelta = await buildDiagnosticsDeltaOrSignal(options.sessionName, before);
+  const run = await recordActionRun(
+    "mouse move",
+    options.sessionName,
+    result.page,
+    { x: options.x, y: options.y, diagnosticsDelta },
+    "none",
+  );
+  return {
+    session: result.session,
+    page: result.page,
+    data: {
+      x: options.x,
+      y: options.y,
+      acted: true,
+      diagnosticsDelta,
+      run,
+      ...maybeRawOutput(result.data.output ?? ""),
+    },
+  };
+}
+
+// =============================================================================
+// managedMouseClick
+// =============================================================================
+
+export async function managedMouseClick(options: {
+  x: number;
+  y: number;
+  button?: "left" | "right" | "middle";
+  sessionName?: string;
+}) {
+  const before = await captureDiagnosticsBaseline(options.sessionName);
+  const buttonOpt = options.button ? `, { button: ${JSON.stringify(options.button)} }` : "";
+  const result = await managedRunCode({
+    sessionName: options.sessionName,
+    source: `async page => {
+      await page.mouse.click(${options.x}, ${options.y}${buttonOpt});
+      return JSON.stringify({ x: ${options.x}, y: ${options.y}${options.button ? `, button: ${JSON.stringify(options.button)}` : ""} });
+    }`,
+  });
+  const diagnosticsDelta = await buildDiagnosticsDeltaOrSignal(options.sessionName, before);
+  const run = await recordActionRun(
+    "mouse click",
+    options.sessionName,
+    result.page,
+    { x: options.x, y: options.y, button: options.button ?? "left", diagnosticsDelta },
+    "none",
+  );
+  return {
+    session: result.session,
+    page: result.page,
+    data: {
+      x: options.x,
+      y: options.y,
+      ...(options.button ? { button: options.button } : {}),
+      acted: true,
+      diagnosticsDelta,
+      run,
+      ...maybeRawOutput(result.data.output ?? ""),
+    },
+  };
+}
+
+// =============================================================================
+// managedMouseDblclick
+// =============================================================================
+
+export async function managedMouseDblclick(options: {
+  x: number;
+  y: number;
+  sessionName?: string;
+}) {
+  const before = await captureDiagnosticsBaseline(options.sessionName);
+  const result = await managedRunCode({
+    sessionName: options.sessionName,
+    source: `async page => {
+      await page.mouse.click(${options.x}, ${options.y}, { clickCount: 2 });
+      return JSON.stringify({ x: ${options.x}, y: ${options.y}, clickCount: 2 });
+    }`,
+  });
+  const diagnosticsDelta = await buildDiagnosticsDeltaOrSignal(options.sessionName, before);
+  const run = await recordActionRun(
+    "mouse dblclick",
+    options.sessionName,
+    result.page,
+    { x: options.x, y: options.y, clickCount: 2, diagnosticsDelta },
+    "none",
+  );
+  return {
+    session: result.session,
+    page: result.page,
+    data: {
+      x: options.x,
+      y: options.y,
+      clickCount: 2,
+      acted: true,
+      diagnosticsDelta,
+      run,
+      ...maybeRawOutput(result.data.output ?? ""),
+    },
+  };
+}
+
+// =============================================================================
+// managedMouseWheel
+// =============================================================================
+
+export async function managedMouseWheel(options: {
+  deltaX: number;
+  deltaY: number;
+  sessionName?: string;
+}) {
+  const before = await captureDiagnosticsBaseline(options.sessionName);
+  const result = await managedRunCode({
+    sessionName: options.sessionName,
+    source: `async page => {
+      await page.mouse.wheel(${options.deltaX}, ${options.deltaY});
+      return JSON.stringify({ deltaX: ${options.deltaX}, deltaY: ${options.deltaY} });
+    }`,
+  });
+  const diagnosticsDelta = await buildDiagnosticsDeltaOrSignal(options.sessionName, before);
+  const run = await recordActionRun(
+    "mouse wheel",
+    options.sessionName,
+    result.page,
+    { deltaX: options.deltaX, deltaY: options.deltaY, diagnosticsDelta },
+    "none",
+  );
+  return {
+    session: result.session,
+    page: result.page,
+    data: {
+      deltaX: options.deltaX,
+      deltaY: options.deltaY,
+      acted: true,
+      diagnosticsDelta,
+      run,
+      ...maybeRawOutput(result.data.output ?? ""),
+    },
+  };
+}
+
+// =============================================================================
+// managedMouseDrag
+// =============================================================================
+
+export async function managedMouseDrag(options: {
+  fromX: number;
+  fromY: number;
+  toX: number;
+  toY: number;
+  sessionName?: string;
+}) {
+  const before = await captureDiagnosticsBaseline(options.sessionName);
+  const result = await managedRunCode({
+    sessionName: options.sessionName,
+    source: `async page => {
+      await page.mouse.move(${options.fromX}, ${options.fromY});
+      await page.mouse.down();
+      await page.mouse.move(${options.toX}, ${options.toY});
+      await page.mouse.up();
+      return JSON.stringify({ fromX: ${options.fromX}, fromY: ${options.fromY}, toX: ${options.toX}, toY: ${options.toY} });
+    }`,
+  });
+  const diagnosticsDelta = await buildDiagnosticsDeltaOrSignal(options.sessionName, before);
+  const run = await recordActionRun(
+    "mouse drag",
+    options.sessionName,
+    result.page,
+    {
+      fromX: options.fromX,
+      fromY: options.fromY,
+      toX: options.toX,
+      toY: options.toY,
+      diagnosticsDelta,
+    },
+    "none",
+  );
+  return {
+    session: result.session,
+    page: result.page,
+    data: {
+      fromX: options.fromX,
+      fromY: options.fromY,
+      toX: options.toX,
+      toY: options.toY,
+      acted: true,
+      diagnosticsDelta,
+      run,
+      ...maybeRawOutput(result.data.output ?? ""),
+    },
+  };
+}
+
+// =============================================================================
+// managedVideoStart
+// =============================================================================
+
+export async function managedVideoStart(options: { sessionName?: string }) {
+  const result = await runManagedSessionCommand(
+    { _: ["video-start"] },
+    { sessionName: options.sessionName },
+  );
+  return {
+    session: {
+      scope: "managed" as const,
+      name: result.sessionName,
+      default: result.sessionName === "default",
+    },
+    page: parsePageSummary(result.text),
+    data: {
+      started: true,
+      ...maybeRawOutput(result.text),
+    },
+  };
+}
+
+// =============================================================================
+// managedVideoStop
+// =============================================================================
+
+export async function managedVideoStop(options: { sessionName?: string }) {
+  const result = await runManagedSessionCommand(
+    { _: ["video-stop"] },
+    { sessionName: options.sessionName },
+  );
+  const videoMatch = result.text.match(/- \[Video\]\(([^)]+)\)/);
+  const videoPath = videoMatch?.[1];
+  const noVideo = result.text.includes("No videos were recorded.");
+  return {
+    session: {
+      scope: "managed" as const,
+      name: result.sessionName,
+      default: result.sessionName === "default",
+    },
+    page: parsePageSummary(result.text),
+    data: {
+      stopped: true,
+      ...(videoPath ? { videoPath } : {}),
+      ...(noVideo ? { noVideo: true } : {}),
+      ...maybeRawOutput(result.text),
+    },
+  };
+}
