@@ -1,19 +1,17 @@
 import { copyFile, mkdir } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import {
-  type NormalizedSemanticTarget,
-  type RunEventTargetKind,
   type SemanticTarget,
+  type RunEventTargetKind,
   normalizeSemanticTarget,
-  semanticLocatorExpression,
 } from "../../../domain/interaction/model.js";
 import { appendRunEvent, ensureRunDir } from "../../fs/run-artifacts.js";
 import { runManagedSessionCommand } from "../cli-client.js";
 import { parseDownloadEvent, parsePageSummary, stripQuotes } from "../output-parsers.js";
-import { throwIfManagedActionError } from "./action-failure-classifier.js";
 import { managedRunCode } from "./code.js";
 import { captureDiagnosticsBaseline } from "./diagnostics.js";
 import { isModalStateBlockedMessage, maybeRawOutput, normalizeRef } from "./shared.js";
+import { throwIfManagedActionError } from "./action-failure-classifier.js";
 import { managedPageCurrent, pageIdRuntimePrelude } from "./workspace.js";
 import {
   assertFreshRefEpoch,
@@ -28,221 +26,21 @@ import {
   executeCommandAction,
   runManagedCommand,
   finalizeAction,
+  dispatchLocatorAction,
   type DiagnosticsBaseline,
 } from "./action-executor.js";
+import {
+  selectorActionSource,
+  semanticClickSource,
+  semanticBooleanControlSource,
+  semanticInputSource,
+  semanticHoverSource,
+  semanticSelectSource,
+  type SelectorTarget,
+} from "./source-builders.js";
 
 // Re-export for consumers that import from interaction.ts
 export { assertFreshRefEpoch, validateRefEpoch };
-
-type SelectorTarget = {
-  selector: string;
-  nth: number;
-};
-
-// =============================================================================
-// Source builders (kept here because they are action-semantic specific)
-// =============================================================================
-
-function selectorActionSource(
-  errorPrefix: string,
-  target: SelectorTarget,
-  actionSource: (locatorExpression: string) => string,
-) {
-  const nthIndex = target.nth - 1;
-  const targetJson = JSON.stringify(target);
-  const locatorExpression = `page.locator(${JSON.stringify(target.selector)})`;
-  const action = actionSource(`locator.nth(${nthIndex})`);
-
-  return `async page => {
-    const target = ${targetJson};
-    const locator = ${locatorExpression};
-    const count = await locator.count();
-    if (count === 0) {
-      throw new Error(
-        '${errorPrefix}_SELECTOR_NOT_FOUND:' +
-          JSON.stringify({ target })
-      );
-    }
-    if (${nthIndex} >= count) {
-      throw new Error(
-        '${errorPrefix}_SELECTOR_INDEX_OUT_OF_RANGE:' +
-          JSON.stringify({ target, count, nth: ${target.nth} })
-      );
-    }
-    ${action}
-    return JSON.stringify({
-      acted: true,
-      selected: ${errorPrefix === "SELECT" ? "true" : "undefined"},
-      values: typeof values === 'undefined' ? undefined : values,
-      target,
-      count,
-      nth: ${target.nth},
-    });
-  }`;
-}
-
-function semanticClickSource(target: NormalizedSemanticTarget, button?: string) {
-  const clickOptions = button ? JSON.stringify({ button }) : "undefined";
-  const nthIndex = target.nth - 1;
-  const targetJson = JSON.stringify(target);
-  const locatorExpression = semanticLocatorExpression(target);
-
-  return `async page => {
-    const target = ${targetJson};
-    const locator = ${locatorExpression};
-    const count = await locator.count();
-    if (count === 0) {
-      let candidates = [];
-      if (target.kind === 'text') {
-        candidates = await page.getByText(target.text, { exact: false }).evaluateAll(nodes =>
-          nodes.slice(0, 8).map(node => (node.textContent || '').trim()).filter(Boolean)
-        ).catch(() => []);
-      }
-      throw new Error(
-        'CLICK_SEMANTIC_NOT_FOUND:' +
-          JSON.stringify({ target, ...(candidates.length ? { candidates } : {}) })
-      );
-    }
-    if (${nthIndex} >= count) {
-      throw new Error(
-        'CLICK_SEMANTIC_INDEX_OUT_OF_RANGE:' +
-          JSON.stringify({ target, count, nth: ${target.nth} })
-      );
-    }
-    await locator.nth(${nthIndex}).click(${clickOptions});
-    return JSON.stringify({ clicked: true, target, count, nth: ${target.nth} });
-  }`;
-}
-
-function semanticBooleanControlSource(
-  command: "check" | "uncheck",
-  target: NormalizedSemanticTarget,
-) {
-  const nthIndex = target.nth - 1;
-  const targetJson = JSON.stringify(target);
-  const locatorExpression = semanticLocatorExpression(target);
-  const errorPrefix = command.toUpperCase();
-
-  return `async page => {
-    const target = ${targetJson};
-    const locator = ${locatorExpression};
-    const count = await locator.count();
-    if (count === 0) {
-      throw new Error(
-        '${errorPrefix}_SEMANTIC_NOT_FOUND:' +
-          JSON.stringify({ target })
-      );
-    }
-    if (${nthIndex} >= count) {
-      throw new Error(
-        '${errorPrefix}_SEMANTIC_INDEX_OUT_OF_RANGE:' +
-          JSON.stringify({ target, count, nth: ${target.nth} })
-      );
-    }
-    await locator.nth(${nthIndex}).${command}();
-    return JSON.stringify({ ${command === "check" ? "checked" : "unchecked"}: true, target, count, nth: ${target.nth} });
-  }`;
-}
-
-function semanticInputSource(
-  errorPrefix: "FILL" | "TYPE",
-  target: NormalizedSemanticTarget,
-  action: "fill" | "type",
-  value: string,
-) {
-  const nthIndex = target.nth - 1;
-  const targetJson = JSON.stringify(target);
-  const locatorExpression = semanticLocatorExpression(target);
-
-  return `async page => {
-    const target = ${targetJson};
-    const locator = ${locatorExpression};
-    const count = await locator.count();
-    if (count === 0) {
-      throw new Error(
-        '${errorPrefix}_SEMANTIC_NOT_FOUND:' +
-          JSON.stringify({ target })
-      );
-    }
-    if (${nthIndex} >= count) {
-      throw new Error(
-        '${errorPrefix}_SEMANTIC_INDEX_OUT_OF_RANGE:' +
-          JSON.stringify({ target, count, nth: ${target.nth} })
-      );
-    }
-    await locator.nth(${nthIndex}).${action}(${JSON.stringify(value)});
-    return JSON.stringify({ ${action === "fill" ? "filled" : "typed"}: true });
-  }`;
-}
-
-function semanticHoverSource(target: NormalizedSemanticTarget) {
-  const nthIndex = target.nth - 1;
-  const targetJson = JSON.stringify(target);
-  const locatorExpression = semanticLocatorExpression(target);
-
-  return `async page => {
-    const target = ${targetJson};
-    const locator = ${locatorExpression};
-    const count = await locator.count();
-    if (count === 0) {
-      throw new Error(
-        'HOVER_SEMANTIC_NOT_FOUND:' +
-          JSON.stringify({ target })
-      );
-    }
-    if (${nthIndex} >= count) {
-      throw new Error(
-        'HOVER_SEMANTIC_INDEX_OUT_OF_RANGE:' +
-          JSON.stringify({ target, count, nth: ${target.nth} })
-      );
-    }
-    await locator.nth(${nthIndex}).hover();
-    return JSON.stringify({ hovered: true, target, count, nth: ${target.nth} });
-  }`;
-}
-
-function semanticSelectSource(target: NormalizedSemanticTarget, value: string) {
-  const nthIndex = target.nth - 1;
-  const targetJson = JSON.stringify(target);
-  const locatorExpression = semanticLocatorExpression(target);
-  const valueJson = JSON.stringify(value);
-
-  return `async page => {
-    const target = ${targetJson};
-    const locator = ${locatorExpression};
-    const count = await locator.count();
-    if (count === 0) {
-      throw new Error(
-        'SELECT_SEMANTIC_NOT_FOUND:' +
-          JSON.stringify({ target })
-      );
-    }
-    if (${nthIndex} >= count) {
-      throw new Error(
-        'SELECT_SEMANTIC_INDEX_OUT_OF_RANGE:' +
-          JSON.stringify({ target, count, nth: ${target.nth} })
-      );
-    }
-    const values = await locator.nth(${nthIndex}).selectOption(${valueJson});
-    return JSON.stringify({ selected: true, target, count, nth: ${target.nth}, values });
-  }`;
-}
-
-// =============================================================================
-// Helper to resolve locator from common options shape
-// =============================================================================
-
-function resolveLocator(options: {
-  ref?: string;
-  selector?: string;
-  nth?: number;
-  semantic?: SemanticTarget;
-}) {
-  if (options.semantic) return { kind: "semantic" as const, target: options.semantic };
-  if (options.selector) return { kind: "selector" as const, selector: options.selector, nth: options.nth };
-  if (options.ref) return { kind: "ref" as const, ref: options.ref };
-  return { kind: "none" as const };
-}
 
 // =============================================================================
 // managedSnapshotStatus (diagnostic query, not an action — kept as-is)
@@ -365,161 +163,16 @@ export async function managedClick(options: {
   if (!options.ref && !options.selector && !options.semantic) {
     throw new Error("click requires a ref, selector, or semantic locator");
   }
-
   const before = await captureDiagnosticsBaseline(options.sessionName);
-
-  if (options.semantic) {
-    const target = normalizeSemanticTarget(options.semantic);
-    let result;
-    try {
-      result = await executeCodeAction({
-        command: "click",
-        sessionName: options.sessionName,
-        source: semanticClickSource(target, options.button),
-        before,
-        target,
-      });
-    } catch (error) {
-      if (isModalStateBlockedMessage(errorMessage(error))) {
-        return buildDialogPendingResult({
-          command: "click",
-          sessionName: options.sessionName,
-          target,
-          before,
-        });
-      }
-      await recordFailedActionRun("click", options.sessionName, undefined, before, error, { target });
-      throw error;
-    }
-    const diagnosticsDelta = await buildDiagnosticsDeltaOrSignal(options.sessionName, before);
-    if (isModalBlockedDelta(diagnosticsDelta)) {
-      return buildDialogPendingResult({
-        command: "click",
-        sessionName: options.sessionName,
-        page: result.page,
-        target,
-        before,
-        diagnosticsDelta,
-      });
-    }
-    return finalizeAction({
-      command: "click",
-      sessionName: options.sessionName,
-      page: result.page,
-      before,
-      resultData: { target, acted: true },
-      runDetails: { target, acted: true },
-      targetKind: "semantic",
-    });
-  }
-
-  if (options.selector) {
-    const target: SelectorTarget = {
-      selector: options.selector,
-      nth: Math.max(1, Math.floor(Number(options.nth ?? 1))),
-    };
-    const clickOptions = options.button ? JSON.stringify({ button: options.button }) : "undefined";
-    let result;
-    try {
-      result = await executeCodeAction({
-        command: "click",
-        sessionName: options.sessionName,
-        source: selectorActionSource("CLICK", target, (locator) => {
-          return `await ${locator}.click(${clickOptions});`;
-        }),
-        before,
-        target,
-      });
-    } catch (error) {
-      if (isModalStateBlockedMessage(errorMessage(error))) {
-        return buildDialogPendingResult({
-          command: "click",
-          sessionName: options.sessionName,
-          target,
-          before,
-        });
-      }
-      await recordFailedActionRun("click", options.sessionName, undefined, before, error, { target });
-      throw error;
-    }
-    const diagnosticsDelta = await buildDiagnosticsDeltaOrSignal(options.sessionName, before);
-    if (isModalBlockedDelta(diagnosticsDelta)) {
-      return buildDialogPendingResult({
-        command: "click",
-        sessionName: options.sessionName,
-        page: result.page,
-        target,
-        before,
-        diagnosticsDelta,
-      });
-    }
-    return finalizeAction({
-      command: "click",
-      sessionName: options.sessionName,
-      page: result.page,
-      before,
-      resultData: {
-        target,
-        selector: options.selector,
-        nth: target.nth,
-        ...(options.button ? { button: options.button } : {}),
-        acted: true,
-      },
-      runDetails: { target, acted: true },
-      targetKind: "selector",
-    });
-  }
-
-  const ref = normalizeRef(options.ref ?? "");
-  await assertFreshRefEpoch({ sessionName: options.sessionName, ref });
-  const argv = ["click", ref];
-  if (options.button) argv.push(options.button);
-
-  const { sessionName, text, page } = await runManagedCommand({
-    sessionName: options.sessionName,
-    argv,
-  });
-
-  try {
-    throwIfManagedActionError(text, { command: "click", sessionName });
-  } catch (error) {
-    if (isModalStateBlockedMessage(errorMessage(error))) {
-      return buildDialogPendingResult({
-        command: "click",
-        sessionName,
-        resultText: text,
-        page,
-        target: { ref },
-        before,
-      });
-    }
-    await recordFailedActionRun("click", sessionName, page, before, error, { target: { ref } });
-    throw error;
-  }
-
-  const diagnosticsDelta = await buildDiagnosticsDeltaOrSignal(options.sessionName, before);
-  if (isModalBlockedDelta(diagnosticsDelta)) {
-    return buildDialogPendingResult({
-      command: "click",
-      sessionName,
-      resultText: text,
-      page,
-      target: { ref },
-      before,
-      diagnosticsDelta,
-    });
-  }
-
-  return finalizeAction({
-    command: "click",
-    sessionName,
-    page,
-    before,
-    resultData: { ref: normalizeRef(options.ref ?? ""), acted: true },
-    runDetails: { ref: normalizeRef(options.ref ?? ""), acted: true },
-    targetKind: "ref",
-    rawText: text,
-  });
+  const nth = Math.max(1, Math.floor(Number(options.nth ?? 1)));
+  const clickOpts = options.button ? JSON.stringify({ button: options.button }) : "undefined";
+  const locator = options.semantic
+    ? (() => { const t = normalizeSemanticTarget(options.semantic!); return { kind: "semantic" as const, target: t, source: semanticClickSource(t, options.button) }; })()
+    : options.selector
+    ? { kind: "selector" as const, target: { selector: options.selector, nth }, source: selectorActionSource("CLICK", { selector: options.selector, nth }, (l) => `await ${l}.click(${clickOpts});`) }
+    : { kind: "ref" as const, ref: normalizeRef(options.ref!), argv: ["click", normalizeRef(options.ref!), ...(options.button ? [options.button] : [])] };
+  const tgt = "target" in locator ? locator.target as Record<string, unknown> : { ref: (locator as { ref: string }).ref };
+  return dispatchLocatorAction({ command: "click", sessionName: options.sessionName, before, locator, resultData: { ...tgt, ...(options.button ? { button: options.button } : {}), acted: true }, allowModal: true });
 }
 
 // =============================================================================
@@ -537,87 +190,15 @@ export async function managedFill(options: {
   if (!options.ref && !options.selector && !options.semantic) {
     throw new Error("fill requires a ref, selector, or semantic locator");
   }
-
   const before = await captureDiagnosticsBaseline(options.sessionName);
-
-  if (options.semantic) {
-    const target = normalizeSemanticTarget(options.semantic);
-    let result;
-    try {
-      result = await executeCodeAction({
-        command: "fill",
-        sessionName: options.sessionName,
-        source: semanticInputSource("FILL", target, "fill", options.value),
-        before,
-        target,
-      });
-    } catch (error) {
-      await recordFailedActionRun("fill", options.sessionName, undefined, before, error, { target });
-      throw error;
-    }
-    return finalizeAction({
-      command: "fill",
-      sessionName: options.sessionName,
-      page: result.page,
-      before,
-      resultData: { target, value: options.value, filled: true },
-      runDetails: { target, value: options.value, filled: true },
-      targetKind: "semantic",
-    });
-  }
-
-  if (options.selector) {
-    const target: SelectorTarget = {
-      selector: options.selector,
-      nth: Math.max(1, Math.floor(Number(options.nth ?? 1))),
-    };
-    let result;
-    try {
-      result = await executeCodeAction({
-        command: "fill",
-        sessionName: options.sessionName,
-        source: selectorActionSource("FILL", target, (locator) => {
-          return `await ${locator}.fill(${JSON.stringify(options.value)});`;
-        }),
-        before,
-        target,
-      });
-    } catch (error) {
-      await recordFailedActionRun("fill", options.sessionName, undefined, before, error, { target });
-      throw error;
-    }
-    return finalizeAction({
-      command: "fill",
-      sessionName: options.sessionName,
-      page: result.page,
-      before,
-      resultData: { target, selector: options.selector, nth: target.nth, value: options.value, filled: true },
-      runDetails: { target, value: options.value, filled: true },
-      targetKind: "selector",
-    });
-  }
-
-  await assertFreshRefEpoch({
-    sessionName: options.sessionName,
-    ref: normalizeRef(options.ref ?? ""),
-  });
-  const { sessionName, text, page } = await executeCommandAction({
-    command: "fill",
-    sessionName: options.sessionName,
-    argv: ["fill", normalizeRef(options.ref ?? ""), options.value],
-    before,
-    target: { ref: normalizeRef(options.ref ?? "") },
-  });
-  return finalizeAction({
-    command: "fill",
-    sessionName,
-    page,
-    before,
-    resultData: { ref: normalizeRef(options.ref ?? ""), value: options.value, filled: true },
-    runDetails: { ref: normalizeRef(options.ref ?? ""), value: options.value, filled: true },
-    targetKind: "ref",
-    rawText: text,
-  });
+  const nth = Math.max(1, Math.floor(Number(options.nth ?? 1)));
+  const locator = options.semantic
+    ? (() => { const t = normalizeSemanticTarget(options.semantic!); return { kind: "semantic" as const, target: t, source: semanticInputSource("FILL", t, "fill", options.value) }; })()
+    : options.selector
+    ? { kind: "selector" as const, target: { selector: options.selector, nth }, source: selectorActionSource("FILL", { selector: options.selector, nth }, (l) => `await ${l}.fill(${JSON.stringify(options.value)});`) }
+    : { kind: "ref" as const, ref: normalizeRef(options.ref!), argv: ["fill", normalizeRef(options.ref!), options.value] };
+  const tgt = "target" in locator ? locator.target as Record<string, unknown> : { ref: (locator as { ref: string }).ref };
+  return dispatchLocatorAction({ command: "fill", sessionName: options.sessionName, before, locator, resultData: { ...tgt, value: options.value, filled: true } });
 }
 
 // =============================================================================
@@ -775,85 +356,15 @@ async function managedBooleanControlAction(
   if (!options.ref && !options.selector && !options.semantic) {
     throw new Error(`${command} requires a ref, selector, or semantic locator`);
   }
-
   const before = await captureDiagnosticsBaseline(options.sessionName);
-
-  if (options.semantic) {
-    const target = normalizeSemanticTarget(options.semantic);
-    let result;
-    try {
-      result = await executeCodeAction({
-        command,
-        sessionName: options.sessionName,
-        source: semanticBooleanControlSource(command, target),
-        before,
-        target,
-      });
-    } catch (error) {
-      await recordFailedActionRun(command, options.sessionName, undefined, before, error, { target });
-      throw error;
-    }
-    return finalizeAction({
-      command,
-      sessionName: options.sessionName,
-      page: result.page,
-      before,
-      resultData: { target, acted: true, checked: command === "check" },
-      runDetails: { target, acted: true, checked: command === "check" },
-      targetKind: "semantic",
-    });
-  }
-
-  if (options.selector) {
-    const target: SelectorTarget = {
-      selector: options.selector,
-      nth: Math.max(1, Math.floor(Number(options.nth ?? 1))),
-    };
-    let result;
-    try {
-      result = await executeCodeAction({
-        command,
-        sessionName: options.sessionName,
-        source: selectorActionSource(command.toUpperCase(), target, (locator) => {
-          return `await ${locator}.${command}();`;
-        }),
-        before,
-        target,
-      });
-    } catch (error) {
-      await recordFailedActionRun(command, options.sessionName, undefined, before, error, { target });
-      throw error;
-    }
-    return finalizeAction({
-      command,
-      sessionName: options.sessionName,
-      page: result.page,
-      before,
-      resultData: { target, selector: options.selector, nth: target.nth, acted: true, checked: command === "check" },
-      runDetails: { target, acted: true, checked: command === "check" },
-      targetKind: "selector",
-    });
-  }
-
-  const ref = normalizeRef(options.ref ?? "");
-  await assertFreshRefEpoch({ sessionName: options.sessionName, ref });
-  const { sessionName, text, page } = await executeCommandAction({
-    command,
-    sessionName: options.sessionName,
-    argv: [command, ref],
-    before,
-    target: { ref },
-  });
-  return finalizeAction({
-    command,
-    sessionName,
-    page,
-    before,
-    resultData: { ref, acted: true, checked: command === "check" },
-    runDetails: { ref, acted: true, checked: command === "check" },
-    targetKind: "ref",
-    rawText: text,
-  });
+  const nth = Math.max(1, Math.floor(Number(options.nth ?? 1)));
+  const locator = options.semantic
+    ? (() => { const t = normalizeSemanticTarget(options.semantic!); return { kind: "semantic" as const, target: t, source: semanticBooleanControlSource(command, t) }; })()
+    : options.selector
+    ? { kind: "selector" as const, target: { selector: options.selector, nth }, source: selectorActionSource(command.toUpperCase(), { selector: options.selector, nth }, (l) => `await ${l}.${command}();`) }
+    : { kind: "ref" as const, ref: normalizeRef(options.ref!), argv: [command, normalizeRef(options.ref!)] };
+  const tgt = "target" in locator ? locator.target as Record<string, unknown> : { ref: (locator as { ref: string }).ref };
+  return dispatchLocatorAction({ command, sessionName: options.sessionName, before, locator, resultData: { ...tgt, acted: true, checked: command === "check" } });
 }
 
 export async function managedCheck(options: {
@@ -890,83 +401,15 @@ export async function managedHover(options: {
   if (!options.ref && !options.selector && !options.semantic) {
     throw new Error("hover requires a ref, selector, or semantic locator");
   }
-
   const before = await captureDiagnosticsBaseline(options.sessionName);
-
-  if (options.semantic) {
-    const target = normalizeSemanticTarget(options.semantic);
-    let result;
-    try {
-      result = await executeCodeAction({
-        command: "hover",
-        sessionName: options.sessionName,
-        source: semanticHoverSource(target),
-        before,
-        target,
-      });
-    } catch (error) {
-      await recordFailedActionRun("hover", options.sessionName, undefined, before, error, { target });
-      throw error;
-    }
-    return finalizeAction({
-      command: "hover",
-      sessionName: options.sessionName,
-      page: result.page,
-      before,
-      resultData: { target, acted: true },
-      runDetails: { target, acted: true },
-      targetKind: "semantic",
-    });
-  }
-
-  if (options.selector) {
-    const target: SelectorTarget = {
-      selector: options.selector,
-      nth: Math.max(1, Math.floor(Number(options.nth ?? 1))),
-    };
-    let result;
-    try {
-      result = await executeCodeAction({
-        command: "hover",
-        sessionName: options.sessionName,
-        source: selectorActionSource("HOVER", target, (locator) => `await ${locator}.hover();`),
-        before,
-        target,
-      });
-    } catch (error) {
-      await recordFailedActionRun("hover", options.sessionName, undefined, before, error, { target });
-      throw error;
-    }
-    return finalizeAction({
-      command: "hover",
-      sessionName: options.sessionName,
-      page: result.page,
-      before,
-      resultData: { target, selector: options.selector, nth: target.nth, acted: true },
-      runDetails: { target, acted: true },
-      targetKind: "selector",
-    });
-  }
-
-  const ref = normalizeRef(options.ref ?? "");
-  await assertFreshRefEpoch({ sessionName: options.sessionName, ref });
-  const { sessionName, text, page } = await executeCommandAction({
-    command: "hover",
-    sessionName: options.sessionName,
-    argv: ["hover", ref],
-    before,
-    target: { ref },
-  });
-  return finalizeAction({
-    command: "hover",
-    sessionName,
-    page,
-    before,
-    resultData: { ref, acted: true },
-    runDetails: { ref, acted: true },
-    targetKind: "ref",
-    rawText: text,
-  });
+  const nth = Math.max(1, Math.floor(Number(options.nth ?? 1)));
+  const locator = options.semantic
+    ? (() => { const t = normalizeSemanticTarget(options.semantic!); return { kind: "semantic" as const, target: t, source: semanticHoverSource(t) }; })()
+    : options.selector
+    ? { kind: "selector" as const, target: { selector: options.selector, nth }, source: selectorActionSource("HOVER", { selector: options.selector, nth }, (l) => `await ${l}.hover();`) }
+    : { kind: "ref" as const, ref: normalizeRef(options.ref!), argv: ["hover", normalizeRef(options.ref!)] };
+  const tgt = "target" in locator ? locator.target as Record<string, unknown> : { ref: (locator as { ref: string }).ref };
+  return dispatchLocatorAction({ command: "hover", sessionName: options.sessionName, before, locator, resultData: { ...tgt, acted: true }, allowModal: true });
 }
 
 // =============================================================================
