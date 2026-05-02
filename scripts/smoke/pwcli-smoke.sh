@@ -988,6 +988,110 @@ doctor_json="$(run_json doctor doctor --session "$SESSION_NAME" --endpoint "$BLA
 assert_json "$doctor_json" "doctor sees session and endpoint healthy" \
   "data.ok === true && data.data.healthy === true && data.diagnostics.some(item => item.kind === 'endpoint-reachability' && item.status === 'ok') && data.data.recovery.blocked === false"
 
+echo "=== TEST: accessibility output includes role ==="
+output=$(node dist/cli.js accessibility --session "$SESSION_NAME" 2>&1)
+if echo "$output" | grep -q "role"; then
+  echo "PASS: accessibility output includes role"
+else
+  echo "FAIL: accessibility output includes role"
+  echo "Output: $output"
+  FAILED=$((FAILED+1))
+fi
+
+echo "=== TEST: mouse move does not report unsupported ==="
+output=$(node dist/cli.js mouse move --x 100 --y 100 --session "$SESSION_NAME" 2>&1)
+if echo "$output" | grep -q "unsupported"; then
+  echo "FAIL: mouse move reports unsupported"
+  echo "Output: $output"
+  FAILED=$((FAILED+1))
+else
+  echo "PASS: mouse move does not report unsupported"
+fi
+
+echo "=== TEST: video start and stop ==="
+video_start_output=$(node dist/cli.js video start --session "$SESSION_NAME" 2>&1)
+if echo "$video_start_output" | grep -q "LIMITATION"; then
+  echo "PASS: video start returns LIMITATION"
+else
+  video_stop_output=$(node dist/cli.js video stop --session "$SESSION_NAME" 2>&1)
+  if echo "$video_stop_output" | grep -q "videoPath"; then
+    echo "PASS: video stop returns videoPath"
+  else
+    echo "FAIL: video start/stop did not return expected output"
+    echo "Start: $video_start_output"
+    echo "Stop: $video_stop_output"
+    FAILED=$((FAILED+1))
+  fi
+fi
+
+echo "=== TEST: network include-body ==="
+output=$(node dist/cli.js network --include-body --session "$SESSION_NAME" 2>&1)
+if echo "$output" | grep -q "includeBody\|summary\|total"; then
+  echo "PASS: network include-body returns expected fields"
+else
+  echo "FAIL: network include-body missing expected fields"
+  echo "Output: $output"
+  FAILED=$((FAILED+1))
+fi
+
+echo "=== TEST: locate with return-ref ==="
+output=$(node dist/cli.js locate --selector body --return-ref --session "$SESSION_NAME" 2>&1)
+if echo "$output" | grep -q "ref="; then
+  echo "PASS: locate --return-ref includes ref="
+else
+  echo "FAIL: locate --return-ref missing ref="
+  echo "Output: $output"
+  FAILED=$((FAILED+1))
+fi
+
+echo "=== TEST: state diff and state diff --include-values ==="
+state_diff_output=$(node dist/cli.js state diff --session "$SESSION_NAME" --before "${TMP_DIR}/smoke-before.json" 2>&1)
+if echo "$state_diff_output" | grep -q "summary\|changed"; then
+  echo "PASS: state diff returns diff structure"
+else
+  echo "FAIL: state diff missing diff structure"
+  echo "Output: $state_diff_output"
+  FAILED=$((FAILED+1))
+fi
+state_diff_values_output=$(node dist/cli.js state diff --session "$SESSION_NAME" --before "${TMP_DIR}/smoke-before.json" --include-values 2>&1)
+if echo "$state_diff_values_output" | grep -q "summary\|changed"; then
+  echo "PASS: state diff --include-values returns diff structure"
+else
+  echo "FAIL: state diff --include-values missing diff structure"
+  echo "Output: $state_diff_values_output"
+  FAILED=$((FAILED+1))
+fi
+
+echo "=== TEST: har replay nonexistent file ==="
+output=$(node dist/cli.js har replay /nonexistent.har --session "$SESSION_NAME" 2>&1)
+if echo "$output" | grep -qi "file\|exist\|not found"; then
+  echo "PASS: har replay nonexistent file reports error not crash"
+else
+  echo "FAIL: har replay nonexistent file unexpected output"
+  echo "Output: $output"
+  FAILED=$((FAILED+1))
+fi
+
+echo "=== TEST: diagnostics bundle highSignalTimeline ==="
+output=$(node dist/cli.js diagnostics bundle --session "$SESSION_NAME" --out "${TMP_DIR}/diag-bundle-smoke" --limit 20 2>&1)
+if echo "$output" | grep -q "highSignalTimeline"; then
+  echo "PASS: diagnostics bundle includes highSignalTimeline"
+else
+  echo "FAIL: diagnostics bundle missing highSignalTimeline"
+  echo "Output: $output"
+  FAILED=$((FAILED+1))
+fi
+
+echo "=== TEST: doctor environment section ==="
+output=$(node dist/cli.js doctor --session "$SESSION_NAME" 2>&1)
+if echo "$output" | grep -q "environment"; then
+  echo "PASS: doctor output includes environment"
+else
+  echo "FAIL: doctor output missing environment"
+  echo "Output: $output"
+  FAILED=$((FAILED+1))
+fi
+
 log "session close"
 close_json="$(run_json session-close session close "$SESSION_NAME")"
 assert_json "$close_json" "session close ok" \
