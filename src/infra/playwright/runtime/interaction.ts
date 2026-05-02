@@ -1946,8 +1946,14 @@ export async function managedReadText(options?: {
 }) {
   const source = options?.selector
     ? `async page => {
-      const text = await page.locator(${JSON.stringify(options.selector)}).innerText().catch(() => '');
-      return JSON.stringify({ source: 'selector', selector: ${JSON.stringify(options.selector)}, text });
+      const sel = ${JSON.stringify(options.selector)};
+      const locator = page.locator(sel);
+      const count = await locator.count();
+      if (count === 0) {
+        throw new Error('READ_TEXT_SELECTOR_NOT_FOUND:' + JSON.stringify({ selector: sel }));
+      }
+      const text = await locator.first().textContent() ?? '';
+      return JSON.stringify({ source: 'selector', selector: sel, text, count });
     }`
     : `async page => {
       const includeOverlay = ${JSON.stringify(options?.includeOverlay !== false)};
