@@ -1,6 +1,16 @@
 import { copyFile, mkdir } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { ActionFailure } from "../../../domain/interaction/action-failure.js";
+import {
+  type RefEpochValidation,
+} from "../../../domain/interaction/ref-epoch-validator.js";
+import { buildRunEvent, type RunEventTargetKind } from "../../../domain/interaction/run-event-recorder.js";
+import {
+  type NormalizedSemanticTarget,
+  type SemanticTarget,
+  normalizeSemanticTarget,
+  semanticLocatorExpression,
+} from "../../../domain/interaction/semantic-target-resolver.js";
 import { appendRunEvent, ensureRunDir } from "../../fs/run-artifacts.js";
 import { runManagedSessionCommand } from "../cli-client.js";
 import { parseDownloadEvent, parsePageSummary, stripQuotes } from "../output-parsers.js";
@@ -13,54 +23,21 @@ import { buildDiagnosticsDelta, captureDiagnosticsBaseline } from "./diagnostics
 import { isModalStateBlockedMessage, maybeRawOutput, normalizeRef } from "./shared.js";
 import { managedPageCurrent, pageIdRuntimePrelude } from "./workspace.js";
 
-type SemanticTarget =
-  | { kind: "role"; role: string; name?: string; nth?: number }
-  | { kind: "text"; text: string; nth?: number }
-  | { kind: "label"; label: string; nth?: number }
-  | { kind: "placeholder"; placeholder: string; nth?: number }
-  | { kind: "testid"; testid: string; nth?: number };
-
 type SelectorTarget = {
   selector: string;
   nth?: number;
 };
-
-type RefEpochValidation =
-  | {
-      ok: true;
-      ref: string;
-      snapshotId: string;
-      pageId: string | null;
-      navigationId: string | null;
-    }
-  | {
-      ok: false;
-      code: "REF_STALE";
-      ref: string;
-      reason: "missing-snapshot" | "missing-ref" | "page-changed" | "navigation-changed";
-      snapshotId?: string;
-      snapshotPageId?: string | null;
-      snapshotNavigationId?: string | null;
-      currentPageId?: string | null;
-      currentNavigationId?: string | null;
-      currentUrl?: string;
-    };
 
 async function recordRun(
   command: string,
   sessionName: string | undefined,
   page: Record<string, unknown> | undefined,
   details: Record<string, unknown>,
+  targetKind?: RunEventTargetKind,
 ) {
   const run = await ensureRunDir(sessionName);
-  await appendRunEvent(run.runDir, {
-    ts: new Date().toISOString(),
-    command,
-    sessionName: sessionName ?? null,
-    pageId: typeof page?.pageId === "string" ? page.pageId : null,
-    navigationId: typeof page?.navigationId === "string" ? page.navigationId : null,
-    ...details,
-  });
+  const event = buildRunEvent(command, sessionName, page, details, targetKind ?? "none");
+  await appendRunEvent(run.runDir, event);
   return run;
 }
 
@@ -544,7 +521,7 @@ export async function managedClick(options: {
     const run = await recordRun("click", options.sessionName, result.page, {
       target,
       diagnosticsDelta,
-    });
+    }, "semantic");
     return {
       session: result.session,
       page: result.page,
@@ -595,7 +572,7 @@ export async function managedClick(options: {
     const run = await recordRun("click", options.sessionName, result.page, {
       target,
       diagnosticsDelta,
-    });
+    }, "selector");
     return {
       session: result.session,
       page: result.page,
@@ -659,7 +636,7 @@ export async function managedClick(options: {
   const run = await recordRun("click", options.sessionName, page, {
     target: options.ref ? { ref: normalizeRef(options.ref) } : { selector: options.selector },
     diagnosticsDelta,
-  });
+  }, options.ref ? "ref" : "selector");
   return {
     session: {
       scope: "managed",
@@ -674,13 +651,6 @@ export async function managedClick(options: {
       run,
       ...maybeRawOutput(result.text),
     },
-  };
-}
-
-function normalizeSemanticTarget(target: SemanticTarget) {
-  return {
-    ...target,
-    nth: Math.max(1, Math.floor(Number(target.nth ?? 1))),
   };
 }
 
@@ -729,21 +699,7 @@ function selectorActionSource(
   }`;
 }
 
-function semanticLocatorExpression(target: ReturnType<typeof normalizeSemanticTarget>) {
-  return target.kind === "role"
-    ? `page.getByRole(${JSON.stringify(target.role)}, ${
-        target.name ? `{ name: ${JSON.stringify(target.name)}, exact: false }` : "undefined"
-      })`
-    : target.kind === "text"
-      ? `page.getByText(${JSON.stringify(target.text)}, { exact: false })`
-      : target.kind === "label"
-        ? `page.getByLabel(${JSON.stringify(target.label)}, { exact: false })`
-        : target.kind === "placeholder"
-          ? `page.getByPlaceholder(${JSON.stringify(target.placeholder)}, { exact: false })`
-          : `page.getByTestId(${JSON.stringify(target.testid)})`;
-}
-
-function semanticClickSource(target: ReturnType<typeof normalizeSemanticTarget>, button?: string) {
+function semanticClickSource(target: NormalizedSemanticTarget, button?: string) {
   const clickOptions = button ? JSON.stringify({ button }) : "undefined";
   const nthIndex = target.nth - 1;
   const targetJson = JSON.stringify(target);
@@ -778,7 +734,7 @@ function semanticClickSource(target: ReturnType<typeof normalizeSemanticTarget>,
 
 function semanticBooleanControlSource(
   command: "check" | "uncheck",
-  target: ReturnType<typeof normalizeSemanticTarget>,
+  target: NormalizedSemanticTarget,
 ) {
   const nthIndex = target.nth - 1;
   const targetJson = JSON.stringify(target);
@@ -808,7 +764,7 @@ function semanticBooleanControlSource(
 
 function semanticInputSource(
   errorPrefix: "FILL" | "TYPE",
-  target: ReturnType<typeof normalizeSemanticTarget>,
+  target: NormalizedSemanticTarget,
   action: "fill" | "type",
   value: string,
 ) {
@@ -865,7 +821,7 @@ export async function managedFill(options: {
     const run = await recordRun("fill", options.sessionName, result.page, {
       target,
       diagnosticsDelta,
-    });
+    }, "semantic");
     return {
       session: result.session,
       page: result.page,
@@ -894,7 +850,7 @@ export async function managedFill(options: {
     const run = await recordRun("fill", options.sessionName, result.page, {
       target,
       diagnosticsDelta,
-    });
+    }, "selector");
     return {
       session: result.session,
       page: result.page,
@@ -933,7 +889,7 @@ export async function managedFill(options: {
   const run = await recordRun("fill", options.sessionName, fillPage, {
     target: options.ref ? { ref: normalizeRef(options.ref) } : { selector: options.selector },
     diagnosticsDelta,
-  });
+  }, options.ref ? "ref" : "selector");
   return {
     session: {
       scope: "managed",
@@ -976,7 +932,7 @@ export async function managedType(options: {
     const run = await recordRun("type", options.sessionName, result.page, {
       target,
       diagnosticsDelta,
-    });
+    }, "semantic");
     return {
       session: result.session,
       page: result.page,
@@ -1008,7 +964,7 @@ export async function managedType(options: {
     const diagnosticsDelta = await buildDiagnosticsDelta(options.sessionName, before);
     const run = await recordRun("type", options.sessionName, page, {
       diagnosticsDelta,
-    });
+    }, "none");
     return {
       session: {
         scope: "managed",
@@ -1054,7 +1010,7 @@ export async function managedType(options: {
   const run = await recordRun("type", options.sessionName, result.page, {
     target: options.ref ? { ref: normalizeRef(options.ref) } : selectorTarget,
     diagnosticsDelta,
-  });
+  }, options.ref ? "ref" : "selector");
   return {
     session: result.session,
     page: result.page,
@@ -1139,7 +1095,7 @@ async function managedBooleanControlAction(
     const run = await recordRun(command, options.sessionName, result.page, {
       target,
       diagnosticsDelta,
-    });
+    }, "semantic");
     return {
       session: result.session,
       page: result.page,
@@ -1168,7 +1124,7 @@ async function managedBooleanControlAction(
     const run = await recordRun(command, options.sessionName, result.page, {
       target,
       diagnosticsDelta,
-    });
+    }, "selector");
     return {
       session: result.session,
       page: result.page,
@@ -1205,7 +1161,7 @@ async function managedBooleanControlAction(
   const run = await recordRun(command, options.sessionName, page, {
     target: { ref },
     diagnosticsDelta,
-  });
+  }, "ref");
   return {
     session: {
       scope: "managed",
@@ -1284,7 +1240,7 @@ export async function managedHover(options: {
     const run = await recordRun("hover", options.sessionName, result.page, {
       target,
       diagnosticsDelta,
-    });
+    }, "semantic");
     return {
       session: result.session,
       page: result.page,
@@ -1312,7 +1268,7 @@ export async function managedHover(options: {
     const run = await recordRun("hover", options.sessionName, result.page, {
       target,
       diagnosticsDelta,
-    });
+    }, "selector");
     return {
       session: result.session,
       page: result.page,
@@ -1348,7 +1304,7 @@ export async function managedHover(options: {
   const run = await recordRun("hover", options.sessionName, page, {
     target: { ref },
     diagnosticsDelta,
-  });
+  }, "ref");
   return {
     session: {
       scope: "managed",
@@ -1432,7 +1388,7 @@ export async function managedSelect(options: {
       target,
       value: options.value,
       diagnosticsDelta,
-    });
+    }, "semantic");
     return {
       session: result.session,
       page: result.page,
@@ -1466,7 +1422,7 @@ export async function managedSelect(options: {
       target,
       value: options.value,
       diagnosticsDelta,
-    });
+    }, "selector");
     return {
       session: result.session,
       page: result.page,
@@ -1505,7 +1461,7 @@ export async function managedSelect(options: {
     target: { ref },
     value: options.value,
     diagnosticsDelta,
-  });
+  }, "ref");
   return {
     session: {
       scope: "managed",
@@ -1583,7 +1539,7 @@ export async function managedScroll(options: {
     direction: options.direction,
     distance,
     diagnosticsDelta,
-  });
+  }, "none");
   return {
     session: result.session,
     page: result.page,
@@ -1681,7 +1637,7 @@ export async function managedPdf(options: { path: string; sessionName?: string }
   const run = await recordRun("pdf", options.sessionName, result.page, {
     path,
     url: typeof parsed.url === "string" ? parsed.url : undefined,
-  });
+  }, "none");
   return {
     session: result.session,
     page: result.page,
@@ -1785,7 +1741,7 @@ export async function managedUpload(options: {
     settle,
     nextSteps,
     diagnosticsDelta,
-  });
+  }, options.ref ? "ref" : "selector");
   return {
     session: result.session,
     page: result.page,
@@ -1842,7 +1798,7 @@ export async function managedDrag(options: {
   const diagnosticsDelta = await buildDiagnosticsDelta(options.sessionName, before);
   const run = await recordRun("drag", options.sessionName, result.page, {
     diagnosticsDelta,
-  });
+  }, options.fromRef || options.toRef ? "ref" : "selector");
   return {
     session: result.session,
     page: result.page,
@@ -2123,10 +2079,18 @@ export async function managedWait(options: {
     throw error;
   }
   const diagnosticsDelta = await buildDiagnosticsDelta(options.sessionName, before);
+  const conditionKind =
+    typeof condition === "object" && "kind" in condition
+      ? condition.kind === "ref"
+        ? "ref"
+        : condition.kind === "selector"
+          ? "selector"
+          : "none"
+      : "none";
   const run = await recordRun("wait", options.sessionName, result.page, {
     condition,
     diagnosticsDelta,
-  });
+  }, conditionKind as RunEventTargetKind);
 
   return {
     session: result.session,

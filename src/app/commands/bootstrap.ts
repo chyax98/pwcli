@@ -1,4 +1,5 @@
 import type { Command } from "commander";
+import { removeBootstrapInitScript } from "../../infra/fs/bootstrap-config.js";
 import { managedBootstrapApply } from "../../infra/playwright/runtime.js";
 import { printCommandResult } from "../output.js";
 import {
@@ -21,7 +22,8 @@ export function registerBootstrapCommand(program: Command): void {
         },
         [] as string[],
       )
-      .option("--headers-file <file>", "JSON file of extra HTTP headers to apply"),
+      .option("--headers-file <file>", "JSON file of extra HTTP headers to apply")
+      .option("--remove-init-script <file>", "Remove a previously applied init script by path"),
   ).action(
     async (
       action: string,
@@ -29,12 +31,24 @@ export function registerBootstrapCommand(program: Command): void {
         session?: string;
         initScript?: string[];
         headersFile?: string;
+        removeInitScript?: string;
       },
     ) => {
       try {
         const sessionName = requireSessionName(options);
         if (action !== "apply") {
           throw new Error("bootstrap currently supports apply only");
+        }
+        if (options.removeInitScript) {
+          const updated = await removeBootstrapInitScript(sessionName, options.removeInitScript);
+          printCommandResult("bootstrap", {
+            data: {
+              removed: true,
+              removedScript: options.removeInitScript,
+              config: updated,
+            },
+          });
+          return;
         }
         printCommandResult(
           "bootstrap",

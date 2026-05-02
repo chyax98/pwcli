@@ -4,6 +4,7 @@ import { homedir } from "node:os";
 import { resolve } from "node:path";
 import { connect as connectTls } from "node:tls";
 import type { Command } from "commander";
+import { readBootstrapConfig } from "../../infra/fs/bootstrap-config.js";
 import { getAuthProvider, listAuthProviders } from "../../infra/auth-providers/registry.js";
 import {
   getManagedSessionEntry,
@@ -481,6 +482,33 @@ function inspectAuthProviderResolution(providerName?: string): DoctorDiagnostic 
   };
 }
 
+async function inspectBootstrapConfig(sessionName?: string): Promise<DoctorDiagnostic> {
+  const config = await readBootstrapConfig(sessionName);
+  if (!config) {
+    return {
+      kind: "bootstrap-config",
+      status: "ok",
+      summary: "No bootstrap config persisted",
+      details: {
+        sessionName: sessionName ?? "default",
+        bootstrapConfigMissing: true,
+      },
+    };
+  }
+  return {
+    kind: "bootstrap-config",
+    status: "ok",
+    summary: `Bootstrap config present with ${config.initScripts.length} init script(s)`,
+    details: {
+      sessionName: sessionName ?? "default",
+      initScriptCount: config.initScripts.length,
+      initScripts: config.initScripts,
+      headersFile: config.headersFile ?? null,
+      appliedAt: config.appliedAt,
+    },
+  };
+}
+
 function summarizeDiagnostics(diagnostics: DoctorDiagnostic[]) {
   return diagnostics.reduce(
     (summary, diagnostic) => {
@@ -599,6 +627,16 @@ function compactDoctorDiagnostic(diagnostic: DoctorDiagnostic): DoctorDiagnostic
           ...(stringValue(details.error) ? { error: stringValue(details.error) } : {}),
         },
       };
+    case "bootstrap-config":
+      return {
+        ...diagnostic,
+        details: {
+          sessionName: stringValue(details.sessionName),
+          bootstrapConfigMissing: details.bootstrapConfigMissing === true,
+          initScriptCount: numberValue(details.initScriptCount) ?? 0,
+          appliedAt: stringValue(details.appliedAt),
+        },
+      };
     default:
       return diagnostic;
   }
@@ -647,6 +685,7 @@ export function registerDoctorCommand(program: Command): void {
         const diagnostics = [
           await inspectSessionSubstrate(options.session),
           await inspectObserveStatus(options.session),
+          await inspectBootstrapConfig(options.session),
           inspectAuthProviderResolution(options.authProvider),
           inspectProfilePath(options.profile),
           inspectStatePath(options.state),

@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { writeBootstrapConfig } from "../../fs/bootstrap-config.js";
 import { managedRunCode } from "./code.js";
 import { DIAGNOSTICS_STATE_KEY } from "./shared.js";
 
@@ -48,6 +49,13 @@ export async function managedBootstrapApply(options: {
     sessionName: options.sessionName,
     source,
   });
+
+  await writeBootstrapConfig(options.sessionName, {
+    initScripts,
+    ...(headersFile ? { headersFile } : {}),
+    appliedAt: new Date().toISOString(),
+  });
+
   const parsed =
     typeof result.data.result === "object" && result.data.result ? result.data.result : {};
 

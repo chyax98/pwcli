@@ -20,7 +20,13 @@ import {
   stopManagedSession,
 } from "../../infra/playwright/cli-client.js";
 import { parsePageSummary } from "../../infra/playwright/output-parsers.js";
-import { managedOpen, managedStateLoad, managedStateSave } from "../../infra/playwright/runtime.js";
+import { readBootstrapConfig } from "../../infra/fs/bootstrap-config.js";
+import {
+  managedBootstrapApply,
+  managedOpen,
+  managedStateLoad,
+  managedStateSave,
+} from "../../infra/playwright/runtime.js";
 import { writeChromeProfileConfig } from "../../infra/system-chrome/profiles.js";
 import { printCommandError, printCommandResult } from "../output.js";
 import { attachManagedSession, resolveAttachTarget } from "./attach-shared.js";
@@ -136,6 +142,15 @@ export function registerSessionCommand(program: Command): void {
     .option("--headless", "Force headless mode")
     .option("--trace", "Enable tracing for the session")
     .option("--no-trace", "Disable tracing for the session")
+    .option(
+      "--init-script <file>",
+      "Add an init script to the BrowserContext (can be repeated)",
+      (value, acc: string[]) => {
+        acc.push(value);
+        return acc;
+      },
+      [] as string[],
+    )
     .action(
       async (
         name: string,
@@ -150,6 +165,7 @@ export function registerSessionCommand(program: Command): void {
           headless?: boolean;
           trace?: boolean;
           noTrace?: boolean;
+          initScript?: string[];
         },
       ) => {
         try {
@@ -194,6 +210,15 @@ export function registerSessionCommand(program: Command): void {
             traceEnabled,
           });
 
+          let bootstrapApplied = false;
+          if (options.initScript && options.initScript.length > 0) {
+            await managedBootstrapApply({
+              sessionName: name,
+              initScripts: options.initScript,
+            });
+            bootstrapApplied = true;
+          }
+
           const targetUrl = options.open ?? "about:blank";
           const result =
             targetUrl === "about:blank"
@@ -217,6 +242,7 @@ export function registerSessionCommand(program: Command): void {
               appliedDefaults,
               headed,
               traceEnabled,
+              ...(bootstrapApplied ? { bootstrapApplied: true } : {}),
               ...(systemChrome
                 ? {
                     systemChromeProfile: systemChrome.profile,
@@ -426,6 +452,19 @@ export function registerSessionCommand(program: Command): void {
             traceEnabled,
           });
 
+          const bootstrapConfig = await readBootstrapConfig(name);
+          let bootstrapReapplied = false;
+          if (bootstrapConfig && (bootstrapConfig.initScripts.length > 0 || bootstrapConfig.headersFile)) {
+            try {
+              await managedBootstrapApply({
+                sessionName: name,
+                initScripts: bootstrapConfig.initScripts,
+                headersFile: bootstrapConfig.headersFile,
+              });
+              bootstrapReapplied = true;
+            } catch {}
+          }
+
           if (targetUrl && targetUrl !== "about:blank") {
             await managedOpen(targetUrl, {
               sessionName: name,
@@ -447,6 +486,7 @@ export function registerSessionCommand(program: Command): void {
               defaults,
               appliedDefaults,
               traceEnabled,
+              bootstrapReapplied,
               ...(systemChrome
                 ? {
                     systemChromeProfile: systemChrome.profile,

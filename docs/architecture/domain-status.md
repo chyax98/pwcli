@@ -210,16 +210,21 @@
 
 ### 当前实现
 
-- `bootstrap apply --init-script --headers-file`
+- `session create <name> --init-script <file>`：在 session 创建时直接注入 init script
+- `bootstrap apply --init-script --headers-file`：对已有 session 做 live bootstrap
+- `bootstrap apply --remove-init-script <file>`：从持久化配置删除单条 init script
+- init script 配置自动持久化到 `.pwcli/bootstrap/<sessionName>.json`
+- `session recreate` 后自动读取持久化配置并重新 apply bootstrap
+- `pw doctor` 报告 bootstrap 配置状态（`initScriptCount`、`appliedAt`）
 
 ### 当前限制
 
-- 只做 live bootstrap
 - 不负责 lifecycle shape
+- bootstrap 配置只按 sessionName 存储；session recreate 时如果 init script 文件路径不存在则报错
 
 ### 后续扩展
 
-- 如果出现真实项目 bootstrap 模板，再考虑 file-backed bootstrap spec
+- 如果出现跨 session 共享 bootstrap template 的需求，再评估 project-level bootstrap spec
 
 ## 7. Mock
 

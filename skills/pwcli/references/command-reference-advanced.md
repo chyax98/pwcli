@@ -188,10 +188,18 @@
 
 ## Bootstrap
 
+### `pw session create <name> --init-script <file> --open <url>`
+
+- 在 session 创建时直接注入 init script，单步完成；`--init-script` 可重复传多个
+
 ### `pw bootstrap apply --session <name>`
 
 - `--init-script <file>`（可重复）、`--headers-file <file>`
+- `--remove-init-script <file>`：从持久化配置中删除单条 init script，不重新 apply
 - 对已存在 session 做 live bootstrap；当前只支持 `apply`
+- init script 配置自动持久化到 workspace，`session recreate` 后自动重新 apply
+- 输出包含 `bootstrapApplied`（session create）或 `bootstrapReapplied`（session recreate）字段
+- `pw doctor --session <name>` 报告 bootstrap 配置状态（`initScriptCount`、`appliedAt`）
 
 ## pw code
 
