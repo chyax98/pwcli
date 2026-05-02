@@ -109,6 +109,7 @@ state / auth / batch / environment 命令见 `command-reference-advanced.md`。
 ### `pw read-text --session <name>`
 
 - `--selector <selector>`、`--no-include-overlay`、`--max-chars <count>`（默认 15000，overlay metadata 默认采集）
+- `--selector` 无匹配时抛出 `READ_TEXT_SELECTOR_NOT_FOUND`，不再静默返回空
 - 自动穿透 shadow DOM（web components），无需额外参数
 - iframe 内容在独立 frame 中，`read-text` 返回空；用 `pw page frames` 列出 frames，再用 `pw code` 读取 iframe 内容
 
