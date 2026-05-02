@@ -891,6 +891,7 @@ export async function managedNetwork(options?: {
   limit?: number;
   since?: string;
   current?: boolean;
+  includeBody?: boolean;
 }) {
   await managedEnsureDiagnosticsHooks({ sessionName: options?.sessionName });
 
@@ -917,6 +918,24 @@ export async function managedNetwork(options?: {
       const sinceTime = sinceFilter ? Date.parse(sinceFilter) : NaN;
       const currentNavId = ${JSON.stringify(currentNavId)};
       const limit = ${JSON.stringify(options?.limit ?? 20)};
+      const includeBody = ${JSON.stringify(options?.includeBody ?? false)};
+      const mapRecord = (record) => {
+        if (!includeBody) {
+          const { requestBody, requestBodyTruncatedAt50k, responseBody, responseBodyTruncatedAt50k, ...rest } = record;
+          return rest;
+        }
+        const { requestBodyTruncatedAt50k, responseBodyTruncatedAt50k, ...rest } = record;
+        const mapped = { ...rest };
+        if (record.requestBody !== undefined) {
+          mapped.requestBody = record.requestBody;
+          mapped.requestBodyTruncated = record.requestBodyTruncatedAt50k || false;
+        }
+        if (record.responseBody !== undefined) {
+          mapped.responseBody = record.responseBody;
+          mapped.responseBodyTruncated = record.responseBodyTruncatedAt50k || false;
+        }
+        return mapped;
+      };
       const filtered = records.filter(record => {
         if (requestId && record.requestId !== requestId)
           return false;
@@ -953,8 +972,9 @@ export async function managedNetwork(options?: {
         }
         return true;
       });
-      const sample = filtered.slice(-Math.max(0, Number(limit || 0) || 20));
-      const detail = requestId ? filtered[filtered.length - 1] || null : null;
+      const sample = filtered.slice(-Math.max(0, Number(limit || 0) || 20)).map(mapRecord);
+      const detailRaw = requestId ? filtered[filtered.length - 1] || null : null;
+      const detail = detailRaw ? mapRecord(detailRaw) : null;
       return JSON.stringify({
         total: filtered.length,
         currentNavigation: currentNavId || undefined,

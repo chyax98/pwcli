@@ -21,7 +21,8 @@ export function registerNetworkCommand(program: Command): void {
       .option("--text <text>", "Filter by URL or failure text")
       .option("--since <iso>", "Keep only records at or after the given ISO timestamp")
       .option("--current", "Only show records from the current page navigation")
-      .option("--limit <n>", "Limit result sample size"),
+      .option("--limit <n>", "Limit result sample size")
+      .option("--include-body", "Return full request/response body instead of 240-char snippet"),
   ).action(
     async (options: {
       session?: string;
@@ -35,6 +36,7 @@ export function registerNetworkCommand(program: Command): void {
       since?: string;
       current?: boolean;
       limit?: string;
+      includeBody?: boolean;
     }) => {
       try {
         const sessionName = requireSessionName(options);
@@ -52,6 +54,7 @@ export function registerNetworkCommand(program: Command): void {
             since: options.since,
             current: options.current,
             limit: options.limit ? Number(options.limit) : undefined,
+            includeBody: options.includeBody,
           }),
         );
       } catch (error) {
