@@ -31,6 +31,14 @@ export async function managedEnsureDiagnosticsHooks(options?: { sessionName?: st
           truncated: text.length > max,
         };
       };
+      const FULL_BODY_LIMIT = 50000;
+      const clipBody = (value) => {
+        const text = String(value ?? '');
+        return {
+          body: text.length > FULL_BODY_LIMIT ? text.slice(0, FULL_BODY_LIMIT) + '...' : text,
+          truncated: text.length > FULL_BODY_LIMIT,
+        };
+      };
       const isTextLikeContentType = (value) => {
         const contentType = String(value || '').toLowerCase();
         return Boolean(
@@ -136,9 +144,12 @@ export async function managedEnsureDiagnosticsHooks(options?: { sessionName?: st
               : {}),
           };
           if (postData && isTextLikeContentType(contentType)) {
-            const body = clipSnippet(postData);
-            record.requestBodySnippet = body.snippet;
-            record.requestBodyTruncated = body.truncated;
+            const snippet = clipSnippet(postData);
+            record.requestBodySnippet = snippet.snippet;
+            record.requestBodyTruncated = snippet.truncated;
+            const fullBody = clipBody(postData);
+            record.requestBody = fullBody.body;
+            record.requestBodyTruncatedAt50k = fullBody.truncated;
           }
           keep(state.networkRecords, record);
         });
@@ -177,9 +188,12 @@ export async function managedEnsureDiagnosticsHooks(options?: { sessionName?: st
             Promise.resolve()
               .then(() => res.text())
               .then((text) => {
-                const body = clipSnippet(text);
-                record.responseBodySnippet = body.snippet;
-                record.responseBodyTruncated = body.truncated;
+                const snippet = clipSnippet(text);
+                record.responseBodySnippet = snippet.snippet;
+                record.responseBodyTruncated = snippet.truncated;
+                const fullBody = clipBody(text);
+                record.responseBody = fullBody.body;
+                record.responseBodyTruncatedAt50k = fullBody.truncated;
               })
               .catch((error) => {
                 record.responseBodyReadError =
