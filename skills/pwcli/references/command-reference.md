@@ -139,6 +139,7 @@ state / auth / batch / environment 命令见 `command-reference-advanced.md`。
 - `--placeholder <text>`
 - `--test-id <id>`
 - `--nth <n>`：1-based disambiguation
+- `--return-ref`：返回首个匹配元素的 aria snapshot ref，可直接用于后续 `click` / `fill` / `type` 等命令
 
 ### `pw get <fact> --session <name>`
 
@@ -151,6 +152,8 @@ state / auth / batch / environment 命令见 `command-reference-advanced.md`。
 目标同 `locate`。`get text|value` 要求目标至少存在一个；需要先探测数量时用 `get count` 或 `locate`。
 
 `--nth <n>` 显式指定时取第 n 个匹配（含隐藏元素），不做过滤。省略 `--nth` 时自动跳过隐藏元素，返回第一个可见匹配。
+
+`--return-ref`：返回匹配元素的 aria snapshot ref（仅 `text` / `value` 有效），可直接用于后续 action 命令。
 
 ### `pw is <state> --session <name>`
 
@@ -209,6 +212,14 @@ Use `locate/get/is/verify` for narrow state checks. Use `snapshot -i` when you n
 - 低频页面归档证据；不做报告模板、合并或批量归档
 - 依赖当前 Playwright substrate 的 Chromium PDF 能力
 
+### `pw accessibility --session <name>`
+
+- 捕获当前页面的 ARIA accessibility tree
+- `--interactive-only` / `-i`：只返回可交互的 accessibility 节点
+- `--root <selector>` / `-r`：从指定 selector 开始扫描，缩小输出范围
+- 输出包含 role、name、level、checked、expanded 等 ARIA 属性
+- 适合需要比 `snapshot` 更语义化的结构、或验证无障碍属性的场景
+
 ### `pw dialog accept [prompt]|dismiss --session <name>`
 
 - `MODAL_STATE_BLOCKED` 后的原地恢复；`prompt` 只在 prompt dialog 需要显式文本时传
@@ -226,6 +237,13 @@ Use `locate/get/is/verify` for narrow state checks. Use `snapshot -i` when you n
 支持 iframe 内元素：ref 格式为 `f1e4`（`f1` 是 frame index，`e4` 是元素 ref），用 `pw snapshot -i` 获取。
 
 所有 click 定位方式都会记录 action evidence：`target`、`diagnosticsDelta`、`run`。需要追踪动作后信号时用 `diagnostics runs/show/grep` 查对应 run。
+
+如果 click 触发了 popup 或新 tab，输出包含 `openedPage` 字段：
+- `pageId`：新页面的稳定标识
+- `url`：新页面 URL
+- `title`：新页面标题（如有）
+
+出现 `openedPage` 时，用 `pw tab select <pageId> --session <name>` 切换到新页面继续操作。
 
 ### `pw fill [parts...] --session <name>`
 
@@ -291,6 +309,32 @@ Use `locate/get/is/verify` for narrow state checks. Use `snapshot -i` when you n
 ### `pw drag --session <name>`
 
 - `--from-selector <selector>`、`--to-selector <selector>`
+
+### `pw mouse move --session <name>`
+
+- `--x <number>`、`--y <number>`（必填）
+- 将鼠标移动到指定坐标
+
+### `pw mouse click --session <name>`
+
+- `--x <number>`、`--y <number>`（必填）
+- `--button <left|right|middle>`（默认 `left`）
+- 在指定坐标点击
+
+### `pw mouse dblclick --session <name>`
+
+- `--x <number>`、`--y <number>`（必填）
+- 在指定坐标双击
+
+### `pw mouse wheel --session <name>`
+
+- `--delta-x <number>`、`--delta-y <number>`（必填）
+- 滚动鼠标滚轮
+
+### `pw mouse drag --session <name>`
+
+- `--from-x <number>`、`--from-y <number>`、`--to-x <number>`、`--to-y <number>`（必填）
+- 从起始坐标拖拽到目标坐标
 
 ### `pw upload [parts...] --session <name>`
 

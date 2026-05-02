@@ -27,6 +27,7 @@
   - 返回 compact diff buckets
 - 可选：
   - `--after <file>`：把当前 after 摘要额外保存到文件，便于离线复查或二次比较
+  - `--include-values`：在 diff 输出中包含 cookie、localStorage、sessionStorage 的 value 级变化；默认只比较 key/摘要
 
 ### `pw state diff --before <file> --after <file>`
 
@@ -39,20 +40,22 @@
 - `summary.changed`
 - `summary.changedBuckets`
 - `cookies.added/removed/changed`
-- `localStorage.added/removed`
-- `sessionStorage.added/removed`
+- `localStorage.added/removed/changed`
+- `sessionStorage.added/removed/changed`
 - `indexeddb.databasesAdded/databasesRemoved/storesChanged`
+
+`--include-values` 时，value 级 diff 输出格式为 `before` / `after` 字符串对。
 
 限制：
 
 - 只读比较，不修改浏览器状态
 - 当前 MVP 的 storage 范围是：
-  - cookie 摘要
-  - `localStorage` key 集合
-  - `sessionStorage` key 集合
+  - cookie 摘要（`--include-values` 时包含 value）
+  - `localStorage` key 集合（`--include-values` 时包含 value）
+  - `sessionStorage` key 集合（`--include-values` 时包含 value）
   - IndexedDB database/store metadata + `countEstimate`
-- 不做 value 级 local/session storage diff
 - 不做 Cache Storage / service worker diff
+- `--include-values` 可能产生较大输出；长 value 会被截断
 
 ### `pw cookies list --session <name>`
 
@@ -224,6 +227,7 @@
 - `click <ref>`、`click --selector <selector>`、`click --text <text>`、`click --role <role> --name <name>`
 - `fill <ref> <value>`、`fill --selector <selector> <value>`
 - `press <key>`、`scroll <direction> [distance]`、`type [ref] <value>`
+- `hover <ref>`、`check <ref>`、`uncheck <ref>`、`select <ref> <value>`
 - `open <url>`
 - `read-text`、`read-text --max-chars <n>`、`read-text --selector <selector>`、`read-text --no-include-overlay`
 - `locate --text <text>`、`locate --selector <selector>`、`locate --role <role> --name <name>`
