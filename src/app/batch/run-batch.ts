@@ -393,7 +393,12 @@ function parseBatchStateTarget(args: string[]): BatchStateTarget {
       continue;
     }
     if (arg === "--nth") {
-      nth = args[index + 1] ? Number(args[index + 1]) : undefined;
+      const raw = args[index + 1];
+      const parsed = raw ? Number(raw) : NaN;
+      if (!Number.isInteger(parsed) || parsed < 1) {
+        throw new Error("batch --nth requires a positive integer");
+      }
+      nth = parsed;
       index += 1;
       continue;
     }
