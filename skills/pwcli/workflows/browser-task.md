@@ -44,7 +44,7 @@ pw snapshot -i -s <name>
 pw snapshot -c -s <name>
 ```
 
-只有 scoped / interactive / compact 不足以回答问题时，才使用全量 `pw snapshot -s <name>`。如果当前命令面暴露 depth 参数，先用 depth 限制层级。
+只有 scoped / interactive / compact 不足以回答问题时，才使用全量 `pw snapshot -s <name>`。
 
 多页面、popup、新开预览页：
 

@@ -400,12 +400,21 @@ export function registerSessionCommand(program: Command): void {
           } catch {}
 
           await stopManagedSession(name);
+
+          // Give the old daemon process and browser time to fully release
+          // profile resources before starting a new one.
+          await new Promise((r) => setTimeout(r, 1500));
+
+          const RECREATE_STARTUP_TIMEOUT_MS = 30_000;
           await managedOpen(stateSaved ? "about:blank" : targetUrl, {
             sessionName: name,
             headed,
             ...(systemChrome ? { config: systemChrome.configPath } : profile ? { profile } : {}),
             ...(systemChrome || persistent ? { persistent: true } : {}),
             reset: true,
+            timeoutMs: RECREATE_STARTUP_TIMEOUT_MS,
+            timeoutMessage: `session recreate timed out after ${RECREATE_STARTUP_TIMEOUT_MS / 1000}s waiting for new browser to start`,
+            timeoutCode: "SESSION_RECREATE_STARTUP_TIMEOUT",
           });
 
           if (stateSaved) {

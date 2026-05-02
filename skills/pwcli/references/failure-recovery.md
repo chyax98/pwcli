@@ -46,6 +46,43 @@ pw wait --session bug-a --selector '<expected-ready-state>'
 
 Then retry the original command. Keep dependent steps sequential, do not issue concurrent `session create|recreate|close` for the same name, or put stable same-session steps in `pw batch --session <name>`. Concurrent same-name `session create` is expected to fail fast as `SESSION_BUSY`; do not treat that as a raw Playwright startup failure.
 
+If a previous command timed out, the underlying daemon operation may still be winding down and the command lock may be released asynchronously. Wait briefly, then re-check status before retrying.
+
+### `SESSION_RECREATE_STARTUP_TIMEOUT`
+
+Meaning:
+
+- `pw session recreate` stopped the old session, but the replacement browser did not finish startup inside the guarded timeout
+- common causes are profile locks, Chrome recovery prompts, or a browser process that has not fully released the previous user data dir
+
+Recovery:
+
+```bash
+pw session status bug-a
+pw session list --with-page
+pw session create bug-b --headed --open '<url>'
+```
+
+Do not loop `session recreate` on the same name. If using `--from-system-chrome` or a persistent profile, close Chrome fully or choose another profile/session name before retrying.
+
+### `RUN_CODE_TIMEOUT`
+
+Meaning:
+
+- a run-code-backed command exceeded pwcli's guard timeout
+- this can happen when Playwright's daemon waits for navigation/network completion after `pw code` or a semantic command
+- the browser operation may have succeeded even though the CLI timed out
+
+Recovery:
+
+```bash
+pw page current --session bug-a
+pw observe status --session bug-a
+pw diagnostics digest --session bug-a
+```
+
+Then split the work into smaller commands. Prefer first-class `pw wait --response|--selector|network-idle` after actions instead of embedding long navigation or network waits inside `pw code`. If the session reports `SESSION_BUSY`, wait briefly and retry status before recreating.
+
 ### `SESSION_ATTACH_FAILED`
 
 Meaning:

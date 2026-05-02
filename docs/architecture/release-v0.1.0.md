@@ -1,94 +1,55 @@
-# v0.1.0 Release Checklist
+# Ship / Release Contract
 
-更新时间：2026-04-30
+更新时间：2026-05-02
 状态：active
 
-这份清单用于准备 `pwcli` v0.1.0 发布。它不替代 `package.json` 和 CI 结果；发布前以实际命令输出为准。
+这份文档记录当前本地 ship / release gate。它不替代 `package.json`、CI 或实际命令输出。
 
-## 1. 发布目标
+## 1. 当前发布面
 
-v0.1.0 只承诺当前 Agent-first 主线：
+`pwcli` v0.1.0 当前承诺：
 
 - named session lifecycle
 - 页面观察、动作、等待、断言
 - diagnostics / route / environment / state / auth provider
 - `skills/pwcli/` 随包分发
+- Agent-readable text output + `--output json` envelope
 
 不承诺：
 
-- 外部 plugin 加载机制
+- 外部 auth plugin lifecycle
 - raw CDP named-session substrate
 - HAR 热录制稳定 contract
 - Playwright Test UI / HTML report 集成
 - `batch` 全命令 parity
 
-## 2. 命名与分发策略
+## 2. 包状态
 
-产品名继续叫 `pwcli`，命令名继续叫 `pw`。
+当前 package contract：
 
-当前 npm registry 查询结果：
+- package: `@chyax/pwcli`
+- version: `0.1.0`
+- command: `pw`
+- `bin.pw`: `dist/cli.js`
+- package files 必须包含：`dist`、`skills`、`README.md`
+- git dependency / npm pack 都依赖 build 产物正确生成
 
-- `pwcli`：未发布
-- `@chyax98/pwcli`：未发布
+## 3. 日常本地验证
 
-建议：
-
-1. 短期内部使用：优先从 GitHub 安装，降低 npm 发布和 token 管理成本。
-2. 对外或跨机器稳定分发：发 scoped npm 包，例如 `@chyax98/pwcli`。
-3. 不建议先抢裸包名 `pwcli` 做公开分发，除非确认要维护公共品牌和支持面。
-
-GitHub 安装可行，但必须满足一个条件：仓库不提交 `dist/` 时，安装阶段必须能构建。当前 `prepare` 会执行 `npm run build`，用于支持 git dependency install 和 `npm pack`。
-
-示例：
+普通代码/文档维护优先最小验证：
 
 ```bash
-npm install -g github:chyax98/pwcli
-pw --help
-```
-
-固定版本建议使用 tag：
-
-```bash
-npm install -g github:chyax98/pwcli#v0.1.0
-```
-
-如果改用 npm 发布：
-
-```bash
-npm install -g @chyax98/pwcli
-```
-
-## 3. 发布前阻断项
-
-| 项 | 当前要求 |
-|---|---|
-| 版本 | `package.json` 从 `0.0.0-dev` 改为 `0.1.0` |
-| npm 可发布性 | 如果发 npm，`private` 必须从 `true` 调整为可发布状态 |
-| GitHub 安装 | 如果不发 npm，保留 `prepare`，确保 git dependency install 会构建 `dist` |
-| 包内容 | `files` 至少包含 `dist`、`skills`、`README.md` |
-| CLI 入口 | `bin.pw` 指向 `dist/cli.js` |
-| Node 版本 | `engines.node` 与本机和目标环境一致 |
-| 文档 | README、skill、architecture command surface 已同步 |
-| 密钥 | npm token 只在发布动作前注入，不写入仓库 |
-
-## 4. 开发期验证
-
-开发和文档维护阶段先跑受影响验证，不默认跑全量 dogfood：
-
-```bash
-pnpm typecheck
 pnpm build
 node dist/cli.js --help
-node dist/cli.js skill path
 ```
 
-命令面有变化时补：
+命令面变化补：
 
 ```bash
 node dist/cli.js <command> --help
 ```
 
-session / auth / profile 相关变化时补真实 CLI 验证：
+session / auth / profile 相关变化补真实 CLI：
 
 ```bash
 pw profile list-chrome
@@ -97,9 +58,15 @@ pw observe status -s relcheck
 pw session close relcheck
 ```
 
-## 5. 发布 gate
+文档-only 变化至少跑：
 
-准备正式发布前跑：
+```bash
+pnpm build
+```
+
+## 4. Release gate
+
+正式 ship 前跑：
 
 ```bash
 pnpm typecheck
@@ -109,23 +76,34 @@ git diff --check
 npm pack --dry-run
 ```
 
-`pnpm build` 会先清理 `dist/` 再编译，避免 npm tarball 带上历史残留的已删除命令文件。
-
-如本轮改动涉及真实页面 workflow、auth provider、diagnostics bundle 或 action/ref contract，再补针对性真实页面验证。`pnpm test:dogfood:e2e` 只在 release gate 或高风险行为变更时跑。
-
-## 6. GitHub 安装发布步骤
-
-1. 更新 `package.json` 版本到 `0.1.0`。
-2. 保持 `private: true` 也可以；GitHub git dependency 不依赖 npm publish。
-3. 跑发布 gate。
-4. 打 tag：
+高风险行为变化再补：
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+pnpm test:dogfood:e2e
 ```
 
-5. 用另一处临时目录验证：
+高风险包括：
+
+- session lifecycle / profile / startup lock
+- auth provider
+- action/ref contract
+- diagnostics bundle/export/run evidence
+- route/environment/bootstrap substrate
+- package files / skill distribution
+
+## 5. Ship 检查清单
+
+- `package.json` version、name、bin、files 与发布目标一致。
+- `pw --help` 和 `docs/architecture/command-surface.md` 无明显漂移。
+- `skills/pwcli/SKILL.md` 能覆盖 80% 高频主链，专项路由到 reference。
+- 新 limitation 已写入 `failure-recovery.md` 或 architecture docs。
+- README 只保留入口，不复制完整教程。
+- 没有真实账号、token、cookie、业务域名或 session state。
+- GitHub release notes 只写当前已支持能力，不写 future design。
+
+## 6. 安装验证
+
+GitHub tag 安装：
 
 ```bash
 npm install -g github:chyax98/pwcli#v0.1.0
@@ -134,27 +112,26 @@ pw --help
 pw skill path
 ```
 
-## 7. npm 发布步骤
-
-1. 确认 issue / PR / review comment 没有剩余 P0/P1 阻断。
-2. 更新 `package.json` 版本、包名和发布字段。
-3. 跑发布 gate。
-4. 注入 npm token。
-5. 执行 dry run。
-6. 发布 npm 包。
-7. 用全局安装结果验证：
+npm 包安装：
 
 ```bash
+npm install -g @chyax/pwcli
 pw --version
 pw --help
 pw skill path
+```
+
+最小运行验证：
+
+```bash
 pw session create relcheck --headless --open about:blank
+pw observe status -s relcheck
 pw session close relcheck
 ```
 
-## 8. 发布后检查
+## 7. 发布后检查
 
 - `pw skill path` 指向包内 `skills/pwcli`。
-- README 中的最短链路能直接执行。
-- `docs/architecture/command-surface.md` 和 `node dist/cli.js --help` 没有明显漂移。
-- GitHub release notes 只写当前已支持能力，不写 future design。
+- README 的最短链路可执行。
+- smoke / dogfood 没有新增 P0/P1。
+- issues / release notes 中的限制与 docs 一致。

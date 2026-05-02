@@ -50,6 +50,8 @@ Claude Code discovers `.claude/rules/**/*.md` automatically. Rules without
 matching files. Do not manually load every rule unless the task needs a full
 governance audit.
 
+Project slash commands live in `.claude/commands/*.md`. They are local development helpers, not product documentation or active project truth.
+
 - `rules/01-product-boundaries.md`: what this product is and is not
 - `rules/02-command-contracts.md`: command, flag, output, batch, and docs sync
 - `rules/03-architecture-boundaries.md`: app/domain/infra ownership rules
@@ -60,3 +62,8 @@ governance audit.
 - `rules/08-skill-maintenance.md`: skill sync and command contract upkeep
 - `rules/09-skill-writing-standard.md`: skill writing quality bar
 - `rules/10-review-guidelines.md`: P0/P1 review checklist
+
+## Local Commands
+
+- `/docs-maintain`: maintain `skills/pwcli/` and `docs/architecture/` using governance rules
+- `/ship-check`: run local ship / release candidate checks

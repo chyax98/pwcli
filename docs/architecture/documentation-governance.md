@@ -50,15 +50,23 @@
 
 ### `skills/pwcli/`
 
-这是唯一使用教程真相。
+这是 Agent 使用真相。
+
+维护策略：
+
+- `SKILL.md` 是外部讲解指令和路由引导，覆盖约 80% 高频命令使用。
+- `SKILL.md` 不讲内部实现、源码结构、历史过程或调研结论；实现边界进 `docs/architecture/`。
+- 精确参数、专项诊断、auth/state/batch/environment、failure recovery、workflow 等深细节下沉到 `references/`、`workflows/`、`domains/`。
+- 主入口只保留最短可执行主链、硬边界和跳转路径。
 
 这里维护：
 
 - 主入口 `SKILL.md`
-- `command-reference.md`
-- `workflows.md`
-- `failure-recovery.md`
-- `rules/`
+- `references/command-reference*.md`
+- `references/workflows.md`
+- `references/failure-recovery.md`
+- `workflows/*.md`
+- `domains/*.md`
 
 所有命令、flag、错误码、输出 envelope、恢复路径变化，先同步这里。
 
@@ -82,6 +90,7 @@
 
 - `CLAUDE.md`
 - `rules/*.md`
+- `commands/*.md`（本地开发 / docs / ship 的 Claude Code slash commands）
 - 可共享的 Claude Code project settings（如未来需要）
 - skill 维护规则
 - review 规则
@@ -114,7 +123,7 @@
 - `docs/architecture/domain-status.md`
 - `docs/architecture/adr-*.md`
 - `docs/architecture/release-*.md`
-- `docs/architecture/environment-clock-survey.md`
+- `docs/architecture/adr-003-environment-clock-boundary.md`
 - `docs/architecture/workspace-mutation-contract.md`
 - `docs/architecture/browser-task-state-model.md`
 - `docs/architecture/e2e-dogfood-test-plan.md`
@@ -127,7 +136,7 @@
 3. 领域现状
 4. E2E 体系
 
-挂不上就不该进最终文档面。
+挂不上就不该进最终文档面。新调研不能以 `*-survey.md` 形态长期提交；稳定结论必须改写为 ADR、decision note、domain-status 或 skill limitation。
 
 ## 5. 过程信息规则
 
@@ -198,7 +207,8 @@
 
 1. `CLAUDE.md`
 2. `rules/*.md`
-3. 可共享且不含密钥的 Claude Code project settings（如未来需要）
+3. `commands/*.md`（本地开发 / docs / ship 的 Claude Code slash commands）
+4. 可共享且不含密钥的 Claude Code project settings（如未来需要）
 
 个人配置继续留在用户级配置或 `.claude/settings.local.json`。
 

@@ -10,10 +10,10 @@
 | 判断文档该放哪里 | [`architecture/documentation-governance.md`](architecture/documentation-governance.md) |
 | 看当前领域实现和限制 | [`architecture/domain-status.md`](architecture/domain-status.md) |
 | 看当前命令能力面 | [`architecture/command-surface.md`](architecture/command-surface.md) |
-| 看已接受架构决策 | [`architecture/adr-001-agent-first-command-and-lifecycle.md`](architecture/adr-001-agent-first-command-and-lifecycle.md)、[`architecture/adr-002-diagnostics-mock-environment.md`](architecture/adr-002-diagnostics-mock-environment.md) |
-| 看 future workspace mutation contract | [`architecture/workspace-mutation-contract.md`](architecture/workspace-mutation-contract.md) |
+| 看已接受架构决策 | [`architecture/adr-001-agent-first-command-and-lifecycle.md`](architecture/adr-001-agent-first-command-and-lifecycle.md)、[`architecture/adr-002-diagnostics-mock-environment.md`](architecture/adr-002-diagnostics-mock-environment.md)、[`architecture/adr-003-environment-clock-boundary.md`](architecture/adr-003-environment-clock-boundary.md) |
+| 看 workspace 写操作边界 | [`architecture/workspace-mutation-contract.md`](architecture/workspace-mutation-contract.md) |
 | 看 dogfood 验证策略和结论 | [`architecture/e2e-dogfood-test-plan.md`](architecture/e2e-dogfood-test-plan.md)、[`architecture/e2e-dogfood-experience-report.md`](architecture/e2e-dogfood-experience-report.md) |
-| 看 clock 技术结论 | [`architecture/environment-clock-survey.md`](architecture/environment-clock-survey.md) |
+| 看 clock 技术结论 | [`architecture/adr-003-environment-clock-boundary.md`](architecture/adr-003-environment-clock-boundary.md) |
 | 看 v0.1.0 发布检查 | [`architecture/release-v0.1.0.md`](architecture/release-v0.1.0.md) |
 
 ## 目录策略
@@ -25,7 +25,7 @@
 - `architecture/adr-*.md`：已接受决策。
 - `architecture/*-contract.md`：已定边界但未必进入主线的 contract。
 - `architecture/e2e-*`：dogfood 验证策略和经验结论。
-- `architecture/*-survey.md`：只保留已吸收为架构事实的调研结论。
+- `architecture/*-survey.md`：不再新增；已稳定调研结论应改写为 ADR / decision note / domain-status。
 - `architecture/release-*.md`：发布前必须满足的检查项和阻断项。
 
 ## 不放这里

@@ -1,15 +1,13 @@
 # Domain Guides
 
-这些文档是 `pwcli` 的**详细领域说明**。
+`domains/*.md` 只解释 command domain 的边界、误用和决策规则，不是第二套 command reference。
 
 分工：
 
-- `SKILL.md`
-  - 高频入口和硬规则
-- `references/command-reference*.md`
-  - 参数、flag、输出 envelope、精确命令口径
-- `domains/*.md`
-  - 每个 command domain 的详细说明：目的、模型、工作流、边界、限制、恢复路径
+- `SKILL.md`：80% 高频主链和路由。
+- `references/command-reference*.md`：参数、flag、输出 envelope、精确命令口径。
+- `workflows/*.md`：任务链路和成功判据。
+- `domains/*.md`：领域边界、常见误用、恢复方向。
 
 ## 目录
 
@@ -25,6 +23,6 @@
 ## 使用规则
 
 1. 先从 `SKILL.md` 找主链。
-2. 需要精确参数时回 `references/command-reference*.md`。
-3. 需要理解一个领域到底该怎么用、怎么和其他领域配合、哪里不能乱用，再读这里。
-4. 这里是详细说明，不是第二套 command reference。参数真相仍以 `references/command-reference*.md` 和源码为准。
+2. 参数细节回 `references/command-reference*.md`。
+3. 场景链路回 `workflows/*.md`。
+4. 只有需要判断“这个领域负责什么、不能怎么用、失败怎么升级”时，再读 domain guide。

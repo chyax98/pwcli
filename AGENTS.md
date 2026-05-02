@@ -9,7 +9,7 @@
 3. 架构真相：`docs/architecture/`
 4. Claude Code 项目规则：`.claude/`
 
-`.claude/` 只允许存放 Claude Code 官方项目配置、`CLAUDE.md` 和 `rules/`。不要放过程 planning、草案、survey、迁移记录、工具缓存或 active project truth。项目待办放 GitHub issues / PR，稳定结论写回 `skills/pwcli/`、`docs/architecture/` 或 ADR。
+`.claude/` 只允许存放 Claude Code 官方项目配置、`CLAUDE.md`、`rules/` 和本地开发 slash `commands/`。不要放过程 planning、草案、survey、迁移记录、工具缓存或 active project truth。项目待办放 GitHub issues / PR，稳定结论写回 `skills/pwcli/`、`docs/architecture/` 或 ADR。
 
 ## 工作顺序
 
@@ -48,7 +48,7 @@ docs/
 - `batch` 只走结构化 `string[][]`
 - skill 是唯一教程真相
 - docs 只维护架构、限制、扩展方向
-- `.claude` 只维护 Claude Code 项目指令和规则，不承载项目文档或 backlog
+- `.claude` 只维护 Claude Code 项目指令、规则和本地开发 slash commands，不承载项目文档或 backlog
 - limitation code 不能包装成“已支持”
 
 ## 文件变更同步

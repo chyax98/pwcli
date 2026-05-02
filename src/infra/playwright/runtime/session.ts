@@ -13,6 +13,9 @@ export async function managedOpen(
     persistent?: boolean;
     endpoint?: string;
     config?: string;
+    timeoutMs?: number;
+    timeoutMessage?: string;
+    timeoutCode?: string;
   },
 ) {
   const result = await runManagedSessionCommand(
@@ -28,6 +31,13 @@ export async function managedOpen(
       endpoint: options?.endpoint,
       config: options?.config,
       createIfMissing: true,
+      ...(options?.timeoutMs
+        ? {
+            timeoutMs: options.timeoutMs,
+            timeoutMessage: options.timeoutMessage,
+            timeoutCode: options.timeoutCode,
+          }
+        : {}),
     },
   );
 

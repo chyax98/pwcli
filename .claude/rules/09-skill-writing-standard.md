@@ -5,11 +5,29 @@ paths:
 
 # pwcli Skill Writing Standard
 
-目标：让 Agent 只读 `skills/pwcli/SKILL.md` 就能稳定完成高频任务；需要精确参数时再跳到 reference。不要把 skill 写成散乱命令百科。
+目标：让 Agent 只读 `skills/pwcli/SKILL.md` 就能稳定完成约 80% 高频任务；需要精确参数、专项诊断、auth/state/batch/environment 等深细节时再跳到 reference。不要把 skill 写成散乱命令百科。
 
-核心原则：skill 只讲当下如何使用。不要放项目历史、迁移过程、调研结论、业务项目内容、内部环境细节。专项 provider 或业务场景细节下沉到 reference。
+核心原则：`SKILL.md` 是对外的 Agent 使用指令和路由引导，只讲“下一步怎么用 pwcli 完成任务”，不讲内部实现、项目历史、迁移过程、调研结论、业务项目内容或内部环境细节。专项 provider 或业务场景细节下沉到 reference。
 
-## 1. 文档分层
+## 1. SKILL.md 维护策略
+
+`SKILL.md` 维护成“外部讲解指令 + 路由引导”，而不是内部实现说明。
+
+必须满足：
+
+1. 覆盖约 80% 高频命令使用：session lifecycle、page observation、state checks、actions、wait、diagnostics、auth/state、controlled testing、batch、code escape hatch。
+2. 每个高频领域只给最短可执行主链和硬边界，不展开完整参数表。
+3. 专项深水区路由到 reference：
+   - 精确命令参数 → `references/command-reference*.md`
+   - 错误码 / recoverability → `references/failure-recovery.md`
+   - Forge/DC → `references/forge-dc-auth.md`
+   - 任务链路 → `references/workflows.md` / `workflows/*.md`
+   - 领域边界 → `domains/*.md`
+4. 不写内部实现细节：Playwright daemon、源码路径、substrate timeout、实现权衡进 `docs/architecture/` 或 ADR；`SKILL.md` 只写对 Agent 有用的表现、限制和下一步。
+5. 不写项目历史、迁移过程、调研、issue backlog、测试账号、真实业务域名。
+6. 主文档出现“解释为什么这么实现”时，优先下沉到 architecture；出现“完整参数百科”时，优先下沉到 reference。
+
+## 2. 文档分层
 
 | 文件 | 放什么 | 不放什么 |
 |---|---|---|
@@ -21,7 +39,7 @@ paths:
 | `skills/pwcli/references/workflows.md` 和 `skills/pwcli/workflows/*.md` | 场景链路：探索、诊断、受控测试 | 参数百科 |
 | `skills/pwcli/references/forge-dc-auth.md` | Forge/DC provider 使用和失败分支 | 通用 auth 架构设计 |
 
-## 2. 主文档质量线
+## 3. 主文档质量线
 
 `SKILL.md` 必须满足：
 
@@ -44,7 +62,7 @@ paths:
    - fallback
 5. 主文档允许重复最关键命令，禁止重复完整参数表。
 
-## 3. Reference 质量线
+## 4. Reference 质量线
 
 command reference 必须满足：
 
@@ -58,7 +76,7 @@ command reference 必须满足：
 4. 删除命令时必须从所有 reference 和 workflow 移除。
 5. 新增 limitation 时，reference 可以短写，完整恢复路径必须进 `failure-recovery.md`。
 
-## 4. Workflow 质量线
+## 5. Workflow 质量线
 
 workflow 必须是任务链路，不是教程散文。
 
@@ -75,7 +93,7 @@ workflow 必须是任务链路，不是教程散文。
 - 给多个等价主路。
 - 把 future design 写成当前用法。
 
-## 5. 修改检查单
+## 6. 修改检查单
 
 改 skill 前后都跑这张表：
 
@@ -88,7 +106,7 @@ workflow 必须是任务链路，不是教程散文。
 | limitation 是否有恢复路径 | 检查 `failure-recovery.md` |
 | workflow 是否重复教程 | 检查是否能删成命令链和判据 |
 
-## 6. 坏味道
+## 7. 坏味道
 
 出现下面情况就必须重写：
 

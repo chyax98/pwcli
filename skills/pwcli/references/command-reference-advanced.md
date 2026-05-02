@@ -167,7 +167,7 @@
 
 ### `pw auth list`
 
-- 列出内置 auth provider；含内部测试 provider，看 summary 区分用途
+- 列出内置 auth provider；以 provider summary 判断用途，业务登录优先使用用户目标对应的 provider
 
 ### `pw auth info <name>`
 
@@ -181,9 +181,9 @@
 
 ### `pw auth dc --session <name>`
 
-- 默认 `phone=19545672859`、`smsCode=000000`
-- `--arg phone=<number>`、`--arg smsCode=<code>`、`--arg targetUrl=<url>`、`--arg baseURL=<origin>`
-- 传 `targetUrl` 则使用指定业务 URL；未传时优先用当前 Forge 页面，最后回退默认本地 Forge；不支持 `instance`
+- Provider 参数以 `pw auth info dc` 为准，不在文档里硬编码账号或验证码
+- 常用参数：`--arg phone=<number>`、`--arg smsCode=<code>`、`--arg targetUrl=<url>`、`--arg baseURL=<origin>`
+- 传 `targetUrl` 则使用指定业务 URL；未传时优先用当前 Forge 页面，最后回退 provider 默认目标；不支持 `instance`
 - auth 输出给 Agent 的主字段是 `provider`、`resolvedTargetUrl`、`resolvedBy`、`pageState`，不输出原始 provider args
 
 ## Bootstrap
@@ -228,6 +228,8 @@
 - `screenshot ...`、`observe status`、`errors recent|clear`
 - `route list|add|load|remove ...`、`bootstrap apply ...`
 - `state save|load`、`page current|list|frames|dialogs`
+
+Batch route 子集只覆盖常用 `list|load|remove|add` 与基础 fulfill/abort/patch 参数。完整 `route add` 匹配能力（如复杂 query/header/json/body matcher 或 header merge 组合）请单独运行 `pw route ...`，不要放进 batch。
 
 Supported batch click targets:
 

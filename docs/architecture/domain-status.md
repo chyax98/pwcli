@@ -27,6 +27,7 @@
   - run artifacts
 - same-session lifecycle startup/reset/close and managed command dispatch use a per-session lock before entering the Playwright substrate; lock timeout reports recoverable `SESSION_BUSY`
 - same-name lifecycle startup/reset also holds a fail-fast startup lane for the lifetime of that CLI process, so concurrent `session create|recreate` for the same name returns structured `SESSION_BUSY` instead of leaking substrate startup races such as raw `EADDRINUSE`
+- `session recreate` waits briefly after stop and guards replacement browser startup with `SESSION_RECREATE_STARTUP_TIMEOUT` instead of hanging indefinitely on profile/startup substrate stalls
 
 ### 当前限制
 
@@ -78,6 +79,9 @@
 - `scroll`
 - `upload`
 - `download`
+- `hover`
+- `resize`
+- `screenshot`
 - `pdf`
 - `drag`
 - `check|uncheck|select`
@@ -97,6 +101,7 @@
 - dialog 恢复当前只覆盖 browser dialog handle，不覆盖更复杂的页面级阻断控件
 - `locate|get|is|verify` 只做 read-only state check；不返回 ref、不规划动作
 - `get value` 依赖 Playwright `inputValue()`，只适合 input/textarea/select 等表单控件
+- `pw code` 和 run-code-backed semantic/read paths 受 Playwright daemon completion 等待影响；pwcli 以 `RUN_CODE_TIMEOUT` 防止无限卡住，长流程应拆成一等命令 + 显式 wait
 
 ### 后续扩展
 
@@ -118,7 +123,7 @@
 - `profile list-chrome` discovers local Chrome profiles for `session create --from-system-chrome`
 - `profile inspect` / `profile list-chrome` project capability facts for persistent-profile-path and system-chrome-profile-source
 - `auth` 内置 provider 执行 + `save-state`
-- `dc` 是内置 DC/Forge auth provider；默认手机号和验证码内聚在 provider 内，目标解析顺序为显式 `targetUrl`、当前 Forge 页面、默认本地 Forge
+- `dc` 是内置 DC/Forge auth provider；provider 参数以 `pw auth info dc` 为准，目标解析顺序为显式 `targetUrl`、当前 Forge 页面、provider 默认目标
 - `fixture-auth` 是内部 contract 测试 provider，用于 smoke 验证 auth 执行链
 
 ### 当前限制
@@ -147,7 +152,8 @@
 - `errors recent|clear`
 - `diagnostics digest`
 - `diagnostics export`
-- `diagnostics runs|show|grep`
+- `diagnostics bundle`
+- `diagnostics runs|show|grep|timeline`
 - `--since` on live/session query commands
 - `--text` on `diagnostics export`
 - `alias=path` field projection on `diagnostics export|show|grep`
@@ -280,40 +286,21 @@
 - 新增命令或 limitation 时，优先改 skill
 - review policy 只记录可验证问题，不把文档拼写类问题升级成阻塞问题
 
-## 10. 当前阶段目标（2026-04-28）
+## 10. Playwright Substrate Boundary
 
-### 明确目标
+### 当前实现
 
-- 把 `pwcli` 稳定在“Agent-first 可恢复自动化执行器”定位：主链稳定、错误可恢复、诊断可追溯。
+- pwcli managed session 复用 Playwright-core CLI daemon / `Session` / registry substrate。
+- `run-code` 路径由 Playwright daemon 执行，适合 `pw code` 和需要现场 Playwright 能力的一等命令实现。
+- `managedRunCode` 有默认 25s 超时保护：超过 guard timeout 返回 `RUN_CODE_TIMEOUT`，避免 daemon completion wait 无限卡住。
+- `session recreate` 在 stop 后等待短暂释放期，并对 replacement browser startup 施加 30s `SESSION_RECREATE_STARTUP_TIMEOUT`。
 
-### 接下来优先级
+### 当前限制
 
-1. 持续守住 workspace mutation contract（写操作只认 stable identity，不回退 index 语义）。
-2. 让高频交互动作都产出一致的 run evidence（target + diagnosticsDelta + runId），降低回放定位成本。
-3. 维持 skill / architecture / shipped contract 三者同步，避免使用真相漂移。
-4. 在不破坏 lifecycle 边界前提下，按真实需求增量扩 batch 稳定子集。
+- Playwright daemon、dashboard entrypoint、trace CLI 是 internal substrate，不是 pwcli public API contract。
+- `waitForCompletion` 是 Playwright daemon 的正常 completion 策略；它可能在导航或网络活动后继续等待。pwcli 不把它包装成任意长流程执行能力。
+- `pw code` 应保持小步、可恢复；长导航、长网络等待优先拆成一等 `pw wait` / diagnostics 命令。
 
+### 后续扩展
 
-## 11. 后续规划与 Issue 候选（2026-04-28）
-
-> 用于 GitHub issue 拆分的候选清单；优先级按 P0/P1 contract 风险与收益排序。
-
-### I1（P1）批量链路可观测性补齐
-
-- 目标：让 `batch` 子命令失败时输出更稳定的 step-level 证据（步骤索引、命令、错误码、恢复建议）。
-- 验收：`batch` 失败能直接映射到 `failure-recovery` 的恢复路径；skill 有对应示例。
-
-### I2（P1）Modal blocked 恢复链路压测
-
-- 目标：对 `MODAL_STATE_BLOCKED` 在常见动作链路（click/fill/code/page）进行回归矩阵，保证 recover hint 一致。
-- 验收：新增 smoke/dogfood 覆盖；`failure-recovery` 提供最短恢复序列。
-
-### I3（P1）run evidence 字段一致性守护
-
-- 目标：对高频动作（click/fill/type/press）建立 run event schema 快照，防止字段漂移破坏 `diagnostics show/grep`。
-- 验收：字段快照测试 + command reference 同步说明。
-
-### I4（P1）Skill 主链可达性巡检
-
-- 目标：周期性检查主 skill 到 references/workflows 的相对路径路由是否闭环、是否覆盖 70%+ 高频场景。
-- 验收：形成固定 checklist，并在每次命令 contract 变更时执行一次。
+- 只有当上层 timeout / recovery 不能覆盖真实高频场景时，才评估更深的 substrate 接管或 patch；不默认 fork Playwright-core。

@@ -26,7 +26,7 @@ pw session create <name> --headed --open '<url>'
 - 手填手机号/短信页。
 - 自己猜登录表单 selector。
 - 先问用户怎么登录。
-- 猜 `developer-p2-*`。
+- 猜 `<forge-env-host>`。
 
 正确：
 
@@ -35,10 +35,10 @@ pw session create dc2 --headed
 pw auth dc --session dc2
 ```
 
-用户明确说 RND 时：
+用户明确给 Forge/DC URL 时：
 
 ```bash
-pw session create dc2 --headed --open 'https://developer.xdrnd.cn/forge'
+pw session create dc2 --headed --open '<forge-url>'
 pw auth dc --session dc2
 ```
 
@@ -47,13 +47,13 @@ pw auth dc --session dc2
 错误：
 
 - 把 `dc2` 或 `dc2.0` 当成 `instance=2`。
-- 打开 `developer-p2-*`。
+- 打开 `<forge-env-host>`。
 
 正确：
 
 - 用户给 URL：用用户 URL。
-- 用户明确说 RND：用 `https://developer.xdrnd.cn/forge`。
-- 用户没给 URL 且没说 RND：不要问，直接执行默认登录命令。
+- 用户明确给环境或 URL：使用用户提供的 `<forge-url>`。
+- 用户没给 URL：不要猜环境，先执行 provider 默认登录命令。
 - 默认登录失败且错误要求 `targetUrl`：再要求用户给 Forge URL。
 
 ## `pw code` 不是最后手段 {#code-fast-path}
@@ -114,7 +114,7 @@ pw snapshot -i --session <name>
 pw snapshot -c --session <name>
 ```
 
-全量 `pw snapshot --session <name>` 放最后。当前命令面如果有 depth 限制，先用 depth，不默认倾倒完整页面树。
+全量 `pw snapshot --session <name>` 放最后，不默认倾倒完整页面树。
 
 ## read-text 成功优先 {#read-text-before-diagnostics}
 

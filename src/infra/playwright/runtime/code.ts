@@ -1,6 +1,13 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { runManagedSessionCommand } from "../cli-client.js";
+
+/** Default timeout for managedRunCode calls.
+ *  Protects against Playwright-core's waitForCompletion hanging
+ *  on network/navigation waits. 25s gives waitForCompletion's 10s load
+ *  timeout + 500ms fixed wait + overhead room. */
+const DEFAULT_RUN_CODE_TIMEOUT_MS = 25_000;
+
 import {
   parseErrorText,
   parseJsonStringLiteral,
@@ -125,6 +132,9 @@ export async function managedRunCode(options: {
   file?: string;
   sessionName?: string;
   retry?: number;
+  /** Timeout in ms for the daemon command. Protects against waitForCompletion
+   *  hanging on network/navigation waits in Playwright-core. */
+  timeoutMs?: number;
 }) {
   const args = ["run-code"];
   let source = options.source;
@@ -148,6 +158,9 @@ export async function managedRunCode(options: {
         },
         {
           sessionName: options.sessionName,
+          timeoutMs: options.timeoutMs ?? DEFAULT_RUN_CODE_TIMEOUT_MS,
+          timeoutMessage: `run-code timed out after ${(options.timeoutMs ?? DEFAULT_RUN_CODE_TIMEOUT_MS) / 1000}s`,
+          timeoutCode: "RUN_CODE_TIMEOUT",
         },
       );
       const errorText = parseErrorText(result.text);

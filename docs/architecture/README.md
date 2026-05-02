@@ -24,16 +24,14 @@ src/
     output.ts
   domain/
     session/
-    workspace/
     interaction/
-    identity-state/
     diagnostics/
-    bootstrap/
-    environment/
   infra/
     playwright/
-    fs/
+      runtime/
     auth-providers/
+    fs/
+    system-chrome/
 ```
 
 ## 分层责任
@@ -43,11 +41,11 @@ src/
   - batch 输入
   - text / JSON 输出渲染
 - `domain`
-  - lifecycle 语义
-  - workspace / diagnostics / environment / bootstrap 编排
+  - lifecycle、interaction、diagnostics 的纯语义和结果模型
+  - 不承载 Playwright substrate 细节
 - `infra`
-  - Playwright substrate
-  - run dir / skill path / 内置 auth provider / 外部脚本执行适配
+  - Playwright daemon / runtime substrate
+  - run dir / skill path / 内置 auth provider / system Chrome / 外部脚本执行适配
 
 ## 核心闭环
 
@@ -76,12 +74,12 @@ session attach -> state/profile/auth provider -> continue
 | 治理 | [documentation-governance.md](documentation-governance.md) |
 | 现状 | [domain-status.md](domain-status.md) |
 | 命令面 | [command-surface.md](command-surface.md) |
-| ADR | [adr-001-agent-first-command-and-lifecycle.md](adr-001-agent-first-command-and-lifecycle.md)、[adr-002-diagnostics-mock-environment.md](adr-002-diagnostics-mock-environment.md) |
+| ADR | [adr-001-agent-first-command-and-lifecycle.md](adr-001-agent-first-command-and-lifecycle.md)、[adr-002-diagnostics-mock-environment.md](adr-002-diagnostics-mock-environment.md)、[adr-003-environment-clock-boundary.md](adr-003-environment-clock-boundary.md) |
 | Contract | [workspace-mutation-contract.md](workspace-mutation-contract.md) |
 | Analysis | [browser-task-state-model.md](browser-task-state-model.md) |
 | 验证 | [e2e-dogfood-test-plan.md](e2e-dogfood-test-plan.md)、[e2e-dogfood-experience-report.md](e2e-dogfood-experience-report.md) |
-| 技术结论 | [environment-clock-survey.md](environment-clock-survey.md) |
-| 外部基准调研 | [browserbase-browser-trace-survey.md](browserbase-browser-trace-survey.md) |
+| 技术结论 | 已吸收到 ADR / domain-status |
+| 外部基准调研 | 历史调研不作为当前架构入口；稳定结论应吸收到 ADR / domain-status |
 | 发布 | [release-v0.1.0.md](release-v0.1.0.md) |
 
 ## 明确边界
