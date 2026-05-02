@@ -3,14 +3,13 @@ import { dirname, join, resolve } from "node:path";
 import { ActionFailure } from "../../../domain/interaction/action-failure.js";
 import {
   type RefEpochValidation,
-} from "../../../domain/interaction/ref-epoch-validator.js";
-import { buildRunEvent, type RunEventTargetKind } from "../../../domain/interaction/run-event-recorder.js";
-import {
+  buildRunEvent,
+  type RunEventTargetKind,
   type NormalizedSemanticTarget,
   type SemanticTarget,
   normalizeSemanticTarget,
   semanticLocatorExpression,
-} from "../../../domain/interaction/semantic-target-resolver.js";
+} from "../../../domain/interaction/model.js";
 import { appendRunEvent, ensureRunDir } from "../../fs/run-artifacts.js";
 import { runManagedSessionCommand } from "../cli-client.js";
 import { parseDownloadEvent, parsePageSummary, stripQuotes } from "../output-parsers.js";
