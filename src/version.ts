@@ -1,1 +1,1 @@
-export const CLI_VERSION = "0.0.0-dev";
+export const CLI_VERSION = "0.2.0";
