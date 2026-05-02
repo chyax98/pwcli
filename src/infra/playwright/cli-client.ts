@@ -399,10 +399,13 @@ async function stopSessionEntry(entry: ManagedSessionEntry) {
   if (typeof session.deleteSessionConfig === "function") {
     await session.deleteSessionConfig();
   }
-  // Clean up user data dirs (ud-<name>-*) without calling stop() again
+  // Clean up user data dirs and error logs for this session
   const dirEntries = await readdir(entry.daemonDir).catch(() => [] as string[]);
-  const udDirs = dirEntries.filter((f) => f.startsWith(`ud-${entry.config.name}-`));
-  await Promise.all(udDirs.map((f) => rm(join(entry.daemonDir, f), { recursive: true }).catch(() => {})));
+  const name = entry.config.name;
+  const leftovers = dirEntries.filter(
+    (f) => f.startsWith(`ud-${name}-`) || f === `${name}.err` || f.startsWith(`stale${name}.`),
+  );
+  await Promise.all(leftovers.map((f) => rm(join(entry.daemonDir, f), { recursive: true }).catch(() => {})));
 }
 
 export async function getManagedSessionEntry(sessionName?: string) {
@@ -631,6 +634,8 @@ export async function stopManagedSession(sessionName?: string) {
       await stopSessionEntry(entry);
     });
   });
+  // Try to remove the workspace directory if it's now empty
+  await rmdir(entry.daemonDir).catch(() => {});
   return true;
 }
 
