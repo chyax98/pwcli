@@ -8,74 +8,37 @@ type WorkspacePage = {
   pageId: string;
 };
 
-const INTERACTIVE_ROLES = new Set([
-  "button",
-  "link",
-  "checkbox",
-  "radio",
-  "textbox",
-  "combobox",
-  "listbox",
-  "menuitem",
-  "tab",
-  "menuitemcheckbox",
-  "menuitemradio",
-  "slider",
-  "spinbutton",
-  "switch",
-  "treeitem",
-  "gridcell",
-]);
-
-function filterInteractiveNodes(
-  node: Record<string, unknown>,
-  interactiveRoles: Set<string>,
-): Record<string, unknown>[] {
-  const role = String(node.role ?? "");
-  const children = (Array.isArray(node.children) ? node.children : [])
-    .flatMap((child) =>
-      filterInteractiveNodes(child as Record<string, unknown>, interactiveRoles),
-    );
-
-  if (interactiveRoles.has(role)) {
-    return [{ ...node, children }];
-  }
-
-  return children;
-}
 
 export async function managedAccessibilitySnapshot(options: {
   sessionName?: string;
   interactiveOnly?: boolean;
   root?: string;
 }) {
+  // page.ariaSnapshot() is the current Playwright API (replaces deprecated page.accessibility.snapshot())
+  // It returns a YAML string conforming to the ARIA spec
+  const rootExpr = options?.root
+    ? `page.locator(${JSON.stringify(options.root)})`
+    : "page";
   const result = await managedRunCode({
     sessionName: options?.sessionName,
     source: `async page => {
-      const rootLocator = ${options?.root ? `page.locator(${JSON.stringify(options.root)})` : "null"};
-      const snapshot = await page.accessibility.snapshot({ root: rootLocator, interestingOnly: true });
-      return JSON.stringify(snapshot);
+      const target = ${rootExpr};
+      const yaml = await target.ariaSnapshot({ interestingOnly: ${options?.interactiveOnly ? "true" : "false"} });
+      return JSON.stringify({ yaml, empty: !yaml || yaml.trim() === '' });
     }`,
   });
 
-  let snapshot = result.data.result as Record<string, unknown> | null;
-  if (!snapshot) {
-    snapshot = { role: "generic", children: [] };
-  }
-
-  if (options?.interactiveOnly) {
-    const filtered = filterInteractiveNodes(snapshot, INTERACTIVE_ROLES);
-    snapshot =
-      filtered.length === 1
-        ? filtered[0]
-        : { role: "generic", children: filtered };
-  }
+  const raw = result.data.result as Record<string, unknown> | null;
+  const yaml = (raw?.yaml as string) ?? "";
+  const empty = raw?.empty as boolean ?? !yaml;
 
   return {
     session: result.session,
     page: result.page,
     data: {
-      snapshot,
+      format: "aria-yaml" as const,
+      empty,
+      snapshot: yaml,
     },
   };
 }
