@@ -386,6 +386,11 @@ export async function checkPlaywrightBrowsers(): Promise<
 export async function checkDiskSpace(
   dir: string,
 ): Promise<{ availableGB: number; ok: boolean }> {
+  const fs = await import("node:fs");
+  const statfs = fs.statfs;
+  if (!statfs) {
+    throw new Error("checkDiskSpace requires Node.js >= 18.15 (statfs is unavailable)");
+  }
   return new Promise((resolve, reject) => {
     statfs(dir, (err, stats) => {
       if (err) {

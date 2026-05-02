@@ -32,7 +32,7 @@ import {
   managedWait,
 } from "../../infra/playwright/runtime.js";
 
-const SUPPORTED_BATCH_TOP_LEVEL = [
+export const SUPPORTED_BATCH_TOP_LEVEL = [
   "bootstrap",
   "check",
   "click",

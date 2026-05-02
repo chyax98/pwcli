@@ -3,6 +3,7 @@ import {
   type SelectorTarget,
   semanticLocatorExpression,
 } from "../../../domain/interaction/model.js";
+import { DIAGNOSTICS_STATE_KEY } from "./shared.js";
 
 export type { SelectorTarget };
 
@@ -17,7 +18,7 @@ export function selectorActionSource(
   const action = actionSource(`locator.nth(${nthIndex})`);
   const isClick = errorPrefix === "CLICK";
   const popupPre = isClick ? `const popupPromise = page.waitForEvent('popup', { timeout: 1500 }).catch(() => null);\n    ` : "";
-  const popupPost = isClick ? `\n    const popup = await popupPromise;\n    let openedPage = null;\n    if (popup) {\n      const newPageId = popup.__pwcliPageId || (() => {\n        const id = 'p' + Math.random().toString(36).slice(2, 6);\n        popup.__pwcliPageId = id;\n        return id;\n      })();\n      openedPage = { pageId: newPageId, url: popup.url(), title: await popup.title().catch(() => '') };\n    }` : "";
+  const popupPost = isClick ? `\n    const popup = await popupPromise;\n    let openedPage = null;\n    if (popup) {\n      const context = page.context();\n      const state = context[${JSON.stringify(DIAGNOSTICS_STATE_KEY)}] ||= {};\n      state.nextPageSeq = Number.isInteger(state.nextPageSeq) ? state.nextPageSeq : 1;\n      const ensurePageId = (p) => {\n        if (!p.__pwcliPageId)\n          p.__pwcliPageId = 'p' + state.nextPageSeq++;\n        return p.__pwcliPageId;\n      };\n      const newPageId = ensurePageId(popup);\n      openedPage = { pageId: newPageId, url: popup.url(), title: await popup.title().catch(() => '') };\n    }` : "";
   const openedPageField = isClick ? `,\n      openedPage` : "";
 
   return `async page => {
@@ -81,11 +82,15 @@ export function semanticClickSource(target: NormalizedSemanticTarget, button?: s
     const popup = await popupPromise;
     let openedPage = null;
     if (popup) {
-      const newPageId = popup.__pwcliPageId || (() => {
-        const id = 'p' + Math.random().toString(36).slice(2, 6);
-        popup.__pwcliPageId = id;
-        return id;
-      })();
+      const context = page.context();
+      const state = context[DIAGNOSTICS_STATE_KEY] ||= {};
+      state.nextPageSeq = Number.isInteger(state.nextPageSeq) ? state.nextPageSeq : 1;
+      const ensurePageId = (p) => {
+        if (!p.__pwcliPageId)
+          p.__pwcliPageId = 'p' + state.nextPageSeq++;
+        return p.__pwcliPageId;
+      };
+      const newPageId = ensurePageId(popup);
       openedPage = { pageId: newPageId, url: popup.url(), title: await popup.title().catch(() => '') };
     }
     return JSON.stringify({ clicked: true, target, count, nth: ${target.nth}, openedPage });

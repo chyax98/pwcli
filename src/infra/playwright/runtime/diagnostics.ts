@@ -703,15 +703,18 @@ export async function managedHarReplay(options: {
     sessionName: options.sessionName,
     source: `async page => {
       ${stateAccessPrelude()}
+      const previousRoutes = new Set(context._routes || []);
       await context.routeFromHAR(${JSON.stringify(resolvedPath)}, {
         notFound: 'abort',
         update: ${options.update ? "true" : "false"},
       });
+      const harRoutes = (context._routes || []).filter(r => !previousRoutes.has(r));
       state.harReplay = {
         active: true,
         file: ${JSON.stringify(resolvedPath)},
         update: ${options.update ? "true" : "false"},
         startedAt: new Date().toISOString(),
+        harRoutes,
       };
       return JSON.stringify({ replayActive: true, file: ${JSON.stringify(resolvedPath)} });
     }`,
@@ -738,13 +741,32 @@ export async function managedHarReplayStop(options: {
     sessionName: options.sessionName,
     source: `async page => {
       ${stateAccessPrelude()}
-      await context.unrouteAll({ behavior: 'ignoreErrors' });
+      const harRoutes = state.harReplay?.harRoutes || [];
+      let clearedCount = 0;
+      if (harRoutes.length && context._routes) {
+        for (const routeHandler of harRoutes) {
+          try {
+            await context.unroute(routeHandler.url, routeHandler.handler);
+            clearedCount++;
+          } catch (e) {}
+        }
+      }
+      if (typeof context._disposeHarRouters === 'function') {
+        context._disposeHarRouters();
+      }
+      const usedFallback = clearedCount === 0;
+      if (usedFallback) {
+        await context.unrouteAll({ behavior: 'ignoreErrors' });
+        state.routes = [];
+      }
       state.harReplay = {
         active: false,
         stoppedAt: new Date().toISOString(),
       };
-      state.routes = [];
-      return JSON.stringify({ replayActive: false });
+      return JSON.stringify({
+        replayActive: false,
+        ...(usedFallback ? { limitation: 'HAR replay stop fell back to unrouteAll; manual routes may have been cleared.' } : {}),
+      });
     }`,
   });
   const parsed =
