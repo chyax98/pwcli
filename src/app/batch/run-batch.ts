@@ -1035,7 +1035,7 @@ async function executeBatchStep(tokens: string[], sessionName: string) {
 
       for (let index = 0; index < args.length; index += 1) {
         const arg = args[index];
-        if (arg === "networkidle" || arg === "--networkidle") {
+        if (/^network[-_]?idle$/i.test(arg) || arg === "--networkidle" || arg === "--network-idle") {
           networkidle = true;
           continue;
         }
@@ -1086,7 +1086,7 @@ async function executeBatchStep(tokens: string[], sessionName: string) {
           response,
           method,
           status,
-          networkidle: networkidle || target === "networkidle",
+          networkidle: networkidle || (target ? /^network[-_]?idle$/i.test(target) : false),
           sessionName,
         }),
       };
