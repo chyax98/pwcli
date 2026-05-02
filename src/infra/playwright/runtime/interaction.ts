@@ -1376,8 +1376,10 @@ export async function managedVideoStop(options: { sessionName?: string }) {
     { _: ["video-stop"] },
     { sessionName: options.sessionName },
   );
-  const videoMatch = result.text.match(/- \[Video\]\(([^)]+)\)/);
-  const videoPath = videoMatch?.[1];
+  // Match [Video](path) — use a greedy match that handles paths with closing parens
+  // by looking for the last ')' before a newline/end-of-string
+  const videoMatch = result.text.match(/- \[Video\]\(([\s\S]+?)\)(?:\s|$)/);
+  const videoPath = videoMatch?.[1]?.trim() || undefined;
   const noVideo = result.text.includes("No videos were recorded.");
   return {
     session: {
