@@ -1,4 +1,12 @@
-import { accessSync, constants, existsSync, lstatSync, readFileSync } from "node:fs";
+import {
+  accessSync,
+  constants,
+  existsSync,
+  lstatSync,
+  readFileSync,
+  readdirSync,
+  statfs,
+} from "node:fs";
 import { homedir } from "node:os";
 import { resolve } from "node:path";
 import { connect as connectNet } from "node:net";
@@ -294,6 +302,150 @@ export async function probeEndpoint(endpoint?: string): Promise<DoctorDiagnostic
   };
 }
 
+function compareSemver(a: string, b: string): number {
+  const pa = a.split(".").map(Number);
+  const pb = b.split(".").map(Number);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const na = pa[i] || 0;
+    const nb = pb[i] || 0;
+    if (na !== nb) return na - nb;
+  }
+  return 0;
+}
+
+export async function checkNodeVersion(): Promise<{
+  ok: boolean;
+  version: string;
+  minimum: string;
+}> {
+  const version = process.version;
+  const minimum = "18.0.0";
+  const ok = compareSemver(version.slice(1), minimum) >= 0;
+  return { ok, version, minimum };
+}
+
+export async function checkPlaywrightBrowsers(): Promise<
+  Array<{ browser: string; installed: boolean; path?: string }>
+> {
+  const browsers = ["chromium", "firefox", "webkit"];
+  const results: Array<{ browser: string; installed: boolean; path?: string }> =
+    [];
+
+  let browsersPath: string | null = null;
+  const envPath = process.env.PLAYWRIGHT_BROWSERS_PATH;
+  if (envPath && envPath !== "0") {
+    browsersPath = envPath;
+  } else {
+    try {
+      const pwCorePkg = resolve(
+        process.cwd(),
+        "node_modules/playwright-core/package.json",
+      );
+      if (existsSync(pwCorePkg)) {
+        const localBrowsers = resolve(pwCorePkg, "..", ".local-browsers");
+        if (existsSync(localBrowsers)) {
+          browsersPath = localBrowsers;
+        }
+      }
+    } catch {
+      // ignore
+    }
+    if (!browsersPath) {
+      const defaultCache = resolve(homedir(), ".cache/ms-playwright");
+      if (existsSync(defaultCache)) {
+        browsersPath = defaultCache;
+      }
+    }
+  }
+
+  for (const browser of browsers) {
+    if (!browsersPath) {
+      results.push({ browser, installed: false });
+      continue;
+    }
+    try {
+      const entries = readdirSync(browsersPath);
+      const match = entries.find((e) => e.startsWith(`${browser}-`));
+      if (match) {
+        results.push({
+          browser,
+          installed: true,
+          path: resolve(browsersPath, match),
+        });
+      } else {
+        results.push({ browser, installed: false });
+      }
+    } catch {
+      results.push({ browser, installed: false });
+    }
+  }
+
+  return results;
+}
+
+export async function checkDiskSpace(
+  dir: string,
+): Promise<{ availableGB: number; ok: boolean }> {
+  return new Promise((resolve, reject) => {
+    statfs(dir, (err, stats) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      const availableGB = (stats.bavail * stats.bsize) / 1024 ** 3;
+      resolve({ availableGB, ok: availableGB > 1 });
+    });
+  });
+}
+
+export async function inspectEnvironment(
+  cwd?: string,
+): Promise<DoctorDiagnostic> {
+  const nodeCheck = await checkNodeVersion();
+  const browserChecks = await checkPlaywrightBrowsers();
+  const diskCheck = await checkDiskSpace(cwd ?? process.cwd());
+
+  const items: Array<{ label: string; status: DoctorStatus; detail: string }> =
+    [
+      {
+        label: "Node.js version",
+        status: nodeCheck.ok ? "ok" : "fail",
+        detail: `${nodeCheck.version} (required: >= ${nodeCheck.minimum})`,
+      },
+      ...browserChecks.map((b) => ({
+        label: `Playwright ${b.browser}`,
+        status: (b.installed ? "ok" : "warn") as DoctorStatus,
+        detail: b.installed ? `installed at ${b.path}` : "not installed",
+      })),
+      {
+        label: "Disk space",
+        status: diskCheck.ok ? "ok" : "warn",
+        detail: `${diskCheck.availableGB.toFixed(1)} GB available`,
+      },
+    ];
+
+  const worstStatus = items.reduce<DoctorStatus>((worst, item) => {
+    if (item.status === "fail") return "fail";
+    if (item.status === "warn" && worst !== "fail") return "warn";
+    return worst;
+  }, "ok");
+
+  return {
+    kind: "environment",
+    status: worstStatus,
+    summary:
+      worstStatus === "ok"
+        ? "Environment checks passed"
+        : "Environment issues detected",
+    details: {
+      items,
+      nodeVersion: nodeCheck,
+      browsers: browserChecks,
+      diskSpace: diskCheck,
+    },
+  };
+}
+
 // Diagnostics summarization
 export function summarizeDiagnostics(diagnostics: DoctorDiagnostic[]) {
   return diagnostics.reduce(
@@ -423,6 +575,29 @@ export function compactDoctorDiagnostic(diagnostic: DoctorDiagnostic): DoctorDia
           appliedAt: stringValue(details.appliedAt),
         },
       };
+    case "environment": {
+      const items = (details.items ?? []) as Array<{
+        label: string;
+        status: DoctorStatus;
+        detail: string;
+      }>;
+      const filtered = items.filter((item) => item.status !== "ok");
+      return {
+        ...diagnostic,
+        status: filtered.some((i) => i.status === "fail")
+          ? "fail"
+          : filtered.length > 0
+            ? "warn"
+            : "ok",
+        summary:
+          filtered.length > 0
+            ? "Environment issues detected"
+            : "Environment checks passed",
+        details: {
+          items: filtered,
+        },
+      };
+    }
     default:
       return diagnostic;
   }

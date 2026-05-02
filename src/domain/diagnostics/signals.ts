@@ -9,7 +9,7 @@ import {
   shellArg,
 } from "./helpers.js";
 
-const TRACKING_DOMAINS = [
+export const TRACKING_DOMAINS = [
   "google-analytics.com",
   "googletagmanager.com",
   "googlesyndication.com",
@@ -37,16 +37,37 @@ const TRACKING_DOMAINS = [
   "pixel.wp.com",
 ];
 
-function isTrackingPixel(url: string | null): boolean {
+export function isThirdPartyUrl(url: string, pageOrigin?: string): boolean {
   if (!url) return false;
+  let hostname: string;
   try {
-    const hostname = new URL(url).hostname;
-    return TRACKING_DOMAINS.some(
-      (domain) => hostname === domain || hostname.endsWith(`.${domain}`),
-    );
+    hostname = new URL(url).hostname;
   } catch {
     return false;
   }
+  if (
+    TRACKING_DOMAINS.some(
+      (domain) => hostname === domain || hostname.endsWith(`.${domain}`),
+    )
+  ) {
+    return true;
+  }
+  if (pageOrigin) {
+    try {
+      const originHostname = new URL(pageOrigin).hostname;
+      if (hostname !== originHostname) {
+        return true;
+      }
+    } catch {
+      // ignore
+    }
+  }
+  return false;
+}
+
+function isTrackingPixel(url: string | null): boolean {
+  if (!url) return false;
+  return isThirdPartyUrl(url);
 }
 
 const NOISY_NET_ERRORS = [

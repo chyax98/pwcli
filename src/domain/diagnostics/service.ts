@@ -16,6 +16,7 @@ import {
   buildDiagnosticsAuditConclusion,
   buildRunDigest,
   buildSessionDigestFromExport,
+  isThirdPartyUrl,
 } from "./signals.js";
 
 export { buildDiagnosticsAuditConclusion, buildRunDigest } from "./signals.js";
@@ -191,6 +192,33 @@ export async function readDiagnosticsRunView(options: {
   };
 }
 
+type TimelineEntry = {
+  timestamp: string;
+  kind: string;
+  summary: string;
+  details?: Record<string, unknown>;
+};
+
+function scoreTimelineEntry(entry: TimelineEntry, pageOrigin?: string): number {
+  if (entry.kind.startsWith("failure:")) return 10;
+  if (entry.kind.startsWith("action:")) return 8;
+  if (entry.kind === "console:error") {
+    const details = entry.details ?? {};
+    const location = asObject(details.location);
+    const locationUrl = asString(location.url);
+    if (locationUrl && isThirdPartyUrl(locationUrl, pageOrigin)) return 2;
+    return 7;
+  }
+  if (entry.kind === "pageerror") return 6;
+  if (entry.kind === "requestfailed") {
+    const details = entry.details ?? {};
+    const url = asString(details.url);
+    if (url && isThirdPartyUrl(url, pageOrigin)) return 1;
+    return 5;
+  }
+  return 0;
+}
+
 export async function buildSessionTimeline(options: {
   sessionName: string;
   limit?: number;
@@ -200,13 +228,6 @@ export async function buildSessionTimeline(options: {
   const limit = options.limit && options.limit > 0 ? options.limit : 50;
   const since = normalizeSince(options.since);
   const data = asObject(options.exported.data);
-
-  type TimelineEntry = {
-    timestamp: string;
-    kind: string;
-    summary: string;
-    details?: Record<string, unknown>;
-  };
 
   const entries: TimelineEntry[] = [];
 
@@ -377,6 +398,13 @@ export async function managedDiagnosticsBundle(options: {
     )
     .slice(-limit);
 
+  const digestData = asObject(digest.data);
+  const currentPage = asObject(digestData.currentPage);
+  const pageUrl = asString(currentPage.url);
+  const highSignalTimeline = fullTimeline.entries
+    .filter((e) => scoreTimelineEntry(e, pageUrl) >= 5)
+    .slice(-limit);
+
   return {
     session: options.exported.session,
     page: options.exported.page,
@@ -393,6 +421,11 @@ export async function managedDiagnosticsBundle(options: {
         count: timelineSummary.length,
         total: fullTimeline.total,
         entries: timelineSummary,
+      },
+      highSignalTimeline: {
+        count: highSignalTimeline.length,
+        total: fullTimeline.total,
+        entries: highSignalTimeline,
       },
     },
   };

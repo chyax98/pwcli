@@ -14,6 +14,7 @@ import {
   type DoctorDiagnostic,
   compactDoctorDiagnostic,
   doctorRecovery,
+  inspectEnvironment,
   inspectProfilePath,
   inspectStatePath,
   probeEndpoint,
@@ -249,6 +250,7 @@ export function registerDoctorCommand(program: Command): void {
     }) => {
       try {
         const diagnostics = [
+          await inspectEnvironment(process.cwd()),
           await inspectSessionSubstrate(options.session),
           await inspectObserveStatus(options.session),
           await inspectBootstrapConfig(options.session),
