@@ -335,6 +335,23 @@ pw snapshot -i --session bug-a
 
 `locate` and `get count` are the low-noise checks when zero matches is acceptable. Use `snapshot -i` only when you need fresh refs or structural context.
 
+### `READ_TEXT_SELECTOR_NOT_FOUND`
+
+Meaning:
+
+- `pw read-text --selector '<sel>'` matched zero elements
+- the selector does not exist in the current page DOM
+
+Recovery:
+
+```bash
+pw locate --session bug-a --selector '<selector>'
+pw snapshot -i --session bug-a
+pw read-text --session bug-a
+```
+
+Use `locate` to inspect what the selector matches. Use `snapshot -i` to see available elements. Use `read-text` without `--selector` to read the full page.
+
 ### `VERIFY_FAILED`
 
 Meaning:
