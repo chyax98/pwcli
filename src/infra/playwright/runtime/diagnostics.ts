@@ -571,7 +571,7 @@ export async function managedRoute(
           ? 'abort'
           : config.injectHeaders
             ? 'inject-continue'
-            : (config.patchJson !== undefined || config.patchStatus !== undefined)
+            : (config.patchJson !== undefined || config.patchText !== undefined || config.patchStatus !== undefined)
               ? 'patch-response'
               : (config.body !== undefined || config.status !== undefined || config.contentType !== undefined || config.headers !== undefined)
                 ? 'fulfill'
