@@ -1,9 +1,9 @@
 import { before, after, describe, it } from "node:test";
 import { strict as assert } from "node:assert";
 import { startFixtureServer, stopFixtureServer } from "../fixtures/realistic-app.mjs";
-import { checkNodeVersion } from "../../src/domain/environment/health-checks.js";
-import { isThirdPartyUrl } from "../../src/domain/diagnostics/signals.js";
-import { SUPPORTED_BATCH_TOP_LEVEL } from "../../src/app/batch/run-batch.js";
+import { checkNodeVersion } from "../../dist/domain/environment/health-checks.js";
+import { isThirdPartyUrl } from "../../dist/domain/diagnostics/signals.js";
+import { SUPPORTED_BATCH_TOP_LEVEL } from "../../dist/app/batch/run-batch.js";
 
 let fixtureServer: unknown;
 
