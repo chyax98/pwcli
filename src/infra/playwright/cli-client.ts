@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, rmSync, symlinkSync } from "node:fs";
-import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, rm, rmdir, stat, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { dirname, join, resolve } from "node:path";
 
@@ -395,10 +395,14 @@ async function withSessionStartupLock<T>(
 
 async function stopSessionEntry(entry: ManagedSessionEntry) {
   const session = new Session(entry);
-  await session.stop(true);
+  await session.stop(true).catch(() => {});
   if (typeof session.deleteSessionConfig === "function") {
     await session.deleteSessionConfig();
   }
+  // Clean up user data dirs (ud-<name>-*) without calling stop() again
+  const dirEntries = await readdir(entry.daemonDir).catch(() => [] as string[]);
+  const udDirs = dirEntries.filter((f) => f.startsWith(`ud-${entry.config.name}-`));
+  await Promise.all(udDirs.map((f) => rm(join(entry.daemonDir, f), { recursive: true }).catch(() => {})));
 }
 
 export async function getManagedSessionEntry(sessionName?: string) {
@@ -631,16 +635,58 @@ export async function stopManagedSession(sessionName?: string) {
 }
 
 export async function stopAllManagedSessions() {
-  const sessions = await listManagedSessions();
-  const results = [];
+  const registry = await loadRegistry();
+  const allEntries: ManagedSessionEntry[] = [];
+  for (const entries of registry.entryMap().values()) {
+    allEntries.push(...entries);
+  }
 
-  for (const session of sessions) {
-    const closed = await stopManagedSession(session.name).catch(() => false);
-    results.push({
-      name: session.name,
-      alive: session.alive,
-      closed,
-    });
+  const results = [];
+  for (const entry of allEntries) {
+    const session = new Session(entry);
+    const alive = await session.canConnect().catch(() => false);
+    try {
+      await stopSessionEntry(entry);
+      results.push({ name: entry.config.name, alive, closed: true });
+    } catch {
+      results.push({ name: entry.config.name, alive, closed: false });
+    }
+  }
+
+  // Clean up workspace directories: remove known artifacts (.err, stale-*)
+  // then remove the directory only if it becomes empty
+  const daemonDirs = new Set(allEntries.map((e) => e.daemonDir));
+  for (const dir of daemonDirs) {
+    const files = await readdir(dir).catch(() => [] as string[]);
+    const leftovers = files.filter(
+      (f) => f.endsWith(".err") || f.startsWith("stale-") || f.endsWith(".session"),
+    );
+    await Promise.all(leftovers.map((f) => rm(join(dir, f)).catch(() => {})));
+    await rmdir(dir).catch(() => {});
+  }
+
+  // Clean up stale browser descriptors from server registry (~/Library/Caches/ms-playwright/b/)
+  // serverRegistry.list() auto-deletes descriptors that can't connect AND have no userDataDir,
+  // but descriptors with userDataDir survive. Clean those up too since all sessions are closed.
+  if (serverRegistry && typeof serverRegistry.list === "function") {
+    try {
+      const entriesByWorkspace = (await serverRegistry.list()) as Map<
+        string,
+        { file: string; canConnect: boolean }[]
+      >;
+      for (const [, descriptors] of entriesByWorkspace) {
+        for (const desc of descriptors) {
+          if (desc.canConnect) continue;
+          const guid = desc.file?.split("/").pop();
+          if (!guid) continue;
+          if (typeof serverRegistry.deleteUserData === "function") {
+            await serverRegistry.deleteUserData(guid).catch(() => {});
+          } else if (typeof serverRegistry.delete === "function") {
+            await serverRegistry.delete(guid).catch(() => {});
+          }
+        }
+      }
+    } catch {}
   }
 
   return {

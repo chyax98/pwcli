@@ -110,19 +110,33 @@ export function registerDashboardCommand(program: Command): void {
         return;
       }
 
-      const child = spawn(process.execPath, [paths.entrypoint, "cli", "show"], {
+      // Spawn dashboardApp.js directly instead of going through cli.js cli show.
+      // cli.js spawns dashboardApp.js as a detached child and exits immediately,
+      // so observeDashboardLaunch would always see an early exit and report failure.
+      const child = spawn(process.execPath, [paths.dashboardApp], {
         detached: true,
         stdio: "ignore",
       });
       const launchFailure = await observeDashboardLaunch(child);
       if (launchFailure) {
+        // exitCode=0: acquireSingleton() found an existing instance, sent bringToFront, exited cleanly
+        if (launchFailure.phase === "early-exit" && launchFailure.code === 0) {
+          printCommandResult("dashboard open", {
+            data: {
+              command: "dashboardApp.js",
+              dashboardApp: paths.dashboardApp,
+              launched: true,
+              alreadyRunning: true,
+            },
+          });
+          return;
+        }
         printCommandError("dashboard open", {
           code: "DASHBOARD_LAUNCH_FAILED",
           message: "Playwright dashboard subprocess failed during startup",
           details: {
-            command: "playwright cli show",
+            command: "dashboardApp.js",
             dashboardApp: paths.dashboardApp,
-            entrypoint: paths.entrypoint,
             observeMs: DASHBOARD_LAUNCH_OBSERVE_MS,
             phase: launchFailure.phase,
             ...(launchFailure.phase === "spawn"
@@ -142,9 +156,8 @@ export function registerDashboardCommand(program: Command): void {
 
       printCommandResult("dashboard open", {
         data: {
-          command: "playwright cli show",
+          command: "dashboardApp.js",
           dashboardApp: paths.dashboardApp,
-          entrypoint: paths.entrypoint,
           launched: true,
         },
       });

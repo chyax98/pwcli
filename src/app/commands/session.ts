@@ -516,7 +516,7 @@ export function registerSessionCommand(program: Command): void {
   session
     .command("close [name]")
     .description("Close one named managed session, or all managed sessions with --all")
-    .option("--all", "Close every managed session in the current workspace bucket")
+    .option("--all", "Close every managed session across all workspaces")
     .action(async (name: string | undefined, options: { all?: boolean }) => {
       try {
         const closeAll = Boolean(options.all) || name === "all";
@@ -559,7 +559,7 @@ export function registerSessionCommand(program: Command): void {
             error instanceof Error && error.message.includes("--all")
               ? [
                   "Use `pw session close <name>` to close one session",
-                  "Or use `pw session close --all` / `pw session close all` to close every managed session in the current workspace bucket",
+                  "Or use `pw session close --all` / `pw session close all` to close every managed session across all workspaces",
                 ]
               : ["Retry or remove the stale session files manually"],
         });
