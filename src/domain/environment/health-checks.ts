@@ -319,7 +319,7 @@ export async function checkNodeVersion(): Promise<{
   minimum: string;
 }> {
   const version = process.version;
-  const minimum = "18.0.0";
+  const minimum = "18.15.0";
   const ok = compareSemver(version.slice(1), minimum) >= 0;
   return { ok, version, minimum };
 }
@@ -389,7 +389,7 @@ export async function checkDiskSpace(
   const fs = await import("node:fs");
   const statfs = fs.statfs;
   if (!statfs) {
-    throw new Error("checkDiskSpace requires Node.js >= 18.15 (statfs is unavailable)");
+    return { availableGB: 0, ok: false };
   }
   return new Promise((resolve, reject) => {
     statfs(dir, (err, stats) => {
