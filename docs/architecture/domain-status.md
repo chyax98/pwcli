@@ -91,6 +91,11 @@
 - ref-backed `click` / `fill` / `type` validate against the latest snapshot epoch before reporting success
 - `locate|get|is` state-check primitives for compact read-only target checks
 - `upload` best-effort waits for input file count plus `change` / `input` settle, and returns `nextSteps` when page-level acceptance still needs verification
+- `domain/interaction/model.ts`：统一 domain 类型（`SemanticTarget`、`NormalizedSemanticTarget`、`SelectorTarget`、`RefEpochValidation`、`RunEvent`、`RunEventTargetKind`）和纯函数（`normalizeSemanticTarget`、`semanticLocatorExpression`、`buildRunEvent`、`parseRefEpochValidation`）
+- `domain/interaction/errors.ts`：集中 Node.js 侧错误码常量（`InteractionErrorCode`）、recovery 工厂函数（`refStaleFailure`、`inspectRecovery` 等）
+- `action-executor` 模块封装 action 执行编排：baseline capture、runCode、diagnostics delta、run event recording、失败截图
+- `dispatchLocatorAction` 统一 semantic/selector/ref 三分支模式，所有标准 action（click/fill/type/hover/check/uncheck/select）通过此接口执行
+- `source-builders` 模块集中 JS source 字符串构建函数（`selectorActionSource`、`semanticClickSource` 等），与执行逻辑分离
 
 ### 当前限制
 
@@ -107,6 +112,23 @@
 
 - batch 只在真实高频场景下增量扩命令，不追求全量 parity
 - `verify` 后续只补真实场景断言覆盖，不扩大成动作规划器
+
+## 2.5 Environment Health Checks
+
+### 当前实现
+
+- `domain/environment/health-checks.ts`：纯函数，从 `doctor.ts` 提取
+- 包括路径验证（`expandPath`、`canReadPath`、`canWritePath`）、profile 路径检查、网络连通性检查、Auth provider 可用性探测
+- 供 `pw doctor` 命令和未来 health check 命令复用
+
+### 当前限制
+
+- 目前只被 `doctor.ts` 消费
+- 网络连通性检查依赖 Node.js `net.connect`，不走 Playwright
+
+### 后续扩展
+
+- 如果出现第二个消费方（verify、CI health check），seam 已经存在，直接 import 即可
 
 ## 4. Identity State
 
