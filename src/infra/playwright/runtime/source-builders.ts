@@ -15,6 +15,10 @@ export function selectorActionSource(
   const targetJson = JSON.stringify(target);
   const locatorExpression = `page.locator(${JSON.stringify(target.selector)})`;
   const action = actionSource(`locator.nth(${nthIndex})`);
+  const isClick = errorPrefix === "CLICK";
+  const popupPre = isClick ? `const popupPromise = page.waitForEvent('popup', { timeout: 1500 }).catch(() => null);\n    ` : "";
+  const popupPost = isClick ? `\n    const popup = await popupPromise;\n    let openedPage = null;\n    if (popup) {\n      const newPageId = popup.__pwcliPageId || (() => {\n        const id = 'p' + Math.random().toString(36).slice(2, 6);\n        popup.__pwcliPageId = id;\n        return id;\n      })();\n      openedPage = { pageId: newPageId, url: popup.url(), title: await popup.title().catch(() => '') };\n    }` : "";
+  const openedPageField = isClick ? `,\n      openedPage` : "";
 
   return `async page => {
     const target = ${targetJson};
@@ -32,14 +36,14 @@ export function selectorActionSource(
           JSON.stringify({ target, count, nth: ${target.nth} })
       );
     }
-    ${action}
+    ${popupPre}${action}${popupPost}
     return JSON.stringify({
       acted: true,
       selected: ${errorPrefix === "SELECT" ? "true" : "undefined"},
       values: typeof values === 'undefined' ? undefined : values,
       target,
       count,
-      nth: ${target.nth},
+      nth: ${target.nth}${openedPageField},
     });
   }`;
 }
@@ -72,8 +76,19 @@ export function semanticClickSource(target: NormalizedSemanticTarget, button?: s
           JSON.stringify({ target, count, nth: ${target.nth} })
       );
     }
+    const popupPromise = page.waitForEvent('popup', { timeout: 1500 }).catch(() => null);
     await locator.nth(${nthIndex}).click(${clickOptions});
-    return JSON.stringify({ clicked: true, target, count, nth: ${target.nth} });
+    const popup = await popupPromise;
+    let openedPage = null;
+    if (popup) {
+      const newPageId = popup.__pwcliPageId || (() => {
+        const id = 'p' + Math.random().toString(36).slice(2, 6);
+        popup.__pwcliPageId = id;
+        return id;
+      })();
+      openedPage = { pageId: newPageId, url: popup.url(), title: await popup.title().catch(() => '') };
+    }
+    return JSON.stringify({ clicked: true, target, count, nth: ${target.nth}, openedPage });
   }`;
 }
 

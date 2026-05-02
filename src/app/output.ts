@@ -447,6 +447,12 @@ function formatAction(command: string, result: CommandResult): string {
     lines.push("Next steps:");
     lines.push(...nextSteps.map((item) => `- ${item}`));
   }
+  const openedPage = result.data?.openedPage;
+  if (openedPage && typeof openedPage === "object") {
+    const op = openedPage as Record<string, unknown>;
+    lines.push(`openedPage pageId=${op.pageId} url=${op.url}`);
+    lines.push(`Next step: pw tab select ${op.pageId} --session <name>`);
+  }
   lines.push(...formatDiagnosticsDelta(result.data.diagnosticsDelta));
   return lines.join("\n");
 }
