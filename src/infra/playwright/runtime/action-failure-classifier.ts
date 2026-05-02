@@ -16,8 +16,8 @@ function isTargetNotFoundError(errorText: string) {
   if (
     /No element matches selector/i.test(errorText) ||
     /Unable to find/i.test(errorText) ||
-    /(CLICK|FILL|TYPE)_SEMANTIC_NOT_FOUND/i.test(errorText) ||
-    /(CLICK|FILL|TYPE|HOVER|CHECK|UNCHECK|SELECT)_SELECTOR_NOT_FOUND/i.test(errorText)
+    /(CLICK|FILL|TYPE|HOVER|CHECK|UNCHECK|SELECT|PRESS)_SEMANTIC_NOT_FOUND/i.test(errorText) ||
+    /(CLICK|FILL|TYPE|HOVER|CHECK|UNCHECK|SELECT|PRESS)_SELECTOR_NOT_FOUND/i.test(errorText)
   ) {
     return true;
   }
