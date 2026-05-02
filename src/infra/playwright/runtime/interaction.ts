@@ -172,7 +172,7 @@ export async function managedClick(options: {
     ? { kind: "selector" as const, target: { selector: options.selector, nth }, source: selectorActionSource("CLICK", { selector: options.selector, nth }, (l) => `await ${l}.click(${clickOpts});`) }
     : { kind: "ref" as const, ref: normalizeRef(options.ref!), argv: ["click", normalizeRef(options.ref!), ...(options.button ? [options.button] : [])] };
   const tgt = "target" in locator ? locator.target as Record<string, unknown> : { ref: (locator as { ref: string }).ref };
-  return dispatchLocatorAction({ command: "click", sessionName: options.sessionName, before, locator, resultData: { ...tgt, ...(options.button ? { button: options.button } : {}), acted: true }, allowModal: true });
+  return dispatchLocatorAction({ command: "click", sessionName: options.sessionName, before, locator, resultData: { ...tgt, ...(options.button ? { button: options.button } : {}), acted: true }, allowModal: true, pickFromResult: ["openedPage"] });
 }
 
 // =============================================================================

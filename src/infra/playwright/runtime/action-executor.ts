@@ -16,7 +16,7 @@ import {
 import { managedRunCode, managedSnapshot } from "./code.js";
 import { buildDiagnosticsDelta, captureDiagnosticsBaseline } from "./diagnostics.js";
 import { isModalStateBlockedMessage, maybeRawOutput, normalizeRef } from "./shared.js";
-import { pageIdRuntimePrelude } from "./workspace.js";
+import { managedWorkspaceProjection, pageIdRuntimePrelude } from "./workspace.js";
 
 export type DiagnosticsBaseline = {
   consoleTotal: number;
@@ -453,6 +453,7 @@ export async function dispatchLocatorAction(options: {
   resultData: Record<string, unknown>;
   runDetails?: Record<string, unknown>;
   allowModal?: boolean;
+  pickFromResult?: string[];
 }): Promise<ActionResultEnvelope> {
   const { command, sessionName, before, locator, allowModal } = options;
   const runDetails = options.runDetails ?? options.resultData;
@@ -475,13 +476,47 @@ export async function dispatchLocatorAction(options: {
         return buildDialogPendingResult({ command, sessionName, page: result.page, target: targetRecord, before, diagnosticsDelta: delta });
       }
     }
-    return finalizeAction({ command, sessionName, page: result.page, before, resultData: options.resultData, runDetails, targetKind: locator.kind });
+    const actionResult = (result.data?.result as Record<string, unknown>) ?? {};
+    const picked = options.pickFromResult
+      ? Object.fromEntries(
+          options.pickFromResult
+            .filter(k => k in actionResult)
+            .map(k => [k, actionResult[k]])
+        )
+      : {};
+    return finalizeAction({ command, sessionName, page: result.page, before, resultData: { ...options.resultData, ...picked }, runDetails, targetKind: locator.kind });
   }
 
   // ref path
   const { ref, argv } = locator;
   await assertFreshRefEpoch({ sessionName, ref });
+
+  let beforePages: Array<{ pageId: string }> = [];
+  if (command === "click") {
+    const beforeProjection = await managedWorkspaceProjection({ sessionName });
+    beforePages = (beforeProjection.data.workspace.pages as Array<{ pageId: string }>) ?? [];
+  }
+
   const { sessionName: resolvedSession, text, page } = await runManagedCommand({ sessionName, argv });
+
+  let refResultData = options.resultData;
+  if (command === "click") {
+    const afterProjection = await managedWorkspaceProjection({ sessionName: resolvedSession });
+    const afterPages = (afterProjection.data.workspace.pages as Array<{ pageId: string }>) ?? [];
+    const beforeIds = new Set(beforePages.map(p => p.pageId));
+    const newPage = afterPages.find(p => !beforeIds.has(p.pageId));
+    if (newPage) {
+      refResultData = {
+        ...options.resultData,
+        openedPage: {
+          pageId: newPage.pageId,
+          url: (newPage as Record<string, unknown>).url,
+          title: (newPage as Record<string, unknown>).title,
+        },
+      };
+    }
+  }
+
   try {
     throwIfManagedActionError(text, { command, sessionName: resolvedSession });
   } catch (error) {
@@ -497,5 +532,5 @@ export async function dispatchLocatorAction(options: {
       return buildDialogPendingResult({ command, sessionName: resolvedSession, resultText: text, page, target: { ref }, before, diagnosticsDelta: delta });
     }
   }
-  return finalizeAction({ command, sessionName: resolvedSession, page, before, resultData: options.resultData, runDetails, targetKind: "ref", rawText: text });
+  return finalizeAction({ command, sessionName: resolvedSession, page, before, resultData: refResultData, runDetails, targetKind: "ref", rawText: text });
 }
