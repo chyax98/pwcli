@@ -66,10 +66,9 @@ try {
     "utf8",
   );
 
-  const listResult = await runPw(
-    ["profile", "list-chrome", "--output", "json"],
-    { PWCLI_CHROME_USER_DATA_DIR: chromeUserDataDir },
-  );
+  const listResult = await runPw(["profile", "list-chrome", "--output", "json"], {
+    PWCLI_CHROME_USER_DATA_DIR: chromeUserDataDir,
+  });
   assert.equal(listResult.code, 0, `profile list-chrome failed: ${JSON.stringify(listResult)}`);
   const listEnvelope = listResult.json as {
     ok: boolean;

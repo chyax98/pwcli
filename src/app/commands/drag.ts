@@ -28,13 +28,18 @@ export function registerDragCommand(program: Command): void {
         const to = options.toSelector ? undefined : values[index++];
         printCommandResult(
           "drag",
-          await withActionFailureScreenshot(sessionName, () => managedDrag({
-            fromRef: from,
-            toRef: to,
+          await withActionFailureScreenshot(
             sessionName,
-            fromSelector: options.fromSelector,
-            toSelector: options.toSelector,
-          }), "drag"),
+            () =>
+              managedDrag({
+                fromRef: from,
+                toRef: to,
+                sessionName,
+                fromSelector: options.fromSelector,
+                toSelector: options.toSelector,
+              }),
+            "drag",
+          ),
         );
       } catch (error) {
         printSessionAwareCommandError("drag", error, {

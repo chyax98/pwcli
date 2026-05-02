@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { createServer } from "node:http";
 import { mkdtemp, readFile, rm, stat } from "node:fs/promises";
+import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -159,11 +159,19 @@ try {
   const diffEnvelope = diffResult.json as {
     ok: boolean;
     data: {
-      summary: { changed: boolean; changedBuckets: string[]; beforeSource: string; afterSource: string };
+      summary: {
+        changed: boolean;
+        changedBuckets: string[];
+        beforeSource: string;
+        afterSource: string;
+      };
       cookies: { added: Array<{ name: string }> };
       localStorage: { added: string[] };
       sessionStorage: { added: string[] };
-      indexeddb: { databasesAdded: string[]; storesChanged: Array<{ database: string; store: string }> };
+      indexeddb: {
+        databasesAdded: string[];
+        storesChanged: Array<{ database: string; store: string }>;
+      };
     };
   };
   assert.equal(diffEnvelope.ok, true);

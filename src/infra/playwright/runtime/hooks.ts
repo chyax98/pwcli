@@ -1,5 +1,4 @@
 import { managedRunCode } from "./code.js";
-import { DIAGNOSTICS_STATE_KEY } from "./shared.js";
 import { pageIdRuntimePrelude } from "./workspace.js";
 
 export async function managedEnsureDiagnosticsHooks(options?: { sessionName?: string }) {

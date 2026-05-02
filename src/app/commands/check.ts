@@ -77,13 +77,18 @@ export function registerCheckCommand(program: Command): void {
       const semantic = buildSemanticTarget(options);
       printCommandResult(
         "check",
-        await withActionFailureScreenshot(sessionName, () => managedCheck({
-          ref: options.selector || semantic ? undefined : ref,
-          selector: options.selector,
-          nth: options.selector ? nth : undefined,
-          semantic,
+        await withActionFailureScreenshot(
           sessionName,
-        }), "check"),
+          () =>
+            managedCheck({
+              ref: options.selector || semantic ? undefined : ref,
+              selector: options.selector,
+              nth: options.selector ? nth : undefined,
+              semantic,
+              sessionName,
+            }),
+          "check",
+        ),
       );
     } catch (error) {
       printSessionAwareCommandError("check", error, {

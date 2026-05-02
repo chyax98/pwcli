@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, rmSync, symlinkSync } from "node:fs";
-import { mkdir, readFile, readdir, rm, rmdir, stat, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, rm, rmdir, stat, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { dirname, join, resolve } from "node:path";
 
@@ -405,7 +405,9 @@ async function stopSessionEntry(entry: ManagedSessionEntry) {
   const leftovers = dirEntries.filter(
     (f) => f.startsWith(`ud-${name}-`) || f === `${name}.err` || f.startsWith(`stale${name}.`),
   );
-  await Promise.all(leftovers.map((f) => rm(join(entry.daemonDir, f), { recursive: true }).catch(() => {})));
+  await Promise.all(
+    leftovers.map((f) => rm(join(entry.daemonDir, f), { recursive: true }).catch(() => {})),
+  );
 }
 
 export async function getManagedSessionEntry(sessionName?: string) {
@@ -570,8 +572,7 @@ export async function runManagedSessionCommand(
     async () =>
       await withSessionCommandLock(clientInfo.workspaceDir, sessionName, async (lock) => {
         const ensured = await ensureManagedSessionUnlocked(options);
-        const { clientInfo: ensuredClientInfo, sessionName: ensuredSessionName, session } =
-          ensured;
+        const { clientInfo: ensuredClientInfo, sessionName: ensuredSessionName, session } = ensured;
         const run = session.run(ensuredClientInfo, {
           ...args,
         });

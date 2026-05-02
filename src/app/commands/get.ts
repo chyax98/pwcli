@@ -43,11 +43,14 @@ export function registerGetCommand(program: Command): void {
       if (notFound) {
         const target = notFound.target as Record<string, unknown> | undefined;
         const targetDesc = target
-          ? Object.entries(target).filter(([k]) => k !== 'nth').map(([k, v]) => `${k}=${JSON.stringify(v)}`).join(' ')
-          : '';
+          ? Object.entries(target)
+              .filter(([k]) => k !== "nth")
+              .map(([k, v]) => `${k}=${JSON.stringify(v)}`)
+              .join(" ")
+          : "";
         printCommandError("get", {
           code: "STATE_TARGET_NOT_FOUND",
-          message: `target not found${targetDesc ? ': ' + targetDesc : ''}`,
+          message: `target not found${targetDesc ? `: ${targetDesc}` : ""}`,
           retryable: true,
           suggestions: [
             "Run `pw locate --session <name> --selector '<selector>'` to inspect candidates",

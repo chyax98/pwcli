@@ -39,12 +39,7 @@
       "check": "Minimum evidence set is present and readable"
     }
   ],
-  "failureTaxonomy": [
-    "API_5XX",
-    "NETWORK_FAILED",
-    "VERIFY_FAILED",
-    "ARTIFACT_INVALID"
-  ],
+  "failureTaxonomy": ["API_5XX", "NETWORK_FAILED", "VERIFY_FAILED", "ARTIFACT_INVALID"],
   "evidenceRequired": [
     "observe status",
     "network summary",

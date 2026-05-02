@@ -8,10 +8,7 @@ import {
   parseResultText,
   parseSnapshotYaml,
 } from "../output-parsers.js";
-import {
-  isModalStateBlockedMessage,
-  maybeRawOutput,
-} from "./shared.js";
+import { isModalStateBlockedMessage, maybeRawOutput } from "./shared.js";
 import { pageIdRuntimePrelude } from "./workspace.js";
 
 function extractSnapshotRefs(snapshot: string) {
@@ -74,7 +71,10 @@ export async function managedSnapshot(options?: {
     compact: Boolean(options?.compact),
   });
   if (!options?.skipEpoch) {
-    await recordSnapshotRefEpoch({ sessionName: options?.sessionName, snapshot: projectedSnapshot });
+    await recordSnapshotRefEpoch({
+      sessionName: options?.sessionName,
+      snapshot: projectedSnapshot,
+    });
   }
   return {
     session: {

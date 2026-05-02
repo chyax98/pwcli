@@ -85,7 +85,9 @@ function digestValue(value: string) {
 }
 
 function normalizeStringArray(value: unknown) {
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string")
+    : [];
 }
 
 function normalizeStateDiffSnapshotStore(value: unknown): StateDiffSnapshotStore | null {
@@ -179,7 +181,9 @@ function normalizeStateDiffSnapshot(value: unknown): StateDiffSnapshot {
         )
     : [];
   const localStorage =
-    record.localStorage && typeof record.localStorage === "object" && !Array.isArray(record.localStorage)
+    record.localStorage &&
+    typeof record.localStorage === "object" &&
+    !Array.isArray(record.localStorage)
       ? (record.localStorage as Record<string, unknown>)
       : {};
   const sessionStorage =
@@ -508,8 +512,9 @@ function diffCookies(before: StateDiffSnapshotCookie[], after: StateDiffSnapshot
           }
         : null;
     })
-    .filter((entry): entry is { name: string; domain: string; path: string; changedFields: string[] } =>
-      Boolean(entry),
+    .filter(
+      (entry): entry is { name: string; domain: string; path: string; changedFields: string[] } =>
+        Boolean(entry),
     );
   return {
     beforeCount: before.length,
@@ -520,10 +525,7 @@ function diffCookies(before: StateDiffSnapshotCookie[], after: StateDiffSnapshot
   };
 }
 
-function diffIndexedDb(
-  before: StateDiffSnapshotIndexedDb,
-  after: StateDiffSnapshotIndexedDb,
-) {
+function diffIndexedDb(before: StateDiffSnapshotIndexedDb, after: StateDiffSnapshotIndexedDb) {
   const beforeDbMap = new Map(before.databases.map((database) => [database.name, database]));
   const afterDbMap = new Map(after.databases.map((database) => [database.name, database]));
   const databasesAdded = after.databases
@@ -570,9 +572,13 @@ function diffIndexedDb(
         continue;
       }
       const changedFields = [
-        JSON.stringify(beforeStore.keyPath) !== JSON.stringify(afterStore.keyPath) ? "keyPath" : null,
+        JSON.stringify(beforeStore.keyPath) !== JSON.stringify(afterStore.keyPath)
+          ? "keyPath"
+          : null,
         beforeStore.autoIncrement !== afterStore.autoIncrement ? "autoIncrement" : null,
-        JSON.stringify(beforeStore.indexNames) !== JSON.stringify(afterStore.indexNames) ? "indexNames" : null,
+        JSON.stringify(beforeStore.indexNames) !== JSON.stringify(afterStore.indexNames)
+          ? "indexNames"
+          : null,
       ].filter((field): field is string => Boolean(field));
       if (changedFields.length > 0) {
         storesChanged.push({
@@ -680,10 +686,7 @@ export async function managedStateDiff(options?: StateDiffOptions) {
     try {
       beforeSnapshot = (await loadStateDiffSnapshot(beforePath)).snapshot;
     } catch (error) {
-      if (
-        !(error instanceof Error) ||
-        !/ENOENT|no such file or directory/i.test(error.message)
-      ) {
+      if (!(error instanceof Error) || !/ENOENT|no such file or directory/i.test(error.message)) {
         throw error instanceof Error && error.message === "STATE_DIFF_SNAPSHOT_INVALID"
           ? error
           : new Error("STATE_DIFF_SNAPSHOT_INVALID");

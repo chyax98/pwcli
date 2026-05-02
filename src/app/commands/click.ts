@@ -35,52 +35,56 @@ export function registerClickCommand(program: Command): void {
       const sessionName = requireSessionName(options);
       const nth = parseNth(options.nth);
       options.testid = options.testId || options.testid;
-      const result = await withActionFailureScreenshot(sessionName, () => {
-        if (ref || options.selector) {
-          return managedClick({
-            ref,
-            selector: options.selector,
-            nth: options.selector ? nth : undefined,
-            sessionName,
-          });
-        }
-        if (options.role) {
-          return managedClick({
-            semantic: {
-              kind: "role",
-              role: options.role,
-              ...(options.name ? { name: options.name } : {}),
-              nth,
-            },
-            sessionName,
-          });
-        }
-        if (options.text) {
-          return managedClick({
-            semantic: { kind: "text", text: options.text, nth },
-            sessionName,
-          });
-        }
-        if (options.label) {
-          return managedClick({
-            semantic: { kind: "label", label: options.label, nth },
-            sessionName,
-          });
-        }
-        if (options.placeholder) {
-          return managedClick({
-            semantic: { kind: "placeholder", placeholder: options.placeholder, nth },
-            sessionName,
-          });
-        }
-        if (options.testid) {
-          return managedClick({
-            semantic: { kind: "testid", testid: options.testid, nth },
-            sessionName,
-          });
-        }
-        throw new Error("click requires a ref or one semantic locator");
-      }, "click");
+      const result = await withActionFailureScreenshot(
+        sessionName,
+        () => {
+          if (ref || options.selector) {
+            return managedClick({
+              ref,
+              selector: options.selector,
+              nth: options.selector ? nth : undefined,
+              sessionName,
+            });
+          }
+          if (options.role) {
+            return managedClick({
+              semantic: {
+                kind: "role",
+                role: options.role,
+                ...(options.name ? { name: options.name } : {}),
+                nth,
+              },
+              sessionName,
+            });
+          }
+          if (options.text) {
+            return managedClick({
+              semantic: { kind: "text", text: options.text, nth },
+              sessionName,
+            });
+          }
+          if (options.label) {
+            return managedClick({
+              semantic: { kind: "label", label: options.label, nth },
+              sessionName,
+            });
+          }
+          if (options.placeholder) {
+            return managedClick({
+              semantic: { kind: "placeholder", placeholder: options.placeholder, nth },
+              sessionName,
+            });
+          }
+          if (options.testid) {
+            return managedClick({
+              semantic: { kind: "testid", testid: options.testid, nth },
+              sessionName,
+            });
+          }
+          throw new Error("click requires a ref or one semantic locator");
+        },
+        "click",
+      );
       printCommandResult("click", result);
     } catch (error) {
       printSessionAwareCommandError("click", error, {

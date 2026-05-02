@@ -1,10 +1,10 @@
 import { join } from "node:path";
 import type { Command } from "commander";
 import { isActionFailure } from "../../domain/interaction/action-failure.js";
+import { sessionRoutingError } from "../../domain/session/routing.js";
 import { appendRunEvent, ensureRunDir } from "../../infra/fs/run-artifacts.js";
 import { MAX_SESSION_NAME_LENGTH } from "../../infra/playwright/cli-client.js";
 import { managedRunCode } from "../../infra/playwright/runtime.js";
-import { sessionRoutingError } from "../../domain/session/routing.js";
 import { printCommandError } from "../output.js";
 
 export function addSessionOption<T extends Command>(command: T): T {
@@ -58,7 +58,9 @@ export function printSessionAwareCommandError(
   }
 
   const screenshotPath =
-    error instanceof Error ? (error as unknown as Record<string, unknown>).failureScreenshotPath : undefined;
+    error instanceof Error
+      ? (error as unknown as Record<string, unknown>).failureScreenshotPath
+      : undefined;
   printCommandError(command, {
     code: fallback.code,
     message: error instanceof Error ? error.message : fallback.message,
@@ -98,7 +100,9 @@ export async function withActionFailureScreenshot<T>(
   try {
     return await action();
   } catch (error) {
-    const existingRunDir = isActionFailure(error) ? (error.details?.run as Record<string, string>)?.runDir : undefined;
+    const existingRunDir = isActionFailure(error)
+      ? (error.details?.run as Record<string, string>)?.runDir
+      : undefined;
     const screenshotPath = await captureFailureScreenshot(sessionName, existingRunDir);
     if (screenshotPath) {
       if (isActionFailure(error)) {
@@ -108,7 +112,9 @@ export async function withActionFailureScreenshot<T>(
       }
     }
     if (command) {
-      await recordCommandFailure(command, sessionName, error, screenshotPath, existingRunDir).catch(() => {});
+      await recordCommandFailure(command, sessionName, error, screenshotPath, existingRunDir).catch(
+        () => {},
+      );
     }
     throw error;
   }
@@ -135,7 +141,7 @@ async function recordCommandFailure(
       message,
       retryable: isActionFailure(error) ? error.retryable : null,
       suggestions: isActionFailure(error) ? error.suggestions : [],
-      details: isActionFailure(error) ? error.details ?? null : null,
+      details: isActionFailure(error) ? (error.details ?? null) : null,
     },
     ...(screenshotPath ? { failureScreenshotPath: screenshotPath } : {}),
   });

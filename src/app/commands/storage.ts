@@ -46,7 +46,9 @@ export function registerStorageCommand(program: Command): void {
             throw new Error("storage indexeddb export requires a positive integer for --limit");
           }
           if (key !== undefined || value !== undefined) {
-            throw new Error("storage indexeddb export does not accept positional key/value arguments");
+            throw new Error(
+              "storage indexeddb export does not accept positional key/value arguments",
+            );
           }
           printCommandResult(
             "storage indexeddb export",

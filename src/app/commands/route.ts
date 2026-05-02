@@ -238,7 +238,7 @@ export function registerRouteCommand(program: Command): void {
               >)
             : spec.headers && typeof spec.headers === "object"
               ? (spec.headers as Record<string, string>)
-            : undefined;
+              : undefined;
         const mergeHeaders =
           typeof spec.mergeHeadersFile === "string"
             ? (JSON.parse(await readFile(resolve(dir, spec.mergeHeadersFile), "utf8")) as Record<

@@ -14,7 +14,14 @@ export function registerPressCommand(program: Command): void {
   ).action(async (key: string, options: { session?: string }) => {
     try {
       const sessionName = requireSessionName(options);
-      printCommandResult("press", await withActionFailureScreenshot(sessionName, () => managedPress(key, { sessionName }), "press"));
+      printCommandResult(
+        "press",
+        await withActionFailureScreenshot(
+          sessionName,
+          () => managedPress(key, { sessionName }),
+          "press",
+        ),
+      );
     } catch (error) {
       printSessionAwareCommandError("press", error, {
         code: "PRESS_FAILED",

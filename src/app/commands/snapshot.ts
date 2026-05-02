@@ -36,7 +36,9 @@ export function registerSnapshotCommand(program: Command): void {
   });
 
   addSessionOption(
-    snapshot.command("status").description("Check if the current snapshot is fresh, stale, or missing"),
+    snapshot
+      .command("status")
+      .description("Check if the current snapshot is fresh, stale, or missing"),
   ).action(async (options: { session?: string }, command: Command) => {
     try {
       const sessionName = requireSessionName(options, command);

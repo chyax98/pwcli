@@ -18,7 +18,14 @@ export function registerDialogCommand(program: Command): void {
   ).action(async (prompt: string | undefined, options: { session?: string }, command: Command) => {
     try {
       const sessionName = requireSessionName(options, command);
-      printCommandResult("dialog accept", await withActionFailureScreenshot(sessionName, () => managedDialog("accept", { prompt, sessionName }), "dialog accept"));
+      printCommandResult(
+        "dialog accept",
+        await withActionFailureScreenshot(
+          sessionName,
+          () => managedDialog("accept", { prompt, sessionName }),
+          "dialog accept",
+        ),
+      );
     } catch (error) {
       printSessionAwareCommandError("dialog accept", error, {
         code: "DIALOG_ACCEPT_FAILED",
@@ -36,7 +43,14 @@ export function registerDialogCommand(program: Command): void {
     async (options: { session?: string }, command: Command) => {
       try {
         const sessionName = requireSessionName(options, command);
-        printCommandResult("dialog dismiss", await withActionFailureScreenshot(sessionName, () => managedDialog("dismiss", { sessionName }), "dialog dismiss"));
+        printCommandResult(
+          "dialog dismiss",
+          await withActionFailureScreenshot(
+            sessionName,
+            () => managedDialog("dismiss", { sessionName }),
+            "dialog dismiss",
+          ),
+        );
       } catch (error) {
         printSessionAwareCommandError("dialog dismiss", error, {
           code: "DIALOG_DISMISS_FAILED",

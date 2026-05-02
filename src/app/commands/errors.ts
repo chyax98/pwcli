@@ -19,7 +19,13 @@ export function registerErrorsCommand(program: Command): void {
   ).action(
     async (
       action: string,
-      options: { session?: string; text?: string; since?: string; current?: boolean; limit?: string },
+      options: {
+        session?: string;
+        text?: string;
+        since?: string;
+        current?: boolean;
+        limit?: string;
+      },
     ) => {
       try {
         const sessionName = requireSessionName(options);

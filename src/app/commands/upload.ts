@@ -25,12 +25,17 @@ export function registerUploadCommand(program: Command): void {
       }
       printCommandResult(
         "upload",
-        await withActionFailureScreenshot(sessionName, () => managedUpload({
-          ref,
-          selector: options.selector,
-          files,
+        await withActionFailureScreenshot(
           sessionName,
-        }), "upload"),
+          () =>
+            managedUpload({
+              ref,
+              selector: options.selector,
+              files,
+              sessionName,
+            }),
+          "upload",
+        ),
       );
     } catch (error) {
       printSessionAwareCommandError("upload", error, {

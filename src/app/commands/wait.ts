@@ -23,21 +23,28 @@ export function registerWaitCommand(program: Command): void {
       .option("--status <code>", "Restrict response by status"),
   ).action(async (target: string | undefined, options: Record<string, string | boolean>) => {
     const sessionName = requireSessionName(options as { session?: string });
-    const networkidle = Boolean(options.networkidle || options.networkIdle || options["network-idle"]);
+    const networkidle = Boolean(
+      options.networkidle || options.networkIdle || options["network-idle"],
+    );
     try {
       printCommandResult(
         "wait",
-        await withActionFailureScreenshot(sessionName, () => managedWait({
+        await withActionFailureScreenshot(
           sessionName,
-          target: isNetworkIdleTarget(target) ? undefined : target,
-          text: typeof options.text === "string" ? options.text : undefined,
-          selector: typeof options.selector === "string" ? options.selector : undefined,
-          request: typeof options.request === "string" ? options.request : undefined,
-          response: typeof options.response === "string" ? options.response : undefined,
-          method: typeof options.method === "string" ? options.method : undefined,
-          status: typeof options.status === "string" ? options.status : undefined,
-          networkidle: networkidle || isNetworkIdleTarget(target),
-        }), "wait"),
+          () =>
+            managedWait({
+              sessionName,
+              target: isNetworkIdleTarget(target) ? undefined : target,
+              text: typeof options.text === "string" ? options.text : undefined,
+              selector: typeof options.selector === "string" ? options.selector : undefined,
+              request: typeof options.request === "string" ? options.request : undefined,
+              response: typeof options.response === "string" ? options.response : undefined,
+              method: typeof options.method === "string" ? options.method : undefined,
+              status: typeof options.status === "string" ? options.status : undefined,
+              networkidle: networkidle || isNetworkIdleTarget(target),
+            }),
+          "wait",
+        ),
       );
     } catch (error) {
       printSessionAwareCommandError("wait", error, {

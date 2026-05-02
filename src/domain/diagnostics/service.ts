@@ -1,9 +1,9 @@
 import { listRunDirs, readRunEvents } from "../../infra/fs/run-artifacts.js";
 import {
-  type DiagnosticsExportSection,
   asArray,
   asObject,
   asString,
+  type DiagnosticsExportSection,
   limitTail,
   normalizeFieldList,
   normalizeSince,
@@ -26,10 +26,7 @@ type DiagnosticsExport = {
   data: unknown;
 };
 
-export function buildSessionDigest(
-  exported: DiagnosticsExport,
-  limit: number,
-) {
+export function buildSessionDigest(exported: DiagnosticsExport, limit: number) {
   return {
     session: exported.session,
     page: exported.page,
@@ -223,7 +220,7 @@ export async function buildSessionTimeline(options: {
     entries.push({
       timestamp: ts,
       kind: `console:${level}`,
-      summary: text.length > 120 ? text.slice(0, 120) + "…" : text,
+      summary: text.length > 120 ? `${text.slice(0, 120)}…` : text,
       details: record,
     });
   }
@@ -237,7 +234,7 @@ export async function buildSessionTimeline(options: {
     const url = asString(record.url) ?? "";
     const status = record.status;
     const failureText = asString(record.failureText);
-    const shortUrl = url.length > 80 ? "…" + url.slice(-77) : url;
+    const shortUrl = url.length > 80 ? `…${url.slice(-77)}` : url;
     const summary = failureText
       ? `${method} ${shortUrl} -> ${failureText}`
       : `${method} ${shortUrl} -> ${status ?? "?"}`;
@@ -258,7 +255,7 @@ export async function buildSessionTimeline(options: {
     entries.push({
       timestamp: ts,
       kind: "pageerror",
-      summary: text.length > 120 ? text.slice(0, 120) + "…" : text,
+      summary: text.length > 120 ? `${text.slice(0, 120)}…` : text,
       details: record,
     });
   }
@@ -296,7 +293,7 @@ export async function buildSessionTimeline(options: {
       entries.push({
         timestamp: ts,
         kind,
-        summary: summary.length > 120 ? summary.slice(0, 120) + "…" : summary,
+        summary: summary.length > 120 ? `${summary.slice(0, 120)}…` : summary,
         details: {
           runId: run.runId,
           command,

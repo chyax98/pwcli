@@ -67,7 +67,6 @@ function firstVisibleExpression(target: StateTarget) {
   })())`;
 }
 
-
 function targetBaseExpression(target: StateTarget) {
   if ("selector" in target) {
     return `page.locator(${JSON.stringify(target.selector)})`;

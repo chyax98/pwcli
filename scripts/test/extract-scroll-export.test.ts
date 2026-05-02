@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { createServer } from "node:http";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -386,7 +386,11 @@ try {
       "--output",
       "json",
     ]);
-    assert.equal(createLoadMore.code, 0, `load-more session create failed: ${JSON.stringify(createLoadMore)}`);
+    assert.equal(
+      createLoadMore.code,
+      0,
+      `load-more session create failed: ${JSON.stringify(createLoadMore)}`,
+    );
     loadMoreCreated = true;
 
     const loadMoreOutFile = resolve(artifactDir, "load-more.json");
@@ -402,7 +406,11 @@ try {
       "--output",
       "json",
     ]);
-    assert.equal(loadMoreExtract.code, 0, `load-more extract failed: ${JSON.stringify(loadMoreExtract)}`);
+    assert.equal(
+      loadMoreExtract.code,
+      0,
+      `load-more extract failed: ${JSON.stringify(loadMoreExtract)}`,
+    );
 
     const loadMoreEnvelope = loadMoreExtract.json as {
       ok: boolean;
@@ -506,7 +514,9 @@ try {
     });
     assert.equal(loadMoreEnvelope.data.artifactPath, loadMoreOutFile);
 
-    const writtenLoadMoreArtifact = JSON.parse(await readFile(loadMoreOutFile, "utf8")) as ExtractArtifact;
+    const writtenLoadMoreArtifact = JSON.parse(
+      await readFile(loadMoreOutFile, "utf8"),
+    ) as ExtractArtifact;
     assert.deepEqual(writtenLoadMoreArtifact.items, loadMoreEnvelope.data.items);
     assert.deepEqual(writtenLoadMoreArtifact.document, loadMoreEnvelope.data.document);
     assert.deepEqual(writtenLoadMoreArtifact.stats, loadMoreEnvelope.data.stats);
@@ -580,7 +590,11 @@ try {
       "--output",
       "json",
     ]);
-    assert.equal(createScroll.code, 0, `scroll session create failed: ${JSON.stringify(createScroll)}`);
+    assert.equal(
+      createScroll.code,
+      0,
+      `scroll session create failed: ${JSON.stringify(createScroll)}`,
+    );
     scrollCreated = true;
 
     const scrollOutFile = resolve(artifactDir, "scroll.json");
@@ -701,7 +715,9 @@ try {
     });
     assert.equal(scrollEnvelope.data.artifactPath, scrollOutFile);
 
-    const writtenScrollArtifact = JSON.parse(await readFile(scrollOutFile, "utf8")) as ExtractArtifact;
+    const writtenScrollArtifact = JSON.parse(
+      await readFile(scrollOutFile, "utf8"),
+    ) as ExtractArtifact;
     assert.deepEqual(writtenScrollArtifact.items, scrollEnvelope.data.items);
     assert.deepEqual(writtenScrollArtifact.document, scrollEnvelope.data.document);
     assert.deepEqual(writtenScrollArtifact.stats, scrollEnvelope.data.stats);

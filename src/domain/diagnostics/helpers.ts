@@ -50,10 +50,7 @@ export function normalizeSince(since?: string) {
   return { raw: value, time };
 }
 
-export function timestampAtOrAfter(
-  value: unknown,
-  since?: { raw: string; time: number } | null,
-) {
+export function timestampAtOrAfter(value: unknown, since?: { raw: string; time: number } | null) {
   if (!since) {
     return true;
   }

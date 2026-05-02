@@ -89,14 +89,19 @@ export function registerTypeCommand(program: Command): void {
       }
       printCommandResult(
         "type",
-        await withActionFailureScreenshot(sessionName, () => managedType({
-          ref,
-          selector: options.selector,
-          nth: options.selector ? nth : undefined,
-          semantic,
-          value,
+        await withActionFailureScreenshot(
           sessionName,
-        }), "type"),
+          () =>
+            managedType({
+              ref,
+              selector: options.selector,
+              nth: options.selector ? nth : undefined,
+              semantic,
+              value,
+              sessionName,
+            }),
+          "type",
+        ),
       );
     } catch (error) {
       printSessionAwareCommandError("type", error, {

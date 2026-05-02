@@ -2,7 +2,7 @@ import { accessSync, constants, existsSync, lstatSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, resolve } from "node:path";
 import type { Command } from "commander";
-import { listChromeProfiles, type ChromeProfileInfo } from "../../infra/system-chrome/profiles.js";
+import { type ChromeProfileInfo, listChromeProfiles } from "../../infra/system-chrome/profiles.js";
 import { printCommandResult } from "../output.js";
 
 function expandPath(input: string) {

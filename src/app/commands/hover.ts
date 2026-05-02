@@ -77,13 +77,18 @@ export function registerHoverCommand(program: Command): void {
       const semantic = buildSemanticTarget(options);
       printCommandResult(
         "hover",
-        await withActionFailureScreenshot(sessionName, () => managedHover({
-          ref: options.selector || semantic ? undefined : ref,
-          selector: options.selector,
-          nth: options.selector ? nth : undefined,
-          semantic,
+        await withActionFailureScreenshot(
           sessionName,
-        }), "hover"),
+          () =>
+            managedHover({
+              ref: options.selector || semantic ? undefined : ref,
+              selector: options.selector,
+              nth: options.selector ? nth : undefined,
+              semantic,
+              sessionName,
+            }),
+          "hover",
+        ),
       );
     } catch (error) {
       printSessionAwareCommandError("hover", error, {

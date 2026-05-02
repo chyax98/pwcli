@@ -1,12 +1,12 @@
 import type { Command } from "commander";
 import {
+  isModalStateBlockedMessage,
   managedPageAssess,
   managedPageCurrent,
   managedPageDialogs,
   managedPageFrames,
   managedPageList,
 } from "../../infra/playwright/runtime.js";
-import { isModalStateBlockedMessage } from "../../infra/playwright/runtime.js";
 import { printCommandError, printCommandResult } from "../output.js";
 import {
   addSessionOption,

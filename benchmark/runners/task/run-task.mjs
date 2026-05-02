@@ -1,6 +1,6 @@
+import { spawn } from "node:child_process";
 import { access, appendFile, mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { spawn } from "node:child_process";
 import { loadTask } from "../../shared/load-task.mjs";
 
 const repoRoot = resolve(import.meta.dirname, "..", "..", "..");
@@ -76,7 +76,7 @@ function asString(value) {
   return typeof value === "string" ? value : null;
 }
 
-function asNumber(value) {
+function _asNumber(value) {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
@@ -142,7 +142,15 @@ function buildDiagnosticsPlan(task, sessionName, screenshotPath, options = {}) {
     {
       family: "network",
       label: "network 500",
-      args: ["network", "--session", sessionName, "--status", String(expected.status), "--limit", "10"],
+      args: [
+        "network",
+        "--session",
+        sessionName,
+        "--status",
+        String(expected.status),
+        "--limit",
+        "10",
+      ],
     },
     {
       family: "diagnostics",
@@ -305,11 +313,15 @@ async function resolveCliInvocation() {
 async function spawnPw(args, workspaceDir) {
   const invocation = await resolveCliInvocation();
   return new Promise((resolveResult, reject) => {
-    const child = spawn(invocation.command, [...invocation.argsPrefix, ...args, "--output", "json"], {
-      cwd: workspaceDir,
-      env: process.env,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
+    const child = spawn(
+      invocation.command,
+      [...invocation.argsPrefix, ...args, "--output", "json"],
+      {
+        cwd: workspaceDir,
+        env: process.env,
+        stdio: ["ignore", "pipe", "pipe"],
+      },
+    );
     let stdout = "";
     let stderr = "";
     child.stdout.on("data", (chunk) => {
@@ -390,14 +402,15 @@ export async function runLoadedTask(input) {
     taskError = error instanceof Error ? error.message : String(error);
   } finally {
     if (input.manageLifecycle !== false) {
-      const closeResult = await spawnPw(["session", "close", sessionName], input.workspaceDir).catch(
-        (error) => ({
-          code: 1,
-          stdout: "",
-          stderr: error instanceof Error ? error.message : String(error),
-          parsed: null,
-        }),
-      );
+      const closeResult = await spawnPw(
+        ["session", "close", sessionName],
+        input.workspaceDir,
+      ).catch((error) => ({
+        code: 1,
+        stdout: "",
+        stderr: error instanceof Error ? error.message : String(error),
+        parsed: null,
+      }));
       stdoutRecords.push({
         label: "session close",
         stdout: closeResult.stdout,

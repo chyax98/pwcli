@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { generateMatrix } from "../../benchmark/scripts/generate-matrix.mjs";
 import { startFixtureServer } from "../../benchmark/fixtures/server.mjs";
 import { runSuite } from "../../benchmark/runners/suite/run-suite.mjs";
+import { generateMatrix } from "../../benchmark/scripts/generate-matrix.mjs";
 
-const repoRoot = resolve(import.meta.dirname, "..", "..");
+const _repoRoot = resolve(import.meta.dirname, "..", "..");
 
 async function main() {
   const tempRoot = await mkdtemp(join(tmpdir(), "pwcli-benchmark-runner-"));
@@ -74,11 +74,14 @@ async function main() {
       failures: [],
     });
 
-    const taskArtifactDirs = selectedTasks.map(([category, filename]) =>
+    const taskArtifactDirs = selectedTasks.map(([_category, filename]) =>
       resolve(artifactsDir, filename.replace(/\.json$/u, "")),
     );
     for (const taskArtifactDir of taskArtifactDirs) {
-      const runDirs = await stat(taskArtifactDir).then(() => true, () => false);
+      const runDirs = await stat(taskArtifactDir).then(
+        () => true,
+        () => false,
+      );
       assert.equal(runDirs, true);
     }
 

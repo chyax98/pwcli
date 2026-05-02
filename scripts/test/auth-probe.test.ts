@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { createServer } from "node:http";
 import { mkdtemp, rm } from "node:fs/promises";
+import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -59,16 +59,22 @@ const server = createServer((request, response) => {
   const route = request.url ?? "/";
   if (route.startsWith("/login")) {
     response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
-    response.end(`<!doctype html><title>Sign in</title><main><h1>Sign in</h1><form><input type="email"><input type="password"><button type="submit">Continue with email</button></form></main>`);
+    response.end(
+      `<!doctype html><title>Sign in</title><main><h1>Sign in</h1><form><input type="email"><input type="password"><button type="submit">Continue with email</button></form></main>`,
+    );
     return;
   }
   if (route.startsWith("/challenge")) {
     response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
-    response.end(`<!doctype html><title>Security check</title><main><h1>Verify you are human</h1><p>Complete the CAPTCHA security check before continuing.</p></main>`);
+    response.end(
+      `<!doctype html><title>Security check</title><main><h1>Verify you are human</h1><p>Complete the CAPTCHA security check before continuing.</p></main>`,
+    );
     return;
   }
   response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
-  response.end(`<!doctype html><title>Dashboard</title><main><img alt="Account avatar" src="/avatar.png"><h1>Workspace dashboard</h1><button>Account settings</button><p>Protected workspace content</p></main>`);
+  response.end(
+    `<!doctype html><title>Dashboard</title><main><img alt="Account avatar" src="/avatar.png"><h1>Workspace dashboard</h1><button>Account settings</button><p>Protected workspace content</p></main>`,
+  );
 });
 
 await new Promise<void>((resolveStart) => {
@@ -106,7 +112,14 @@ try {
   ]);
   assert.equal(createResult.code, 0, `session create failed: ${JSON.stringify(createResult)}`);
 
-  const seedResult = await runPw(["code", seedScript, "--session", sessionName, "--output", "json"]);
+  const seedResult = await runPw([
+    "code",
+    seedScript,
+    "--session",
+    sessionName,
+    "--output",
+    "json",
+  ]);
   assert.equal(seedResult.code, 0, `seed code failed: ${JSON.stringify(seedResult)}`);
 
   const authenticatedProbe = await runPw([
@@ -117,7 +130,11 @@ try {
     "--output",
     "json",
   ]);
-  assert.equal(authenticatedProbe.code, 0, `auth probe failed: ${JSON.stringify(authenticatedProbe)}`);
+  assert.equal(
+    authenticatedProbe.code,
+    0,
+    `auth probe failed: ${JSON.stringify(authenticatedProbe)}`,
+  );
   const authenticatedEnvelope = authenticatedProbe.json as {
     ok: boolean;
     data: {

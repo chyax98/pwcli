@@ -275,8 +275,7 @@ export async function managedPageAssess(options?: { sessionName?: string }) {
     signals.visibleTextChars >= 100 ? "high" : signals.visibleTextChars >= 40 ? "medium" : "low";
   const authSensitivePageLikely =
     signals.passwordFieldCount > 0 ||
-    (hasForms &&
-      /login|signin|sign-in|auth|account|dashboard|settings/i.test(signals.url));
+    (hasForms && /login|signin|sign-in|auth|account|dashboard|settings/i.test(signals.url));
   const pageKind = inferPageKind({
     hasDialog,
     hasForms,
@@ -289,10 +288,14 @@ export async function managedPageAssess(options?: { sessionName?: string }) {
   const runtimeProbeRecommended = runtimeHintCount > 0 || pageKind === "app";
   const storageProbeRecommended = authSensitivePageLikely;
   const networkProbeRecommended =
-    pageKind === "table" || pageKind === "feed" || (pageKind === "app" && signals.visibleTextChars < 120);
+    pageKind === "table" ||
+    pageKind === "feed" ||
+    (pageKind === "app" && signals.visibleTextChars < 120);
   const complexityHints = {
     virtualizedUiLikely:
-      signals.scrollableRegionCount > 1 && signals.interactiveCount >= 12 && signals.visibleTextChars < 250,
+      signals.scrollableRegionCount > 1 &&
+      signals.interactiveCount >= 12 &&
+      signals.visibleTextChars < 250,
     spaNavigationLikely: runtimeHintCount > 0 || pageKind === "app",
     authSensitivePageLikely,
     overlayHeavyPageLikely: signals.fixedOverlayCount >= 2 || hasDialog,

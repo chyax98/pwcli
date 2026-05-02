@@ -292,7 +292,9 @@ export async function managedStorageIndexedDbExport(options?: IndexedDbExportOpt
       href: typeof parsed.href === "string" ? parsed.href : "",
       databaseCount: Number(parsed.databaseCount ?? 0),
       databases: Array.isArray(parsed.databases) ? parsed.databases : [],
-      ...(typeof parsed.databaseFilter === "string" ? { databaseFilter: parsed.databaseFilter } : {}),
+      ...(typeof parsed.databaseFilter === "string"
+        ? { databaseFilter: parsed.databaseFilter }
+        : {}),
       ...(typeof parsed.storeFilter === "string" ? { storeFilter: parsed.storeFilter } : {}),
       includeRecords: Boolean(parsed.includeRecords),
       recordLimit: Number(parsed.recordLimit ?? limit),

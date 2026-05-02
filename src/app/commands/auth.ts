@@ -1,11 +1,15 @@
 import type { Command } from "commander";
-import { managedAuthProbe, managedStateSave, managedRunCode } from "../../infra/playwright/runtime.js";
 import {
   getAuthProvider,
   listAuthProviders,
   loadAuthProviderSource,
   parseKeyValueArgs,
 } from "../../infra/auth-providers/registry.js";
+import {
+  managedAuthProbe,
+  managedRunCode,
+  managedStateSave,
+} from "../../infra/playwright/runtime.js";
 import { printCommandError, printCommandResult } from "../output.js";
 import {
   addSessionOption,
@@ -121,9 +125,7 @@ export function registerAuthCommand(program: Command): void {
     });
 
   addSessionOption(
-    auth
-      .command("probe")
-      .description("Read-only auth state probe for the current managed session"),
+    auth.command("probe").description("Read-only auth state probe for the current managed session"),
   )
     .option("--url <target>", "Optionally navigate read-only to a protected URL before probing")
     .action(async (options: { session?: string; url?: string }, command: Command) => {

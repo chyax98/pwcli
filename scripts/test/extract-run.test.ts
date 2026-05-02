@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { createServer } from "node:http";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -462,7 +462,14 @@ try {
     ].join("\n"),
   );
 
-  const openArticle = await runPw(["open", articleUrl, "--session", sessionName, "--output", "json"]);
+  const openArticle = await runPw([
+    "open",
+    articleUrl,
+    "--session",
+    sessionName,
+    "--output",
+    "json",
+  ]);
   assert.equal(openArticle.code, 0, `open article failed: ${JSON.stringify(openArticle)}`);
 
   const articleExtract = await runPw([
@@ -475,7 +482,11 @@ try {
     "--output",
     "json",
   ]);
-  assert.equal(articleExtract.code, 0, `extract run article failed: ${JSON.stringify(articleExtract)}`);
+  assert.equal(
+    articleExtract.code,
+    0,
+    `extract run article failed: ${JSON.stringify(articleExtract)}`,
+  );
   const articleEnvelope = articleExtract.json as {
     ok: boolean;
     page: { url: string; title: string };

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { createServer } from "node:http";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -37,7 +37,13 @@ type ExtractDocument = {
     | { kind: "list"; ordered: boolean; items: string[]; sectionPath: string[] }
     | { kind: "quote"; text: string; sectionPath: string[] }
     | { kind: "code"; text: string; languageHint?: string; sectionPath: string[] }
-    | { kind: "table"; headers: string[]; rows: string[][]; caption?: string; sectionPath: string[] }
+    | {
+        kind: "table";
+        headers: string[];
+        rows: string[][];
+        caption?: string;
+        sectionPath: string[];
+      }
   >;
   media: Array<
     | {

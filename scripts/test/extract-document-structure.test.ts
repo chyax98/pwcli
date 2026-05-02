@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { createServer } from "node:http";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -37,7 +37,13 @@ type ExtractDocument = {
     | { kind: "list"; ordered: boolean; items: string[]; sectionPath: string[] }
     | { kind: "quote"; text: string; sectionPath: string[] }
     | { kind: "code"; text: string; languageHint?: string; sectionPath: string[] }
-    | { kind: "table"; headers: string[]; rows: string[][]; caption?: string; sectionPath: string[] }
+    | {
+        kind: "table";
+        headers: string[];
+        rows: string[][];
+        caption?: string;
+        sectionPath: string[];
+      }
   >;
   media: Array<
     | {
@@ -367,7 +373,14 @@ try {
     ],
   });
 
-  const openArticle = await runPw(["open", articleUrl, "--session", sessionName, "--output", "json"]);
+  const openArticle = await runPw([
+    "open",
+    articleUrl,
+    "--session",
+    sessionName,
+    "--output",
+    "json",
+  ]);
   assert.equal(openArticle.code, 0, `open article failed: ${JSON.stringify(openArticle)}`);
 
   const articleExtract = await runPw([
@@ -380,7 +393,11 @@ try {
     "--output",
     "json",
   ]);
-  assert.equal(articleExtract.code, 0, `extract run article failed: ${JSON.stringify(articleExtract)}`);
+  assert.equal(
+    articleExtract.code,
+    0,
+    `extract run article failed: ${JSON.stringify(articleExtract)}`,
+  );
   const articleEnvelope = articleExtract.json as {
     ok: boolean;
     data: {

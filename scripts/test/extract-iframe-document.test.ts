@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { createServer } from "node:http";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -219,8 +219,14 @@ try {
   };
   assert.equal(envelope.ok, true);
 
-  assert.equal(envelope.data.limitations?.includes("cross-origin iframe content is not extracted"), true);
-  assert.equal(envelope.data.limitation?.includes("cross-origin iframe content is not extracted"), true);
+  assert.equal(
+    envelope.data.limitations?.includes("cross-origin iframe content is not extracted"),
+    true,
+  );
+  assert.equal(
+    envelope.data.limitation?.includes("cross-origin iframe content is not extracted"),
+    true,
+  );
 
   const iframeParagraph = envelope.data.document.blocks.find(
     (block) => block.kind === "paragraph" && block.text === "Iframe body marker",

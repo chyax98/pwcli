@@ -1,7 +1,7 @@
 export {
+  type AuthProbeBlockedState,
   type AuthProbeCapability,
   type AuthProbeConfidence,
-  type AuthProbeBlockedState,
   type AuthProbeOptions,
   type AuthProbeRecommendedAction,
   type AuthProbeStatus,
@@ -9,11 +9,11 @@ export {
 } from "./identity-state/auth-probe.js";
 
 export {
-  type StateDiffOptions,
-  type StateDiffSnapshot,
   managedStateDiff,
   managedStateLoad,
   managedStateSave,
+  type StateDiffOptions,
+  type StateDiffSnapshot,
 } from "./identity-state/state-diff.js";
 
 export {

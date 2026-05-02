@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { createServer } from "node:http";
 import { mkdtemp, rm } from "node:fs/promises";
+import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -111,7 +111,14 @@ try {
   ]);
   assert.equal(createResult.code, 0, `session create failed: ${JSON.stringify(createResult)}`);
 
-  const seedResult = await runPw(["code", seedScript, "--session", sessionName, "--output", "json"]);
+  const seedResult = await runPw([
+    "code",
+    seedScript,
+    "--session",
+    sessionName,
+    "--output",
+    "json",
+  ]);
   assert.equal(seedResult.code, 0, `seed code failed: ${JSON.stringify(seedResult)}`);
 
   const exportResult = await runPw([

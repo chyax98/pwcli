@@ -13,7 +13,10 @@ export function registerReadTextCommand(program: Command): void {
       .command("read-text")
       .description("Read visible text from the current page or a selector")
       .option("--selector <selector>", "Read text from a specific selector")
-      .option("--no-include-overlay", "Skip modal/dropdown/popover overlay text (included by default)")
+      .option(
+        "--no-include-overlay",
+        "Skip modal/dropdown/popover overlay text (included by default)",
+      )
       .option("--max-chars <count>", "Limit output length (default: 15000)"),
   ).action(
     async (options: {

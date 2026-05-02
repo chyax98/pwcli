@@ -1,11 +1,11 @@
 import {
-  type RunEventRecord,
-  type SignalRecord,
   asArray,
   asNumber,
   asObject,
   asString,
   limitSignals,
+  type RunEventRecord,
+  type SignalRecord,
   shellArg,
 } from "./helpers.js";
 
@@ -41,7 +41,9 @@ function isTrackingPixel(url: string | null): boolean {
   if (!url) return false;
   try {
     const hostname = new URL(url).hostname;
-    return TRACKING_DOMAINS.some((domain) => hostname === domain || hostname.endsWith("." + domain));
+    return TRACKING_DOMAINS.some(
+      (domain) => hostname === domain || hostname.endsWith(`.${domain}`),
+    );
   } catch {
     return false;
   }
@@ -63,8 +65,11 @@ function isResourceLoadNoise(text: string | null): boolean {
   if (!text) return false;
   if (/^Failed to load resource:.*\b(404|403|401)\b/.test(text)) return true;
   if (/^Failed to load resource:.*net::ERR_/.test(text)) return true;
-  if (/violates the following Content Security Policy/.test(text) &&
-      /adtrafficquality|googlesyndication|googleadservice|doubleclick|facebook\.com\/tr/.test(text)) return true;
+  if (
+    /violates the following Content Security Policy/.test(text) &&
+    /adtrafficquality|googlesyndication|googleadservice|doubleclick|facebook\.com\/tr/.test(text)
+  )
+    return true;
   if (/^Loading the image 'data:image\/svg/.test(text)) return true;
   if (/Attestation check.*googleadservices\.com/.test(text)) return true;
   if (/TinyMCE editors are configured to be read-only/.test(text)) return true;
@@ -351,8 +356,10 @@ export function buildDiagnosticsAuditConclusion(input: {
   const lastFailure = asObject(lastEvent.failure);
   const lastFailureSignal = asObject(lastEvent.failureSignal);
   const pageErrorCount = asNumber(summary.pageErrorCount) ?? 0;
-  const failedRequestCount = asNumber(summary.firstPartyFailedRequestCount) ?? asNumber(summary.failedRequestCount) ?? 0;
-  const consoleErrorCount = asNumber(summary.criticalConsoleErrorCount) ?? asNumber(summary.consoleErrorCount) ?? 0;
+  const failedRequestCount =
+    asNumber(summary.firstPartyFailedRequestCount) ?? asNumber(summary.failedRequestCount) ?? 0;
+  const consoleErrorCount =
+    asNumber(summary.criticalConsoleErrorCount) ?? asNumber(summary.consoleErrorCount) ?? 0;
   const httpErrorCount = asNumber(summary.httpErrorCount) ?? 0;
   const latestRunHasFailure = events.some(
     (event) => Boolean(event.failed) || Object.keys(asObject(event.failure)).length > 0,

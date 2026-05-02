@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { createServer } from "node:http";
 import { mkdtemp, rm } from "node:fs/promises";
+import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -103,7 +103,14 @@ try {
   ]);
   assert.equal(createResult.code, 0, `session create failed: ${JSON.stringify(createResult)}`);
 
-  const assessResult = await runPw(["page", "assess", "--session", sessionName, "--output", "json"]);
+  const assessResult = await runPw([
+    "page",
+    "assess",
+    "--session",
+    sessionName,
+    "--output",
+    "json",
+  ]);
   assert.equal(assessResult.code, 0, `page assess failed: ${JSON.stringify(assessResult)}`);
 
   const envelope = assessResult.json as {

@@ -256,7 +256,13 @@ function parseTraceArtifactPath(text: string) {
 
 export async function managedErrors(
   action: "recent" | "clear",
-  options?: { sessionName?: string; text?: string; limit?: number; since?: string; current?: boolean },
+  options?: {
+    sessionName?: string;
+    text?: string;
+    limit?: number;
+    since?: string;
+    current?: boolean;
+  },
 ) {
   await managedEnsureDiagnosticsHooks({ sessionName: options?.sessionName });
 

@@ -1,8 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import type { Command } from "commander";
-import { readRunEvents } from "../../infra/fs/run-artifacts.js";
-import { managedDiagnosticsExport } from "../../infra/playwright/runtime.js";
 import {
   applyDiagnosticsExportFilter,
   buildRunDigest,
@@ -12,6 +10,8 @@ import {
   managedDiagnosticsBundle,
   readDiagnosticsRunView,
 } from "../../domain/diagnostics/service.js";
+import { readRunEvents } from "../../infra/fs/run-artifacts.js";
+import { managedDiagnosticsExport } from "../../infra/playwright/runtime.js";
 import { printCommandResult } from "../output.js";
 import {
   addSessionOption,
@@ -177,32 +177,35 @@ export function registerDiagnosticsCommand(program: Command): void {
       .command("runs")
       .description("List known run ids")
       .option("--limit <n>", "Limit returned runs")
-      .option("--since <iso>", "Keep only runs whose last activity is at or after the ISO timestamp"),
+      .option(
+        "--since <iso>",
+        "Keep only runs whose last activity is at or after the ISO timestamp",
+      ),
   ).action(async (options: { limit?: string; session?: string; since?: string }) => {
-      try {
-        const limit = options.limit ? Number(options.limit) : undefined;
-        if (limit !== undefined && (!Number.isFinite(limit) || limit <= 0)) {
-          throw new Error("diagnostics runs requires a positive integer for --limit");
-        }
-        const runs = await listDiagnosticsRuns({
-          limit,
-          sessionName: options.session,
-          since: options.since,
-        });
-        printCommandResult("diagnostics runs", {
-          data: {
-            count: runs.length,
-            runs,
-          },
-        });
-      } catch (error) {
-        printSessionAwareCommandError("diagnostics runs", error, {
-          code: "DIAGNOSTICS_RUNS_FAILED",
-          message: "diagnostics runs failed",
-        });
-        process.exitCode = 1;
+    try {
+      const limit = options.limit ? Number(options.limit) : undefined;
+      if (limit !== undefined && (!Number.isFinite(limit) || limit <= 0)) {
+        throw new Error("diagnostics runs requires a positive integer for --limit");
       }
-    });
+      const runs = await listDiagnosticsRuns({
+        limit,
+        sessionName: options.session,
+        since: options.since,
+      });
+      printCommandResult("diagnostics runs", {
+        data: {
+          count: runs.length,
+          runs,
+        },
+      });
+    } catch (error) {
+      printSessionAwareCommandError("diagnostics runs", error, {
+        code: "DIAGNOSTICS_RUNS_FAILED",
+        message: "diagnostics runs failed",
+      });
+      process.exitCode = 1;
+    }
+  });
 
   addSessionOption(
     diagnostics
@@ -372,10 +375,7 @@ export function registerDiagnosticsCommand(program: Command): void {
       .option("--limit <n>", "Max timeline entries to return", "50")
       .option("--since <iso>", "Keep only entries at or after the given ISO timestamp"),
   ).action(
-    async (
-      options: { session?: string; limit?: string; since?: string },
-      command: Command,
-    ) => {
+    async (options: { session?: string; limit?: string; since?: string }, command: Command) => {
       try {
         const sessionName = requireSessionName(options, command);
         const limit = options.limit ? Number(options.limit) : 50;

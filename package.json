@@ -1,8 +1,8 @@
 {
-  "name": "pwcli",
-  "version": "0.0.0-dev",
-  "private": true,
-  "description": "Agent-first Playwright orchestration CLI for internal use",
+  "name": "@chyax/pwcli",
+  "version": "0.1.0",
+  "private": false,
+  "description": "Agent-first Playwright CLI — browser facts, actions, diagnostics and recovery for AI agents",
   "type": "module",
   "files": [
     "dist",

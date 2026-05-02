@@ -10,12 +10,7 @@ import {
 } from "./action-failure-classifier.js";
 import { managedRunCode, managedSnapshot } from "./code.js";
 import { buildDiagnosticsDelta, captureDiagnosticsBaseline } from "./diagnostics.js";
-import {
-  DIAGNOSTICS_STATE_KEY,
-  isModalStateBlockedMessage,
-  maybeRawOutput,
-  normalizeRef,
-} from "./shared.js";
+import { isModalStateBlockedMessage, maybeRawOutput, normalizeRef } from "./shared.js";
 import { managedPageCurrent, pageIdRuntimePrelude } from "./workspace.js";
 
 type SemanticTarget =
@@ -352,7 +347,11 @@ async function assertFreshRefEpoch(options: { sessionName?: string; ref: string 
   let freshSnapshotCaptured = false;
   let freshSnapshotRefCount: number | undefined;
   try {
-    const fresh = await managedSnapshot({ sessionName: options.sessionName, interactive: true, skipEpoch: true });
+    const fresh = await managedSnapshot({
+      sessionName: options.sessionName,
+      interactive: true,
+      skipEpoch: true,
+    });
     freshSnapshotCaptured = true;
     const snapshotText = typeof fresh.data?.snapshot === "string" ? fresh.data.snapshot : "";
     const refMatches = snapshotText.match(/\[ref=[^\]]+\]/g);
@@ -382,10 +381,7 @@ async function assertFreshRefEpoch(options: { sessionName?: string; ref: string 
           navigationId: (validation as Record<string, unknown>).currentNavigationId ?? null,
           url: (validation as Record<string, unknown>).currentUrl ?? null,
         },
-        nextSteps: [
-          `pw snapshot -i ${sessionFlag}`,
-          "重新选择 ref 后再执行 action",
-        ],
+        nextSteps: [`pw snapshot -i ${sessionFlag}`, "重新选择 ref 后再执行 action"],
       },
     },
     suggestions: [

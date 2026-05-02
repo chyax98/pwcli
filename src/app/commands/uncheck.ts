@@ -77,13 +77,18 @@ export function registerUncheckCommand(program: Command): void {
       const semantic = buildSemanticTarget(options);
       printCommandResult(
         "uncheck",
-        await withActionFailureScreenshot(sessionName, () => managedUncheck({
-          ref: options.selector || semantic ? undefined : ref,
-          selector: options.selector,
-          nth: options.selector ? nth : undefined,
-          semantic,
+        await withActionFailureScreenshot(
           sessionName,
-        }), "uncheck"),
+          () =>
+            managedUncheck({
+              ref: options.selector || semantic ? undefined : ref,
+              selector: options.selector,
+              nth: options.selector ? nth : undefined,
+              semantic,
+              sessionName,
+            }),
+          "uncheck",
+        ),
       );
     } catch (error) {
       printSessionAwareCommandError("uncheck", error, {

@@ -4,16 +4,16 @@ import { homedir } from "node:os";
 import { resolve } from "node:path";
 import { connect as connectTls } from "node:tls";
 import type { Command } from "commander";
-import { managedObserveStatus } from "../../infra/playwright/runtime.js";
+import { getAuthProvider, listAuthProviders } from "../../infra/auth-providers/registry.js";
 import {
   getManagedSessionEntry,
   getManagedSessionStatus,
   listManagedSessions,
   runManagedSessionCommand,
 } from "../../infra/playwright/cli-client.js";
-import { getAuthProvider, listAuthProviders } from "../../infra/auth-providers/registry.js";
 import { parsePageSummary } from "../../infra/playwright/output-parsers.js";
 import { isModalStateBlockedMessage } from "../../infra/playwright/runtime/shared.js";
+import { managedObserveStatus } from "../../infra/playwright/runtime.js";
 import { printCommandError, printCommandResult } from "../output.js";
 import { addSessionOption } from "./session-options.js";
 

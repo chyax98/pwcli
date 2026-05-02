@@ -3,7 +3,12 @@ import { maybeRawOutput } from "../shared.js";
 
 export type AuthProbeStatus = "authenticated" | "anonymous" | "uncertain";
 export type AuthProbeConfidence = "high" | "medium" | "low";
-export type AuthProbeBlockedState = "none" | "challenge" | "two_factor" | "interstitial" | "unknown";
+export type AuthProbeBlockedState =
+  | "none"
+  | "challenge"
+  | "two_factor"
+  | "interstitial"
+  | "unknown";
 export type AuthProbeRecommendedAction =
   | "continue"
   | "save_state"
@@ -58,14 +63,7 @@ function buildAuthProbeSource(targetUrl?: string) {
       "workspace",
       "dashboard",
     ],
-    login: [
-      "sign in",
-      "log in",
-      "login",
-      "continue with",
-      "forgot password",
-      "password",
-    ],
+    login: ["sign in", "log in", "login", "continue with", "forgot password", "password"],
     challenge: [
       "verify you are human",
       "security check",
@@ -327,7 +325,9 @@ export async function managedAuthProbe(options?: AuthProbeOptions) {
       : {};
 
   const status =
-    parsed.status === "authenticated" || parsed.status === "anonymous" || parsed.status === "uncertain"
+    parsed.status === "authenticated" ||
+    parsed.status === "anonymous" ||
+    parsed.status === "uncertain"
       ? (parsed.status as AuthProbeStatus)
       : "uncertain";
   const confidence =
@@ -359,12 +359,7 @@ export async function managedAuthProbe(options?: AuthProbeOptions) {
       confidence,
       blockedState,
       recommendedAction,
-      capability: buildAuthProbeCapability(
-        status,
-        blockedState,
-        confidence,
-        recommendedAction,
-      ),
+      capability: buildAuthProbeCapability(status, blockedState, confidence, recommendedAction),
       signals: {
         pageIdentity: Array.isArray((signals as Record<string, unknown>).pageIdentity)
           ? (signals as Record<string, unknown>).pageIdentity

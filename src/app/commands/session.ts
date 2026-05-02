@@ -2,7 +2,12 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Command } from "commander";
-import { managedStateLoad, managedStateSave, managedOpen } from "../../infra/playwright/runtime.js";
+import {
+  applySessionDefaults,
+  getSessionDefaults,
+  resolveLifecycleHeaded,
+  resolveTraceEnabled,
+} from "../../domain/session/defaults.js";
 import { sessionRoutingError } from "../../domain/session/routing.js";
 import {
   getManagedSessionEntry,
@@ -14,13 +19,8 @@ import {
   stopAllManagedSessions,
   stopManagedSession,
 } from "../../infra/playwright/cli-client.js";
-import {
-  applySessionDefaults,
-  getSessionDefaults,
-  resolveLifecycleHeaded,
-  resolveTraceEnabled,
-} from "../../domain/session/defaults.js";
 import { parsePageSummary } from "../../infra/playwright/output-parsers.js";
+import { managedOpen, managedStateLoad, managedStateSave } from "../../infra/playwright/runtime.js";
 import { writeChromeProfileConfig } from "../../infra/system-chrome/profiles.js";
 import { printCommandError, printCommandResult } from "../output.js";
 import { attachManagedSession, resolveAttachTarget } from "./attach-shared.js";
@@ -254,7 +254,10 @@ export function registerSessionCommand(program: Command): void {
     .option("--ws-endpoint <url>", "Playwright browser websocket endpoint")
     .option("--browser-url <url>", "CDP browser URL, for example http://127.0.0.1:9222")
     .option("--cdp <port>", "CDP port, resolved to http://127.0.0.1:<port>")
-    .option("--attachable-id <id>", "Attach using one server id returned by `pw session list --attachable`")
+    .option(
+      "--attachable-id <id>",
+      "Attach using one server id returned by `pw session list --attachable`",
+    )
     .option("--trace", "Enable tracing for the attached session")
     .option("--no-trace", "Disable tracing for the attached session")
     .action(
@@ -572,7 +575,8 @@ async function resolveAttachableServer(attachableId: string) {
   const attachable = await listAttachableBrowserServers();
   if (!attachable.supported) {
     throw new Error(
-      attachable.limitation || "attachable server discovery is not available in this playwright-core build",
+      attachable.limitation ||
+        "attachable server discovery is not available in this playwright-core build",
     );
   }
   const server = attachable.servers.find(

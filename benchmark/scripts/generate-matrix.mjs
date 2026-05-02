@@ -32,7 +32,15 @@ function perceptionTask(index) {
       authMode: "none",
     },
     goal: "Read a deterministic article and verify title, body, and primary CTA.",
-    allowedCommands: ["session", "open", "page", "read-text", "locate", "screenshot", "diagnostics"],
+    allowedCommands: [
+      "session",
+      "open",
+      "page",
+      "read-text",
+      "locate",
+      "screenshot",
+      "diagnostics",
+    ],
     failureTaxonomy: [
       "PERCEPTION_FAILED",
       "TEXT_EXTRACTION_FAILED",
@@ -142,7 +150,10 @@ export async function generateMatrix(options = {}) {
       "auth-state": 96,
     },
   };
-  await writeFile(resolve(generatedRoot, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
+  await writeFile(
+    resolve(generatedRoot, "manifest.json"),
+    `${JSON.stringify(manifest, null, 2)}\n`,
+  );
   return {
     ...manifest,
     outputDir: generatedRoot,

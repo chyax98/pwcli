@@ -21,7 +21,9 @@ try {
     extraction: 32,
   });
 
-  const manifestFile = JSON.parse(await readFile(resolve(generatedRoot, "manifest.json"), "utf8")) as {
+  const manifestFile = JSON.parse(
+    await readFile(resolve(generatedRoot, "manifest.json"), "utf8"),
+  ) as {
     total: number;
   };
   assert.equal(manifestFile.total, 320);

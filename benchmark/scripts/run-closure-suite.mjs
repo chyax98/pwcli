@@ -1,11 +1,11 @@
 import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { generateMatrix } from "./generate-matrix.mjs";
 import { startFixtureServer } from "../fixtures/server.mjs";
-import { createClosureSessionName, runLoadedTask, spawnPw } from "../runners/task/run-task.mjs";
 import { createStabilitySummary } from "../runners/suite/run-suite.mjs";
+import { createClosureSessionName, runLoadedTask, spawnPw } from "../runners/task/run-task.mjs";
 import { discoverTaskPaths, loadTaskList } from "../shared/load-task.mjs";
+import { generateMatrix } from "./generate-matrix.mjs";
 
 const repoRoot = resolve(import.meta.dirname, "..", "..");
 
@@ -69,9 +69,9 @@ export async function runClosureSuite(options = {}) {
       await rm(reportsDir, { recursive: true, force: true });
       await rm(artifactsDir, { recursive: true, force: true });
     }
-    const taskPaths = (await discoverTaskPaths([resolve(repoRoot, "benchmark", "tasks", "generated")])).filter(
-      (taskPath) => !taskPath.endsWith("/manifest.json"),
-    );
+    const taskPaths = (
+      await discoverTaskPaths([resolve(repoRoot, "benchmark", "tasks", "generated")])
+    ).filter((taskPath) => !taskPath.endsWith("/manifest.json"));
     const allTasks = (await loadTaskList(taskPaths, { port: String(fixture.port) })).filter(
       (task) => typeof task.task?.category === "string",
     );
@@ -114,9 +114,7 @@ async function loadExistingSummaries(artifactsDir) {
       try {
         const summary = JSON.parse(await readFile(summaryPath, "utf8"));
         runSummaries.push(summary);
-      } catch {
-        continue;
-      }
+      } catch {}
     }
     runSummaries.sort((left, right) => String(left.runId).localeCompare(String(right.runId)));
     const latest = runSummaries.at(-1);

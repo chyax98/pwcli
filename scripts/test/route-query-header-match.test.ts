@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { createServer } from "node:http";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -107,14 +107,7 @@ try {
     "json",
   ]);
   assert.equal(routeResult.code, 0, `route add failed: ${routeResult.stderr}`);
-  const listResult = await runPw([
-    "route",
-    "list",
-    "--session",
-    sessionName,
-    "--output",
-    "json",
-  ]);
+  const listResult = await runPw(["route", "list", "--session", sessionName, "--output", "json"]);
   assert.equal(listResult.code, 0);
   const routeList = listResult.json as {
     data: {

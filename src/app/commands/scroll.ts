@@ -23,11 +23,16 @@ export function registerScrollCommand(program: Command): void {
         const sessionName = requireSessionName(options);
         printCommandResult(
           "scroll",
-          await withActionFailureScreenshot(sessionName, () => managedScroll({
-            direction,
-            distance: distance ? Number(distance) : undefined,
+          await withActionFailureScreenshot(
             sessionName,
-          }), "scroll"),
+            () =>
+              managedScroll({
+                direction,
+                distance: distance ? Number(distance) : undefined,
+                sessionName,
+              }),
+            "scroll",
+          ),
         );
       } catch (error) {
         printSessionAwareCommandError("scroll", error, {

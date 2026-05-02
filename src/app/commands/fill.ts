@@ -83,14 +83,19 @@ export function registerFillCommand(program: Command): void {
       }
       printCommandResult(
         "fill",
-        await withActionFailureScreenshot(sessionName, () => managedFill({
-          ref,
-          selector: options.selector,
-          nth: options.selector ? nth : undefined,
-          semantic,
-          value,
+        await withActionFailureScreenshot(
           sessionName,
-        }), "fill"),
+          () =>
+            managedFill({
+              ref,
+              selector: options.selector,
+              nth: options.selector ? nth : undefined,
+              semantic,
+              value,
+              sessionName,
+            }),
+          "fill",
+        ),
       );
     } catch (error) {
       printSessionAwareCommandError("fill", error, {
