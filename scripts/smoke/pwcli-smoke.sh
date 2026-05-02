@@ -481,6 +481,9 @@ assert_json "$auth_session_create_json" "auth reuse session created" \
 auth_state_load_json="$(run_json auth-state-load state load "$AUTH_STATE_FILE" --session "$AUTH_SESSION")"
 assert_json "$auth_state_load_json" "auth state file loaded" \
   "data.ok === true && data.data.loaded === true"
+auth_state_navigate_json="$(run_json auth-state-navigate open "$BLANK_URL" --session "$AUTH_SESSION")"
+assert_json "$auth_state_navigate_json" "auth state session navigated to blank" \
+  "data.ok === true && data.data.navigated === true"
 auth_storage_reuse_json="$(run_json auth-storage-reuse storage local --session "$AUTH_SESSION")"
 assert_json "$auth_storage_reuse_json" "auth state restores local storage marker" \
   "data.ok === true && data.data.entries['pwcli-auth-marker'] === 'smoke-auth'"
@@ -499,8 +502,8 @@ assert_json "$observe_json" "observe status workspace is healthy" \
 
 log "batch surfaces"
 batch_out="${TMP_DIR}/batch.json"
-if ! printf '[["observe","status"],["page","dialogs"]]' | "${CLI[@]}" batch --session "$SESSION_NAME" --json >"$batch_out"; then
-  log "command failed: ${CLI[*]} batch --session ${SESSION_NAME} --json"
+if ! printf '[["observe","status"],["page","dialogs"]]' | "${CLI[@]}" batch --session "$SESSION_NAME" --stdin-json >"$batch_out"; then
+  log "command failed: ${CLI[*]} batch --session ${SESSION_NAME} --stdin-json"
   cat "$batch_out" >&2 || true
   exit 1
 fi
@@ -660,20 +663,20 @@ batch_semantic_json="$batch_semantic_out"
 assert_json "$batch_semantic_json" "batch supports semantic role/text click" \
   "data.ok === true && data.data.summary.failedCount === 0 && data.data.summary.successCount === 4"
 
-bad_semantic_batch='[["click","--label","Email"]]'
+bad_semantic_batch='[["click","--label","Missing Label"]]'
 bad_semantic_out="${TMP_DIR}/batch-bad-semantic.json"
 set +e
 printf '%s' "$bad_semantic_batch" | "${CLI[@]}" batch --session "$SESSION_NAME" --stdin-json >"$bad_semantic_out"
 bad_semantic_code=$?
 set -e
 if [ "$bad_semantic_code" -eq 0 ]; then
-  log "expected unsupported semantic batch failure: ${CLI[*]} batch --session ${SESSION_NAME} --stdin-json"
+  log "expected missing semantic batch failure: ${CLI[*]} batch --session ${SESSION_NAME} --stdin-json"
   cat "$bad_semantic_out" >&2 || true
   exit 1
 fi
 bad_semantic_json="$bad_semantic_out"
-assert_json "$bad_semantic_json" "unsupported batch semantic flag fails" \
-  "data.ok === false && data.error.code === 'BATCH_STEP_FAILED' && data.error.details.summary.failedCount === 1 && String(data.error.details.summary.firstFailureMessage).includes('unsupported click batch argument') && String(data.error.details.summary.firstFailureMessage).includes('outside batch')"
+assert_json "$bad_semantic_json" "missing batch semantic target fails" \
+  "data.ok === false && data.error.code === 'BATCH_STEP_FAILED' && data.error.details.summary.failedCount === 1 && String(data.error.details.summary.firstFailureMessage).includes('CLICK_SEMANTIC_NOT_FOUND')"
 
 log "bootstrap apply"
 bootstrap_json="$(run_json bootstrap-apply bootstrap apply --session "$SESSION_NAME" --init-script ./scripts/manual/bootstrap-fixture.js --headers-file "$HEADERS_FILE")"
