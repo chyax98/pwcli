@@ -36,7 +36,6 @@ import {
   semanticInputSource,
   semanticHoverSource,
   semanticSelectSource,
-  type SelectorTarget,
 } from "./source-builders.js";
 
 // Re-export for consumers that import from interaction.ts
@@ -217,27 +216,16 @@ export async function managedType(options: {
 
   if (options.semantic) {
     const target = normalizeSemanticTarget(options.semantic);
-    let result;
-    try {
-      result = await executeCodeAction({
-        command: "type",
-        sessionName: options.sessionName,
-        source: semanticInputSource("TYPE", target, "type", options.value),
-        before,
-        target,
-      });
-    } catch (error) {
-      await recordFailedActionRun("type", options.sessionName, undefined, before, error, { target });
-      throw error;
-    }
-    return finalizeAction({
+    return dispatchLocatorAction({
       command: "type",
       sessionName: options.sessionName,
-      page: result.page,
       before,
+      locator: {
+        kind: "semantic",
+        target,
+        source: semanticInputSource("TYPE", target, "type", options.value),
+      },
       resultData: { target, value: options.value, typed: true },
-      runDetails: { target, value: options.value, typed: true },
-      targetKind: "semantic",
     });
   }
 
@@ -260,57 +248,45 @@ export async function managedType(options: {
     });
   }
 
-  const target = options.ref ? normalizeRef(options.ref) : options.selector;
-  if (options.ref) {
-    await assertFreshRefEpoch({ sessionName: options.sessionName, ref: target ?? "" });
-  }
-  const selectorTarget: SelectorTarget | undefined = options.selector
-    ? { selector: options.selector, nth: Math.max(1, Math.floor(Number(options.nth ?? 1))) }
-    : undefined;
-  const source = options.ref
-    ? `async page => { await page.locator(${JSON.stringify(`aria-ref=${target}`)}).type(${JSON.stringify(options.value)}); return 'typed'; }`
-    : selectorActionSource(
-        "TYPE",
-        selectorTarget as SelectorTarget,
-        (locator) => `await ${locator}.type(${JSON.stringify(options.value)});`,
-      );
+  const nth = Math.max(1, Math.floor(Number(options.nth ?? 1)));
+  const locator = options.selector
+    ? {
+        kind: "selector" as const,
+        target: { selector: options.selector, nth },
+        source: selectorActionSource(
+          "TYPE",
+          { selector: options.selector, nth },
+          (locatorHandle) => `await ${locatorHandle}.type(${JSON.stringify(options.value)});`,
+        ),
+      }
+    : {
+        kind: "ref" as const,
+        ref: normalizeRef(options.ref!),
+        argv: ["type", normalizeRef(options.ref!), options.value],
+      };
 
-  let result;
-  try {
-    result = await executeCodeAction({
-      command: "type",
-      sessionName: options.sessionName,
-      source,
-      before,
-      target: options.ref ? { ref: normalizeRef(options.ref) } : selectorTarget,
-    });
-  } catch (error) {
-    await recordFailedActionRun("type", options.sessionName, undefined, before, error, {
-      target: options.ref ? { ref: normalizeRef(options.ref) } : selectorTarget,
-    });
-    throw error;
-  }
-  return finalizeAction({
+  const resultData =
+    locator.kind === "selector"
+      ? {
+          target: locator.target,
+          selector: locator.target.selector,
+          nth: locator.target.nth,
+          value: options.value,
+          typed: true,
+        }
+      : { ref: locator.ref, value: options.value, typed: true };
+  const runDetails =
+    locator.kind === "selector"
+      ? { target: locator.target, value: options.value, typed: true }
+      : resultData;
+
+  return dispatchLocatorAction({
     command: "type",
     sessionName: options.sessionName,
-    page: result.page,
     before,
-    resultData: {
-      ...(options.ref
-        ? { ref: normalizeRef(options.ref) }
-        : { target: selectorTarget, selector: options.selector, nth: selectorTarget?.nth }),
-      value: options.value,
-      typed: true,
-    },
-    runDetails: {
-      ...(options.ref
-        ? { ref: normalizeRef(options.ref) }
-        : { target: selectorTarget }),
-      value: options.value,
-      typed: true,
-    },
-    targetKind: options.ref ? "ref" : "selector",
-    rawText: typeof result.data.output === "string" ? result.data.output : undefined,
+    locator,
+    resultData,
+    runDetails,
   });
 }
 
@@ -429,107 +405,64 @@ export async function managedSelect(options: {
   }
 
   const before = await captureDiagnosticsBaseline(options.sessionName);
+  const nth = Math.max(1, Math.floor(Number(options.nth ?? 1)));
+  const locator = options.semantic
+    ? (() => {
+        const target = normalizeSemanticTarget(options.semantic!);
+        return {
+          kind: "semantic" as const,
+          target,
+          source: semanticSelectSource(target, options.value),
+        };
+      })()
+    : options.selector
+      ? {
+          kind: "selector" as const,
+          target: { selector: options.selector, nth },
+          source: selectorActionSource(
+            "SELECT",
+            { selector: options.selector, nth },
+            (locatorHandle) => `await ${locatorHandle}.selectOption(${JSON.stringify(options.value)});`,
+          ),
+        }
+      : {
+          kind: "ref" as const,
+          ref: normalizeRef(options.ref!),
+          argv: ["select", normalizeRef(options.ref!), options.value],
+        };
 
-  if (options.semantic) {
-    const target = normalizeSemanticTarget(options.semantic);
-    let result;
-    try {
-      result = await executeCodeAction({
-        command: "select",
-        sessionName: options.sessionName,
-        source: semanticSelectSource(target, options.value),
-        before,
-        target,
-        details: { value: options.value },
-      });
-    } catch (error) {
-      await recordFailedActionRun("select", options.sessionName, undefined, before, error, {
-        target,
-        details: { value: options.value },
-      });
-      throw error;
-    }
-    const parsed =
-      typeof result.data.result === "object" && result.data.result ? result.data.result : {};
-    return finalizeAction({
-      command: "select",
-      sessionName: options.sessionName,
-      page: result.page,
-      before,
-      resultData: {
-        target,
-        value: options.value,
-        values: Array.isArray(parsed.values) ? parsed.values : [options.value],
-        selected: true,
-      },
-      runDetails: { target, value: options.value, selected: true },
-      targetKind: "semantic",
-    });
-  }
+  const resultData =
+    locator.kind === "semantic"
+      ? {
+          target: locator.target,
+          value: options.value,
+          values: [options.value],
+          selected: true,
+        }
+      : locator.kind === "selector"
+        ? {
+            target: locator.target,
+            selector: locator.target.selector,
+            nth: locator.target.nth,
+            value: options.value,
+            values: [options.value],
+            selected: true,
+          }
+        : { ref: locator.ref, value: options.value, selected: true };
+  const runDetails =
+    locator.kind === "selector"
+      ? { target: locator.target, value: options.value, selected: true }
+      : locator.kind === "semantic"
+        ? { target: locator.target, value: options.value, selected: true }
+        : resultData;
 
-  if (options.selector) {
-    const target: SelectorTarget = {
-      selector: options.selector,
-      nth: Math.max(1, Math.floor(Number(options.nth ?? 1))),
-    };
-    let result;
-    try {
-      result = await executeCodeAction({
-        command: "select",
-        sessionName: options.sessionName,
-        source: selectorActionSource("SELECT", target, (locator) => {
-          return `const values = await ${locator}.selectOption(${JSON.stringify(options.value)});`;
-        }),
-        before,
-        target,
-        details: { value: options.value },
-      });
-    } catch (error) {
-      await recordFailedActionRun("select", options.sessionName, undefined, before, error, {
-        target,
-        details: { value: options.value },
-      });
-      throw error;
-    }
-    const parsed =
-      typeof result.data.result === "object" && result.data.result ? result.data.result : {};
-    return finalizeAction({
-      command: "select",
-      sessionName: options.sessionName,
-      page: result.page,
-      before,
-      resultData: {
-        target,
-        selector: options.selector,
-        nth: target.nth,
-        value: options.value,
-        values: Array.isArray(parsed.values) ? parsed.values : [options.value],
-        selected: true,
-      },
-      runDetails: { target, value: options.value, selected: true },
-      targetKind: "selector",
-    });
-  }
-
-  const ref = normalizeRef(options.ref ?? "");
-  await assertFreshRefEpoch({ sessionName: options.sessionName, ref });
-  const { sessionName, text, page } = await executeCommandAction({
+  return dispatchLocatorAction({
     command: "select",
     sessionName: options.sessionName,
-    argv: ["select", ref, options.value],
     before,
-    target: { ref },
-    details: { value: options.value },
-  });
-  return finalizeAction({
-    command: "select",
-    sessionName,
-    page,
-    before,
-    resultData: { ref, value: options.value, selected: true },
-    runDetails: { ref, value: options.value, selected: true },
-    targetKind: "ref",
-    rawText: text,
+    locator,
+    resultData,
+    runDetails,
   });
 }
 
