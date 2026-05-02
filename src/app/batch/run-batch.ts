@@ -2,10 +2,12 @@ import { readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import {
   managedBootstrapApply,
+  managedCheck,
   managedClick,
   managedErrors,
   managedFill,
   managedGetFact,
+  managedHover,
   managedIsState,
   managedLocate,
   managedObserveStatus,
@@ -20,21 +22,25 @@ import {
   managedRunCode,
   managedScreenshot,
   managedScroll,
+  managedSelect,
   managedSnapshot,
   managedStateLoad,
   managedStateSave,
   managedType,
+  managedUncheck,
   managedVerify,
   managedWait,
 } from "../../infra/playwright/runtime.js";
 
 const SUPPORTED_BATCH_TOP_LEVEL = [
   "bootstrap",
+  "check",
   "click",
   "code",
   "errors",
   "fill",
   "get",
+  "hover",
   "is",
   "locate",
   "observe",
@@ -45,9 +51,11 @@ const SUPPORTED_BATCH_TOP_LEVEL = [
   "route",
   "screenshot",
   "scroll",
+  "select",
   "snapshot",
   "state",
   "type",
+  "uncheck",
   "verify",
   "wait",
 ] as const;
@@ -73,7 +81,11 @@ function classifyBatchStep(tokens: string[]): BatchStepKind {
     command === "route" ||
     command === "bootstrap" ||
     (command === "state" && subcommand === "load") ||
-    command === "code"
+    command === "code" ||
+    command === "check" ||
+    command === "uncheck" ||
+    command === "select" ||
+    command === "hover"
   ) {
     return command === "code" ? "session-shape" : "mutation";
   }
@@ -839,13 +851,74 @@ async function executeBatchStep(tokens: string[], sessionName: string) {
     }
     case "click": {
       const target = parseBatchSemanticArgs(args, "click");
-      if (!target) {
+      if (!target.semantic && !target.selector && !target.ref) {
         throw new Error("batch click requires a ref, --selector, or semantic locator");
       }
       return {
         ok: true,
         command: "click",
         data: await managedClick({ sessionName, ...target }),
+      };
+    }
+    case "check": {
+      const target = parseBatchSemanticArgs(args, "check");
+      if (!target.semantic && !target.selector && !target.ref) {
+        throw new Error("batch check requires a ref, --selector, or semantic locator");
+      }
+      return {
+        ok: true,
+        command: "check",
+        data: await managedCheck({ sessionName, ...target }),
+      };
+    }
+    case "uncheck": {
+      const target = parseBatchSemanticArgs(args, "uncheck");
+      if (!target.semantic && !target.selector && !target.ref) {
+        throw new Error("batch uncheck requires a ref, --selector, or semantic locator");
+      }
+      return {
+        ok: true,
+        command: "uncheck",
+        data: await managedUncheck({ sessionName, ...target }),
+      };
+    }
+    case "hover": {
+      const target = parseBatchSemanticArgs(args, "hover");
+      if (!target.semantic && !target.selector && !target.ref) {
+        throw new Error("batch hover requires a ref, --selector, or semantic locator");
+      }
+      return {
+        ok: true,
+        command: "hover",
+        data: await managedHover({ sessionName, ...target }),
+      };
+    }
+    case "select": {
+      const target = parseBatchSemanticArgs(args, "select");
+      const { trailingValues, ...targetRest } = target;
+      const value = trailingValues.join(" ");
+      if (targetRest.semantic || targetRest.selector) {
+        if (!value) {
+          throw new Error(`batch step '${rawStep}' requires a value after the target`);
+        }
+        return {
+          ok: true,
+          command: "select",
+          data: await managedSelect({ ...targetRest, value, sessionName }),
+        };
+      }
+      // Fallback: first arg is ref, rest is value
+      if (args.length < 2) {
+        throw new Error(`batch step '${rawStep}' requires ref/--selector/--label and value`);
+      }
+      return {
+        ok: true,
+        command: "select",
+        data: await managedSelect({
+          ref: args[0],
+          value: args.slice(1).join(" "),
+          sessionName,
+        }),
       };
     }
     case "fill": {
@@ -904,15 +977,39 @@ async function executeBatchStep(tokens: string[], sessionName: string) {
         }),
       };
     }
-    case "press":
-      if (args.length !== 1) {
-        throw new Error(`batch step '${rawStep}' requires exactly one key`);
+    case "press": {
+      const target = parseBatchSemanticArgs(args, "press");
+      const { trailingValues, ...targetRest } = target;
+      const key = trailingValues.join(" ");
+      if (targetRest.semantic || targetRest.selector) {
+        if (!key) {
+          throw new Error(`batch step '${rawStep}' requires a key after the target`);
+        }
+        return {
+          ok: true,
+          command: "press",
+          data: await managedPress(key, { ...targetRest, sessionName }),
+        };
+      }
+      if (targetRest.ref) {
+        if (!key) {
+          throw new Error(`batch step '${rawStep}' requires a key after the ref`);
+        }
+        return {
+          ok: true,
+          command: "press",
+          data: await managedPress(key, { ...targetRest, sessionName }),
+        };
+      }
+      if (!key) {
+        throw new Error(`batch step '${rawStep}' requires a key`);
       }
       return {
         ok: true,
         command: "press",
-        data: await managedPress(args[0], { sessionName }),
+        data: await managedPress(key, { sessionName }),
       };
+    }
     case "scroll":
       if (!args.length) {
         throw new Error(`batch step '${rawStep}' requires direction`);

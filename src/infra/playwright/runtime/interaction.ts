@@ -36,6 +36,7 @@ import {
   semanticInputSource,
   semanticHoverSource,
   semanticSelectSource,
+  semanticPressSource,
 } from "./source-builders.js";
 
 // Re-export for consumers that import from interaction.ts

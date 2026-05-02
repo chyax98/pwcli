@@ -190,3 +190,30 @@ export function semanticSelectSource(target: NormalizedSemanticTarget, value: st
     return JSON.stringify({ selected: true, target, count, nth: ${target.nth}, values });
   }`;
 }
+
+export function semanticPressSource(target: NormalizedSemanticTarget, key: string) {
+  const nthIndex = target.nth - 1;
+  const targetJson = JSON.stringify(target);
+  const locatorExpression = semanticLocatorExpression(target);
+  const keyJson = JSON.stringify(key);
+
+  return `async page => {
+    const target = ${targetJson};
+    const locator = ${locatorExpression};
+    const count = await locator.count();
+    if (count === 0) {
+      throw new Error(
+        'PRESS_SEMANTIC_NOT_FOUND:' +
+          JSON.stringify({ target })
+      );
+    }
+    if (${nthIndex} >= count) {
+      throw new Error(
+        'PRESS_SEMANTIC_INDEX_OUT_OF_RANGE:' +
+          JSON.stringify({ target, count, nth: ${target.nth} })
+      );
+    }
+    await locator.nth(${nthIndex}).press(${keyJson});
+    return JSON.stringify({ pressed: true, target, count, nth: ${target.nth} });
+  }`;
+}
