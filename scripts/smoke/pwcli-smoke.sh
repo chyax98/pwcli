@@ -78,9 +78,16 @@ const fs = require('node:fs');
 
 const [file, label, expr] = process.argv.slice(2);
 const data = JSON.parse(fs.readFileSync(file, 'utf8'));
-const fn = new Function('data', `return (${expr});`);
+const x = label.startsWith('.')
+  ? label
+      .slice(1)
+      .split('.')
+      .filter(Boolean)
+      .reduce((value, key) => (value == null ? undefined : value[key]), data)
+  : undefined;
+const fn = new Function('data', 'x', `return (${expr});`);
 
-if (!fn(data)) {
+if (!fn(data, x)) {
   console.error(`[smoke] assertion failed: ${label}`);
   console.error(JSON.stringify(data, null, 2));
   process.exit(1);
@@ -271,6 +278,22 @@ create_json="$(run_json session-create session create "$SESSION_NAME" --open "$B
 assert_json "$create_json" "session create ok" \
   "data.ok === true && data.command === 'session create' && data.data.created === true && data.page.url === '${BLANK_URL}'"
 
+log "session create with init-script"
+INIT_SCRIPT="${TMP_DIR}/test-init.js"
+echo "// test init script" > "$INIT_SCRIPT"
+INIT_SESSION="si${RUN_ID}"
+out=$(run_json "session_init" session create "$INIT_SESSION" \
+  --init-script "$INIT_SCRIPT" --headless --open "$BLANK_URL")
+assert_json "$out" ".ok" "true"
+assert_json "$out" ".data.bootstrapApplied" "true"
+# cleanup
+"${CLI[@]}" session close "$INIT_SESSION" >/dev/null 2>&1 || true
+
+log "session recreate bootstrapReapplied field"
+out=$(run_json "recreate_bootstrap" session recreate "$SESSION_NAME" --headless)
+assert_json "$out" ".ok" "true"
+assert_json "$out" ".data.bootstrapReapplied" "typeof x === 'boolean'"
+
 log "snapshot"
 snapshot_json="$(run_json snapshot snapshot --session "$SESSION_NAME")"
 assert_json "$snapshot_json" "snapshot contains fixture title" \
@@ -327,6 +350,13 @@ assert_json "$stale_drag_json" "stale drag ref reuse returns REF_STALE" \
 stale_download_json="$(run_fail_json stale-download download "$stale_ref" --session "$STALE_SESSION" --path "${TMP_DIR}/stale-download.bin")"
 assert_json "$stale_download_json" "stale download ref reuse returns REF_STALE" \
   "data.ok === false && data.error.code === 'REF_STALE' && data.error.retryable === false && data.error.details.reason === 'navigation-changed'"
+
+log "recovery envelope field in session not found error"
+out=$(run_fail_json "recovery_field" session status "nonexistent${RUN_ID}")
+assert_json "$out" ".ok" "false"
+assert_json "$out" ".error.recovery.kind" "typeof x === 'string'"
+assert_json "$out" ".error.recovery.commands" "Array.isArray(x)"
+
 run_json stale-close session close "$STALE_SESSION" >/dev/null
 STALE_SESSION_CLOSED="1"
 
@@ -697,6 +727,11 @@ log "route add"
 route_json="$(run_json route-add route add '**/__pwcli__/diagnostics/route-hit**' --session "$SESSION_NAME" --body routed-from-pwcli --status 211 --content-type text/plain)"
 assert_json "$route_json" "route add ok" \
   "data.ok === true && data.data.added === true && data.data.route.status === 211"
+
+log "sse observation (no events expected from blank page)"
+out=$(run_json "sse" sse --session "$SESSION_NAME" --output json)
+assert_json "$out" ".ok" "true"
+assert_json "$out" ".data.count" "typeof x === 'number'"
 
 log "diagnostics fixture setup"
 code_json="$(run_json diagnostics-code code --session "$SESSION_NAME" --file ./scripts/manual/diagnostics-fixture.js)"

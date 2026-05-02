@@ -531,16 +531,7 @@ export function registerSessionCommand(program: Command): void {
       try {
         const status = await getManagedSessionStatus(name);
         if (!status) {
-          printCommandError("session status", {
-            code: "SESSION_NOT_FOUND",
-            message: `Session '${name}' not found.`,
-            suggestions: [
-              "Run `pw session list` to inspect active sessions",
-              "Create it with `pw session create <name> --open <url>`",
-            ],
-          });
-          process.exitCode = 1;
-          return;
+          throw new Error(`SESSION_NOT_FOUND:${name}`);
         }
         printCommandResult("session status", {
           session: {
@@ -556,6 +547,12 @@ export function registerSessionCommand(program: Command): void {
           },
         });
       } catch (error) {
+        const routing = sessionRoutingError(error instanceof Error ? error.message : String(error));
+        if (routing) {
+          printCommandError("session status", routing);
+          process.exitCode = 1;
+          return;
+        }
         printCommandError("session status", {
           code: "SESSION_STATUS_FAILED",
           message: error instanceof Error ? error.message : "session status failed",
