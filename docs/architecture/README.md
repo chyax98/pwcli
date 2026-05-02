@@ -2,6 +2,8 @@
 
 `docs/architecture/` 只维护 `pwcli` 的架构事实、领域状态、限制和扩展方向。
 
+当前产品定义：**pwcli product = CLI substrate + `skills/pwcli/` instructions + Agent workflow regression**。
+
 命令教程只看 [`skills/pwcli/SKILL.md`](../../skills/pwcli/SKILL.md)。Agent 项目规则看 [`.claude/CLAUDE.md`](../../.claude/CLAUDE.md) 和 [`.claude/rules/`](../../.claude/rules/)。
 
 ## 先读顺序
@@ -77,7 +79,7 @@ session attach -> state/profile/auth provider -> continue
 | ADR | [adr-001-agent-first-command-and-lifecycle.md](adr-001-agent-first-command-and-lifecycle.md)、[adr-002-diagnostics-mock-environment.md](adr-002-diagnostics-mock-environment.md)、[adr-003-environment-clock-boundary.md](adr-003-environment-clock-boundary.md) |
 | Contract | [workspace-mutation-contract.md](workspace-mutation-contract.md) |
 | Analysis | [browser-task-state-model.md](browser-task-state-model.md) |
-| 验证 | [e2e-dogfood-test-plan.md](e2e-dogfood-test-plan.md)、[e2e-dogfood-experience-report.md](e2e-dogfood-experience-report.md) |
+| 验证 / Agent Product Regression | [e2e-dogfood-test-plan.md](e2e-dogfood-test-plan.md)、[e2e-dogfood-experience-report.md](e2e-dogfood-experience-report.md) |
 | 技术结论 | 已吸收到 ADR / domain-status |
 | 外部基准调研 | 历史调研不作为当前架构入口；稳定结论应吸收到 ADR / domain-status |
 | 发布 | [release-v0.1.0.md](release-v0.1.0.md) |

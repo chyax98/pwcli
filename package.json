@@ -24,8 +24,9 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
-    "smoke": "pnpm build && bash scripts/smoke/pwcli-smoke.sh",
-    "test:dogfood": "pnpm run smoke",
+    "test:regression": "pnpm build && bash scripts/smoke/pwcli-smoke.sh",
+    "smoke": "pnpm run test:regression",
+    "test:dogfood": "pnpm run test:regression",
     "test:dogfood:e2e": "pnpm build && bash scripts/e2e/pwcli-dogfood-e2e.sh"
   },
   "dependencies": {

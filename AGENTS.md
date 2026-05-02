@@ -87,7 +87,8 @@ pw <affected-command> ...
 2. session lifecycle / open / auth / batch 边界是否漂移
 3. 命令、flag、错误码、输出、workflow 变化是否同步 `skills/pwcli/`
 4. 领域边界变化是否同步 `docs/architecture/`
-5. 行为变更是否有 `pnpm typecheck`、`pnpm build`、`pnpm smoke` 或等价覆盖
+5. Agent 可用性增强是否有真实任务/issue/dogfood 证据，不把 P2/P3 后置项伪装成正式版 blocker
+6. 行为变更是否有 `pnpm typecheck`、`pnpm build`、`pnpm smoke` 或等价覆盖
 
 ## 禁忌
 

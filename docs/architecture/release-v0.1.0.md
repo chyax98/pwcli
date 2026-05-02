@@ -71,10 +71,12 @@ pnpm build
 ```bash
 pnpm typecheck
 pnpm build
-pnpm smoke
+pnpm test:regression
 git diff --check
 npm pack --dry-run
 ```
+
+`pnpm test:regression` 是 Agent Product Regression：验证 CLI + `skills/pwcli/` + 真实浏览器任务链路。`pnpm smoke` 当前保留为兼容 alias，不代表 tiny smoke。
 
 高风险行为变化再补：
 
@@ -133,5 +135,5 @@ pw session close relcheck
 
 - `pw skill path` 指向包内 `skills/pwcli`。
 - README 的最短链路可执行。
-- smoke / dogfood 没有新增 P0/P1。
+- Agent Product Regression / dogfood 没有新增 P0/P1。
 - issues / release notes 中的限制与 docs 一致。

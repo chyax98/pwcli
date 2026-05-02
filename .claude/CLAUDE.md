@@ -62,6 +62,7 @@ Project slash commands live in `.claude/commands/*.md`. They are local developme
 - `rules/08-skill-maintenance.md`: skill sync and command contract upkeep
 - `rules/09-skill-writing-standard.md`: skill writing quality bar
 - `rules/10-review-guidelines.md`: P0/P1 review checklist
+- `rules/11-agent-usability-prioritization.md`: evidence-driven Agent usability enhancement prioritization
 
 ## Local Commands
 

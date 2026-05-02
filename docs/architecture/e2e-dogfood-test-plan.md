@@ -1,13 +1,13 @@
-# E2E Dogfood Contract
+# Agent Product Regression / E2E Dogfood Contract
 
 更新时间：2026-05-02
 状态：active
 
-这份文档记录当前 dogfood E2E 的稳定 contract。它不是阶段计划、backlog 或 fixture 设计草案。
+这份文档记录当前 Agent Product Regression / dogfood E2E 的稳定 contract。它验证的产品不是单独的二进制，而是 CLI + `skills/pwcli/` + 真实 Agent 工作流。它不是阶段计划、backlog 或 fixture 设计草案。
 
 ## 1. 目标
 
-Dogfood E2E 用真实 `pw` 命令验证 Agent 高频链路：
+Agent Product Regression 用真实 `pw` 命令验证 Agent 高频链路：
 
 1. 创建和清理 named session
 2. 读取页面事实
@@ -15,7 +15,7 @@ Dogfood E2E 用真实 `pw` 命令验证 Agent 高频链路：
 4. 收集 diagnostics / network / console / run evidence
 5. 验证 route / bootstrap / environment / batch 等第二层能力
 
-`pnpm smoke` 仍是日常快 gate；dogfood E2E 是更慢、更接近真实 Agent 使用的深 gate。
+`pnpm test:regression` 是当前主回归入口；`pnpm smoke` 保留为兼容 alias，不代表 tiny smoke。dogfood E2E 是更慢、更接近真实 Agent 使用的深 gate。
 
 ## 2. 执行入口
 
