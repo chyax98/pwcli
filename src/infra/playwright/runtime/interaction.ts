@@ -1,6 +1,5 @@
 import { copyFile, mkdir } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
-import { ActionFailure } from "../../../domain/interaction/action-failure.js";
 import {
   type RefEpochValidation,
   buildRunEvent,
@@ -10,6 +9,12 @@ import {
   normalizeSemanticTarget,
   semanticLocatorExpression,
 } from "../../../domain/interaction/model.js";
+import { ActionFailure } from "../../../domain/interaction/action-failure.js";
+import {
+  InteractionErrorCode,
+  refStaleFailure,
+  modalStateBlockedFailure,
+} from "../../../domain/interaction/errors.js";
 import { appendRunEvent, ensureRunDir } from "../../fs/run-artifacts.js";
 import { runManagedSessionCommand } from "../cli-client.js";
 import { parseDownloadEvent, parsePageSummary, stripQuotes } from "../output-parsers.js";
@@ -207,7 +212,7 @@ function dialogPendingResult(options: {
       modalPending: true,
       diagnosticsDelta,
       failureSignal: {
-        code: "MODAL_STATE_BLOCKED",
+        code: modalStateBlockedFailure("", { command: options.command, sessionName: options.sessionName }).code,
         message: "action fired and a browser dialog is pending",
       },
     });
@@ -222,7 +227,7 @@ function dialogPendingResult(options: {
         ...(options.target ? { target: options.target } : {}),
         acted: true,
         modalPending: true,
-        blockedState: "MODAL_STATE_BLOCKED",
+        blockedState: InteractionErrorCode.MODAL_STATE_BLOCKED,
         diagnosticsDelta,
         run,
         ...(options.resultText ? maybeRawOutput(options.resultText) : {}),
@@ -337,40 +342,46 @@ async function assertFreshRefEpoch(options: { sessionName?: string; ref: string 
   }
 
   const sessionFlag = `--session ${options.sessionName ?? "<name>"}`;
-  throw new ActionFailure({
-    code: "REF_STALE",
-    message: `Ref ${options.ref} is stale for the current page snapshot`,
-    retryable: false,
-    recovery: {
-      kind: "re-snapshot",
-      commands: [`pw snapshot -i ${sessionFlag}`],
+  throw refStaleFailure(
+    `Ref ${options.ref} is stale for the current page snapshot`,
+    {
+      command: "assertFreshRefEpoch",
+      sessionName: options.sessionName,
+      ref: options.ref,
     },
-    details: {
-      ...(validation as unknown as Record<string, unknown>),
+    {
+      retryable: false,
       recovery: {
-        action: "re-snapshot",
-        freshSnapshotCaptured,
-        freshSnapshotRefCount: freshSnapshotRefCount ?? null,
-        previousEpoch: {
-          snapshotId: (validation as Record<string, unknown>).snapshotId ?? null,
-          pageId: (validation as Record<string, unknown>).snapshotPageId ?? null,
-          navigationId: (validation as Record<string, unknown>).snapshotNavigationId ?? null,
-        },
-        currentEpoch: {
-          pageId: (validation as Record<string, unknown>).currentPageId ?? null,
-          navigationId: (validation as Record<string, unknown>).currentNavigationId ?? null,
-          url: (validation as Record<string, unknown>).currentUrl ?? null,
-        },
-        nextSteps: [`pw snapshot -i ${sessionFlag}`, "重新选择 ref 后再执行 action"],
+        kind: "re-snapshot",
+        commands: [`pw snapshot -i ${sessionFlag}`],
       },
+      details: {
+        ...(validation as unknown as Record<string, unknown>),
+        recovery: {
+          action: "re-snapshot",
+          freshSnapshotCaptured,
+          freshSnapshotRefCount: freshSnapshotRefCount ?? null,
+          previousEpoch: {
+            snapshotId: (validation as Record<string, unknown>).snapshotId ?? null,
+            snapshotPageId: (validation as Record<string, unknown>).snapshotPageId ?? null,
+            snapshotNavigationId: (validation as Record<string, unknown>).snapshotNavigationId ?? null,
+          },
+          currentEpoch: {
+            pageId: (validation as Record<string, unknown>).currentPageId ?? null,
+            navigationId: (validation as Record<string, unknown>).currentNavigationId ?? null,
+            url: (validation as Record<string, unknown>).currentUrl ?? null,
+          },
+          nextSteps: [`pw snapshot -i ${sessionFlag}`, "重新选择 ref 后再执行 action"],
+        },
+      },
+      suggestions: [
+        freshSnapshotCaptured
+          ? `Fresh snapshot captured (${freshSnapshotRefCount ?? "?"} refs) — run \`pw snapshot -i ${sessionFlag}\` to see them`
+          : `Refresh refs with \`pw snapshot -i ${sessionFlag}\``,
+        "Pick a new ref from the fresh snapshot and retry the action",
+      ],
     },
-    suggestions: [
-      freshSnapshotCaptured
-        ? `Fresh snapshot captured (${freshSnapshotRefCount ?? "?"} refs) — run \`pw snapshot -i ${sessionFlag}\` to see them`
-        : `Refresh refs with \`pw snapshot -i ${sessionFlag}\``,
-      "Pick a new ref from the fresh snapshot and retry the action",
-    ],
-  });
+  );
 }
 
 export async function managedSnapshotStatus(options?: { sessionName?: string }) {
