@@ -24,13 +24,17 @@ export function registerReadTextCommand(program: Command): void {
     }) => {
       try {
         const sessionName = requireSessionName(options);
+        const maxChars = options.maxChars ? Number(options.maxChars) : 15000;
+        if (options.maxChars && !Number.isFinite(maxChars)) {
+          throw new Error("--max-chars requires a finite number");
+        }
         printCommandResult(
           "read-text",
           await managedReadText({
             sessionName,
             selector: options.selector,
             includeOverlay: options.includeOverlay !== false,
-            maxChars: options.maxChars ? Number(options.maxChars) : 15000,
+            maxChars,
           }),
         );
       } catch (error) {
