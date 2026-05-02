@@ -1958,6 +1958,7 @@ export async function managedReadText(options?: {
     : `async page => {
       const includeOverlay = ${JSON.stringify(options?.includeOverlay !== false)};
       const data = await page.evaluate((includeOverlay) => {
+        const skipTags = new Set(['STYLE', 'SCRIPT', 'NOSCRIPT', 'SVG', 'MATH', 'TEMPLATE']);
         const walkText = (root) => {
           let result = '';
           const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
@@ -1965,6 +1966,7 @@ export async function managedReadText(options?: {
             const node = walker.currentNode;
             const parent = node.parentElement;
             if (!parent) continue;
+            if (skipTags.has(parent.tagName)) continue;
             const style = getComputedStyle(parent);
             if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') continue;
             const t = node.textContent?.trim();
