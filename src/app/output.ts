@@ -546,6 +546,10 @@ function formatStateCheck(command: string, result: CommandResult): string {
   if (command === "locate") {
     const candidates = asArray(result.data.candidates);
     const lines = [`locate count=${count} ${target}`];
+    const ref = asString(result.data.ref);
+    if (ref) {
+      lines.push(`ref=${ref}`);
+    }
     for (const candidate of candidates) {
       const item = asRecord(candidate);
       const index = asNumber(item.index) ?? "?";
@@ -565,7 +569,8 @@ function formatStateCheck(command: string, result: CommandResult): string {
     return lines.join("\n");
   }
   if (command === "get") {
-    return `get ${asString(result.data.fact) ?? "fact"}=${stringifyValue(result.data.value)} count=${count} ${target}`;
+    const ref = asString(result.data.ref);
+    return `get ${asString(result.data.fact) ?? "fact"}=${stringifyValue(result.data.value)} count=${count}${ref ? ` ref=${ref}` : ""} ${target}`;
   }
   return `is ${asString(result.data.state) ?? "state"}=${String(Boolean(result.data.value))} count=${count} ${target}`;
 }

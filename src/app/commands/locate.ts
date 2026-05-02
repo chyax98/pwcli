@@ -21,8 +21,9 @@ export function registerLocateCommand(program: Command): void {
       .option("--placeholder <text>", "Exact placeholder locator")
       .option("--test-id <id>", "Test id locator")
       .addOption(new Option("--testid <id>").hideHelp())
-      .option("--nth <number>", "1-based match index"),
-  ).action(async (options: StateTargetOptions & { session?: string }) => {
+      .option("--nth <number>", "1-based match index")
+      .option("--return-ref", "Return the aria snapshot ref of the first matched element"),
+  ).action(async (options: StateTargetOptions & { session?: string; returnRef?: boolean }) => {
     try {
       const sessionName = requireSessionName(options);
       printCommandResult(
@@ -30,6 +31,7 @@ export function registerLocateCommand(program: Command): void {
         await managedLocate({
           sessionName,
           target: parseStateTarget(options),
+          returnRef: options.returnRef,
         }),
       );
     } catch (error) {

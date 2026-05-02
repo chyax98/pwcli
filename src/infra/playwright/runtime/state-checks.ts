@@ -1,4 +1,4 @@
-import { managedRunCode } from "./code.js";
+import { managedRunCode, managedSnapshot } from "./code.js";
 
 export type StateTarget =
   | { selector: string; nth?: number }
@@ -114,7 +114,30 @@ function parsedCandidates(value: unknown): StateCandidate[] {
     : [];
 }
 
-export async function managedLocate(options: { sessionName?: string; target: StateTarget }) {
+function findRefInSnapshot(
+  snapshot: string,
+  predicate: (info: { ref: string; role?: string; text?: string }) => boolean,
+): string | undefined {
+  for (const line of snapshot.split("\n")) {
+    const refMatch = line.match(/\[ref=([^\]]+)\]/);
+    if (!refMatch) continue;
+    const trimmed = line.trim();
+    const match = trimmed.match(/^-\s+(\w+)(?:\s+["']([^"']+)["'])?\s*\[ref=/);
+    if (match && predicate({ ref: refMatch[1], role: match[1], text: match[2] })) {
+      return refMatch[1];
+    }
+    if (predicate({ ref: refMatch[1] })) {
+      return refMatch[1];
+    }
+  }
+  return undefined;
+}
+
+export async function managedLocate(options: {
+  sessionName?: string;
+  target: StateTarget;
+  returnRef?: boolean;
+}) {
   const result = await managedRunCode({
     sessionName: options.sessionName,
     source: `async page => {
@@ -236,14 +259,41 @@ export async function managedLocate(options: { sessionName?: string; target: Sta
     }`,
   });
   const parsed = parsedObject(result.data.result);
+  const count = Number(parsed.count ?? 0);
+  const candidates = parsedCandidates(parsed.candidates);
+  const data: Record<string, unknown> = {
+    target: options.target,
+    count,
+    candidates,
+  };
+
+  if (options.returnRef && count > 0 && candidates.length > 0) {
+    const snapshotResult = await managedSnapshot({
+      sessionName: options.sessionName,
+      interactive: true,
+      skipEpoch: true,
+    });
+    const snapshotText =
+      typeof snapshotResult.data.snapshot === "string" ? snapshotResult.data.snapshot : "";
+    const first = candidates[0];
+    const ref = findRefInSnapshot(snapshotText, (info) => {
+      if (first.name && info.text === first.name) return true;
+      if (first.text && info.text === first.text) return true;
+      if (first.role && info.role === first.role) {
+        if (!info.text || !first.text) return true;
+        if (info.text.includes(first.text.slice(0, 60))) return true;
+      }
+      return false;
+    });
+    if (ref) {
+      data.ref = ref;
+    }
+  }
+
   return {
     session: result.session,
     page: result.page,
-    data: {
-      target: options.target,
-      count: Number(parsed.count ?? 0),
-      candidates: parsedCandidates(parsed.candidates),
-    },
+    data,
   };
 }
 
@@ -251,6 +301,7 @@ export async function managedGetFact(options: {
   sessionName?: string;
   target: StateTarget;
   fact: "text" | "value" | "count";
+  returnRef?: boolean;
 }) {
   const hasExplicitNth = "nth" in options.target && typeof options.target.nth === "number";
   const locatorExpr = hasExplicitNth
@@ -279,15 +330,37 @@ export async function managedGetFact(options: {
     }`,
   });
   const parsed = parsedObject(result.data.result);
+  const count = Number(parsed.count ?? 0);
+  const data: Record<string, unknown> = {
+    target: options.target,
+    fact: options.fact,
+    value: parsed.value,
+    count,
+  };
+
+  if (options.returnRef && options.fact !== "count" && count > 0) {
+    const snapshotResult = await managedSnapshot({
+      sessionName: options.sessionName,
+      interactive: true,
+      skipEpoch: true,
+    });
+    const snapshotText =
+      typeof snapshotResult.data.snapshot === "string" ? snapshotResult.data.snapshot : "";
+    const value = typeof parsed.value === "string" ? parsed.value : "";
+    const ref = findRefInSnapshot(snapshotText, (info) => {
+      if (value && info.text === value) return true;
+      if (value && info.text?.includes(value.slice(0, 60))) return true;
+      return false;
+    });
+    if (ref) {
+      data.ref = ref;
+    }
+  }
+
   return {
     session: result.session,
     page: result.page,
-    data: {
-      target: options.target,
-      fact: options.fact,
-      value: parsed.value,
-      count: Number(parsed.count ?? 0),
-    },
+    data,
   };
 }
 

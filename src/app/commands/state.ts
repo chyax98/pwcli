@@ -19,11 +19,12 @@ export function registerStateCommand(program: Command): void {
   )
     .option("--before <file>", "State diff baseline snapshot file")
     .option("--after <file>", "Optional state diff after snapshot file")
+    .option("--include-values", "Include storage and cookie values in diff output")
     .action(
       async (
         action: string,
         file: string | undefined,
-        options: { session?: string; before?: string; after?: string },
+        options: { session?: string; before?: string; after?: string; includeValues?: boolean },
         command: Command,
       ) => {
         try {
@@ -39,6 +40,7 @@ export function registerStateCommand(program: Command): void {
                 sessionName,
                 before,
                 after: options.after,
+                includeValues: options.includeValues,
               }),
             );
             return;

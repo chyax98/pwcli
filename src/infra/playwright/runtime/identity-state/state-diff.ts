@@ -8,6 +8,7 @@ export type StateDiffOptions = {
   sessionName?: string;
   before?: string;
   after?: string;
+  includeValues?: boolean;
 };
 
 type StateDiffSnapshotCookie = {
@@ -19,11 +20,13 @@ type StateDiffSnapshotCookie = {
   sameSite: string;
   secure: boolean;
   valueDigest: string;
+  value?: string;
 };
 
 type StateDiffSnapshotStorage = {
   accessible: boolean;
   keys: string[];
+  values?: Record<string, string>;
 };
 
 type StateDiffSnapshotStore = {
@@ -69,10 +72,12 @@ type StateDiffSnapshotPayload = {
   localStorage?: {
     accessible?: unknown;
     keys?: unknown;
+    values?: unknown;
   };
   sessionStorage?: {
     accessible?: unknown;
     keys?: unknown;
+    values?: unknown;
   };
   indexeddb?: {
     status?: unknown;
@@ -162,7 +167,7 @@ function normalizeStateDiffSnapshot(value: unknown): StateDiffSnapshot {
           if (!name || !domain || !path || !valueDigest) {
             return null;
           }
-          return {
+          const cookieResult: StateDiffSnapshotCookie = {
             name,
             domain,
             path,
@@ -171,7 +176,11 @@ function normalizeStateDiffSnapshot(value: unknown): StateDiffSnapshot {
             sameSite: typeof item.sameSite === "string" ? item.sameSite : "Lax",
             secure: Boolean(item.secure),
             valueDigest,
-          } satisfies StateDiffSnapshotCookie;
+          };
+          if (typeof item.value === "string" && item.value) {
+            cookieResult.value = item.value;
+          }
+          return cookieResult;
         })
         .filter((cookie): cookie is StateDiffSnapshotCookie => Boolean(cookie))
         .sort((left, right) =>
@@ -192,6 +201,19 @@ function normalizeStateDiffSnapshot(value: unknown): StateDiffSnapshot {
     !Array.isArray(record.sessionStorage)
       ? (record.sessionStorage as Record<string, unknown>)
       : {};
+  const normalizeStorageValues = (raw: Record<string, unknown>) => {
+    const rawValues =
+      raw.values && typeof raw.values === "object" && !Array.isArray(raw.values)
+        ? (raw.values as Record<string, unknown>)
+        : {};
+    const values: Record<string, string> = {};
+    for (const [key, val] of Object.entries(rawValues)) {
+      if (typeof val === "string") {
+        values[key] = val;
+      }
+    }
+    return Object.keys(values).length > 0 ? { values } : undefined;
+  };
   const indexeddb =
     record.indexeddb && typeof record.indexeddb === "object" && !Array.isArray(record.indexeddb)
       ? (record.indexeddb as Record<string, unknown>)
@@ -216,10 +238,12 @@ function normalizeStateDiffSnapshot(value: unknown): StateDiffSnapshot {
     localStorage: {
       accessible: Boolean(localStorage.accessible),
       keys: normalizeStringArray(localStorage.keys).sort(),
+      ...normalizeStorageValues(localStorage),
     },
     sessionStorage: {
       accessible: Boolean(sessionStorage.accessible),
       keys: normalizeStringArray(sessionStorage.keys).sort(),
+      ...normalizeStorageValues(sessionStorage),
     },
     indexeddb: {
       status: indexedDbStatus,
@@ -249,38 +273,59 @@ async function writeStateDiffSnapshot(path: string, snapshot: StateDiffSnapshot)
   return resolved;
 }
 
-function buildStateDiffSnapshotSource() {
+function buildStateDiffSnapshotSource(includeValues?: boolean) {
   return `async page => {
     const currentUrl = page.url();
     const cookieScope = currentUrl && /^https?:/i.test(currentUrl) ? [currentUrl] : undefined;
     const cookies = await page.context().cookies(cookieScope).catch(() => []);
     const pageState = await page.evaluate(async () => {
+      const includeValues = ${JSON.stringify(includeValues)};
       const origin = globalThis.location?.origin ?? '';
       const href = globalThis.location?.href ?? '';
       const title = globalThis.document?.title ?? '';
       const localStorageState = (() => {
         try {
-          return {
+          const keys = Object.keys(localStorage).sort();
+          const result = {
             accessible: true,
-            keys: Object.keys(localStorage).sort(),
+            keys,
           };
+          if (includeValues) {
+            const values = {};
+            for (const key of keys) {
+              values[key] = localStorage.getItem(key) ?? '';
+            }
+            result.values = values;
+          }
+          return result;
         } catch {
           return {
             accessible: false,
             keys: [],
+            ...(includeValues ? { values: {} } : {}),
           };
         }
       })();
       const sessionStorageState = (() => {
         try {
-          return {
+          const keys = Object.keys(sessionStorage).sort();
+          const result = {
             accessible: true,
-            keys: Object.keys(sessionStorage).sort(),
+            keys,
           };
+          if (includeValues) {
+            const values = {};
+            for (const key of keys) {
+              values[key] = sessionStorage.getItem(key) ?? '';
+            }
+            result.values = values;
+          }
+          return result;
         } catch {
           return {
             accessible: false,
             keys: [],
+            ...(includeValues ? { values: {} } : {}),
           };
         }
       })();
@@ -377,10 +422,10 @@ function buildStateDiffSnapshotSource() {
   }`;
 }
 
-async function captureStateDiffSnapshot(sessionName?: string) {
+async function captureStateDiffSnapshot(sessionName?: string, includeValues?: boolean) {
   const result = await managedRunCode({
     sessionName,
-    source: buildStateDiffSnapshotSource(),
+    source: buildStateDiffSnapshotSource(includeValues),
   });
   const payload =
     typeof result.data.result === "object" && result.data.result
@@ -420,7 +465,7 @@ async function captureStateDiffSnapshot(sessionName?: string) {
           if (!name || !domain || !path) {
             return null;
           }
-          return {
+          const cookieResult: StateDiffSnapshotCookie = {
             name,
             domain,
             path,
@@ -429,7 +474,11 @@ async function captureStateDiffSnapshot(sessionName?: string) {
             sameSite: typeof item.sameSite === "string" ? item.sameSite : "Lax",
             secure: Boolean(item.secure),
             valueDigest: digestValue(value),
-          } satisfies StateDiffSnapshotCookie;
+          };
+          if (includeValues && value) {
+            cookieResult.value = value;
+          }
+          return cookieResult;
         })
         .filter((cookie): cookie is StateDiffSnapshotCookie => Boolean(cookie))
     : [];
@@ -476,19 +525,90 @@ function diffStringSets(before: string[], after: string[]) {
   };
 }
 
+const VALUE_TRUNCATE_LIMIT = 4096;
+
+function truncateValue(value: string): { value: string; truncated?: true } {
+  if (value.length <= VALUE_TRUNCATE_LIMIT) {
+    return { value };
+  }
+  return { value: value.slice(0, VALUE_TRUNCATE_LIMIT), truncated: true };
+}
+
+function diffStorageWithValues(before: StateDiffSnapshotStorage, after: StateDiffSnapshotStorage) {
+  const beforeSet = new Set(before.keys);
+  const afterSet = new Set(after.keys);
+
+  const added = after.keys
+    .filter((key) => !beforeSet.has(key))
+    .map((key) => {
+      const afterVal = after.values?.[key];
+      const truncated = afterVal !== undefined ? truncateValue(afterVal) : undefined;
+      return {
+        key,
+        ...(truncated ? { value: truncated.value } : {}),
+        ...(truncated?.truncated ? { truncated: true as const } : {}),
+      };
+    });
+
+  const removed = before.keys
+    .filter((key) => !afterSet.has(key))
+    .map((key) => {
+      const beforeVal = before.values?.[key];
+      const truncated = beforeVal !== undefined ? truncateValue(beforeVal) : undefined;
+      return {
+        key,
+        ...(truncated ? { value: truncated.value } : {}),
+        ...(truncated?.truncated ? { truncated: true as const } : {}),
+      };
+    });
+
+  const changed = before.keys
+    .filter((key) => afterSet.has(key))
+    .map((key) => {
+      const beforeVal = before.values?.[key];
+      const afterVal = after.values?.[key];
+      if (beforeVal === afterVal) return null;
+      const beforeTruncated = beforeVal !== undefined ? truncateValue(beforeVal) : undefined;
+      const afterTruncated = afterVal !== undefined ? truncateValue(afterVal) : undefined;
+      return {
+        key,
+        ...(beforeTruncated ? { before: beforeTruncated.value } : {}),
+        ...(afterTruncated ? { after: afterTruncated.value } : {}),
+        ...(beforeTruncated?.truncated || afterTruncated?.truncated
+          ? { truncated: true as const }
+          : {}),
+      };
+    })
+    .filter((entry): entry is { key: string; before?: string; after?: string; truncated?: true } =>
+      Boolean(entry),
+    );
+
+  return { added, removed, changed };
+}
+
 function cookieIdentity(cookie: Pick<StateDiffSnapshotCookie, "name" | "domain" | "path">) {
   return `${cookie.name}|${cookie.domain}|${cookie.path}`;
 }
 
-function diffCookies(before: StateDiffSnapshotCookie[], after: StateDiffSnapshotCookie[]) {
+function diffCookies(
+  before: StateDiffSnapshotCookie[],
+  after: StateDiffSnapshotCookie[],
+  includeValues?: boolean,
+) {
   const beforeMap = new Map(before.map((cookie) => [cookieIdentity(cookie), cookie]));
   const afterMap = new Map(after.map((cookie) => [cookieIdentity(cookie), cookie]));
   const added = after
     .filter((cookie) => !beforeMap.has(cookieIdentity(cookie)))
-    .map(({ name, domain, path }) => ({ name, domain, path }));
+    .map((cookie) => {
+      const base = { name: cookie.name, domain: cookie.domain, path: cookie.path };
+      return includeValues && cookie.value !== undefined ? { ...base, value: cookie.value } : base;
+    });
   const removed = before
     .filter((cookie) => !afterMap.has(cookieIdentity(cookie)))
-    .map(({ name, domain, path }) => ({ name, domain, path }));
+    .map((cookie) => {
+      const base = { name: cookie.name, domain: cookie.domain, path: cookie.path };
+      return includeValues && cookie.value !== undefined ? { ...base, value: cookie.value } : base;
+    });
   const changed = before
     .filter((cookie) => afterMap.has(cookieIdentity(cookie)))
     .map((cookie) => {
@@ -503,19 +623,34 @@ function diffCookies(before: StateDiffSnapshotCookie[], after: StateDiffSnapshot
         cookie.sameSite !== next.sameSite ? "sameSite" : null,
         cookie.secure !== next.secure ? "secure" : null,
       ].filter((field): field is string => Boolean(field));
-      return changedFields.length > 0
-        ? {
-            name: cookie.name,
-            domain: cookie.domain,
-            path: cookie.path,
-            changedFields,
-          }
-        : null;
+      if (changedFields.length === 0) {
+        return null;
+      }
+      const base: Record<string, unknown> = {
+        name: cookie.name,
+        domain: cookie.domain,
+        path: cookie.path,
+        changedFields,
+      };
+      if (
+        includeValues &&
+        changedFields.includes("value") &&
+        (cookie.value !== undefined || next.value !== undefined)
+      ) {
+        if (cookie.value !== undefined) {
+          const truncated = truncateValue(cookie.value);
+          base.before = truncated.value;
+          if (truncated.truncated) base.beforeTruncated = true;
+        }
+        if (next.value !== undefined) {
+          const truncated = truncateValue(next.value);
+          base.after = truncated.value;
+          if (truncated.truncated) base.afterTruncated = true;
+        }
+      }
+      return base;
     })
-    .filter(
-      (entry): entry is { name: string; domain: string; path: string; changedFields: string[] } =>
-        Boolean(entry),
-    );
+    .filter((entry): entry is Record<string, unknown> => Boolean(entry));
   return {
     beforeCount: before.length,
     afterCount: after.length,
@@ -616,22 +751,39 @@ function buildStateDiffResult(
   beforeSnapshot: StateDiffSnapshot,
   afterSnapshot: StateDiffSnapshot,
   sources: { before: string; after: string },
+  includeValues?: boolean,
 ) {
-  const localStorage = {
-    beforeAccessible: beforeSnapshot.localStorage.accessible,
-    afterAccessible: afterSnapshot.localStorage.accessible,
-    beforeCount: beforeSnapshot.localStorage.keys.length,
-    afterCount: afterSnapshot.localStorage.keys.length,
-    ...diffStringSets(beforeSnapshot.localStorage.keys, afterSnapshot.localStorage.keys),
-  };
-  const sessionStorage = {
-    beforeAccessible: beforeSnapshot.sessionStorage.accessible,
-    afterAccessible: afterSnapshot.sessionStorage.accessible,
-    beforeCount: beforeSnapshot.sessionStorage.keys.length,
-    afterCount: afterSnapshot.sessionStorage.keys.length,
-    ...diffStringSets(beforeSnapshot.sessionStorage.keys, afterSnapshot.sessionStorage.keys),
-  };
-  const cookies = diffCookies(beforeSnapshot.cookies, afterSnapshot.cookies);
+  const localStorage = includeValues
+    ? {
+        beforeAccessible: beforeSnapshot.localStorage.accessible,
+        afterAccessible: afterSnapshot.localStorage.accessible,
+        beforeCount: beforeSnapshot.localStorage.keys.length,
+        afterCount: afterSnapshot.localStorage.keys.length,
+        ...diffStorageWithValues(beforeSnapshot.localStorage, afterSnapshot.localStorage),
+      }
+    : {
+        beforeAccessible: beforeSnapshot.localStorage.accessible,
+        afterAccessible: afterSnapshot.localStorage.accessible,
+        beforeCount: beforeSnapshot.localStorage.keys.length,
+        afterCount: afterSnapshot.localStorage.keys.length,
+        ...diffStringSets(beforeSnapshot.localStorage.keys, afterSnapshot.localStorage.keys),
+      };
+  const sessionStorage = includeValues
+    ? {
+        beforeAccessible: beforeSnapshot.sessionStorage.accessible,
+        afterAccessible: afterSnapshot.sessionStorage.accessible,
+        beforeCount: beforeSnapshot.sessionStorage.keys.length,
+        afterCount: afterSnapshot.sessionStorage.keys.length,
+        ...diffStorageWithValues(beforeSnapshot.sessionStorage, afterSnapshot.sessionStorage),
+      }
+    : {
+        beforeAccessible: beforeSnapshot.sessionStorage.accessible,
+        afterAccessible: afterSnapshot.sessionStorage.accessible,
+        beforeCount: beforeSnapshot.sessionStorage.keys.length,
+        afterCount: afterSnapshot.sessionStorage.keys.length,
+        ...diffStringSets(beforeSnapshot.sessionStorage.keys, afterSnapshot.sessionStorage.keys),
+      };
+  const cookies = diffCookies(beforeSnapshot.cookies, afterSnapshot.cookies, includeValues);
   const indexeddb = diffIndexedDb(beforeSnapshot.indexeddb, afterSnapshot.indexeddb);
   const changedBuckets = [
     cookies.added.length > 0 || cookies.removed.length > 0 || cookies.changed.length > 0
@@ -676,6 +828,7 @@ function buildStateDiffResult(
 export async function managedStateDiff(options?: StateDiffOptions) {
   const beforePath = options?.before ? resolve(options.before) : undefined;
   const afterPath = options?.after ? resolve(options.after) : undefined;
+  const includeValues = options?.includeValues;
 
   if (!beforePath) {
     throw new Error("STATE_DIFF_BEFORE_REQUIRED");
@@ -693,7 +846,7 @@ export async function managedStateDiff(options?: StateDiffOptions) {
       }
     }
 
-    const current = await captureStateDiffSnapshot(options.sessionName);
+    const current = await captureStateDiffSnapshot(options.sessionName, includeValues);
     if (!beforeSnapshot) {
       await writeStateDiffSnapshot(beforePath, current.snapshot);
       return {
@@ -717,10 +870,15 @@ export async function managedStateDiff(options?: StateDiffOptions) {
       data: {
         beforePath,
         ...(afterPath ? { afterPath } : {}),
-        ...buildStateDiffResult(beforeSnapshot, current.snapshot, {
-          before: beforePath,
-          after: afterPath ?? "current_session",
-        }),
+        ...buildStateDiffResult(
+          beforeSnapshot,
+          current.snapshot,
+          {
+            before: beforePath,
+            after: afterPath ?? "current_session",
+          },
+          includeValues,
+        ),
       },
     };
   }
@@ -743,10 +901,15 @@ export async function managedStateDiff(options?: StateDiffOptions) {
     data: {
       beforePath,
       afterPath,
-      ...buildStateDiffResult(beforeSnapshot.snapshot, afterSnapshot.snapshot, {
-        before: beforePath,
-        after: afterPath,
-      }),
+      ...buildStateDiffResult(
+        beforeSnapshot.snapshot,
+        afterSnapshot.snapshot,
+        {
+          before: beforePath,
+          after: afterPath,
+        },
+        includeValues,
+      ),
     },
   };
 }
