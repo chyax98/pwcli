@@ -142,11 +142,13 @@ state / auth / batch / environment 命令见 `command-reference-advanced.md`。
 
 支持 facts：
 
-- `text`：目标首个匹配节点的 `textContent`
-- `value`：目标首个匹配表单控件的 `inputValue()`
+- `text`：目标首个**可见**匹配节点的 `textContent`（无 `--nth` 时优先可见元素）
+- `value`：目标首个**可见**匹配表单控件的 `inputValue()`（无 `--nth` 时优先可见元素）
 - `count`：匹配数量，目标不存在时返回 `0`
 
 目标同 `locate`。`get text|value` 要求目标至少存在一个；需要先探测数量时用 `get count` 或 `locate`。
+
+`--nth <n>` 显式指定时取第 n 个匹配（含隐藏元素），不做过滤。省略 `--nth` 时自动跳过隐藏元素，返回第一个可见匹配。
 
 ### `pw is <state> --session <name>`
 
@@ -157,6 +159,8 @@ state / auth / batch / environment 命令见 `command-reference-advanced.md`。
 - `checked`
 
 目标同 `locate`。目标不存在时返回 `value: false` 和 `count: 0`。`checked` 只适合 checkbox/radio 等可检查控件。
+
+`enabled` / `checked` 无 `--nth` 时优先可见元素（同 `get text`）。`visible` 始终检查首个匹配。
 
 ### `pw verify <assertion> --session <name>`
 

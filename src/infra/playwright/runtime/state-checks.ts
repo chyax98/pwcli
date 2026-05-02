@@ -54,6 +54,20 @@ function targetExpression(target: StateTarget) {
   return `${targetBaseExpression(target)}.nth(${nth - 1})`;
 }
 
+function firstVisibleExpression(target: StateTarget) {
+  const base = targetBaseExpression(target);
+  return `(await (async () => {
+    const loc = ${base};
+    const n = await loc.count();
+    for (let i = 0; i < n; i++) {
+      const el = loc.nth(i);
+      if (await el.isVisible()) return el;
+    }
+    return loc.nth(0);
+  })())`;
+}
+
+
 function targetBaseExpression(target: StateTarget) {
   if ("selector" in target) {
     return `page.locator(${JSON.stringify(target.selector)})`;
@@ -239,11 +253,15 @@ export async function managedGetFact(options: {
   target: StateTarget;
   fact: "text" | "value" | "count";
 }) {
+  const hasExplicitNth = "nth" in options.target && typeof options.target.nth === "number";
+  const locatorExpr = hasExplicitNth
+    ? targetExpression(options.target)
+    : firstVisibleExpression(options.target);
   const result = await managedRunCode({
     sessionName: options.sessionName,
     source: `async page => {
       const target = ${JSON.stringify(options.target)};
-      const locator = ${targetExpression(options.target)};
+      const locator = ${locatorExpr};
       const baseLocator = ${targetBaseExpression(options.target)};
       const count = await baseLocator.count();
       if (${JSON.stringify(options.fact)} === 'count') {
@@ -279,10 +297,15 @@ export async function managedIsState(options: {
   target: StateTarget;
   state: "visible" | "enabled" | "checked";
 }) {
+  const hasExplicitNth = "nth" in options.target && typeof options.target.nth === "number";
+  const preferVisible = !hasExplicitNth && options.state !== "visible";
+  const locatorExpr = preferVisible
+    ? firstVisibleExpression(options.target)
+    : targetExpression(options.target);
   const result = await managedRunCode({
     sessionName: options.sessionName,
     source: `async page => {
-      const locator = ${targetExpression(options.target)};
+      const locator = ${locatorExpr};
       const baseLocator = ${targetBaseExpression(options.target)};
       const count = await baseLocator.count();
       if (count === 0) {
