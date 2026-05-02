@@ -462,7 +462,21 @@ export function registerSessionCommand(program: Command): void {
                 headersFile: bootstrapConfig.headersFile,
               });
               bootstrapReapplied = true;
-            } catch {}
+            } catch (bootstrapError) {
+              const message = bootstrapError instanceof Error ? bootstrapError.message : String(bootstrapError);
+              if (message.includes("ENOENT") || message.includes("no such file or directory")) {
+                printCommandError("session recreate", {
+                  code: "BOOTSTRAP_REAPPLY_FILE_NOT_FOUND",
+                  message: `bootstrap reapply failed: ${message}`,
+                  suggestions: [
+                    "Run: pw bootstrap apply --init-script <new-path> --session <name>",
+                    "Or remove the missing entry: pw bootstrap apply --remove-init-script <old-path> --session <name>",
+                  ],
+                });
+                process.exitCode = 1;
+                return;
+              }
+            }
           }
 
           if (targetUrl && targetUrl !== "about:blank") {

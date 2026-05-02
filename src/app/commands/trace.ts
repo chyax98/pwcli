@@ -133,16 +133,25 @@ export function registerTraceCommand(program: Command): void {
           if (limit !== undefined && (!Number.isFinite(limit) || limit <= 0)) {
             throw new Error("TRACE_LIMIT_INVALID");
           }
-          printCommandResult(
-            "trace inspect",
-            await managedTraceInspect({
-              tracePath: file,
-              section,
-              failed: options.failed,
-              level: options.level,
-              limit,
-            }),
-          );
+          const traceResult = await managedTraceInspect({
+            tracePath: file,
+            section,
+            failed: options.failed,
+            level: options.level,
+            limit,
+          });
+          const level = options.level?.trim().toLowerCase();
+          if (
+            section === "console" &&
+            level &&
+            level !== "error" &&
+            level !== "warning" &&
+            level !== "warn"
+          ) {
+            (traceResult.data as Record<string, unknown>).note =
+              "trace inspect --level only reliably filters 'error' and 'warning'; use pw console --session <name> --level <level> for live filtering";
+          }
+          printCommandResult("trace inspect", traceResult);
         } catch (error) {
           printTraceInspectError(error);
           process.exitCode = 1;

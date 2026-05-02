@@ -916,7 +916,8 @@ export async function managedReadText(options?: {
         throw new Error('READ_TEXT_SELECTOR_NOT_FOUND:' + JSON.stringify({ selector: sel }));
       }
       const text = await locator.first().textContent() ?? '';
-      return JSON.stringify({ source: 'selector', selector: sel, text, count });
+      const iframeCount = await page.evaluate(() => document.querySelectorAll('iframe').length);
+      return JSON.stringify({ source: 'selector', selector: sel, text, count, iframeCount });
     }`
     : `async page => {
       const includeOverlay = ${JSON.stringify(options?.includeOverlay !== false)};
@@ -985,10 +986,12 @@ export async function managedReadText(options?: {
               }))
               .filter((item) => item.text);
         }
+        const iframeCount = document.querySelectorAll('iframe').length;
         return {
           source: includeOverlay ? 'body-visible+overlay' : 'body-visible',
           text: bodyText,
           overlays,
+          iframeCount,
         };
       }, includeOverlay);
       return JSON.stringify(data);
@@ -1001,6 +1004,10 @@ export async function managedReadText(options?: {
     options?.maxChars !== undefined && rawText.length > options.maxChars
       ? rawText.slice(0, options.maxChars)
       : rawText;
+  const note =
+    parsed.iframeCount > 0 && text.length < 50
+      ? `Page has ${parsed.iframeCount} iframe(s); read-text cannot access iframe content. Use: pw snapshot -i --session <name>  or  pw code with frameLocator()`
+      : undefined;
 
   return {
     session: result.session,
@@ -1011,6 +1018,7 @@ export async function managedReadText(options?: {
       truncated: text.length !== rawText.length,
       charCount: text.length,
       totalCharCount: rawText.length,
+      ...(note ? { note } : {}),
       ...maybeRawOutput(result.data.output ?? ""),
     },
   };
