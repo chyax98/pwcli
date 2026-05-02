@@ -63,15 +63,21 @@ pw session list --with-page
 pw session create bug-b --headed --open '<url>'
 ```
 
-Do not loop `session recreate` on the same name. If using `--from-system-chrome` or a persistent profile, close Chrome fully or choose another profile/session name before retrying.
+Do not loop `session recreate` on the same name. **禁止循环重试**：连续 recreate 同一名字会放大 profile lock 或 startup 竞争。If using `--from-system-chrome` or a persistent profile, close Chrome fully or choose another profile/session name before retrying.
+
+如果连续失败，换 session 名创建新 session 排查：
+```bash
+pw session create bug-b --headed --open '<url>'
+```
 
 ### `RUN_CODE_TIMEOUT`
 
 Meaning:
 
-- a run-code-backed command exceeded pwcli's guard timeout
+- a run-code-backed command exceeded pwcli's 25s guard timeout
 - this can happen when Playwright's daemon waits for navigation/network completion after `pw code` or a semantic command
 - the browser operation may have succeeded even though the CLI timed out
+- 25s 是默认保护值：覆盖 Playwright `waitForCompletion` 的 10s load timeout + 500ms 固定等待 + 余量
 
 Recovery:
 
@@ -81,7 +87,7 @@ pw observe status --session bug-a
 pw diagnostics digest --session bug-a
 ```
 
-Then split the work into smaller commands. Prefer first-class `pw wait --response|--selector|network-idle` after actions instead of embedding long navigation or network waits inside `pw code`. If the session reports `SESSION_BUSY`, wait briefly and retry status before recreating.
+Then split the work into smaller commands. Prefer first-class `pw wait --response|--selector|network-idle` after actions instead of embedding long navigation or network waits inside `pw code`. 长流程拆成多个一等命令 + 显式 wait，避免单条 `pw code` 触发 guard timeout。If the session reports `SESSION_BUSY`, wait briefly and retry status before recreating.
 
 ### `SESSION_ATTACH_FAILED`
 
@@ -460,17 +466,13 @@ Meaning:
 - run-code-backed reads and some actions are unavailable
 - affected reads include `page assess`, `observe status`, and `pw code`
 
-Recovery order:
+Recovery order（dialog accept/dismiss 置顶）：
 
-1. Try a direct dialog command:
+1. **首选直接处理 dialog：**
 
 ```bash
 pw dialog accept --session bug-a
-```
-
-or:
-
-```bash
+# 或
 pw dialog dismiss --session bug-a
 ```
 
@@ -491,7 +493,7 @@ pw state load ./auth.json --session bug-a
 pw open --session bug-a 'https://example.com/deep/path'
 ```
 
-Do not keep stacking commands on a blocked session.
+Do not keep stacking commands on a blocked session. `dialog accept|dismiss` 是最高优先级恢复路径，不要跳过 dialog 处理直接 recreate。
 
 ## Upload verification
 
@@ -525,6 +527,8 @@ Recovery:
    const text = await frame.locator('body').innerText();
    console.log(text);
    ```
+
+遇到 `read-text` 返回空且页面包含 iframe 时，CLI 会提示 iframe 数量并建议使用 `pw snapshot -i` 或 `pw code` + `frameLocator()`。
 
 ### Modal/overlay blocks interactions
 
@@ -567,6 +571,39 @@ Recovery:
 pw environment clock install --session env-a
 pw environment clock set --session env-a 2026-01-01T00:00:00Z
 ```
+
+## Bootstrap failures
+
+### `BOOTSTRAP_REAPPLY_FILE_NOT_FOUND`
+
+Meaning:
+
+- `pw session recreate` 自动重新 apply bootstrap 时，持久化配置中的某个 init script 文件路径已不存在
+- 常见原因：init script 被移动、删除，或路径使用了相对路径且 cwd 变化
+
+Recovery:
+
+```bash
+# 更新为正确路径
+pw bootstrap apply --session <name> --init-script <new-path>
+# 或移除失效条目
+pw bootstrap apply --session <name> --remove-init-script <old-path>
+```
+
+然后重新运行 `pw session recreate`。
+
+## Tab 操作限制
+
+- `pw tab select|close` 只接受 `pageId`，不接受 index、title、URL substring
+- 获取 `pageId`：
+  ```bash
+  pw page list --session <name>
+  ```
+- 然后使用列出的 `pageId` 执行 tab 操作：
+  ```bash
+  pw tab select <pageId> --session <name>
+  pw tab close <pageId> --session <name>
+  ```
 
 ## Route / mock failures
 

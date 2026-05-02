@@ -29,7 +29,8 @@ state / auth / batch 命令见 `command-reference-advanced.md`。
 - `--text <text>`、`--since <iso>`、`--limit <n>`
 - `--current`：只显示当前页面导航的记录，过滤跨页面噪声
 - `--request-id <id>`：单请求详情
-- 文本类 request/response 带 `requestBodySnippet` / `responseBodySnippet`（裁剪后的诊断片段）
+- 文本类 request/response 默认带 `requestBodySnippet` / `responseBodySnippet`（裁剪后的诊断片段，约 240 字符）
+- `--include-body`：返回完整 request/response body，上限 50KB；超过部分截断并标注 `truncated: true`
 
 ### `pw sse --session <name>`
 
@@ -60,6 +61,7 @@ state / auth / batch 命令见 `command-reference-advanced.md`。
 - 默认包含：session digest、filtered diagnostics、latest run events（如果存在）
 - 包含 `auditConclusion`（`status/failedAt/failedCommand/failureKind/failureSummary/agentNextSteps`），供 Agent 自主闭环：先做归因，再定位，再修复，再复验
 - 包含 `timeline`（filtered）：只保留 `action:*`、`failure:*`、`console:error`、`pageerror`、`requestfailed`，按时间排序，快速看因果链
+- 包含 `highSignalTimeline`：高信号时间线，从完整 timeline 中进一步提炼高价值条目，方便 Agent 快速归因
 - `--limit <n>`：每类记录的保留上限（默认 `20`）
 
 ### `pw diagnostics runs`
@@ -95,6 +97,11 @@ state / auth / batch 命令见 `command-reference-advanced.md`。
 - `--auth-provider <name>`、`--profile <path>`、`--state <file>`、`--endpoint <url>`
 - `--verbose`：完整 probe 细节
 - 诊断 substrate 健康、探测 endpoint reachability、返回恢复建议
+- 环境预检（Node 版本、Playwright 浏览器安装、磁盘空间）：
+  - Node.js >= 18.0.0
+  - Chromium / Firefox / WebKit 至少一个已安装
+  - 当前工作目录可用磁盘 > 1GB
+  - 预检结果在 `diagnostics[].kind === "environment"` 中返回，`--verbose` 时展开全部细节
 
 ## Route Mock
 
@@ -144,6 +151,12 @@ state / auth / batch 命令见 `command-reference-advanced.md`。
 - 输出来自 Playwright bundled trace CLI，pwcli 只做薄封装和 50000 字符上限裁剪，不手工解析 trace artifact
 - trace CLI/path/file 不可用时返回显式 `TRACE_*` 错误码
 
+### `pw video start|stop --session <name>`
+
+- 管理页面视频录制
+- `video start` 开始录制
+- `video stop` 结束录制，输出 `videoPath`
+
 边界：
 
 - Trace CLI：离线查询 trace zip 的 actions / requests / console / errors
@@ -155,3 +168,12 @@ state / auth / batch 命令见 `command-reference-advanced.md`。
 
 - 当前只暴露 HAR substrate 边界，热录制未形成稳定 contract
 - 稳定诊断优先用 `network` 和 `diagnostics export`
+
+### `pw har replay <file> --session <name>`
+
+- 从 HAR 文件回放网络流量
+- `--update`：允许将新请求更新写入 HAR 文件
+
+### `pw har replay stop --session <name>`
+
+- 停止 HAR 回放路由

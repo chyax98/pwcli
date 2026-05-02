@@ -49,6 +49,7 @@
 
 - `page current|list|frames|dialogs`
 - `page assess`
+- `accessibility`：ARIA tree 捕获，支持 `--interactive-only` / `--root`
 - `tab select|close <pageId>`
 - `observe status`
 - page / frame / dialog projection
@@ -72,7 +73,9 @@
 ### 当前实现
 
 - `dialog accept|dismiss`
-- `click`
+- `click`：支持 popup/新 tab 感知，输出 `openedPage`（`pageId` / `url` / `title`）
+- `mouse move|click|dblclick|wheel|drag`：坐标级鼠标交互
+- `video start|stop`：页面视频录制
 - `fill`
 - `type`
 - `press`
@@ -135,7 +138,7 @@
 ### 当前实现
 
 - `state save|load`
-- `state diff` read-only before/after comparison for cookies, `localStorage` keys, `sessionStorage` keys, and IndexedDB metadata
+- `state diff` read-only before/after comparison for cookies, `localStorage`, `sessionStorage`, and IndexedDB metadata；支持 `--include-values` 做 value 级 diff
 - `cookies list|set`
 - `storage local|session` read + current-origin `get|set|delete|clear`
 - `storage indexeddb export` read-only current-origin summary + optional sampled previews
@@ -151,7 +154,7 @@
 ### 当前限制
 
 - `storage local|session get|set|delete|clear` 只作用于当前页 origin，不做跨 origin storage 编辑
-- `state diff` 当前只做 metadata comparison：cookie 摘要、local/session storage key 集合、IndexedDB database/store metadata + `countEstimate`；不做 local/session value diff，也不做 Cache Storage / service worker diff
+- `state diff` 默认只做 metadata comparison；`--include-values` 支持 cookie / localStorage / sessionStorage 的 value 级 diff，但长 value 会被截断。不做 Cache Storage / service worker diff
 - `storage indexeddb export` 只读、只看当前页 origin；不做 mutation、跨 origin 遍历、profile 级迁移，也不替代 Cache Storage / service worker 探测
 - `auth probe` 当前只做通用启发式判断：可选 `--url` 只读导航、不调用站点级 `/me` 接口、不替代站点特化 auth pack 或站点规则库
 - `auth` 不负责 session shape
@@ -170,18 +173,19 @@
 
 - 默认 stdout 是 agent-readable text，`--output json` 保留旧 JSON envelope
 - `console`
-- `network`
+- `network`：支持 `--include-body`（50KB 上限）
 - `errors recent|clear`
 - `diagnostics digest`
 - `diagnostics export`
-- `diagnostics bundle`
+- `diagnostics bundle`：包含 `highSignalTimeline`
 - `diagnostics runs|show|grep|timeline`
 - `--since` on live/session query commands
 - `--text` on `diagnostics export`
 - `alias=path` field projection on `diagnostics export|show|grep`
 - `--session|--since` filters on `diagnostics runs`
 - `trace inspect <trace.zip> --section actions|requests|console|errors`
-- `doctor` 默认 compact，`--verbose` 返回完整 probe
+- `har replay <file>` / `har replay stop`：HAR 网络流量回放
+- `doctor` 默认 compact，`--verbose` 返回完整 probe；新增环境预检（Node 版本、浏览器安装、磁盘空间）
 - action 结果里的 `diagnosticsDelta`
 - `.pwcli/runs/<runId>/events.jsonl`
 - Playwright substrate 原始产物归档在 `.pwcli/playwright/`，包括 trace、snapshot 附件、console 附件、download 附件
@@ -192,7 +196,7 @@
 
 - 没有 event stream
 - 不是持久化诊断数据库
-- `har start|stop` 只暴露 substrate 边界
+- `har start|stop` 只暴露 substrate 边界；`har replay` 是新增回放面
 - 已存在的老 session 仍按启动时 substrate 配置写目录；新建或 recreate 后才使用当前 artifact 根目录
 - `trace inspect --level` 受 Playwright trace CLI console 过滤能力限制，当前只稳定映射 `error` / `warning`
 
@@ -295,6 +299,32 @@
 ### 后续扩展
 
 - 如果真实场景需要，再补 `fastForward` / `runFor` / explicit pause
+
+## 8.5 Automation
+
+### 当前实现
+
+- `batch`：结构化 `string[][]` 串行编排
+- `code`：Playwright escape hatch
+- `skill`：skill path / install
+
+batch 稳定子集覆盖：
+- `snapshot`、`snapshot -i`、`snapshot -c`
+- `click`、`fill`、`type`、`press`、`hover`、`check`、`uncheck`、`select`、`scroll`、`drag`
+- `open`、`read-text`、`locate`、`get`、`is`、`verify`、`wait`
+- `screenshot`、`observe status`、`errors recent|clear`
+- `route list|add|load|remove`、`bootstrap apply`
+- `state save|load`、`page current|list|frames|dialogs`
+
+### 当前限制
+
+- `batch` 当前只做单 session 串行执行，不做 lifecycle / environment / diagnostics query 容器
+- 不追求 `batch` 与所有 CLI flag 完全 parity
+- `code` 应保持小步、可恢复；长导航、长网络等待优先拆成一等 `pw wait` / diagnostics 命令
+
+### 后续扩展
+
+- batch 只在真实高频场景下增量扩命令，不追求全量 parity
 
 ## 9. Skill And Docs
 
