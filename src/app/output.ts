@@ -140,6 +140,24 @@ function pageLine(page: unknown): string | null {
   return title ? `${url} (${title})` : url;
 }
 
+function workspacePageLine(page: unknown): string {
+  const record = asRecord(page);
+  const pageId = asString(record.pageId) ?? "-";
+  const navigationId = asString(record.navigationId);
+  const index = asNumber(record.index);
+  const current = record.current === true ? "current=true" : "current=false";
+  const label = pageLine(record) ?? stringifyValue(record);
+  return [
+    `pageId=${pageId}`,
+    index !== null ? `index=${index}` : null,
+    navigationId ? `navigationId=${navigationId}` : null,
+    current,
+    label,
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
 function stringifyValue(value: unknown): string {
   if (typeof value === "string") {
     return value;
@@ -273,6 +291,25 @@ function formatDiagnosticsDigest(result: CommandResult): string {
   return lines.join("\n");
 }
 
+function formatDiagnosticsRuns(result: CommandResult): string {
+  const runs = asArray(result.data.runs);
+  const lines = [`runs count=${asNumber(result.data.count) ?? runs.length}`];
+  for (const item of runs) {
+    const run = asRecord(item);
+    const summary = asRecord(run.summary);
+    const runId = asString(run.runId) ?? "-";
+    const sessionName = asString(run.sessionName) ?? "-";
+    const last = asString(run.lastTimestamp) ?? "-";
+    const commandCount = asNumber(run.commandCount) ?? 0;
+    const failureCount = asNumber(summary.failureCount) ?? 0;
+    const signalCount = asNumber(summary.signalCount) ?? 0;
+    lines.push(
+      `${runId} session=${sessionName} commands=${commandCount} failures=${failureCount} signals=${signalCount} last=${last}`,
+    );
+  }
+  return lines.join("\n");
+}
+
 function formatTraceInspect(result: CommandResult): string {
   const output = asString(result.data.output) ?? "";
   const limitations = asArray(result.data.limitations).map(String);
@@ -280,13 +317,22 @@ function formatTraceInspect(result: CommandResult): string {
     `section=${asString(result.data.section) ?? "-"} trace=${asString(result.data.tracePath) ?? "-"}`,
     `command=${asString(result.data.command) ?? "-"}`,
   ];
+  const limit = asNumber(result.data.limit);
+  if (limit !== null) {
+    lines.push(`limit=${limit}`);
+  }
   if (limitations.length > 0) {
     lines.push("limitations:");
     lines.push(...limitations.map((item) => `- ${item}`));
   }
   if (result.data.truncated) {
+    const lineCount = asNumber(result.data.outputLineCount);
+    const shownLines = asNumber(result.data.outputLinesShown);
+    const charCount = asNumber(result.data.outputCharCount) ?? output.length;
     lines.push(
-      `output truncated at ${output.length}/${asNumber(result.data.outputCharCount) ?? output.length} chars`,
+      lineCount !== null && shownLines !== null
+        ? `output truncated at ${shownLines}/${lineCount} lines and ${output.length}/${charCount} chars`
+        : `output truncated at ${output.length}/${charCount} chars`,
     );
   }
   lines.push(output || "(empty trace CLI output)");
@@ -323,7 +369,7 @@ function formatPage(result: CommandResult): string {
       .map((item) => {
         const page = asRecord(item);
         const prefix = page.current ? "*" : "-";
-        return `${prefix} ${pageLine(page) ?? stringifyValue(page)}`;
+        return `${prefix} ${workspacePageLine(page)}`;
       })
       .join("\n");
   }
@@ -532,6 +578,9 @@ function formatCommandText(command: string, result: CommandResult): string {
   }
   if (command === "diagnostics digest") {
     return formatDiagnosticsDigest(result);
+  }
+  if (command === "diagnostics runs") {
+    return formatDiagnosticsRuns(result);
   }
   if (command === "trace inspect") {
     return formatTraceInspect(result);

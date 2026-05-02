@@ -58,7 +58,8 @@ state / auth / batch 命令见 `command-reference-advanced.md`。
 
 - 列出 `.pwcli/runs/` 下的 run 摘要
 - `--limit <n>`、`--session <name>`、`--since <iso>`（按 `lastTimestamp` 过滤）
-- 返回字段：`runId` / `sessionName` / `firstTimestamp` / `lastTimestamp` / `commandCount` / `summary`
+- text 输出是 compact 列表：`runId session=<name> commands=<n> failures=<n> signals=<n> last=<iso>`
+- JSON 输出返回字段：`runId` / `sessionName` / `firstTimestamp` / `lastTimestamp` / `commandCount` / `summary`
 - `summary.failureCount` 统计失败 action/wait run event；`summary.dialogPendingCount` 统计 action fired + dialog pending
 - pwcli 启动的新 session 会把 Playwright 原始附件写入 `.pwcli/playwright/`；已有 session 需要 recreate 才切换
 
@@ -131,6 +132,7 @@ state / auth / batch 命令见 `command-reference-advanced.md`。
 - `--section actions|requests|console|errors`
 - `--failed`：只对 `--section requests` 传给 Playwright trace CLI
 - `--level <level>`：只对 `--section console` 生效；当前 Playwright trace CLI 可稳定映射 `error` / `warning`，其他 level 会在输出里保留 `TRACE_CONSOLE_LEVEL_FILTER_LIMITED`
+- `--limit <n>`：把 trace inspect 输出限制为前 N 行，适合大 trace 快速预览
 - 输出来自 Playwright bundled trace CLI，pwcli 只做薄封装和 50000 字符上限裁剪，不手工解析 trace artifact
 - trace CLI/path/file 不可用时返回显式 `TRACE_*` 错误码
 

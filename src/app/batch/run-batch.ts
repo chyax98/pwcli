@@ -1127,6 +1127,39 @@ async function executeBatchStep(tokens: string[], sessionName: string) {
   }
 }
 
+function compactBatchSuccessResult(stepResult: Record<string, unknown>) {
+  const commandResult =
+    stepResult.data && typeof stepResult.data === "object" && !Array.isArray(stepResult.data)
+      ? (stepResult.data as Record<string, unknown>)
+      : {};
+  const page =
+    commandResult.page && typeof commandResult.page === "object" && !Array.isArray(commandResult.page)
+      ? (commandResult.page as Record<string, unknown>)
+      : undefined;
+  const nestedData =
+    commandResult.data && typeof commandResult.data === "object" && !Array.isArray(commandResult.data)
+      ? (commandResult.data as Record<string, unknown>)
+      : {};
+  return {
+    index: stepResult.index,
+    argv: stepResult.argv,
+    step: stepResult.step,
+    ok: stepResult.ok,
+    command: stepResult.command,
+    ...(page
+      ? {
+          page: {
+            pageId: page.pageId ?? null,
+            navigationId: page.navigationId ?? null,
+            url: page.url ?? null,
+            title: page.title ?? null,
+          },
+        }
+      : {}),
+    ...(nestedData.summary ? { summary: nestedData.summary } : {}),
+  };
+}
+
 export async function runBatch(options: {
   sessionName: string;
   commands: string[][];
@@ -1208,7 +1241,11 @@ export async function runBatch(options: {
         ...(await executeBatchStep(argv, options.sessionName)),
       };
       if (!options.summaryOnly) {
-        results.push(stepResult);
+        results.push(
+          options.includeResults
+            ? stepResult
+            : compactBatchSuccessResult(stepResult as Record<string, unknown>),
+        );
       }
       successCount += 1;
     } catch (error) {

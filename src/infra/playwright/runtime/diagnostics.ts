@@ -72,18 +72,20 @@ function runTraceCli(args: string[], cwd: string) {
   };
 }
 
-function boundedOutput(value: string) {
-  if (value.length <= TRACE_INSPECT_OUTPUT_LIMIT) {
-    return {
-      output: value,
-      outputCharCount: value.length,
-      truncated: false,
-    };
-  }
+function boundedOutput(value: string, lineLimit?: number) {
+  const lines = value.split(/\r?\n/);
+  const lineLimited = lineLimit && lineLimit > 0 && lines.length > lineLimit;
+  const lineLimitedValue = lineLimited ? lines.slice(0, lineLimit).join("\n") : value;
+  const charLimited = lineLimitedValue.length > TRACE_INSPECT_OUTPUT_LIMIT;
+  const output = charLimited
+    ? lineLimitedValue.slice(0, TRACE_INSPECT_OUTPUT_LIMIT)
+    : lineLimitedValue;
   return {
-    output: value.slice(0, TRACE_INSPECT_OUTPUT_LIMIT),
+    output,
     outputCharCount: value.length,
-    truncated: true,
+    outputLineCount: lines.length,
+    ...(lineLimit && lineLimit > 0 ? { outputLinesShown: Math.min(lines.length, lineLimit) } : {}),
+    truncated: lineLimited || charLimited,
   };
 }
 
@@ -124,6 +126,7 @@ export async function managedTraceInspect(options: {
   section: TraceInspectSection;
   failed?: boolean;
   level?: string;
+  limit?: number;
 }) {
   const tracePath = resolve(options.tracePath);
   if (!existsSync(tracePath)) {
@@ -140,7 +143,7 @@ export async function managedTraceInspect(options: {
       throw new TraceInspectError("TRACE_CLI_FAILED", "Playwright trace CLI failed to open trace", {
         command: openResult.command,
         errorMessage: openResult.error.message,
-        ...boundedOutput(openOutput),
+        ...boundedOutput(openOutput, options.limit),
       });
     }
     if (openResult.status !== 0) {
@@ -148,7 +151,7 @@ export async function managedTraceInspect(options: {
         command: openResult.command,
         exitCode: openResult.status,
         signal: openResult.signal,
-        ...boundedOutput(openOutput),
+        ...boundedOutput(openOutput, options.limit),
       });
     }
 
@@ -162,7 +165,7 @@ export async function managedTraceInspect(options: {
         {
           command: sectionResult.command,
           errorMessage: sectionResult.error.message,
-          ...boundedOutput(output),
+          ...boundedOutput(output, options.limit),
         },
       );
     }
@@ -174,7 +177,7 @@ export async function managedTraceInspect(options: {
           command: sectionResult.command,
           exitCode: sectionResult.status,
           signal: sectionResult.signal,
-          ...boundedOutput(output),
+          ...boundedOutput(output, options.limit),
         },
       );
     }
@@ -187,9 +190,10 @@ export async function managedTraceInspect(options: {
         commands: [openResult.command, sectionResult.command],
         failed: options.failed && options.section === "requests" ? true : undefined,
         level: options.level ?? null,
+        limit: options.limit ?? null,
         limitations,
         ...(limitations.length > 0 ? { limitation: limitations.join(",") } : {}),
-        ...boundedOutput(output),
+        ...boundedOutput(output, options.limit),
       },
     };
   } finally {

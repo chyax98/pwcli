@@ -248,9 +248,11 @@ Other semantic click flags stay outside batch. Run the single `pw click ...` com
 - `session` / `auth` / `environment` / `dialog` / diagnostics query 不属于稳定子集
 - `data.analysis.warnings` 是串行依赖提示
 - 默认 text 输出是轻量摘要，包含 step 数、成功/失败数、首个失败和 warnings，不倾倒嵌套 JSON
-- 脚本解析和字段断言必须加 `--output json`；JSON envelope 保持 `data.summary` 和 `data.results`
+- 脚本解析和字段断言必须加 `--output json`；JSON envelope 保持 `data.summary` 和 compact `data.results`
+- 默认 JSON `results` 只保留 step metadata、command、page summary 和可用 summary，避免 `observe status` 等命令重复嵌套完整 payload
+- 需要完整 step 输出时加 `--include-results`
 - 只需要 JSON 汇总时加 `--summary-only`；失败信息看 `firstFailure*` 和 `failedSteps`
-- text 输出需要紧凑 step 明细时加 `--include-results`
+- text 输出需要紧凑 step 明细时也加 `--include-results`
 
 ## Dashboard
 

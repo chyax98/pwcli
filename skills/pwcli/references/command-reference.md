@@ -82,6 +82,7 @@ state / auth / batch / environment 命令见 `command-reference-advanced.md`。
 
 ### `pw page current|list|frames|dialogs --session <name>`
 
+- `page list` text 输出包含 `pageId`、`index`、`navigationId`、`current`、URL/title；`pageId` 可直接传给 `tab select|close`
 - `dialogs` 是事件投影，不是 authoritative live dialog set
 
 ### `pw page assess --session <name>`

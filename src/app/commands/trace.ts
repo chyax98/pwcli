@@ -43,16 +43,26 @@ function printTraceInspectError(error: unknown) {
   }
 
   const message = error instanceof Error ? error.message : String(error);
-  if (message === "TRACE_SECTION_REQUIRED" || message.startsWith("TRACE_SECTION_INVALID:")) {
+  if (
+    message === "TRACE_SECTION_REQUIRED" ||
+    message.startsWith("TRACE_SECTION_INVALID:") ||
+    message === "TRACE_LIMIT_INVALID"
+  ) {
     printCommandError("trace inspect", {
       code:
-        message === "TRACE_SECTION_REQUIRED" ? "TRACE_SECTION_REQUIRED" : "TRACE_SECTION_INVALID",
+        message === "TRACE_SECTION_REQUIRED"
+          ? "TRACE_SECTION_REQUIRED"
+          : message === "TRACE_LIMIT_INVALID"
+            ? "TRACE_LIMIT_INVALID"
+            : "TRACE_SECTION_INVALID",
       message:
         message === "TRACE_SECTION_REQUIRED"
           ? "trace inspect requires --section <section>"
-          : `trace inspect received an invalid section: ${message.split(":").slice(1).join(":")}`,
+          : message === "TRACE_LIMIT_INVALID"
+            ? "trace inspect requires a positive integer for --limit"
+            : `trace inspect received an invalid section: ${message.split(":").slice(1).join(":")}`,
       retryable: false,
-      suggestions: ["Use --section actions|requests|console|errors"],
+      suggestions: ["Use --section actions|requests|console|errors", "Use --limit 20 to keep output compact"],
     });
     return;
   }
@@ -106,6 +116,7 @@ export function registerTraceCommand(program: Command): void {
     .option("--section <section>", "actions, requests, console, or errors")
     .option("--failed", "Only failed requests when section=requests")
     .option("--level <level>", "Console level filter when section=console")
+    .option("--limit <n>", "Limit trace inspect output to the first N lines")
     .action(
       async (
         file: string,
@@ -113,10 +124,15 @@ export function registerTraceCommand(program: Command): void {
           section?: string;
           failed?: boolean;
           level?: string;
+          limit?: string;
         },
       ) => {
         try {
           const section = requireTraceInspectSection(options.section);
+          const limit = options.limit ? Number(options.limit) : undefined;
+          if (limit !== undefined && (!Number.isFinite(limit) || limit <= 0)) {
+            throw new Error("TRACE_LIMIT_INVALID");
+          }
           printCommandResult(
             "trace inspect",
             await managedTraceInspect({
@@ -124,6 +140,7 @@ export function registerTraceCommand(program: Command): void {
               section,
               failed: options.failed,
               level: options.level,
+              limit,
             }),
           );
         } catch (error) {
