@@ -237,6 +237,46 @@ function formatSnapshot(result: CommandResult): string {
   return snapshot || "(empty snapshot)";
 }
 
+function formatAccessibility(result: CommandResult): string {
+  const snapshot = result.data.snapshot;
+  if (!snapshot) return "(empty accessibility snapshot)";
+  return formatAccessibilityNode(snapshot, 0);
+}
+
+function formatAccessibilityNode(node: unknown, depth: number): string {
+  if (!node || typeof node !== "object") return "";
+  const n = node as Record<string, unknown>;
+  const role = String(n.role ?? "");
+  if (!role) return "";
+
+  const name = String(n.name ?? "");
+  const value = n.value !== undefined && n.value !== null ? String(n.value) : null;
+
+  const states: string[] = [];
+  if (n.checked === true) states.push("checked");
+  else if (n.checked === "mixed") states.push("checked=mixed");
+  if (n.pressed === true) states.push("pressed");
+  if (n.selected === true) states.push("selected");
+  if (n.disabled === true) states.push("disabled");
+  if (n.expanded === true) states.push("expanded");
+  else if (n.expanded === false) states.push("expanded=false");
+  if (n.level !== undefined && n.level !== null) states.push(`level=${n.level}`);
+
+  const indent = "  ".repeat(depth);
+  let line = role;
+  if (name) line += `: ${name}`;
+  if (value !== null) line += ` [${value}]`;
+  if (states.length > 0) line += ` {${states.join(", ")}}`;
+
+  const lines = [`${indent}${line}`];
+  const children = Array.isArray(n.children) ? n.children : [];
+  for (const child of children) {
+    const childText = formatAccessibilityNode(child, depth + 1);
+    if (childText) lines.push(childText);
+  }
+  return lines.join("\n");
+}
+
 function formatNetworkRecord(record: unknown): string {
   const item = asRecord(record);
   const ts = asString(item.timestamp) ?? asString(item.ts) ?? "";
@@ -606,6 +646,9 @@ function formatCommandText(command: string, result: CommandResult): string {
   }
   if (command === "snapshot") {
     return formatSnapshot(result);
+  }
+  if (command === "accessibility") {
+    return formatAccessibility(result);
   }
   if (command === "network") {
     return formatNetwork(result);

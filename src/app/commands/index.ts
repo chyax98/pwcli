@@ -1,4 +1,5 @@
 import type { Command } from "commander";
+import { registerAccessibilityCommand } from "./accessibility.js";
 import { registerAuthCommand } from "./auth.js";
 import { registerBatchCommand } from "./batch.js";
 import { registerBootstrapCommand } from "./bootstrap.js";
@@ -53,6 +54,7 @@ import { registerWaitCommand } from "./wait.js";
 export function registerCommands(program: Command): void {
   registerOpenCommand(program);
   registerCodeCommand(program);
+  registerAccessibilityCommand(program);
   registerAuthCommand(program);
   registerBatchCommand(program);
   registerBootstrapCommand(program);
