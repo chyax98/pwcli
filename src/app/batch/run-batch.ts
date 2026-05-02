@@ -981,25 +981,10 @@ async function executeBatchStep(tokens: string[], sessionName: string) {
       const target = parseBatchSemanticArgs(args, "press");
       const { trailingValues, ...targetRest } = target;
       const key = trailingValues.join(" ");
-      if (targetRest.semantic || targetRest.selector) {
-        if (!key) {
-          throw new Error(`batch step '${rawStep}' requires a key after the target`);
-        }
-        return {
-          ok: true,
-          command: "press",
-          data: await managedPress(key, { ...targetRest, sessionName }),
-        };
-      }
-      if (targetRest.ref) {
-        if (!key) {
-          throw new Error(`batch step '${rawStep}' requires a key after the ref`);
-        }
-        return {
-          ok: true,
-          command: "press",
-          data: await managedPress(key, { ...targetRest, sessionName }),
-        };
+      if (targetRest.semantic || targetRest.selector || targetRest.ref) {
+        throw new Error(
+          `batch press 只支持 ["press","Enter"] 无目标形式；有目标的按键请用 pw press 单命令`,
+        );
       }
       if (!key) {
         throw new Error(`batch step '${rawStep}' requires a key`);
