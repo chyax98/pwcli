@@ -15,6 +15,8 @@ export async function managedEnsureDiagnosticsHooks(options?: { sessionName?: st
       state.nextRequestSeq = Number.isInteger(state.nextRequestSeq) ? state.nextRequestSeq : 1;
       state.nextConsoleResourceSeq = Number.isInteger(state.nextConsoleResourceSeq) ? state.nextConsoleResourceSeq : 1;
       state.nextDialogSeq = Number.isInteger(state.nextDialogSeq) ? state.nextDialogSeq : 1;
+      state.sseRecords = Array.isArray(state.sseRecords) ? state.sseRecords : [];
+      state.nextSseSeq = Number.isInteger(state.nextSseSeq) ? state.nextSseSeq : 1;
 
       const now = () => new Date().toISOString();
       const keep = (list, entry, max = 200) => {
@@ -247,11 +249,73 @@ export async function managedEnsureDiagnosticsHooks(options?: { sessionName?: st
         context.on('page', newPage => installPage(newPage));
       }
 
+      // SSE capture: expose a Node function the browser can call, then inject the EventSource patch.
+      if (!context.__pwcliSsePatchInstalled) {
+        context.__pwcliSsePatchInstalled = true;
+        const _state = state;
+        await context.exposeFunction('__pwcliSseEvent', (recordJson) => {
+          try {
+            const record = JSON.parse(String(recordJson));
+            const sseRecords = Array.isArray(_state.sseRecords) ? _state.sseRecords : (_state.sseRecords = []);
+            sseRecords.push(record);
+            if (sseRecords.length > 200)
+              sseRecords.splice(0, sseRecords.length - 200);
+          } catch (_e) {
+            // ignore malformed records
+          }
+        });
+        await context.addInitScript(${JSON.stringify(`(function () {
+  if (typeof EventSource === 'undefined' || window.__pwcliSsePatchInstalled) return;
+  window.__pwcliSsePatchInstalled = true;
+  var _OriginalEventSource = window.EventSource;
+  function PatchedEventSource(url, init) {
+    var es = new _OriginalEventSource(url, init);
+    var urlStr = String(url);
+    var now = function () { return new Date().toISOString(); };
+    var push = function (record) {
+      if (typeof window.__pwcliSseEvent === 'function')
+        window.__pwcliSseEvent(JSON.stringify(record)).catch(function () {});
+    };
+    push({ kind: 'sse-connect', url: urlStr, status: 'connecting', timestamp: now() });
+    es.addEventListener('open', function () {
+      push({ kind: 'sse-connect', url: urlStr, status: 'open', timestamp: now() });
+    });
+    es.addEventListener('error', function () {
+      push({ kind: 'sse-error', url: urlStr, eventType: '__error', timestamp: now(), readyState: es.readyState });
+    });
+    var _origAdd = es.addEventListener.bind(es);
+    es.addEventListener = function (type, listener, options) {
+      if (type !== 'open' && type !== 'error') {
+        var wrapped = function (e) {
+          var data = typeof e.data === 'string' ? (e.data.length > 500 ? e.data.slice(0, 500) + '...' : e.data) : null;
+          push({ kind: 'sse-event', url: urlStr, eventType: type, data: data, id: e.lastEventId || null, timestamp: now() });
+          if (typeof listener === 'function') listener.call(this, e);
+        };
+        _origAdd(type, wrapped, options);
+      } else {
+        _origAdd(type, listener, options);
+      }
+    };
+    es.addEventListener('message', function (e) {
+      var data = typeof e.data === 'string' ? (e.data.length > 500 ? e.data.slice(0, 500) + '...' : e.data) : null;
+      push({ kind: 'sse-event', url: urlStr, eventType: 'message', data: data, id: e.lastEventId || null, timestamp: now() });
+    });
+    return es;
+  }
+  PatchedEventSource.prototype = _OriginalEventSource.prototype;
+  PatchedEventSource.CONNECTING = _OriginalEventSource.CONNECTING;
+  PatchedEventSource.OPEN = _OriginalEventSource.OPEN;
+  PatchedEventSource.CLOSED = _OriginalEventSource.CLOSED;
+  window.EventSource = PatchedEventSource;
+})();`)});
+      }
+
       return JSON.stringify({
         installed: true,
         pageIds: context.pages().map(current => ensurePageId(current)),
         consoleCount: state.consoleRecords.length,
         networkCount: state.networkRecords.length,
+        sseCount: state.sseRecords.length,
       });
     }`,
   });

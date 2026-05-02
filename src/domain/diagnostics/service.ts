@@ -246,6 +246,22 @@ export async function buildSessionTimeline(options: {
     });
   }
 
+  // SSE signals (errors only go into timeline as pageerror-class entries)
+  for (const item of asArray(data.sse)) {
+    const record = item as Record<string, unknown>;
+    const ts = asString(record.timestamp);
+    if (!ts || !timestampAtOrAfter(ts, since)) continue;
+    if (record.eventType !== "__error") continue;
+    const url = asString(record.url) ?? "";
+    const shortUrl = url.length > 80 ? `…${url.slice(-77)}` : url;
+    entries.push({
+      timestamp: ts,
+      kind: "pageerror",
+      summary: `SSE error on ${shortUrl}`,
+      details: record,
+    });
+  }
+
   // Page errors
   for (const item of asArray(data.errors)) {
     const record = item as Record<string, unknown>;

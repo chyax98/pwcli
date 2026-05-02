@@ -31,6 +31,14 @@ state / auth / batch 命令见 `command-reference-advanced.md`。
 - `--request-id <id>`：单请求详情
 - 文本类 request/response 带 `requestBodySnippet` / `responseBodySnippet`（裁剪后的诊断片段）
 
+### `pw sse --session <name>`
+
+- 读取当前 session 捕获的 SSE（Server-Sent Events）事件记录
+- `--since <iso>`、`--limit <n>`（默认 50）、`--url <substring>`
+- SSE observer 在 session 启动时自动注入，无需额外配置
+- 限制：只捕获 session 建立后通过 `EventSource` 创建的连接；若 SSE 在 session 启动前已建立则无法回溯
+- 归入 `diagnostics timeline`（仅 `__error` 类事件）和 `diagnostics bundle`
+
 ### `pw errors recent --session <name>`
 
 - `--text <substring>`、`--since <iso>`、`--limit <n>`

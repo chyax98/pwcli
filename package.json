@@ -27,7 +27,8 @@
     "test:regression": "pnpm build && bash scripts/smoke/pwcli-smoke.sh",
     "smoke": "pnpm run test:regression",
     "test:dogfood": "pnpm run test:regression",
-    "test:dogfood:e2e": "pnpm build && bash scripts/e2e/pwcli-dogfood-e2e.sh"
+    "test:dogfood:e2e": "pnpm build && bash scripts/e2e/pwcli-dogfood-e2e.sh",
+    "check:skill": "node scripts/check-skill-contract.js"
   },
   "dependencies": {
     "commander": "14.0.3",

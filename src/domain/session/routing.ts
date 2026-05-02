@@ -12,6 +12,10 @@ export function sessionRoutingError(message: string) {
         "Run `pw doctor --session <name>` to confirm the blocked state",
         "If the session cannot be recovered, run `pw session recreate <name>`",
       ],
+      recovery: {
+        kind: "dismiss-dialog" as const,
+        commands: ["pw dialog dismiss --session <name>", "pw doctor --session <name>"],
+      },
     };
   }
 
@@ -35,6 +39,10 @@ export function sessionRoutingError(message: string) {
         "Run `pw session list` to inspect active sessions",
         "Create it with `pw session create <name> --open <url>`",
       ],
+      recovery: {
+        kind: "inspect" as const,
+        commands: ["pw session list", "pw session create <name> --open <url>"],
+      },
       details: { session: name },
     };
   }
@@ -50,6 +58,10 @@ export function sessionRoutingError(message: string) {
         "Keep dependent commands on the same session sequential, or put stable steps in `pw batch`",
         "If the owner process is gone, retry after the lock is reclaimed automatically",
       ],
+      recovery: {
+        kind: "retry" as const,
+        commands: ["pw session status <name>", "pw observe status --session <name>"],
+      },
       details: { session: name, timeoutMs: Number(timeoutMs) },
     };
   }
@@ -66,6 +78,10 @@ export function sessionRoutingError(message: string) {
         "Retry with `pw session create <name> --from-system-chrome --chrome-profile <directory-or-name> --open <url>`",
         "If Chrome is installed in a non-standard location, set PWCLI_CHROME_USER_DATA_DIR to the Chrome user data directory",
       ],
+      recovery: {
+        kind: "inspect" as const,
+        commands: ["pw profile list-chrome"],
+      },
       details: profile ? { profile } : undefined,
     };
   }
@@ -79,6 +95,10 @@ export function sessionRoutingError(message: string) {
         "Use a short session name like dc-main, auth-a, q1, or bug-a",
         `Keep the session name at or below ${limit} characters`,
       ],
+      recovery: {
+        kind: "inspect" as const,
+        commands: [] as string[],
+      },
       details: { session: name, maxLength: Number(limit) },
     };
   }
@@ -92,6 +112,10 @@ export function sessionRoutingError(message: string) {
         "Use only letters, numbers, hyphen, or underscore",
         "Example valid names: dc-main, auth_a, q1, bug-1",
       ],
+      recovery: {
+        kind: "inspect" as const,
+        commands: [] as string[],
+      },
       details: { session: name },
     };
   }

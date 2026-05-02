@@ -5,7 +5,7 @@ import { sessionRoutingError } from "../../domain/session/routing.js";
 import { appendRunEvent, ensureRunDir } from "../../infra/fs/run-artifacts.js";
 import { MAX_SESSION_NAME_LENGTH } from "../../infra/playwright/cli-client.js";
 import { managedRunCode } from "../../infra/playwright/runtime.js";
-import { printCommandError } from "../output.js";
+import { type RecoveryKind, printCommandError } from "../output.js";
 
 export function addSessionOption<T extends Command>(command: T): T {
   return command.option("-s, --session <name>", "Target managed session");
@@ -52,6 +52,9 @@ export function printSessionAwareCommandError(
       message: error.message,
       retryable: error.retryable,
       suggestions: error.suggestions,
+      recovery: error.recovery
+        ? { kind: error.recovery.kind as RecoveryKind, commands: error.recovery.commands }
+        : undefined,
       details: error.details,
     });
     return;

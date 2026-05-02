@@ -47,6 +47,10 @@ export function throwManagedActionErrorText(errorText: string, context: ManagedA
         "Retry with a fresh ref from the new snapshot",
         "Use a semantic locator such as --role or --text when the target must survive navigation or re-rendering",
       ],
+      recovery: {
+        kind: "re-snapshot",
+        commands: [`pw snapshot -i --session ${context.sessionName ?? "<name>"}`],
+      },
       details: { command: context.command, ref: refMatch[1], session },
     });
   }
@@ -61,6 +65,13 @@ export function throwManagedActionErrorText(errorText: string, context: ManagedA
         "Pass --nth when multiple matching targets are expected",
         `Inspect the current snapshot with \`pw snapshot -i --session ${context.sessionName ?? "<name>"}\``,
       ],
+      recovery: {
+        kind: "inspect",
+        commands: [
+          `pw snapshot -i --session ${context.sessionName ?? "<name>"}`,
+          `pw observe status --session ${context.sessionName ?? "<name>"}`,
+        ],
+      },
       details: { command: context.command, session },
     });
   }
@@ -75,6 +86,13 @@ export function throwManagedActionErrorText(errorText: string, context: ManagedA
         `Inspect the current snapshot with \`pw snapshot -i --session ${context.sessionName ?? "<name>"}\``,
         "Use a narrower selector or semantic locator when possible",
       ],
+      recovery: {
+        kind: "inspect",
+        commands: [
+          `pw snapshot -i --session ${context.sessionName ?? "<name>"}`,
+          `pw observe status --session ${context.sessionName ?? "<name>"}`,
+        ],
+      },
       details: { command: context.command, session },
     });
   }
@@ -92,6 +110,13 @@ export function throwManagedActionErrorText(errorText: string, context: ManagedA
         `Check page readiness with \`pw observe status --session ${context.sessionName ?? "<name>"}\``,
         "Clear any dialog, modal, or overlay that may block the target",
       ],
+      recovery: {
+        kind: "inspect",
+        commands: [
+          `pw observe status --session ${context.sessionName ?? "<name>"}`,
+          `pw snapshot -i --session ${context.sessionName ?? "<name>"}`,
+        ],
+      },
       details: { command: context.command, session },
     });
   }
@@ -106,6 +131,13 @@ export function throwManagedActionErrorText(errorText: string, context: ManagedA
         "Use an existing selector from the current page",
         "Use a semantic locator such as --role or --text when possible",
       ],
+      recovery: {
+        kind: "inspect",
+        commands: [
+          `pw snapshot -i --session ${context.sessionName ?? "<name>"}`,
+          `pw observe status --session ${context.sessionName ?? "<name>"}`,
+        ],
+      },
       details: { command: context.command, session },
     });
   }

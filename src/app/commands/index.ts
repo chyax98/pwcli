@@ -36,6 +36,7 @@ import { registerScrollCommand } from "./scroll.js";
 import { registerSelectCommand } from "./select.js";
 import { registerSessionCommand } from "./session.js";
 import { registerSkillCommand } from "./skill.js";
+import { registerSseCommand } from "./sse.js";
 import { registerSnapshotCommand } from "./snapshot.js";
 import { registerStateCommand } from "./state.js";
 import { registerStorageCommand } from "./storage.js";
@@ -83,6 +84,7 @@ export function registerCommands(program: Command): void {
   registerConsoleCommand(program);
   registerHarCommand(program);
   registerNetworkCommand(program);
+  registerSseCommand(program);
   registerObserveCommand(program);
   registerClickCommand(program);
   registerRouteCommand(program);

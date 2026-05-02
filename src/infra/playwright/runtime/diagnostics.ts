@@ -1012,6 +1012,7 @@ export async function managedDiagnosticsExport(options?: { sessionName?: string 
         errors: Array.isArray(state.pageErrorRecords) ? state.pageErrorRecords : [],
         routes: Array.isArray(state.routes) ? state.routes : [],
         bootstrap: state.bootstrap || null,
+        sse: Array.isArray(state.sseRecords) ? state.sseRecords : [],
       });
     }`,
   });
@@ -1029,6 +1030,7 @@ export async function managedDiagnosticsExport(options?: { sessionName?: string 
       errors: Array.isArray(parsed.errors) ? parsed.errors : [],
       routes: Array.isArray(parsed.routes) ? parsed.routes : [],
       bootstrap: parsed.bootstrap ?? null,
+      sse: Array.isArray(parsed.sse) ? parsed.sse : [],
     },
   };
 }

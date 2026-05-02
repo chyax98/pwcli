@@ -342,6 +342,10 @@ async function assertFreshRefEpoch(options: { sessionName?: string; ref: string 
     code: "REF_STALE",
     message: `Ref ${options.ref} is stale for the current page snapshot`,
     retryable: false,
+    recovery: {
+      kind: "re-snapshot",
+      commands: [`pw snapshot -i ${sessionFlag}`],
+    },
     details: {
       ...(validation as unknown as Record<string, unknown>),
       recovery: {

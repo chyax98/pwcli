@@ -5,11 +5,24 @@ type CommandResult = {
   data: Record<string, unknown>;
 };
 
+export type RecoveryKind =
+  | "retry"
+  | "inspect"
+  | "recreate"
+  | "re-snapshot"
+  | "dismiss-dialog"
+  | "reauth"
+  | "human-handoff";
+
 type CommandError = {
   code: string;
   message: string;
   retryable?: boolean;
   suggestions?: string[];
+  recovery?: {
+    kind: RecoveryKind;
+    commands: string[];
+  };
   details?: Record<string, unknown>;
 };
 
@@ -90,6 +103,7 @@ function errorEnvelope(command: string, error: CommandError) {
       message: error.message,
       retryable: Boolean(error.retryable),
       suggestions: error.suggestions ?? [],
+      ...(error.recovery ? { recovery: error.recovery } : {}),
       ...(error.details ? { details: error.details } : {}),
     },
   };
