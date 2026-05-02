@@ -693,6 +693,73 @@ export async function managedHar(
   };
 }
 
+export async function managedHarReplay(options: {
+  filePath: string;
+  sessionName?: string;
+  update?: boolean;
+}) {
+  const resolvedPath = resolve(options.filePath);
+  const result = await managedRunCode({
+    sessionName: options.sessionName,
+    source: `async page => {
+      ${stateAccessPrelude()}
+      await context.routeFromHAR(${JSON.stringify(resolvedPath)}, {
+        notFound: 'abort',
+        update: ${options.update ? "true" : "false"},
+      });
+      state.harReplay = {
+        active: true,
+        file: ${JSON.stringify(resolvedPath)},
+        update: ${options.update ? "true" : "false"},
+        startedAt: new Date().toISOString(),
+      };
+      return JSON.stringify({ replayActive: true, file: ${JSON.stringify(resolvedPath)} });
+    }`,
+  });
+  const parsed =
+    typeof result.data.result === "object" && result.data.result ? result.data.result : {};
+
+  return {
+    session: result.session,
+    page: result.page,
+    data: {
+      replayActive: true,
+      file: resolvedPath,
+      update: options.update ?? false,
+      ...(parsed as Record<string, unknown>),
+    },
+  };
+}
+
+export async function managedHarReplayStop(options: {
+  sessionName?: string;
+}) {
+  const result = await managedRunCode({
+    sessionName: options.sessionName,
+    source: `async page => {
+      ${stateAccessPrelude()}
+      await context.unrouteAll({ behavior: 'ignoreErrors' });
+      state.harReplay = {
+        active: false,
+        stoppedAt: new Date().toISOString(),
+      };
+      state.routes = [];
+      return JSON.stringify({ replayActive: false });
+    }`,
+  });
+  const parsed =
+    typeof result.data.result === "object" && result.data.result ? result.data.result : {};
+
+  return {
+    session: result.session,
+    page: result.page,
+    data: {
+      replayActive: false,
+      ...(parsed as Record<string, unknown>),
+    },
+  };
+}
+
 export async function managedObserveStatus(options?: { sessionName?: string }) {
   const projection = await managedWorkspaceProjection({ sessionName: options?.sessionName });
   const result = await managedRunCode({

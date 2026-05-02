@@ -8,6 +8,78 @@ type WorkspacePage = {
   pageId: string;
 };
 
+const INTERACTIVE_ROLES = new Set([
+  "button",
+  "link",
+  "checkbox",
+  "radio",
+  "textbox",
+  "combobox",
+  "listbox",
+  "menuitem",
+  "tab",
+  "menuitemcheckbox",
+  "menuitemradio",
+  "slider",
+  "spinbutton",
+  "switch",
+  "treeitem",
+  "gridcell",
+]);
+
+function filterInteractiveNodes(
+  node: Record<string, unknown>,
+  interactiveRoles: Set<string>,
+): Record<string, unknown>[] {
+  const role = String(node.role ?? "");
+  const children = (Array.isArray(node.children) ? node.children : [])
+    .flatMap((child) =>
+      filterInteractiveNodes(child as Record<string, unknown>, interactiveRoles),
+    );
+
+  if (interactiveRoles.has(role)) {
+    return [{ ...node, children }];
+  }
+
+  return children;
+}
+
+export async function managedAccessibilitySnapshot(options: {
+  sessionName?: string;
+  interactiveOnly?: boolean;
+  root?: string;
+}) {
+  const result = await managedRunCode({
+    sessionName: options?.sessionName,
+    source: `async page => {
+      const rootLocator = ${options?.root ? `page.locator(${JSON.stringify(options.root)})` : "null"};
+      const snapshot = await page.accessibility.snapshot({ root: rootLocator, interestingOnly: true });
+      return JSON.stringify(snapshot);
+    }`,
+  });
+
+  let snapshot = result.data.result as Record<string, unknown> | null;
+  if (!snapshot) {
+    snapshot = { role: "generic", children: [] };
+  }
+
+  if (options?.interactiveOnly) {
+    const filtered = filterInteractiveNodes(snapshot, INTERACTIVE_ROLES);
+    snapshot =
+      filtered.length === 1
+        ? filtered[0]
+        : { role: "generic", children: filtered };
+  }
+
+  return {
+    session: result.session,
+    page: result.page,
+    data: {
+      snapshot,
+    },
+  };
+}
+
 export async function managedWorkspaceProjection(options?: { sessionName?: string }) {
   await managedEnsureDiagnosticsHooks({ sessionName: options?.sessionName });
   const result = await managedRunCode({
