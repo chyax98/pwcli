@@ -185,7 +185,7 @@ export function registerRouteCommand(program: Command): void {
           code: "ROUTE_ADD_FAILED",
           message: "route add failed",
           suggestions: [
-            "Use `pw route --session bug-a add '**/api/**' --abort`",
+            "Use `pw route add --session bug-a '**/api/**' --abort`",
             "Or fulfill a mock response with `--body` and optional `--status`",
             "Or inject request headers with `--inject-headers-file` for pass-through reproduction",
             "Or patch an upstream JSON response with `--patch-json-file`",
@@ -325,7 +325,7 @@ export function registerRouteCommand(program: Command): void {
         code: "ROUTE_REMOVE_FAILED",
         message: "route remove failed",
         suggestions: [
-          "Use `pw route --session bug-a remove '**/api/**'` to remove one pattern",
+          "Use `pw route remove --session bug-a '**/api/**'` to remove one pattern",
           "Omit the pattern to clear all managed-session routes",
         ],
       });
