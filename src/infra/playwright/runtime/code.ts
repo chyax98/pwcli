@@ -159,7 +159,7 @@ export async function managedRunCode(options: {
         {
           sessionName: options.sessionName,
           timeoutMs: options.timeoutMs ?? DEFAULT_RUN_CODE_TIMEOUT_MS,
-          timeoutMessage: `run-code timed out after ${(options.timeoutMs ?? DEFAULT_RUN_CODE_TIMEOUT_MS) / 1000}s`,
+          timeoutMessage: `Code execution exceeded the ${(options.timeoutMs ?? DEFAULT_RUN_CODE_TIMEOUT_MS) / 1000}s guard timeout. Split long flows into first-class pw commands + explicit pw wait steps.`,
           timeoutCode: "RUN_CODE_TIMEOUT",
         },
       );

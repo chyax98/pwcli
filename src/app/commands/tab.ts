@@ -24,7 +24,10 @@ export function registerTabCommand(program: Command): void {
         printSessionAwareCommandError("tab select", error, {
           code: "TAB_SELECT_FAILED",
           message: "tab select failed",
-          suggestions: ["Run `pw page list --session <name>` and pass a listed pageId"],
+          suggestions: [
+            "Run `pw page list --session <name>` and pass a listed pageId",
+            "Run pw page list --session <name> to get valid pageId values",
+          ],
         });
         process.exitCode = 1;
       }
@@ -43,7 +46,10 @@ export function registerTabCommand(program: Command): void {
         printSessionAwareCommandError("tab close", error, {
           code: "TAB_CLOSE_FAILED",
           message: "tab close failed",
-          suggestions: ["Run `pw page list --session <name>` and pass a listed pageId"],
+          suggestions: [
+            "Run `pw page list --session <name>` and pass a listed pageId",
+            "Run pw page list --session <name> to get valid pageId values",
+          ],
         });
         process.exitCode = 1;
       }

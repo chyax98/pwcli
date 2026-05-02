@@ -8,7 +8,7 @@ export function sessionRoutingError(message: string) {
       message:
         "The current managed session is blocked by a modal dialog, so run-code-backed reads and actions are unavailable.",
       suggestions: [
-        "Dismiss or accept the browser dialog if one is visible",
+        "Run: pw dialog accept --session <name>  or  pw dialog dismiss --session <name>  then retry",
         "Run `pw doctor --session <name>` to confirm the blocked state",
         "If the session cannot be recovered, run `pw session recreate <name>`",
       ],
@@ -63,6 +63,19 @@ export function sessionRoutingError(message: string) {
         commands: ["pw session status <name>", "pw observe status --session <name>"],
       },
       details: { session: name, timeoutMs: Number(timeoutMs) },
+    };
+  }
+
+  if (message.startsWith("SESSION_RECREATE_STARTUP_TIMEOUT:")) {
+    return {
+      code: "SESSION_RECREATE_STARTUP_TIMEOUT",
+      message: message.slice("SESSION_RECREATE_STARTUP_TIMEOUT:".length),
+      retryable: false,
+      suggestions: [
+        "DO NOT retry recreate for the same session name — it will not self-heal",
+        "Run: pw session close --session <name> --force  then  pw session create <new-name>",
+        "Or use a completely different session name to avoid the locked profile",
+      ],
     };
   }
 
