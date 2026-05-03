@@ -1,10 +1,11 @@
 ---
 paths:
-  - "src/app/**/*.ts"
-  - "src/domain/**/*.ts"
-  - "src/infra/**/*.ts"
+  - "src/cli/**/*.ts"
+  - "src/engine/**/*.ts"
+  - "src/store/**/*.ts"
+  - "src/auth/**/*.ts"
   - "skills/pwcli/**/*.md"
-  - "docs/architecture/**/*.md"
+  - "codestable/architecture/**/*.md"
   - "AGENTS.md"
   - "README.md"
 ---
@@ -25,17 +26,17 @@ paths:
 | 高频使用路径变化 | `skills/pwcli/references/workflows.md`，必要时同步 `skills/pwcli/workflows/*.md` |
 | Forge/DC auth 变化 | `skills/pwcli/references/forge-dc-auth.md` |
 | 新增 / 修改 auth provider | `.claude/rules/07-auth-provider-authoring.md`、`skills/pwcli/references/command-reference-advanced.md` |
-| 架构边界、限制、扩展口变化 | `docs/architecture/domain-status.md` 或 ADR |
-| 命令注册面、命令家族、源码入口变化 | `docs/architecture/command-surface.md` |
-| 文档边界变化 | `docs/architecture/documentation-governance.md` |
+| 架构边界、限制、扩展口变化 | `codestable/architecture/domain-status.md` 或 ADR |
+| 命令注册面、命令家族、源码入口变化 | `codestable/architecture/command-surface.md` |
+| 文档边界变化 | `codestable/architecture/documentation-governance.md` |
 
 ## 更新顺序
 
-1. 从源码确认 shipped contract：`src/app`、`src/domain`、`src/infra`。
+1. 从源码确认 shipped contract：`src/cli`、`src/engine`、`src/store`、`src/auth`。
 2. 更新最小必要 skill 文件。
 3. 如果新增 limitation，写清楚触发条件、可恢复路径、不能包装成已支持。
 4. 如果是新工作流，写成可执行命令序列，不写长篇教程。
-5. 如果改变领域边界，同步 `docs/architecture/`。
+5. 如果改变领域边界，同步 `codestable/architecture/`。
 6. 跑验证：`pnpm typecheck`、`pnpm build`、`pnpm smoke`。
 
 ## 写法
@@ -49,11 +50,11 @@ paths:
 
 ## 必须验证的事实
 
-- 命令存在：`src/app/commands/*`。
+- 命令存在：`src/cli/commands/*`。
 - 运行入口存在：`node dist/cli.js --help`。
-- 参数存在：对应 command `--help` 或 commander 定义。
-- 命令家族归属存在：`docs/architecture/command-surface.md`。
-- 输出 envelope 存在：`src/app/output.ts` 和命令实现。
+- 参数存在：对应 command `--help` 或 citty defineCommand 定义。
+- 命令家族归属存在：`codestable/architecture/command-surface.md`。
+- 输出 envelope 存在：`src/cli/output.ts` 和命令实现。
 - limitation 存在：源码错误码、运行时返回、或 dogfood 结论。
 
 没有被这些事实支撑的内容不能写进 skill。

@@ -72,7 +72,7 @@ command reference 必须满足：
    - 稳定 flag
    - 输出/副作用
    - 当前限制
-3. 参数以 `src/app/commands/*` 和 `node dist/cli.js --help` 为准。
+3. 参数以 `src/cli/commands/*` 和 `node dist/cli.js --help` 为准。
 4. 删除命令时必须从所有 reference 和 workflow 移除。
 5. 新增 limitation 时，reference 可以短写，完整恢复路径必须进 `failure-recovery.md`。
 
@@ -100,7 +100,7 @@ workflow 必须是任务链路，不是教程散文。
 | 检查项 | 命令 / 动作 |
 |---|---|
 | 命令是否存在 | `pnpm build && node dist/cli.js --help` |
-| 子命令参数是否存在 | `node dist/cli.js <cmd> --help` 或读 `src/app/commands/<cmd>.ts` |
+| 子命令参数是否存在 | `node dist/cli.js <cmd> --help` 或读 `src/cli/commands/<cmd>.ts` |
 | 示例是否带 session | 搜索新增示例中的 `pw ` 命令 |
 | JSON 说法是否准确 | 检查是否只把 `--output json` 用于脚本解析 |
 | limitation 是否有恢复路径 | 检查 `failure-recovery.md` |

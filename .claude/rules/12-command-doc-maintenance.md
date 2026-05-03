@@ -4,17 +4,17 @@
 
 ## 核心原则
 
-`docs/commands/` 是命令设计决策的唯一真相（ADR）。
+`codestable/architecture/commands/` 是命令设计决策的唯一真相（ADR）。
 `skills/pwcli/` 是使用教程的唯一真相。
 两者不重复，各司其职。
 
 ## 强制维护规则
 
-**任何触碰命令的改动，必须同步更新对应的 `docs/commands/<command>.md`：**
+**任何触碰命令的改动，必须同步更新对应的 `codestable/architecture/commands/<command>.md`：**
 
 | 改动类型 | 必须更新 |
 |---|---|
-| 新增命令或子命令 | 新建对应 docs/commands/ 文件 |
+| 新增命令或子命令 | 新建对应 codestable/architecture/commands/ 文件 |
 | 删除命令或子命令 | 在文档里注明删除原因和日期 |
 | 修改 flag / 参数 | 更新"技术原理"和"已知限制"章节 |
 | 修改错误码 | 更新"已知限制"章节 |
@@ -24,7 +24,7 @@
 ## 文件结构
 
 ```
-docs/commands/
+codestable/architecture/commands/
   _template.md         ← 新命令参照此模板
   session.md           ← pw session create|attach|recreate|close|list
   snapshot.md          ← pw snapshot
@@ -52,11 +52,11 @@ docs/commands/
 | 问题 | 去哪里找 |
 |---|---|
 | 怎么用这个命令？ | `skills/pwcli/` |
-| 为什么这样设计？ | `docs/commands/` |
-| 这个命令可靠吗？ | `docs/commands/` 的"使用证据"章节 |
+| 为什么这样设计？ | `codestable/architecture/commands/` |
+| 这个命令可靠吗？ | `codestable/architecture/commands/` 的"使用证据"章节 |
 | 失败了怎么恢复？ | `skills/pwcli/references/failure-recovery.md` |
 
 ## Review 要求
 
-PR review 时检查：命令行为有变化 → docs/commands/ 必须同步更新。
+PR review 时检查：命令行为有变化 → codestable/architecture/commands/ 必须同步更新。
 没有同步更新的 PR 视为文档债务，需在下次修改时补上。

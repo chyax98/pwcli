@@ -6,15 +6,15 @@ architecture, or backlog truth.
 
 Project truth order:
 
-1. Source truth: `src/app`, `src/domain`, `src/infra`
+1. Source truth: `src/cli`, `src/engine`, `src/store`, `src/auth`
 2. Usage truth: `skills/pwcli/`
-3. Architecture truth: `docs/architecture/`
+3. Architecture truth: `codestable/architecture/`
 4. Agent project rules: `.claude/`
 5. Collaboration entry rules: `AGENTS.md`
 
 If these Claude Code rules conflict with source, shipped docs, AGENTS, or direct user
 instructions, the higher-level truth wins. If a Claude Code rule becomes a stable
-project decision, move it into `skills/pwcli/`, `docs/architecture/`,
+project decision, move it into `skills/pwcli/`, `codestable/architecture/`,
 or GitHub issues. Do not preserve project planning, migration logs, or backlog
 truth in `.claude/`.
 
@@ -36,11 +36,11 @@ The main value is:
 ## Mandatory Workflow Before Editing
 
 1. Read `AGENTS.md`.
-2. Read `docs/architecture/documentation-governance.md`.
+2. Read `codestable/architecture/documentation-governance.md`.
 3. Read `.claude/rules/08-skill-maintenance.md`.
 4. Check current git state and never overwrite unrelated user work.
 5. If command behavior changes, update `skills/pwcli/`.
-6. If domain boundaries change, update `docs/architecture/`.
+6. If domain boundaries change, update `codestable/architecture/`.
 7. Verify with the smallest command that covers the changed risk.
 
 ## Rule Index
@@ -54,7 +54,7 @@ Project slash commands live in `.claude/commands/*.md`. They are local developme
 
 - `rules/01-product-boundaries.md`: what this product is and is not
 - `rules/02-command-contracts.md`: command, flag, output, batch, and docs sync
-- `rules/03-architecture-boundaries.md`: app/domain/infra ownership rules
+- `rules/03-architecture-boundaries.md`: cli/engine/store/auth ownership rules
 - `rules/04-recovery-evidence.md`: diagnostics, failure, stale refs, and evidence
 - `rules/05-verification-review.md`: review and validation gates
 - `rules/06-current-roadmap.md`: current prioritized feature direction
@@ -63,9 +63,9 @@ Project slash commands live in `.claude/commands/*.md`. They are local developme
 - `rules/09-skill-writing-standard.md`: skill writing quality bar
 - `rules/10-review-guidelines.md`: P0/P1 review checklist
 - `rules/11-agent-usability-prioritization.md`: evidence-driven Agent usability enhancement prioritization
-- `rules/12-command-doc-maintenance.md`: docs/commands/ ADR maintenance — command change must update doc
+- `rules/12-command-doc-maintenance.md`: codestable/architecture/commands/ ADR maintenance — command change must update doc
 
 ## Local Commands
 
-- `/docs-maintain`: maintain `skills/pwcli/` and `docs/architecture/` using governance rules
+- `/docs-maintain`: maintain `skills/pwcli/` and `codestable/architecture/` using governance rules
 - `/ship-check`: run local ship / release candidate checks

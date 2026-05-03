@@ -1,20 +1,19 @@
 ---
 paths:
-  - "src/app/**/*.ts"
-  - "src/domain/**/*.ts"
-  - "src/infra/playwright/**/*.ts"
+  - "src/cli/**/*.ts"
+  - "src/engine/**/*.ts"
   - "skills/pwcli/**/*.md"
-  - "docs/architecture/command-surface.md"
-  - "docs/architecture/domain-status.md"
+  - "codestable/architecture/command-surface.md"
+  - "codestable/architecture/domain-status.md"
 ---
 
 # Command Contract Rules
 
 ## Command Ownership
 
-Commands live in `src/app/commands/*`. Runtime behavior lives under
-`src/infra/playwright/runtime/*`. Domain code is only for real transformation,
-policy, or orchestration logic; do not add hollow pass-through domain wrappers.
+Commands live in `src/cli/commands/*`. Runtime behavior lives under
+`src/engine/*`. Engine is the only layer that touches Playwright; cli/ is thin
+parsing + output only.
 
 ## Lifecycle Boundary
 

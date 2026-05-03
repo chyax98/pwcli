@@ -2,7 +2,7 @@
 paths:
   - "src/**/*.ts"
   - "skills/pwcli/**/*.md"
-  - "docs/architecture/**/*.md"
+  - "codestable/architecture/**/*.md"
   - "AGENTS.md"
   - "README.md"
 ---
@@ -23,10 +23,9 @@ paths:
 
 重点路径：
 
-- `src/app/commands/tab.ts`
-- `src/domain/workspace/`
-- `src/infra/playwright/runtime/workspace.ts`
-- `docs/architecture/workspace-mutation-contract.md`
+- `src/cli/commands/tab.ts`
+- `src/engine/workspace.ts`
+- `codestable/architecture/workspace-mutation-contract.md`
 
 必须检查：
 
@@ -46,11 +45,11 @@ pageId -> old snapshot index -> close/select live tab by index
 
 重点路径：
 
-- `src/app/commands/session.ts`
-- `src/app/commands/open.ts`
-- `src/app/commands/auth.ts`
-- `src/infra/playwright/cli-client.ts`
-- `docs/architecture/adr-001-agent-first-command-and-lifecycle.md`
+- `src/cli/commands/session.ts`
+- `src/cli/commands/open.ts`
+- `src/cli/commands/auth.ts`
+- `src/engine/cli-client.ts`
+- `codestable/architecture/adr-001-agent-first-command-and-lifecycle.md`
 
 必须检查：
 
@@ -63,10 +62,10 @@ pageId -> old snapshot index -> close/select live tab by index
 
 重点路径：
 
-- `src/app/commands/**`
-- `src/app/output.ts`
-- `src/app/batch/**`
-- `src/domain/**`
+- `src/cli/commands/**`
+- `src/cli/output.ts`
+- `src/cli/batch/**`
+- `src/engine/**`
 
 必须检查：
 
@@ -80,10 +79,10 @@ pageId -> old snapshot index -> close/select live tab by index
 
 重点路径：
 
-- `src/domain/session/routing.ts`
-- `src/infra/playwright/runtime/**`
+- `src/engine/routing.ts`
+- `src/engine/**`
 - `skills/pwcli/references/failure-recovery.md`
-- `docs/architecture/domain-status.md`
+- `codestable/architecture/domain-status.md`
 
 必须检查：
 
@@ -101,7 +100,7 @@ pageId -> old snapshot index -> close/select live tab by index
 | 命令、flag、错误码、输出变化 | `skills/pwcli/` |
 | 新 limitation / recoverability | `skills/pwcli/references/failure-recovery.md` |
 | 新工作流 | `skills/pwcli/references/workflows.md` 或 `skills/pwcli/workflows/*.md` |
-| 领域边界变化 | `docs/architecture/` |
+| 领域边界变化 | `codestable/architecture/` |
 | review / skill 维护规则变化 | `.claude/` 和 `AGENTS.md` |
 
 文档问题只在下面情况升级：
@@ -174,7 +173,7 @@ pnpm test:dogfood:e2e
 重点查：
 
 - README 不能变成第二套命令教程
-- docs/architecture 不能重复 skill 教程
+- codestable/architecture 不能重复 skill 教程
 - skill 不能放过程调研、历史迁移、业务账号、内部 token
 - `.claude/` 只允许承载 Claude Code 项目指令和 rules；需要保留的项目结论必须进入 skill、ADR 或 architecture docs
 

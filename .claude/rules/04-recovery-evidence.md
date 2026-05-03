@@ -1,12 +1,12 @@
 ---
 paths:
-  - "src/infra/playwright/runtime/**/*.ts"
-  - "src/domain/diagnostics/**/*.ts"
-  - "src/domain/interaction/**/*.ts"
-  - "src/app/commands/**/*.ts"
+  - "src/engine/**/*.ts"
+  - "src/engine/diagnose/**/*.ts"
+  - "src/engine/act/**/*.ts"
+  - "src/cli/commands/**/*.ts"
   - "skills/pwcli/references/failure-recovery.md"
   - "skills/pwcli/workflows/**/*.md"
-  - "docs/architecture/domain-status.md"
+  - "codestable/architecture/domain-status.md"
 ---
 
 # Recovery And Evidence Rules

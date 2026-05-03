@@ -1,10 +1,10 @@
 ---
 paths:
-  - "src/infra/auth-providers/**/*.ts"
-  - "src/app/commands/auth.ts"
+  - "src/auth/**/*.ts"
+  - "src/cli/commands/auth.ts"
   - "skills/pwcli/references/command-reference-advanced.md"
   - "skills/pwcli/references/forge-dc-auth.md"
-  - "docs/architecture/domain-status.md"
+  - "codestable/architecture/domain-status.md"
 ---
 
 # Auth Provider Authoring
@@ -35,7 +35,7 @@ export type AuthProviderSpec = {
 
 ```text
 pw auth <provider> --session <name> --arg key=value
-  -> src/app/commands/auth.ts
+  -> src/cli/commands/auth.ts
   -> parseKeyValueArgs()
   -> provider.resolveArgs(rawArgs)
   -> loadAuthProviderSource(provider)
@@ -81,9 +81,9 @@ pw auth <provider> --session <name> --arg key=value
 
 ## 4. 新增 provider 步骤
 
-1. 在 `src/infra/auth-providers/` 新增 provider 实现。
+1. 在 `src/auth/` 新增 provider 实现。
 2. 导出 `AuthProviderSpec`。
-3. 在 `src/infra/auth-providers/registry.ts` 的 `AUTH_PROVIDERS` 中注册。
+3. 在 `src/auth/registry.ts` 的 `AUTH_PROVIDERS` 中注册。
 4. 给每个参数写 `args` metadata。
 5. 给成功路径写 `examples` 和 `notes`。
 6. 给失败路径抛稳定错误码，例如 `DC_AUTH_URL_REQUIRED`。

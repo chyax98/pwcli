@@ -4,18 +4,18 @@
 
 开始改代码前，先认这三条真相：
 
-1. 源码真相：`src/app` / `src/domain` / `src/infra`
+1. 源码真相：`src/cli` / `src/engine` / `src/store` / `src/auth`
 2. 使用真相：`skills/pwcli/`
-3. 架构真相：`docs/architecture/`
+3. 架构真相：`codestable/architecture/`
 4. Claude Code 项目规则：`.claude/`
 
-`.claude/` 只允许存放 Claude Code 官方项目配置、`CLAUDE.md`、`rules/` 和本地开发 slash `commands/`。不要放过程 planning、草案、survey、迁移记录、工具缓存或 active project truth。项目待办放 GitHub issues / PR，稳定结论写回 `skills/pwcli/`、`docs/architecture/` 或 ADR。
+`.claude/` 只允许存放 Claude Code 官方项目配置、`CLAUDE.md`、`rules/` 和本地开发 slash `commands/`。不要放过程 planning、草案、survey、迁移记录、工具缓存或 active project truth。项目待办放 GitHub issues / PR，稳定结论写回 `skills/pwcli/`、`codestable/architecture/` 或 ADR。
 
 ## 工作顺序
 
 ```text
-1. 读 skills/pwcli/ 和 docs/architecture/
-2. 读 `docs/architecture/documentation-governance.md`
+1. 读 skills/pwcli/ 和 codestable/architecture/
+2. 读 `codestable/architecture/documentation-governance.md`
 3. 读 `.claude/CLAUDE.md` 和 `.claude/rules/`
 4. 改代码
 5. 同步 skill
@@ -27,16 +27,18 @@
 
 ```text
 src/
-  app/
+  cli/
     commands/
     batch/
     output.ts
-  domain/
-  infra/
+  engine/
+  store/
+  auth/
 skills/
   pwcli/
-docs/
+codestable/
   architecture/
+  compound/
 .claude/
 ```
 
@@ -56,7 +58,7 @@ docs/
 | 改动 | 必须同步 |
 |---|---|
 | 命令、flag、错误码、输出变化 | `skills/pwcli/` |
-| 领域边界变化 | `docs/architecture/` |
+| 领域边界变化 | `codestable/architecture/` |
 | 新 limitation / recoverability | `skills/pwcli/references/failure-recovery.md` |
 | 新工作流 | `skills/pwcli/references/workflows.md` |
 | Agent 项目规则 / review / skill 维护规则变化 | `.claude/` |
@@ -86,7 +88,7 @@ pw <affected-command> ...
 1. workspace 写操作是否违反 stable identity contract
 2. session lifecycle / open / auth / batch 边界是否漂移
 3. 命令、flag、错误码、输出、workflow 变化是否同步 `skills/pwcli/`
-4. 领域边界变化是否同步 `docs/architecture/`
+4. 领域边界变化是否同步 `codestable/architecture/`
 5. Agent 可用性增强是否有真实任务/issue/dogfood 证据，不把 P2/P3 后置项伪装成正式版 blocker
 6. 行为变更是否有 `pnpm typecheck`、`pnpm build`、`pnpm smoke` 或等价覆盖
 
