@@ -1,7 +1,7 @@
 ---
 doc_type: issue-analysis
 issue: 2026-05-04-environment-geolocation-contract-drift
-status: draft
+status: confirmed
 root_cause_type: data-format
 related:
   - environment-geolocation-contract-drift-report.md
@@ -78,3 +78,7 @@ tags:
 ### 推荐方案
 
 **推荐方案 A**。理由：用户刚明确产品核心用户是 Agent，skill 是产品面的一部分。`--lat/--lng` 对 Agent 更稳定、可读、可由 help 明确展示，也避开负数 longitude 的 positional parser 陷阱；保留 positional fallback 可以降低兼容风险。
+
+## 6. 方案确认
+
+本轮 goal-driven 执行按推荐方案 A 进入修复：支持 `--lat/--lng`，保留 positional fallback，并补聚焦 contract 验证。

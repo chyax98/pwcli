@@ -1,10 +1,43 @@
 import { defineCommand } from "citty";
 import { managedEnvironmentClockInstall, managedEnvironmentClockResume, managedEnvironmentClockSet, managedEnvironmentGeolocationSet, managedEnvironmentOffline, managedEnvironmentPermissionsClear, managedEnvironmentPermissionsGrant } from "#engine/environment.js";
 import { sharedArgs } from "#cli/args.js";
-import { firstPos, num, positionals, print, session, withCliError, type CliArgs } from "./_helpers.js";
+import { firstPos, num, positionals, print, session, str, withCliError, type CliArgs } from "./_helpers.js";
 
 const offline = defineCommand({ meta: { name: "offline", description: "Set network offline mode" }, args: sharedArgs, async run({ args }) { const a = args as CliArgs; try { print("environment offline", await managedEnvironmentOffline(firstPos(a) as "on" | "off", { sessionName: session(a) }), a); } catch (e) { withCliError("environment offline", a, e); } } });
-const geoSet = defineCommand({ meta: { name: "set", description: "Set geolocation" }, args: { ...sharedArgs, accuracy: { type: "string", description: "Accuracy meters", valueHint: "m" } }, async run({ args }) { const a = args as CliArgs; try { const p = positionals(a); print("environment geolocation set", await managedEnvironmentGeolocationSet({ sessionName: session(a), latitude: num(p[0]) as number, longitude: num(p[1]) as number, accuracy: num(a.accuracy) }), a); } catch (e) { withCliError("environment geolocation set", a, e); } } });
+const geoSet = defineCommand({
+  meta: { name: "set", description: "Set geolocation" },
+  args: {
+    ...sharedArgs,
+    lat: { type: "string", description: "Latitude", valueHint: "lat" },
+    lng: { type: "string", description: "Longitude", valueHint: "lng" },
+    accuracy: { type: "string", description: "Accuracy meters", valueHint: "m" },
+  },
+  async run({ args }) {
+    const a = args as CliArgs;
+    try {
+      const p = positionals(a);
+      const latitude = num(str(a.lat) ?? p[0]);
+      const longitude = num(str(a.lng) ?? p[1]);
+      if (latitude === undefined || longitude === undefined) {
+        throw new Error(
+          "environment geolocation set requires --lat <lat> --lng <lng> or positional <lat> <lng>",
+        );
+      }
+      print(
+        "environment geolocation set",
+        await managedEnvironmentGeolocationSet({
+          sessionName: session(a),
+          latitude,
+          longitude,
+          accuracy: num(a.accuracy),
+        }),
+        a,
+      );
+    } catch (e) {
+      withCliError("environment geolocation set", a, e);
+    }
+  },
+});
 const permGrant = defineCommand({ meta: { name: "grant", description: "Grant permissions" }, args: sharedArgs, async run({ args }) { const a = args as CliArgs; try { print("environment permissions grant", await managedEnvironmentPermissionsGrant({ sessionName: session(a), permissions: positionals(a) }), a); } catch (e) { withCliError("environment permissions grant", a, e); } } });
 const permClear = defineCommand({ meta: { name: "clear", description: "Clear permissions" }, args: sharedArgs, async run({ args }) { const a = args as CliArgs; try { print("environment permissions clear", await managedEnvironmentPermissionsClear({ sessionName: session(a) }), a); } catch (e) { withCliError("environment permissions clear", a, e); } } });
 const clockInstall = defineCommand({ meta: { name: "install", description: "Install fake clock" }, args: sharedArgs, async run({ args }) { const a = args as CliArgs; try { print("environment clock install", await managedEnvironmentClockInstall({ sessionName: session(a) }), a); } catch (e) { withCliError("environment clock install", a, e); } } });
