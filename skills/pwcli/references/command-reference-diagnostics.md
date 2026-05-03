@@ -98,10 +98,11 @@ state / auth / batch 命令见 `command-reference-advanced.md`。
 - `--verbose`：完整 probe 细节
 - 诊断 substrate 健康、探测 endpoint reachability、返回恢复建议
 - 环境预检（Node 版本、Playwright 浏览器安装、磁盘空间）：
-  - Node.js >= 18.0.0
+  - 项目运行基线以 `package.json` 为准：Node.js `>=24.12.0 <26`，pnpm 10+
   - Chromium / Firefox / WebKit 至少一个已安装
   - 当前工作目录可用磁盘 > 1GB
   - 预检结果在 `diagnostics[].kind === "environment"` 中返回，`--verbose` 时展开全部细节
+  - `doctor` 是健康检查，不负责修复 Volta/proto 等版本管理器造成的环境差异
 
 ## Route Mock
 

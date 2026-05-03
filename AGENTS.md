@@ -50,6 +50,7 @@ codestable/
 - `batch` 只走结构化 `string[][]`
 - skill 是唯一教程真相
 - 项目文档中文优先；`skills/pwcli/` 作为核心产品面必须中文优先，英文只保留在命令、flag、错误码、API、路径、协议字段和必要引用里
+- 本项目环境基线是 Node 24 + pnpm 10+（以 `package.json` 为准）；Volta/proto 等版本管理导致的环境预检差异不要用产品补丁强行绕过
 - docs 只维护架构、限制、扩展方向
 - `.claude` 只维护 Claude Code 项目指令、规则和本地开发 slash commands，不承载项目文档或 backlog
 - limitation code 不能包装成“已支持”
@@ -75,6 +76,7 @@ pw <affected-command> ...
 
 规则：
 
+- 验证前先确认当前 shell 在 Node 24 + pnpm 10+ 基线内。
 - alias 已经是 `pw`；构建后直接用 `pw` 做真实、针对性的命令验证。
 - 不默认跑 `pnpm smoke` / 全量 gate。
 - 最终发布、合并前总验收，或用户明确要求时，才跑全量测试。
