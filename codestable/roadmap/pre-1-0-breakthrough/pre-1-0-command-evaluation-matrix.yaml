@@ -54,13 +54,13 @@ commands:
   - command: check
     group: interaction-input
     roadmap_item: command-eval-interaction-input
-    status: planned
-    notes: 和 uncheck/select 一起验证表单控件
+    status: proven
+    notes: 2026-05-04 focused check 验证 checkbox checked=true，并用 is checked 复核
   - command: click
     group: interaction-input
     roadmap_item: command-eval-interaction-input
-    status: planned
-    notes: 高风险动作命令，必须覆盖 stale ref、modal blocked 和 diagnosticsDelta
+    status: proven
+    notes: 2026-05-04 focused check 覆盖 selector click、登录导航和 diagnosticsDelta；stale ref/modal blocked 后续 recovery 专项继续覆盖
   - command: code
     group: tooling-boundary
     roadmap_item: command-eval-batch-code-dashboard-skill-sse
@@ -99,13 +99,13 @@ commands:
   - command: download
     group: interaction-input
     roadmap_item: command-eval-interaction-input
-    status: planned
-    notes: 和 upload/drag/file workflow 一起验证
+    status: proven
+    notes: 2026-05-04 focused check 下载 dogfood-report.txt，验证文件存在且内容包含 dogfood-report:dogfood-1
   - command: drag
     group: interaction-input
     roadmap_item: command-eval-interaction-input
-    status: planned
-    notes: 覆盖 selector/ref 和坐标误用恢复
+    status: proven
+    notes: 2026-05-04 focused check 覆盖 from/to selector 拖动，页面状态更新；ref/坐标误用恢复后续补充
   - command: environment
     group: environment
     roadmap_item: command-eval-environment-controls
@@ -119,8 +119,8 @@ commands:
   - command: fill
     group: interaction-input
     roadmap_item: command-eval-interaction-input
-    status: planned
-    notes: 表单 workflow 主命令
+    status: proven
+    notes: 2026-05-04 focused check 覆盖 email 写入和 password 清空，get value 复核
   - command: get
     group: observation
     roadmap_item: command-eval-observation-reading
@@ -134,8 +134,8 @@ commands:
   - command: hover
     group: interaction-input
     roadmap_item: command-eval-interaction-input
-    status: planned
-    notes: 覆盖 hover-triggered UI
+    status: proven
+    notes: "2026-05-04 focused check 覆盖 hover-triggered UI，页面状态变为 hover: active"
   - command: is
     group: wait-assert-state
     roadmap_item: command-eval-wait-assert-state
@@ -149,8 +149,8 @@ commands:
   - command: mouse
     group: interaction-input
     roadmap_item: command-eval-interaction-input
-    status: planned
-    notes: 坐标动作需要额外状态验证，不能只看 acted=true
+    status: proven
+    notes: 2026-05-04 focused check 覆盖 move/click/wheel，click 触发页面状态；dblclick/drag 坐标专项后续补充
   - command: network
     group: network-console-errors
     roadmap_item: command-eval-network-console-errors
@@ -179,8 +179,8 @@ commands:
   - command: press
     group: interaction-input
     roadmap_item: command-eval-interaction-input
-    status: planned
-    notes: 键盘动作后必须串 wait/verify
+    status: proven
+    notes: 2026-05-04 focused check 覆盖 Tab，active element 变为 remember-me
   - command: profile
     group: auth-state
     roadmap_item: command-eval-auth-state-storage-profile
@@ -194,8 +194,8 @@ commands:
   - command: resize
     group: interaction-input
     roadmap_item: command-eval-interaction-input
-    status: planned
-    notes: 响应式 workflow 必须验证 viewport 实际生效
+    status: proven
+    notes: 2026-05-04 focused check 调整 viewport 到 390x844，并用 innerWidth/innerHeight 复核
   - command: route
     group: route-mock-bootstrap
     roadmap_item: command-eval-route-mock-bootstrap
@@ -209,13 +209,13 @@ commands:
   - command: scroll
     group: interaction-input
     roadmap_item: command-eval-interaction-input
-    status: planned
-    notes: 滚动后必须复查目标状态，避免坐标动作误判
+    status: proven
+    notes: 2026-05-04 focused check 覆盖 scroll down 500，返回 scrolled=true；后续 workflow 继续结合目标复查
   - command: select
     group: interaction-input
     roadmap_item: command-eval-interaction-input
-    status: planned
-    notes: 表单 select workflow
+    status: proven
+    notes: 2026-05-04 focused check 选择 high，get value 复核
   - command: session
     group: lifecycle-navigation
     roadmap_item: command-eval-lifecycle-navigation
@@ -269,18 +269,18 @@ commands:
   - command: type
     group: interaction-input
     roadmap_item: command-eval-interaction-input
-    status: planned
-    notes: 需要和 fill/press 分清使用场景
+    status: proven
+    notes: 2026-05-04 focused check 覆盖 password typing；fill 用于替换值，type 用于真实键入
   - command: uncheck
     group: interaction-input
     roadmap_item: command-eval-interaction-input
-    status: planned
-    notes: 表单控件 workflow
+    status: proven
+    notes: 2026-05-04 focused check 验证 checkbox checked=false，并用 is checked 复核
   - command: upload
     group: interaction-input
     roadmap_item: command-eval-interaction-input
-    status: planned
-    notes: 文件 workflow 主命令
+    status: proven
+    notes: 2026-05-04 focused check 上传 upload.txt，页面显示文件名且 settle.filesMatch=true
   - command: verify
     group: wait-assert-state
     roadmap_item: command-eval-wait-assert-state

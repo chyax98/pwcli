@@ -349,3 +349,4 @@ skill_updates: string[]
 - 2026-05-04：完成 `repo-cleanup-baseline`。删除 tracked 生成物/过程文件 309 个，补充 `.gitignore` 防回归，清理审计写入 `codestable/audits/2026-05-04-repo-cleanup-baseline/index.md`。
 - 2026-05-04：按用户新增要求扩展为一个月级 1.0 冲刺：每个 command 深评、核心 workflow 串联、参考同类本地 Agent/browser CLI 能力，并拆成 30+ 个可执行循环。
 - 2026-05-04：完成 `command-eval-observation-reading`。覆盖 Agent 首读和页面事实读取主链，并修复 `locate --return-ref` 在 checked checkbox 场景不返回 ref 的缺陷。
+- 2026-05-04：完成 `command-eval-interaction-input`。覆盖表单输入、点击、键盘、hover、滚动、坐标 mouse、resize、上传、拖拽和下载主链。

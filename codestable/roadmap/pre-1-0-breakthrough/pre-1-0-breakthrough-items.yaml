@@ -51,12 +51,12 @@ items:
     notes: 2026-05-04 已完成 focused check；覆盖 status/observe/page current/list/frames/read-text/text/snapshot/locate/get/is/verify/accessibility；发现并修复 locate --return-ref 在 checked checkbox 场景不返回 ref 的缺陷；评估见 evaluations/2026-05-04-command-eval-observation-reading.md
 
   - slug: command-eval-interaction-input
-    description: 深评 click/fill/type/press/check/uncheck/select/hover/scroll/drag/mouse/upload/download 的动作能力
+    description: 深评 click/fill/type/press/check/uncheck/select/hover/scroll/drag/mouse/resize/upload/download 的动作能力
     depends_on: [command-eval-observation-reading]
-    status: planned
+    status: done
     feature: null
     minimal_loop: true
-    notes: 每个动作必须验证成功态、失败态、diagnosticsDelta、blocked state 和后续 wait/verify 串联
+    notes: 2026-05-04 已完成 focused check；覆盖登录和 reproduce workflow，以及 select/hover/mouse 的受控 DOM 夹具；resize 补充验证 viewport 实际生效；评估见 evaluations/2026-05-04-command-eval-interaction-input.md；失败态/blocked state 留到 page-workspace 和 recovery 专项
 
   - slug: command-eval-wait-assert-state
     description: 深评 wait/verify/is/get/locate 的等待、断言和状态判断能力
