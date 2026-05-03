@@ -256,7 +256,7 @@ Other semantic click flags stay outside batch. Run the single `pw click ...` com
 
 注意：
 
-- `batch --stdin-json` 表示 stdin steps 是 JSON，不表示输出 JSON；要 JSON 输出加 `pw --output json batch ...`
+- `batch --stdin-json` 表示 stdin steps 是 JSON，不表示输出 JSON；要 JSON 输出加 `pw batch --output json ...`
 - `session` / `auth` / `environment` / `dialog` / diagnostics query 不属于稳定子集
 - `data.analysis.warnings` 是串行依赖提示
 - 默认 text 输出是轻量摘要，包含 step 数、成功/失败数、首个失败和 warnings，不倾倒嵌套 JSON

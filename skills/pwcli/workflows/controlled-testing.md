@@ -73,5 +73,5 @@ pw environment permissions grant geolocation --session test-a
 pw bootstrap apply --session test-a --init-script ./bootstrap.js
 pw click --session test-a --selector '<selector>'
 pw wait --session test-a --text '<expected>'
-pw --output json read-text --session test-a --max-chars 1000
+pw read-text --output json --session test-a --max-chars 1000
 ```

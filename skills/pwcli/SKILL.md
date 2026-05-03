@@ -391,13 +391,13 @@ pw verify text -s test-a --text '<expected>'
 
 ```bash
 printf '%s\n' '[["read-text","--max-chars","1000"],["click","--selector","button[type=submit]"],["wait","network-idle"]]' | pw batch --session task-a --stdin-json
-pw --output json batch --session task-a --file ./steps.json
+pw batch --output json --session task-a --file ./steps.json
 ```
 
 规则：
 
 - `pw batch --stdin-json` 表示 stdin steps 是 JSON，不表示输出 JSON。
-- 脚本解析必须用 `pw --output json batch ...`。
+- 脚本解析必须用 `pw batch --output json ...`。
 - batch 适合单 session 串行动作，不适合 lifecycle/auth/environment/dialog recovery/diagnostics query。
 - 超出稳定子集时，直接跑单命令或用 `pw code`。
 

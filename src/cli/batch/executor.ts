@@ -68,6 +68,11 @@ function buildBatchStepSuggestions(message: string) {
   return undefined;
 }
 
+function errorSuggestions(error: unknown): string[] | undefined {
+  const suggestions = (error as { suggestions?: unknown } | null)?.suggestions;
+  return Array.isArray(suggestions) ? suggestions.map(String) : undefined;
+}
+
 function jsonObject(value: unknown, label: string): Record<string, string> | undefined {
   if (value === undefined) return undefined;
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -393,7 +398,19 @@ export async function executeBatchStep(tokens: string[], sessionName: string) {
       }
       const target = parseBatchStateTarget(targetArgs);
       const needsTarget = assertion !== "url";
-      return { ok: true, command: `verify ${assertion}`, data: await managedVerify({ sessionName, assertion, target: needsTarget ? target : undefined, url, count }) };
+      const data = await managedVerify({
+        sessionName,
+        assertion,
+        target: needsTarget ? target : undefined,
+        url,
+        count,
+      });
+      if (data.data.passed === false) {
+        const error = new Error(`VERIFY_FAILED:verify ${assertion} failed`);
+        (error as Error & { suggestions?: unknown }).suggestions = data.data.suggestions;
+        throw error;
+      }
+      return { ok: true, command: `verify ${assertion}`, data };
     }
     default:
       throw new Error(unsupportedBatchStepMessage(tokens));
@@ -490,7 +507,7 @@ export async function runBatch(options: {
     } catch (error) {
       const message = error instanceof Error ? error.message : "batch step failed";
       const reasonCode = extractReasonCode(message);
-      const suggestions = buildBatchStepSuggestions(message);
+      const suggestions = errorSuggestions(error) ?? buildBatchStepSuggestions(message);
       failedCount += 1;
       if (firstFailedStep === null) {
         firstFailedStep = index + 1;

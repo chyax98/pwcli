@@ -107,6 +107,7 @@ Error: browserContext.setGeolocation: geolocation.longitude: expected float, got
 - `form-fill-validation`：partial pass（登录表单已覆盖基础 fill/click/wait/verify）。
 - `controlled-testing/environment`：partial pass；geolocation contract drift 已修复并有聚焦 contract test。2026-05-04 追加 Agent dogfood 覆盖 geolocation/offline/clock。
 - `simple-crawler`：partial pass；Agent 用 `read-text` + `pw code --file` 临时读取链接并逐跳跟踪，遇到 locator 歧义后按恢复建议继续。
+- `automated-testing`：partial pass；2026-05-04 追加 route mock、bootstrap apply、batch verify 链路。dogfood 暴露 batch verify 假绿 P1，已修复并用 `check:batch-verify` 固化。
 
 ## 追加验证：Environment controlled-testing
 
@@ -176,3 +177,39 @@ pw diagnostics runs --session crawl1 --limit 12
 - 逐跳跟踪到 `/app/projects/alpha/incidents/checkout-timeout`，最终 `verify text` 通过 `Open reproduce workspace`。
 - 中途 `pw wait -s crawl1 --text 'Incidents'` 因 link 和 heading 同名触发 `ACTION_TARGET_AMBIGUOUS`；CLI 给出 `add --nth / narrower selector / role-name` 建议，Agent 改用 `pw verify visible -s crawl1 --role heading --name Incidents` 后恢复。
 - run evidence 包含失败恢复 run：`2026-05-03T18-03-12-227Z-crawl1`，以及完成链路 run：`2026-05-03T18-03-36-815Z-crawl1`、`2026-05-03T18-03-45-984Z-crawl1`。
+
+## 追加验证：Automated testing
+
+2026-05-04 追加真实自动化测试场景。Agent 按 `skills/pwcli/` 使用 route mock、bootstrap apply、`pw code --file`、batch verify 组合完成受控页面验证。
+
+核心链路：
+
+```bash
+pw session create autot2 --no-headed --open http://127.0.0.1:43284/login
+pw route add -s autot2 --url '**/api/mock-target' --status 209 --body agent-route-body --headers '{"x-pwcli-route":"route-file"}'
+pw click -s autot2 --selector '#login-submit'
+pw wait -s autot2 --selector '#project-alpha'
+pw open -s autot2 http://127.0.0.1:43284/app/projects/alpha/incidents/checkout-timeout/reproduce
+pw click -s autot2 --selector '#route-probe'
+pw wait -s autot2 --text 'mock-result: 209:agent-route-body'
+pw wait -s autot2 --text 'route-state: route-file'
+pw bootstrap apply -s autot2 --file scripts/manual/bootstrap-fixture.js --headers '{"x-pwcli-header":"agent-test-2"}'
+pw open -s autot2 http://127.0.0.1:43284/app/projects/alpha/incidents/checkout-timeout/reproduce
+pw code -s autot2 --file scripts/e2e/dogfood-bootstrap.js
+printf '%s\n' '[["read-text","--max-chars","800"],["verify","text","--text","mock-result: 209:agent-route-body"],["verify","text","--text","route-state: route-file"]]' | pw batch --output json --session autot2 --stdin-json --include-results
+pw diagnostics runs --session autot2 --limit 12
+```
+
+关键证据：
+
+- route mock 生效：页面显示 `mock-result: 209:agent-route-body` 和 `route-state: route-file`，响应 header 包含 `x-pwcli-route: route-file`。
+- bootstrap apply 生效：重新导航后 init script 注入到新 document；`pw code -s autot2 --file scripts/e2e/dogfood-bootstrap.js` 返回 `installed: true`，fetch/xhr 请求带 `headerEcho: agent-test-2`。
+- batch 成功链路：batch JSON 返回 `ok: true`，`summary.successCount=3`，两个 verify step 的 `passed=true`。
+- run evidence 包含 `2026-05-03T18-13-42-093Z-autot2`、`2026-05-03T18-13-56-897Z-autot2`、`2026-05-03T18-14-06-072Z-autot2`。
+
+本轮 dogfood 暴露并修复 P1：
+
+- 问题：batch 内部 `verify` 返回 `passed=false` 时曾被包装成成功 step，导致自动化测试可能假绿。
+- 记录：`codestable/issues/2026-05-04-batch-verify-failure-propagation/batch-verify-failure-propagation-report.md`。
+- 修复：`src/cli/batch/executor.ts` 现在把 `passed=false` 转成 `VERIFY_FAILED`，并保留 verify suggestions。
+- 固化验证：新增 `pnpm check:batch-verify`，断言 batch verify failure 必须非零退出并返回 `BATCH_STEP_FAILED`。

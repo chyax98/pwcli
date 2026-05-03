@@ -80,7 +80,7 @@ pw code --session <name> "async page => JSON.stringify({
 默认 stdout 是给 Agent 读的 text。脚本、smoke、字段断言必须加：
 
 ```bash
-pw --output json <command>
+pw <command> --output json
 ```
 
 注意：
