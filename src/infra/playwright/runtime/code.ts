@@ -124,7 +124,101 @@ function interactiveSnapshotLines(snapshot: string) {
 }
 
 function compactSnapshotLines(lines: string[]) {
-  return lines.filter((line) => !/^\s*-\s+generic(?:\s+\[ref=[^\]]+\])?:?\s*$/.test(line));
+  const MAX_LINES = 200;
+
+  // 2. Remove empty lines: consecutive empty lines merge to single empty line
+  let result = mergeConsecutiveEmptyLines(lines);
+
+  // 3. Depth limit: nodes with indent > 12 levels (24 spaces) collapse
+  result = applyDepthLimit(result);
+
+  // 4. Fold repeats: 3+ consecutive identical role+name patterns
+  result = foldRepeats(result);
+
+  // 1. Line limit: cap at 200 lines
+  if (result.length > MAX_LINES) {
+    const omitted = result.length - MAX_LINES;
+    result = result.slice(0, MAX_LINES);
+    result.push(`# ... (${omitted} more lines)`);
+  }
+
+  return result;
+}
+
+function mergeConsecutiveEmptyLines(lines: string[]): string[] {
+  const result: string[] = [];
+  let lastWasEmpty = false;
+  for (const line of lines) {
+    const isEmpty = line.trim() === "";
+    if (isEmpty) {
+      if (!lastWasEmpty) {
+        result.push("");
+        lastWasEmpty = true;
+      }
+    } else {
+      result.push(line);
+      lastWasEmpty = false;
+    }
+  }
+  return result;
+}
+
+function applyDepthLimit(lines: string[]): string[] {
+  const result: string[] = [];
+  let skipUntilIndent: number | null = null;
+  for (const line of lines) {
+    const isEmpty = line.trim() === "";
+    const indent = line.match(/^(\s*)/)?.[1].length ?? 0;
+    if (skipUntilIndent !== null && !isEmpty && indent > skipUntilIndent) {
+      continue;
+    }
+    if (skipUntilIndent !== null && !isEmpty && indent <= skipUntilIndent) {
+      skipUntilIndent = null;
+    }
+    if (!isEmpty && indent > 24) {
+      result.push("  # ... (deep subtree)");
+      skipUntilIndent = indent;
+    } else {
+      result.push(line);
+    }
+  }
+  return result;
+}
+
+function foldRepeats(lines: string[]): string[] {
+  const result: string[] = [];
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    const match = line.match(/^(\s*)-\s+([a-zA-Z][a-zA-Z0-9_-]*)(?:\s+"([^"]*)")?/);
+    if (!match) {
+      result.push(line);
+      i++;
+      continue;
+    }
+    const indent = match[1];
+    const role = match[2];
+    const name = match[3] ?? "";
+    let count = 1;
+    let j = i + 1;
+    while (j < lines.length) {
+      const nextMatch = lines[j].match(/^(\s*)-\s+([a-zA-Z][a-zA-Z0-9_-]*)(?:\s+"([^"]*)")?/);
+      if (!nextMatch) break;
+      if (nextMatch[1] !== indent || nextMatch[2] !== role || (nextMatch[3] ?? "") !== name) break;
+      count++;
+      j++;
+    }
+    if (count >= 3) {
+      result.push(lines[i]);
+      result.push(lines[i + 1]);
+      result.push(`${indent}# × ${count - 2} more`);
+      i = j;
+    } else {
+      result.push(line);
+      i++;
+    }
+  }
+  return result;
 }
 
 export async function managedRunCode(options: {

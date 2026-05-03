@@ -234,7 +234,12 @@ function formatReadText(result: CommandResult): string {
 
 function formatSnapshot(result: CommandResult): string {
   const snapshot = asString(result.data.snapshot) ?? "";
-  return snapshot || "(empty snapshot)";
+  if (!snapshot) return "(empty snapshot)";
+  if (result.data.mode === "compact") {
+    const lineCount = snapshot.split("\n").length;
+    return `[compact snapshot — ${lineCount} lines, max depth 12]\n${snapshot}`;
+  }
+  return snapshot;
 }
 
 function formatAccessibility(result: CommandResult): string {
