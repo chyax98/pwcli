@@ -266,7 +266,7 @@ import { spawn } from 'node:child_process';
 import { observeDashboardLaunch } from './dist/cli/commands/dashboard.js';
 
 const child = spawn(process.execPath, ['-e', 'process.exit(42)'], { stdio: 'ignore' });
-const failure = await observeDashboardLaunch(child, 1_000);
+const failure = await observeDashboardLaunch(child);
 if (!failure || failure.phase !== 'early-exit' || failure.code !== 42) {
   console.error('[smoke] dashboard open must classify early subprocess launch failures');
   process.exit(1);

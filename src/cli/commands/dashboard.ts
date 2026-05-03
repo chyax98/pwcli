@@ -20,7 +20,7 @@ function playwrightDashboardPaths() {
   };
 }
 
-function observeDashboardLaunch(child: ChildProcess): Promise<DashboardLaunchFailure | null> {
+export function observeDashboardLaunch(child: ChildProcess): Promise<DashboardLaunchFailure | null> {
   return new Promise((resolve) => {
     let settled = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
