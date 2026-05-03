@@ -45,10 +45,10 @@ items:
   - slug: command-eval-observation-reading
     description: 深评 status/observe/page/read-text/snapshot/locate/get/is/verify/accessibility 的页面事实能力
     depends_on: [command-eval-lifecycle-navigation]
-    status: planned
+    status: done
     feature: null
     minimal_loop: true
-    notes: 重点评估 Agent 首读可用性、低噪声输出、ref 新鲜度和断言失败可解释性
+    notes: 2026-05-04 已完成 focused check；覆盖 status/observe/page current/list/frames/read-text/text/snapshot/locate/get/is/verify/accessibility；发现并修复 locate --return-ref 在 checked checkbox 场景不返回 ref 的缺陷；评估见 evaluations/2026-05-04-command-eval-observation-reading.md
 
   - slug: command-eval-interaction-input
     description: 深评 click/fill/type/press/check/uncheck/select/hover/scroll/drag/mouse/upload/download 的动作能力

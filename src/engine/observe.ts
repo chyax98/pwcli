@@ -330,8 +330,9 @@ function findRefInSnapshot(
     const refMatch = line.match(/\[ref=([^\]]+)\]/);
     if (!refMatch) continue;
     const trimmed = line.trim();
-    const match = trimmed.match(/^-\s+(\w+)(?:\s+["']([^"']+)["'])?\s*\[ref=/);
-    if (match && predicate({ ref: refMatch[1], role: match[1], text: match[2] })) {
+    const roleMatch = trimmed.match(/^-\s+(\w+)/);
+    const textMatch = trimmed.match(/["']([^"']+)["']/);
+    if (roleMatch && predicate({ ref: refMatch[1], role: roleMatch[1], text: textMatch?.[1] })) {
       return refMatch[1];
     }
     if (predicate({ ref: refMatch[1] })) {

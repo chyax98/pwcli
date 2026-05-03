@@ -34,8 +34,8 @@ commands:
   - command: accessibility
     group: observation
     roadmap_item: command-eval-observation-reading
-    status: planned
-    notes: 验证 accessibility tree 对 Agent 定位和首读是否有实际帮助
+    status: proven
+    notes: 2026-05-04 focused check 覆盖 --interactive-only；返回 aria-yaml，包含 Sign in button
   - command: auth
     group: auth-state
     roadmap_item: command-eval-auth-state-storage-profile
@@ -124,8 +124,8 @@ commands:
   - command: get
     group: observation
     roadmap_item: command-eval-observation-reading
-    status: planned
-    notes: read-only state fact，需要防 false positive
+    status: proven
+    notes: 2026-05-04 focused check 覆盖 --fact text 读取 h1；count/value 组合后续在 wait/assert 评测补充
   - command: har
     group: artifacts
     roadmap_item: command-eval-trace-har-video-artifacts
@@ -140,12 +140,12 @@ commands:
     group: wait-assert-state
     roadmap_item: command-eval-wait-assert-state
     status: planned
-    notes: read-only boolean check，必须清楚表达 false
+    notes: 2026-05-04 observation focused check 已证明 visible=true 基础路径；hidden/enabled/checked/false 组合仍在 wait/assert 评测中完成
   - command: locate
     group: observation
     roadmap_item: command-eval-observation-reading
-    status: planned
-    notes: 验证定位候选对 Agent 的可用性
+    status: proven
+    notes: 2026-05-04 focused check 覆盖 text candidates 和 --return-ref；同轮修复 checked checkbox ref 解析缺陷
   - command: mouse
     group: interaction-input
     roadmap_item: command-eval-interaction-input
@@ -159,8 +159,8 @@ commands:
   - command: observe
     group: observation
     roadmap_item: command-eval-observation-reading
-    status: planned
-    notes: 兼容别名，只允许命令名称层兼容，内部主路是 status
+    status: proven
+    notes: 2026-05-04 focused check 证明名称兼容到 status，JSON command 为 status
   - command: open
     group: lifecycle-navigation
     roadmap_item: command-eval-lifecycle-navigation
@@ -170,7 +170,7 @@ commands:
     group: page-workspace
     roadmap_item: command-eval-page-tab-workspace
     status: planned
-    notes: current/list/frames/dialogs 需要 workspace identity 证据
+    notes: 2026-05-04 observation focused check 已证明 current/list/frames 读取子集；dialogs/assess 和 workspace identity 仍在 page-tab-workspace 评测中完成
   - command: pdf
     group: artifacts
     roadmap_item: command-eval-trace-har-video-artifacts
@@ -189,8 +189,8 @@ commands:
   - command: read-text
     group: observation
     roadmap_item: command-eval-observation-reading
-    status: planned
-    notes: Agent 首读核心命令
+    status: proven
+    notes: 2026-05-04 focused check 证明登录页低噪声可见文本读取，text alias 同步证明
   - command: resize
     group: interaction-input
     roadmap_item: command-eval-interaction-input
@@ -229,8 +229,8 @@ commands:
   - command: snapshot
     group: observation
     roadmap_item: command-eval-observation-reading
-    status: planned
-    notes: snapshot -i refs 必须验证 stale/ref recovery
+    status: proven
+    notes: 2026-05-04 focused check 覆盖 -i interactive mode 和 fresh refs；stale/ref recovery 后续在 workspace/recovery 评测中完成
   - command: sse
     group: network-console-errors
     roadmap_item: command-eval-network-console-errors
@@ -244,8 +244,8 @@ commands:
   - command: status
     group: observation
     roadmap_item: command-eval-observation-reading
-    status: planned
-    notes: 当前主 status 命令，observe 只作名称兼容
+    status: proven
+    notes: 2026-05-04 focused check 覆盖 current URL/title、workspace、diagnostics 摘要；observe 只作名称兼容
   - command: storage
     group: auth-state
     roadmap_item: command-eval-auth-state-storage-profile
@@ -259,8 +259,8 @@ commands:
   - command: text
     group: observation
     roadmap_item: command-eval-observation-reading
-    status: planned
-    notes: 兼容别名，只允许命令名称层兼容，内部主路是 read-text
+    status: proven
+    notes: 2026-05-04 focused check 证明名称兼容到 read-text，JSON command 为 read-text
   - command: trace
     group: artifacts
     roadmap_item: command-eval-trace-har-video-artifacts
@@ -285,7 +285,7 @@ commands:
     group: wait-assert-state
     roadmap_item: command-eval-wait-assert-state
     status: planned
-    notes: 断言失败必须准确传播，不可 false positive
+    notes: 2026-05-04 observation focused check 已证明 text/url passed=true 基础路径；negative/count/失败传播仍在 wait/assert 评测中完成
   - command: video
     group: artifacts
     roadmap_item: command-eval-trace-har-video-artifacts

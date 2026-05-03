@@ -163,6 +163,50 @@ describe("page reading", { concurrency: false }, () => {
     assert.ok(json.data.snapshot.includes("Example Domain"));
   });
 
+  it("locate --return-ref returns refs for checked controls", async () => {
+    const name = makeSessionName();
+    sessionsToClean.push(name);
+
+    await runPw([
+      "session",
+      "create",
+      name,
+      "--headless",
+      "--open",
+      "about:blank",
+      "--output",
+      "json",
+    ]);
+
+    await runPw([
+      "code",
+      "--session",
+      name,
+      'async page => { await page.setContent(`<label><input type="checkbox" checked />Remember me</label>`); }',
+      "--output",
+      "json",
+    ]);
+
+    const result = await runPw([
+      "locate",
+      "--session",
+      name,
+      "--text",
+      "Remember me",
+      "--return-ref",
+      "--output",
+      "json",
+    ]);
+    assert.equal(result.code, 0, `locate --return-ref failed: ${result.stderr}`);
+    const json = result.json as {
+      ok: boolean;
+      data: { ref?: string; candidates: Array<{ text: string }> };
+    };
+    assert.equal(json.ok, true);
+    assert.ok(json.data.candidates.some((candidate) => candidate.text.includes("Remember me")));
+    assert.match(json.data.ref ?? "", /^e\d+$/);
+  });
+
   it("page current returns pageId and url", async () => {
     const name = makeSessionName();
     sessionsToClean.push(name);

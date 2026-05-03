@@ -155,8 +155,6 @@ state / auth / batch / environment 命令见 `command-reference-advanced.md`。
 
 `--nth <n>` 显式指定时取第 n 个匹配（含隐藏元素），不做过滤。省略 `--nth` 时自动跳过隐藏元素，返回第一个可见匹配。
 
-`--return-ref`：返回匹配元素的 aria snapshot ref（仅 `text` / `value` 有效），可直接用于后续 action 命令。
-
 ### `pw is <state> --session <name>`
 
 支持 states：
