@@ -129,8 +129,8 @@ commands:
   - command: har
     group: artifacts
     roadmap_item: command-eval-trace-har-video-artifacts
-    status: planned
-    notes: 1.0 必须决定 proven、blocked 或 dropped
+    status: documented
+    notes: 2026-05-04 focused check 覆盖 har start/stop 当前返回 supported=false；这不是 1.0 proven evidence path，必须在 har-trace-1-0-decision 中实现验证、降级或移除稳定 contract
   - command: hover
     group: interaction-input
     roadmap_item: command-eval-interaction-input
@@ -174,8 +174,8 @@ commands:
   - command: pdf
     group: artifacts
     roadmap_item: command-eval-trace-har-video-artifacts
-    status: planned
-    notes: 验证输出文件和证据路径
+    status: proven
+    notes: 2026-05-04 artifact focused check 验证 pw pdf --path 输出非空 PDF 文件
   - command: press
     group: interaction-input
     roadmap_item: command-eval-interaction-input
@@ -204,8 +204,8 @@ commands:
   - command: screenshot
     group: artifacts
     roadmap_item: command-eval-trace-har-video-artifacts
-    status: planned
-    notes: 验证 page/selector/full-page 输出
+    status: proven
+    notes: 2026-05-04 artifact focused check 覆盖 page/full-page、selector、annotated、snapshot ref screenshot，均输出非空 PNG 文件
   - command: scroll
     group: interaction-input
     roadmap_item: command-eval-interaction-input
@@ -264,8 +264,8 @@ commands:
   - command: trace
     group: artifacts
     roadmap_item: command-eval-trace-har-video-artifacts
-    status: planned
-    notes: start/stop/inspect 必须可复查
+    status: proven
+    notes: 2026-05-04 artifact focused check 覆盖 trace start/stop 产物、trace inspect actions、console error、requests failed filter；traceArtifactPath 是 inspect 唯一输入
   - command: type
     group: interaction-input
     roadmap_item: command-eval-interaction-input
@@ -289,8 +289,8 @@ commands:
   - command: video
     group: artifacts
     roadmap_item: command-eval-trace-har-video-artifacts
-    status: planned
-    notes: start/stop 和 WebM artifact 输出必须验证
+    status: proven
+    notes: 2026-05-04 artifact focused check 覆盖 video start/stop，输出非空 WebM artifact
   - command: wait
     group: wait-assert-state
     roadmap_item: command-eval-wait-assert-state

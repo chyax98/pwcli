@@ -354,3 +354,4 @@ skill_updates: string[]
 - 2026-05-04：完成 `command-eval-page-tab-workspace`。覆盖 page/tab/dialog/snapshot/ref workspace identity，修复 `snapshot status --output json` 双 envelope 问题，并明确 `page dialogs` 不是 pending browser dialog live list。
 - 2026-05-04：完成 `command-eval-diagnostics-runs`。覆盖 diagnostics digest/export/bundle/runs/show/grep/timeline、doctor 和 errors，并修复 doctor Node 24 环境基线误判与 diagnostics show/grep help 漂移。
 - 2026-05-04：完成 `command-eval-network-console-errors`。覆盖 console、network、errors、sse 的过滤、current navigation、body snippet/full body 和 requestfailed 观测。
+- 2026-05-04：完成 `command-eval-trace-har-video-artifacts`。覆盖 screenshot、pdf、trace、video 的 artifact 证据产出；HAR start/stop 明确为 `supported=false` documented limitation，后续由 `har-trace-1-0-decision` 决定实现、降级或移出 1.0 contract。

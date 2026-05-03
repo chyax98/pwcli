@@ -149,6 +149,7 @@ state / auth / batch 命令见 `command-reference-advanced.md`。
 
 - 管理 trace recording
 - `trace stop` 输出 `traceArtifactPath`，并给出可直接继续执行的 `pw trace inspect <traceArtifactPath> --section actions` next step
+- 2026-05-04 artifact focused check 已验证 start/stop 输出非空 trace artifact
 
 ### `pw trace inspect <traceArtifactPath> --section <section>`
 
@@ -158,12 +159,14 @@ state / auth / batch 命令见 `command-reference-advanced.md`。
 - `--limit <n>`：把 trace inspect 输出限制为前 N 行，适合大 trace 快速预览
 - 输出来自 Playwright bundled trace CLI，pwcli 只做薄封装和 50000 字符上限裁剪，不手工解析 trace artifact
 - trace CLI/path/file 不可用时返回显式 `TRACE_*` 错误码
+- 2026-05-04 artifact focused check 已验证 `actions`、`console --level error`、`requests --failed` 三类 inspect
 
 ### `pw video start|stop --session <name>`
 
 - 管理页面视频录制
 - `video start` 开始录制
 - `video stop` 结束录制，输出 `videoPath`
+- 2026-05-04 artifact focused check 已验证 `video stop` 输出非空 WebM artifact
 
 边界：
 
@@ -174,8 +177,9 @@ state / auth / batch 命令见 `command-reference-advanced.md`。
 
 ### `pw har start [path]|stop --session <name>`
 
-- 当前只暴露 HAR substrate 边界，热录制未形成稳定 contract
+- 当前只暴露 HAR substrate 边界，热录制未形成稳定 contract；2026-05-04 artifact focused check 证明 start/stop 返回 `supported=false`
 - 稳定诊断优先用 `network` 和 `diagnostics export`
+- 不要把 `har start|stop` 写成 1.0 已支持录制能力；最终实现、降级或移出稳定 contract 由 `har-trace-1-0-decision` 决定
 
 ### `pw har replay <file> --session <name>`
 

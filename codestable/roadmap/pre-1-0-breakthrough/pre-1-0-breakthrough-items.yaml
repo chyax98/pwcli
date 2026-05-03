@@ -93,10 +93,10 @@ items:
   - slug: command-eval-trace-har-video-artifacts
     description: 深评 screenshot/pdf/trace/har/video/artifacts 的证据产出能力，并决定 HAR 是否进入 1.0
     depends_on: [command-eval-diagnostics-runs]
-    status: planned
+    status: done
     feature: null
     minimal_loop: true
-    notes: trace/video/screenshot/pdf 必须可复查；HAR 不能停留在 supported=false 的含糊状态
+    notes: 2026-05-04 已完成 focused check；screenshot page/full-page/selector/annotate/ref、pdf、trace start/stop/inspect、video start/stop 均有非空 artifact 证据；HAR start/stop 返回 supported=false，记录为 documented limitation，最终取舍留给 har-trace-1-0-decision
 
   - slug: command-eval-route-mock-bootstrap
     description: 深评 route/mock/bootstrap/code 作为本地受控测试 substrate 的能力

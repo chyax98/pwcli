@@ -205,13 +205,17 @@ Use `locate/get/is/verify` for narrow state checks. Use `snapshot -i` when you n
 ### `pw screenshot [ref] --session <name>`
 
 - `--selector <selector>`、`--path <path>`、`--full-page`
+- `--annotate`：在截图上标注 interactive elements，输出仍沿用 screenshot 的 `captured/path/run` contract
 - `--format png|jpeg`（默认 `png`）
+- 可以传 snapshot ref，例如先 `pw snapshot -i --session <name>`，再 `pw screenshot e4 --session <name> --path ref.png`
+- 2026-05-04 artifact focused check 已覆盖 page/full-page、selector、annotated、snapshot ref screenshot，均输出非空 PNG
 
 ### `pw pdf --session <name> --path <path>`
 
 - 将 active page 导出为 PDF
 - 低频页面归档证据；不做报告模板、合并或批量归档
 - 依赖当前 Playwright substrate 的 Chromium PDF 能力
+- 2026-05-04 artifact focused check 已验证 `pw pdf --path` 输出非空 PDF
 
 ### `pw accessibility --session <name>`
 
