@@ -1,5 +1,5 @@
 import type { Command } from "commander";
-import { managedScreenshot } from "../../infra/playwright/runtime.js";
+import { managedScreenshot, managedAnnotatedScreenshot } from "../../infra/playwright/runtime.js";
 import { printCommandResult } from "../output.js";
 import {
   addSessionOption,
@@ -14,24 +14,38 @@ export function registerScreenshotCommand(program: Command): void {
       .description("Capture a screenshot of the page or an aria-ref target")
       .option("--selector <selector>", "Selector target")
       .option("--path <path>", "Output file path")
-      .option("--full-page", "Capture the full page"),
+      .option("--full-page", "Capture the full page")
+      .option("--annotate", "Annotate interactive elements on the screenshot"),
   ).action(
     async (
       ref: string | undefined,
-      options: { session?: string; selector?: string; path?: string; fullPage?: boolean },
+      options: { session?: string; selector?: string; path?: string; fullPage?: boolean; annotate?: boolean },
     ) => {
       try {
         const sessionName = requireSessionName(options);
-        printCommandResult(
-          "screenshot",
-          await managedScreenshot({
-            sessionName,
-            ref,
-            selector: options.selector,
-            path: options.path,
-            fullPage: options.fullPage,
-          }),
-        );
+        if (options.annotate) {
+          printCommandResult(
+            "screenshot",
+            await managedAnnotatedScreenshot({
+              sessionName,
+              ref,
+              selector: options.selector,
+              path: options.path,
+              fullPage: options.fullPage,
+            }),
+          );
+        } else {
+          printCommandResult(
+            "screenshot",
+            await managedScreenshot({
+              sessionName,
+              ref,
+              selector: options.selector,
+              path: options.path,
+              fullPage: options.fullPage,
+            }),
+          );
+        }
       } catch (error) {
         printSessionAwareCommandError("screenshot", error, {
           code: "SCREENSHOT_FAILED",
