@@ -1,10 +1,9 @@
 import type { Command } from "commander";
 import {
-  managedHar,
   managedHarReplay,
   managedHarReplayStop,
 } from "../../infra/playwright/runtime.js";
-import { printCommandResult } from "../output.js";
+import { printCommandError, printCommandResult } from "../output.js";
 import {
   addSessionOption,
   printSessionAwareCommandError,
@@ -19,50 +18,40 @@ export function registerHarCommand(program: Command): void {
   addSessionOption(
     har
       .command("start [path]")
-      .description("Start HAR recording"),
-  ).action(async (path: string | undefined, options: { session?: string }, command: Command) => {
-    try {
-      const sessionName = requireSessionName(options, command);
-      printCommandResult("har start", await managedHar("start", { sessionName, path }));
-    } catch (error) {
-      printSessionAwareCommandError("har start", error, {
-        code: "HAR_FAILED",
-        message: "har start failed",
-        suggestions: [
-          "Use `pw har start --session bug-a ./capture.har` to inspect current HAR limitations",
-        ],
-      });
-      process.exitCode = 1;
-    }
+      .description("Start HAR recording (not supported on managed sessions — use har replay)"),
+  ).action(async (_path: string | undefined, _options: { session?: string }) => {
+    printCommandError("har start", {
+      code: "UNSUPPORTED_HAR_CAPTURE",
+      message: "HAR recording is not supported on managed sessions. The Playwright BrowserContext is already open and HAR capture must be configured at context creation time.",
+      suggestions: [
+        "Use `pw har replay <file>` to replay a pre-recorded HAR for deterministic network stubbing",
+        "To capture a real HAR, use browser DevTools Network panel or Playwright's recordHar option at session creation",
+      ],
+    });
+    process.exitCode = 1;
   });
 
   addSessionOption(
     har
       .command("stop")
-      .description("Stop HAR recording"),
-  ).action(async (options: { session?: string }, command: Command) => {
-    try {
-      const sessionName = requireSessionName(options, command);
-      printCommandResult("har stop", await managedHar("stop", { sessionName }));
-    } catch (error) {
-      printSessionAwareCommandError("har stop", error, {
-        code: "HAR_FAILED",
-        message: "har stop failed",
-        suggestions: [
-          "Use `pw har stop --session bug-a` to inspect stop semantics on the current substrate",
-        ],
-      });
-      process.exitCode = 1;
-    }
+      .description("Stop HAR recording (not supported on managed sessions — use har replay)"),
+  ).action(async (_options: { session?: string }) => {
+    printCommandError("har stop", {
+      code: "UNSUPPORTED_HAR_CAPTURE",
+      message: "HAR recording is not supported on managed sessions.",
+      suggestions: [
+        "Use `pw har replay stop --session <name>` to stop an active HAR replay",
+      ],
+    });
+    process.exitCode = 1;
   });
 
   const replay = har
     .command("replay <file>")
-    .description("Replay network traffic from a HAR file")
-    .option("--update", "Allow updating the HAR file with new requests");
+    .description("Replay network traffic from a HAR file");
 
   addSessionOption(replay).action(
-    async (file: string, options: { session?: string; update?: boolean }, command: Command) => {
+    async (file: string, options: { session?: string }, command: Command) => {
       try {
         const sessionName = requireSessionName(options, command);
         printCommandResult(
@@ -70,7 +59,6 @@ export function registerHarCommand(program: Command): void {
           await managedHarReplay({
             sessionName,
             filePath: file,
-            update: options.update,
           }),
         );
       } catch (error) {

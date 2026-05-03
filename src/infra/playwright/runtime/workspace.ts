@@ -10,13 +10,48 @@ type WorkspacePage = {
 };
 
 
+const INTERACTIVE_ARIA_ROLES = new Set([
+  "button", "link", "textbox", "checkbox", "radio", "combobox", "listbox",
+  "menuitem", "menuitemcheckbox", "menuitemradio", "tab", "slider",
+  "spinbutton", "switch", "treeitem", "gridcell", "searchbox", "select",
+  "option",
+]);
+
+function filterInteractiveAriaYaml(yaml: string): string {
+  // ARIA YAML lines look like: `  - role "name"` or `  - role:` (with indent).
+  // Keep a line if its role token is interactive, or if it is indented under one.
+  const lines = yaml.split("\n");
+  const result: string[] = [];
+  let keepUntilIndent = -1;
+
+  for (const line of lines) {
+    const indent = line.search(/\S/);
+    if (indent === -1) continue; // skip blank lines
+
+    if (keepUntilIndent >= 0 && indent > keepUntilIndent) {
+      result.push(line);
+      continue;
+    }
+    keepUntilIndent = -1;
+
+    // Extract the role token: first word after optional `- ` prefix
+    const tokenMatch = line.trimStart().match(/^-?\s*(\w+)/);
+    const role = tokenMatch?.[1]?.toLowerCase() ?? "";
+    if (INTERACTIVE_ARIA_ROLES.has(role)) {
+      result.push(line);
+      keepUntilIndent = indent; // keep indented children too
+    }
+  }
+  return result.join("\n");
+}
+
 export async function managedAccessibilitySnapshot(options: {
   sessionName?: string;
   interactiveOnly?: boolean;
   root?: string;
 }) {
-  // page.ariaSnapshot() is the current Playwright API (replaces deprecated page.accessibility.snapshot())
-  // It returns a YAML string conforming to the ARIA spec
+  // page.ariaSnapshot() returns ARIA YAML. ariaSnapshot() does not support interestingOnly —
+  // interactive-only filtering is done on the Node.js side after capture.
   const rootExpr = options?.root
     ? `page.locator(${JSON.stringify(options.root)})`
     : "page";
@@ -24,14 +59,15 @@ export async function managedAccessibilitySnapshot(options: {
     sessionName: options?.sessionName,
     source: `async page => {
       const target = ${rootExpr};
-      const yaml = await target.ariaSnapshot({ interestingOnly: ${options?.interactiveOnly ? "true" : "false"} });
+      const yaml = await target.ariaSnapshot();
       return JSON.stringify({ yaml, empty: !yaml || yaml.trim() === '' });
     }`,
   });
 
   const raw = result.data.result as Record<string, unknown> | null;
-  const yaml = (raw?.yaml as string) ?? "";
-  const empty = raw?.empty as boolean ?? !yaml;
+  const fullYaml = (raw?.yaml as string) ?? "";
+  const yaml = options?.interactiveOnly ? filterInteractiveAriaYaml(fullYaml) : fullYaml;
+  const empty = !yaml.trim();
 
   return {
     session: result.session,
@@ -624,6 +660,11 @@ export async function managedTabClose(options: { sessionName?: string; pageId: s
 
   await selectPageById(options.sessionName, fallbackPageId);
   const after = await managedPageCurrent({ sessionName: options.sessionName });
+  const actualPageId = after.page?.pageId;
+  const warning =
+    actualPageId && actualPageId !== fallbackPageId
+      ? `tab close: expected fallback page ${fallbackPageId} but active page is ${actualPageId}`
+      : undefined;
   return {
     ...after,
     data: {
@@ -632,6 +673,7 @@ export async function managedTabClose(options: { sessionName?: string; pageId: s
       closedPageId: options.pageId,
       closedIndex: closed.closedIndex,
       fallbackPageId,
+      ...(warning ? { warning } : {}),
     },
   };
 }

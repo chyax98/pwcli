@@ -696,7 +696,6 @@ export async function managedHar(
 export async function managedHarReplay(options: {
   filePath: string;
   sessionName?: string;
-  update?: boolean;
 }) {
   const resolvedPath = resolve(options.filePath);
   const result = await managedRunCode({
@@ -706,13 +705,11 @@ export async function managedHarReplay(options: {
       const previousRoutes = new Set(context._routes || []);
       await context.routeFromHAR(${JSON.stringify(resolvedPath)}, {
         notFound: 'abort',
-        update: ${options.update ? "true" : "false"},
       });
       const harRoutes = (context._routes || []).filter(r => !previousRoutes.has(r));
       state.harReplay = {
         active: true,
         file: ${JSON.stringify(resolvedPath)},
-        update: ${options.update ? "true" : "false"},
         startedAt: new Date().toISOString(),
         harRoutes,
       };
@@ -728,7 +725,6 @@ export async function managedHarReplay(options: {
     data: {
       replayActive: true,
       file: resolvedPath,
-      update: options.update ?? false,
       ...(parsed as Record<string, unknown>),
     },
   };
@@ -755,17 +751,15 @@ export async function managedHarReplayStop(options: {
         context._disposeHarRouters();
       }
       const usedFallback = clearedCount === 0;
-      if (usedFallback) {
-        await context.unrouteAll({ behavior: 'ignoreErrors' });
-        state.routes = [];
-      }
+      // Do not call unrouteAll() or reset state.routes — that would destroy unrelated pw route add mocks.
+      // If HAR routes could not be individually cleared, record a limitation and leave other routes intact.
       state.harReplay = {
         active: false,
         stoppedAt: new Date().toISOString(),
       };
       return JSON.stringify({
         replayActive: false,
-        ...(usedFallback ? { limitation: 'HAR replay stop fell back to unrouteAll; manual routes may have been cleared.' } : {}),
+        ...(usedFallback ? { limitation: 'HAR replay routes could not be individually removed; replay may still be active. Use pw session recreate to fully reset routing.' } : {}),
       });
     }`,
   });
