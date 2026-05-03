@@ -30,6 +30,10 @@ related_decisions:
 
 ### 本轮覆盖
 
+- 对每个 command 做深度评估、评测和证据归档；`proven` 不能只靠 help、类型检查或单条脚本绿灯。
+- 对核心 workflow 做串联验证：浏览器自动化、自动化测试、填表/文件、简单爬取、Deep Bug 复现、失败恢复和证据交接。
+- 按传统团队一个月冲刺拆成 4 周目标，并拆成至少 20 个可独立执行的循环。
+- 参考 Playwright CLI、Agent Browser / Stagehand、browser-use、cla / Claude Code 类本地 CLI 的能力，把适合本地 Agent-first 浏览器工具的能力吸收到 1.0 规划。
 - 将 `auth dc` / Forge / DC 真实环境链路从 documented 推进到 proven。
 - 在测试环境、RND 环境跑真实 Agent dogfood，不再把“本地没有账号 / 环境”作为不可验证结论。
 - 修复或明确降级 recoverability 缺口：modal / dialog / doctor / session blocked / run-code timeout / stale ref。
@@ -46,12 +50,16 @@ related_decisions:
 - 不把 Playwright internal substrate 包装成 pwcli public API，除非本轮 feature 正式定义稳定 contract。
 - 不把大型 shell E2E 当主要产品验收；它只能作为辅助回归入口。
 - 不把 future idea 写进 `skills/pwcli/` 主教程；主 skill 只教当前支持和已验证 SOP。
+- 不做云端部署、托管浏览器 fleet、账号/cookie/验证码/session state 托管、无边界 recipe 平台或 MCP/userscript 平台复活。
 
 ## 3. 模块拆分（概设）
 
 ```text
 pre-1-0-breakthrough
 ├── Real Environment Validation：测试/RND/Forge/DC 真实环境验证
+├── Command Deep Evaluation：每个 command 的深评、评测、证据状态和缺口闭环
+├── Workflow Integration：跨 command 真实任务串联验证
+├── Capability Intake：参考同类工具，把本地 Agent-first 必需能力纳入 1.0
 ├── Recovery Breakthrough：modal、dialog、doctor、timeout、session blocked 恢复
 ├── Evidence System：diagnostics、runs、bundle、trace/HAR、handoff 报告
 ├── Agent SOP Skill：skills/pwcli 作为 Agent 操作手册和 SOP
@@ -64,6 +72,23 @@ pre-1-0-breakthrough
 ### Real Environment Validation
 
 职责：把本地无法充分验证的业务能力搬到测试/RND 环境证明，尤其是 `auth dc`、真实 Forge/DC 页面、真实登录态复用、真实业务 bug 复现。
+
+### Command Deep Evaluation
+
+职责：逐个 command 建立深评记录，覆盖目的、输入、输出、错误、恢复、证据、workflow 位置、竞品参考点和 1.0 状态。命令状态只能是：
+
+- `proven`：有命令级评估证据和 workflow 串联证据。
+- `documented`：文档清楚，但缺真实验证或环境证据。
+- `blocked`：有明确 blocker issue。
+- `dropped`：明确不进入 1.0 contract。
+
+### Workflow Integration
+
+职责：把命令从“可调用”提升成“Agent 能完成任务”。每条 workflow 必须由 Agent 按 `skills/pwcli/` 执行，并记录关键命令、结果、失败恢复和证据路径。
+
+### Capability Intake
+
+职责：参考同类工具，但只吸收本地 Agent-first 浏览器任务需要的能力。参考对象和边界记录在 `drafts/2026-05-04-capability-reference-survey.md`。
 
 ### Recovery Breakthrough
 
@@ -215,31 +240,100 @@ npm pack --dry-run
 真实测试/RND dogfood: pass
 auth dc real-env evidence: pass 或有明确环境 blocker issue
 recovery breakthrough scenarios: pass
+每个 command 深评: pass / documented-with-blocker / dropped
+核心 workflow 串联验证: pass
 skill SOP audit: pass
 CodeStable truth audit: pass
 辅助 E2E: pass 或明确 dropped 并移除 package script
 ```
 
+### 4.6 Command Evaluation Contract
+
+每个 command 的深评记录必须覆盖：
+
+```yaml
+command: string
+surface: cli | helper | packaged-skill
+purpose: string
+inputs:
+  required: string[]
+  optional: string[]
+outputs:
+  human: string
+  json: string
+errors:
+  codes: string[]
+  retryable: boolean
+recovery:
+  blocked_states: string[]
+  next_commands: string[]
+evidence:
+  focused_checks: string[]
+  dogfood_runs: string[]
+  workflow_links: string[]
+status: proven | documented | blocked | dropped
+gaps: string[]
+```
+
+要求：
+
+- 每个 command 至少有一条 focused check 或 Agent dogfood 证据。
+- 高风险 command 必须同时有单命令深评和 workflow 串联。
+- 改 command / flag / output / error 时，必须同步 `skills/pwcli/` 和 command ADR。
+
+### 4.7 Workflow Integration Contract
+
+每条 workflow 记录必须覆盖：
+
+```yaml
+workflow: string
+user_goal: string
+environment: local | test | rnd
+commands: string[]
+evidence:
+  run_ids: string[]
+  artifacts: string[]
+  diagnostics_bundle?: string
+result: pass | fail | blocked
+issues: string[]
+skill_updates: string[]
+```
+
+核心 workflow：
+
+- 浏览器自动化
+- 自动化测试
+- 填表 / 上传 / 下载 / 文件验证
+- 简单爬取 / 信息提取
+- Deep Bug 复现和分析
+- 失败恢复和证据交接
+
+### 4.8 Capability Intake Contract
+
+外部工具能力进入 1.0 前必须满足：
+
+1. 服务本地 Agent-first 浏览器任务。
+2. 能映射到唯一清晰的 command / workflow contract。
+3. 能被单命令深评和 workflow 串联证明。
+4. 能写进中文优先 `skills/pwcli/`。
+5. 不引入逻辑向后兼容、不恢复兼容命令、不制造第二套内部实现。
+
 ## 5. 子 feature 清单
 
-1. **repo-cleanup-baseline**：清理过程文件、旧文档、无入口资产和脚本漂移，建立“什么能留在仓库”的清单。
-2. **e2e-helper-contract-alignment**：决定 `scripts/e2e/pwcli-dogfood-e2e.sh` 是保留、拆分还是移除；若保留，修到与当前唯一 contract 一致。
-3. **real-env-access-map**：梳理测试/RND/Forge/DC 可访问入口、账号材料边界、验证 SOP 和安全记录规则。
-4. **auth-dc-real-env-proof**：在测试/RND 环境真实验证 `auth dc`，将 `documented` 推进到 `proven` 或记录环境 blocker。
-5. **modal-doctor-recovery-breakthrough**：修复并验证 modal / dialog / doctor / page read blocked state 的一致恢复链路。
-6. **run-code-timeout-recovery-breakthrough**：系统验证 `RUN_CODE_TIMEOUT`、长导航、长网络等待的恢复路径和 skill SOP。
-7. **evidence-bundle-1-0-contract**：定义并实现 1.0 证据包 manifest、run timeline 和 handoff 报告稳定 contract。
-8. **har-trace-1-0-decision**：决定 HAR 热录制是否进入 1.0；能稳定就实现并验证，不能就从 1.0 contract 明确移除。
-9. **real-agent-task-matrix**：在本地 + 测试/RND 环境跑真实 Agent 场景矩阵：自动化、测试、填表、爬取、Deep Bug、复现分析。
-10. **skill-sop-1-0-audit**：全面重审 `skills/pwcli/`，补齐中文优先 SOP、真实环境、失败恢复、证据交接和反模式。
-11. **codestable-truth-1-0-audit**：全面重审 CodeStable 文档，确保 architecture 只记现状、roadmap 只记规划、command docs 全覆盖且证据状态准确。
-12. **pre-1-0-release-gate**：发布 Pre-1.0，允许保留已记录 P2/P3，不允许未解释 P0/P1。
-13. **rc-blocker-burn-down**：修复 Pre-1.0 暴露的 P0/P1，冻结 1.0 contract。
-14. **one-dot-zero-acceptance**：生成 1.0 最终验收报告，跑全量 gate，确认 skill 和 CodeStable 文档是最终 truth。
+完整子 feature 清单以 `pre-1-0-breakthrough-items.yaml` 为机器 truth。本轮已扩展为 30+ 个循环，覆盖 repo cleanup、E2E helper 审计、竞品能力参考、每类 command 深评、核心 workflow 串联、真实环境验证、recovery、evidence、skill SOP、CodeStable truth、Pre-1.0、RC 和 1.0 acceptance。
 
 ## 6. 排期思路
 
-先做 `repo-cleanup-baseline` 和 `e2e-helper-contract-alignment`，因为当前工作树已暴露辅助脚本 contract 漂移。随后进入真实环境 access map 和 `auth dc` 验证，把“本地不能证明”的能力拉到测试/RND 环境。然后攻 recovery 与 evidence 两条主线，最后做 skill / CodeStable 文档审计和 Pre-1.0 发布。
+按传统团队一个月冲刺映射为 4 周：
+
+| 周 | 目标 | 主要循环 |
+|---|---|---|
+| Week 1 | 基线、竞品参考、评估协议、基础命令深评 | repo cleanup、E2E helper、capability survey、command evaluation contract、lifecycle、observe/read、interaction |
+| Week 2 | 命令全覆盖深评 | wait/assert、workspace identity、diagnostics、network/console/errors、trace/HAR/video、route/mock/bootstrap、environment、auth/state/storage、batch/code/tooling |
+| Week 3 | workflow 串联和真实环境验证 | 浏览器自动化、自动化测试、填表文件、简单爬取、Deep Bug、恢复交接、real-env access、auth dc |
+| Week 4 | 1.0 攻关收口 | recovery breakthrough、evidence bundle、HAR/trace 决策、真实 Agent 矩阵、skill SOP audit、CodeStable truth audit、Pre-1.0 gate、RC blocker、1.0 acceptance |
+
+这不是固定日程，而是工作量映射。AI Agent 可以压缩执行时间，但不能压缩验收深度；每个循环必须有证据。
 
 ## 7. 观察项
 
@@ -247,8 +341,10 @@ CodeStable truth audit: pass
 - `auth dc` 过去未验证的理由是缺真实外部业务环境证据；用户已明确可以进测试/RND 环境，因此下一轮不能再把它停留在 documented。
 - HAR 热录制是否进入 1.0 必须做明确决定；不能长期停在“代码有命令但 supported=false”的模糊状态。
 - `scripts/eval/`、`scripts/benchmark/results/` 和旧 E2E 资产需要清理审计：有入口、有复用价值才保留；否则移除或迁入 CodeStable 稳定结论。
+- `cla` 指向的具体工具名后续需要按用户语境校准；本轮先按“Claude Code / 本地 Agent CLI 这一类工具体验”纳入能力参考，不把未确认外部产品写成 shipped contract。
 
 ## 8. 变更日志
 
 - 2026-05-04：创建 Pre-1.0 系统攻关 roadmap，作为下一轮 goal-driven 工作入口。
 - 2026-05-04：完成 `repo-cleanup-baseline`。删除 tracked 生成物/过程文件 309 个，补充 `.gitignore` 防回归，清理审计写入 `codestable/audits/2026-05-04-repo-cleanup-baseline/index.md`。
+- 2026-05-04：按用户新增要求扩展为一个月级 1.0 冲刺：每个 command 深评、核心 workflow 串联、参考同类本地 Agent/browser CLI 能力，并拆成 30+ 个可执行循环。

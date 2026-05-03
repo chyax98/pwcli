@@ -13,14 +13,174 @@ items:
   - slug: e2e-helper-contract-alignment
     description: 决定 scripts/e2e/pwcli-dogfood-e2e.sh 是保留、拆分还是移除；若保留，修到与当前唯一 contract 一致
     depends_on: [repo-cleanup-baseline]
+    status: done
+    feature: null
+    minimal_loop: false
+    notes: 2026-05-04 审计结论为保留作辅助回归和 fixture 复用；pnpm test:dogfood:e2e 通过，耗时 420.6s；审计见 codestable/audits/2026-05-04-e2e-helper-contract-alignment/index.md
+
+  - slug: sprint-capability-reference-survey
+    description: 对 Playwright CLI、Agent Browser、browser-use、cla/同类本地 Agent CLI 做能力盘点，抽出 pwcli 1.0 必须吸收的本地能力
+    depends_on: [repo-cleanup-baseline]
     status: planned
     feature: null
     minimal_loop: false
-    notes: 2026-05-04 已修复 modal doctor recovery P1 并跑通 pnpm test:dogfood:e2e；仍需正式审计该脚本是保留、拆分还是移除
+    notes: 只吸收本地工具能力；云端部署、托管执行、账号托管和无边界平台化不进入 1.0
+
+  - slug: command-evaluation-contract
+    description: 建立每个 command 的深度评估协议：目的、输入、输出、错误、恢复、证据、workflow 关联和 proven 判定
+    depends_on: [sprint-capability-reference-survey]
+    status: planned
+    feature: null
+    minimal_loop: true
+    notes: 每个 command 必须有评估记录；不能只靠 CLI help 或脚本绿灯证明
+
+  - slug: command-eval-lifecycle-navigation
+    description: 深评 session/open/profile lifecycle 与导航 contract，验证 session create|attach|recreate 主路和 open 只导航
+    depends_on: [command-evaluation-contract]
+    status: planned
+    feature: null
+    minimal_loop: true
+    notes: 覆盖 create/attach/recreate/close/list/status/open/profile；不得恢复兼容 lifecycle 命令
+
+  - slug: command-eval-observation-reading
+    description: 深评 status/observe/page/read-text/snapshot/locate/get/is/verify/accessibility 的页面事实能力
+    depends_on: [command-eval-lifecycle-navigation]
+    status: planned
+    feature: null
+    minimal_loop: true
+    notes: 重点评估 Agent 首读可用性、低噪声输出、ref 新鲜度和断言失败可解释性
+
+  - slug: command-eval-interaction-input
+    description: 深评 click/fill/type/press/check/uncheck/select/hover/scroll/drag/mouse/upload/download 的动作能力
+    depends_on: [command-eval-observation-reading]
+    status: planned
+    feature: null
+    minimal_loop: true
+    notes: 每个动作必须验证成功态、失败态、diagnosticsDelta、blocked state 和后续 wait/verify 串联
+
+  - slug: command-eval-wait-assert-state
+    description: 深评 wait/verify/is/get/locate 的等待、断言和状态判断能力
+    depends_on: [command-eval-interaction-input]
+    status: planned
+    feature: null
+    minimal_loop: true
+    notes: 覆盖 selector/text/response/network-idle/timeout/negative evidence，不把 false positive 包装成通过
+
+  - slug: command-eval-page-tab-workspace
+    description: 深评 page/tab/frame/dialog/ref/workspace identity，验证写操作稳定身份契约
+    depends_on: [command-eval-wait-assert-state]
+    status: planned
+    feature: null
+    minimal_loop: true
+    notes: tab 写操作只接受 pageId；ref 写操作必须拒绝 stale ref 并给恢复路径
+
+  - slug: command-eval-diagnostics-runs
+    description: 深评 diagnostics digest/export/bundle/runs/show/grep/timeline/doctor/errors 的诊断和证据检索能力
+    depends_on: [command-eval-page-tab-workspace]
+    status: planned
+    feature: null
+    minimal_loop: true
+    notes: 重点验证 run timeline、bundle manifest、失败复现证据和 handoff 可读性
+
+  - slug: command-eval-network-console-errors
+    description: 深评 network/console/errors/sse 的观测和过滤能力
+    depends_on: [command-eval-diagnostics-runs]
+    status: planned
+    feature: null
+    minimal_loop: true
+    notes: 覆盖 request/response/body snippet/status/text/filter/field projection，避免 Agent 误判根因
+
+  - slug: command-eval-trace-har-video-artifacts
+    description: 深评 screenshot/pdf/trace/har/video/artifacts 的证据产出能力，并决定 HAR 是否进入 1.0
+    depends_on: [command-eval-diagnostics-runs]
+    status: planned
+    feature: null
+    minimal_loop: true
+    notes: trace/video/screenshot/pdf 必须可复查；HAR 不能停留在 supported=false 的含糊状态
+
+  - slug: command-eval-route-mock-bootstrap
+    description: 深评 route/mock/bootstrap/code 作为本地受控测试 substrate 的能力
+    depends_on: [command-eval-network-console-errors]
+    status: planned
+    feature: null
+    minimal_loop: true
+    notes: 只为确定性测试和复现服务，不做无边界脚本平台；pw code 是 escape hatch，不是长流程 runner
+
+  - slug: command-eval-environment-controls
+    description: 深评 environment offline/geolocation/permissions/clock 等本地环境控制能力
+    depends_on: [command-eval-route-mock-bootstrap]
+    status: planned
+    feature: null
+    minimal_loop: true
+    notes: 覆盖真实页面和 fixture；不为 Node/Volta/proto 漂移写产品补丁
+
+  - slug: command-eval-auth-state-storage-profile
+    description: 深评 auth/state/storage/cookies/profile 的登录态和浏览器状态复用能力
+    depends_on: [command-eval-environment-controls]
+    status: planned
+    feature: null
+    minimal_loop: true
+    notes: 本地 fixture 证明 state/storage；Forge/DC auth 必须进入真实测试/RND 环境证明或 blocker
+
+  - slug: command-eval-batch-code-dashboard-skill-sse
+    description: 深评 batch/code/dashboard/skill/sse 等工具边界命令
+    depends_on: [command-eval-auth-state-storage-profile]
+    status: planned
+    feature: null
+    minimal_loop: true
+    notes: batch 只走结构化 string[][] 稳定子集；skill 命令必须证明 packaged path 可安装可用
+
+  - slug: workflow-eval-browser-automation
+    description: 串联验证通用浏览器自动化 workflow，从 session 到观察、动作、等待、验收和证据
+    depends_on: [command-eval-batch-code-dashboard-skill-sse]
+    status: planned
+    feature: null
+    minimal_loop: true
+    notes: 由 Agent 按 skills/pwcli 执行，不只复用 shell 脚本
+
+  - slug: workflow-eval-automated-testing
+    description: 串联验证自动化测试 workflow，覆盖 fixture、route/mock、环境控制、断言和失败报告
+    depends_on: [workflow-eval-browser-automation]
+    status: planned
+    feature: null
+    minimal_loop: true
+    notes: 对标 Playwright CLI 的本地测试执行体验，但保持 pwcli Agent-first 命令层定位
+
+  - slug: workflow-eval-form-file-download
+    description: 串联验证填表、上传、拖拽、下载、截图/PDF 证据 workflow
+    depends_on: [workflow-eval-browser-automation]
+    status: planned
+    feature: null
+    minimal_loop: true
+    notes: 验证真实任务 ergonomics，不只看单个 command ok=true
+
+  - slug: workflow-eval-crawler-extraction
+    description: 串联验证简单爬取和内容提取 workflow，覆盖多页导航、读取、导出和去噪
+    depends_on: [workflow-eval-browser-automation]
+    status: planned
+    feature: null
+    minimal_loop: true
+    notes: 不恢复 extract recipe 平台；只做 Agent 可执行的本地浏览器事实提取
+
+  - slug: workflow-eval-deep-bug-reproduction
+    description: 串联验证 Deep Bug 复现与分析 workflow，覆盖 console/network/errors/diagnostics/bundle
+    depends_on: [command-eval-diagnostics-runs, workflow-eval-automated-testing]
+    status: planned
+    feature: null
+    minimal_loop: true
+    notes: 每个 P0/P1 发现必须走 issue report/analysis/fix-note 闭环
+
+  - slug: workflow-eval-recovery-handoff
+    description: 串联验证失败恢复和证据交接 workflow，覆盖 blocked state、doctor、bundle、handoff report
+    depends_on: [workflow-eval-deep-bug-reproduction]
+    status: planned
+    feature: null
+    minimal_loop: true
+    notes: Agent 必须能按 skill 从失败态恢复或形成可交接 blocker
 
   - slug: real-env-access-map
     description: 梳理测试/RND/Forge/DC 可访问入口、账号材料边界、验证 SOP 和安全记录规则
-    depends_on: [repo-cleanup-baseline]
+    depends_on: [command-eval-auth-state-storage-profile]
     status: planned
     feature: null
     minimal_loop: false
@@ -36,7 +196,7 @@ items:
 
   - slug: modal-doctor-recovery-breakthrough
     description: 修复并验证 modal/dialog/doctor/page read blocked state 的一致恢复链路
-    depends_on: [e2e-helper-contract-alignment]
+    depends_on: [workflow-eval-recovery-handoff]
     status: planned
     feature: null
     minimal_loop: false
@@ -52,7 +212,7 @@ items:
 
   - slug: evidence-bundle-1-0-contract
     description: 定义并实现 1.0 证据包 manifest、run timeline 和 handoff 报告稳定 contract
-    depends_on: [modal-doctor-recovery-breakthrough]
+    depends_on: [command-eval-diagnostics-runs, workflow-eval-recovery-handoff]
     status: planned
     feature: null
     minimal_loop: false
@@ -60,7 +220,7 @@ items:
 
   - slug: har-trace-1-0-decision
     description: 决定 HAR 热录制是否进入 1.0；能稳定就实现验证，不能就从 1.0 contract 明确移除
-    depends_on: [evidence-bundle-1-0-contract]
+    depends_on: [command-eval-trace-har-video-artifacts, evidence-bundle-1-0-contract]
     status: planned
     feature: null
     minimal_loop: false
@@ -68,7 +228,7 @@ items:
 
   - slug: real-agent-task-matrix
     description: 在本地和测试/RND 环境跑真实 Agent 场景矩阵，覆盖自动化、测试、填表、爬取、Deep Bug 和复现分析
-    depends_on: [auth-dc-real-env-proof, evidence-bundle-1-0-contract]
+    depends_on: [auth-dc-real-env-proof, workflow-eval-recovery-handoff, evidence-bundle-1-0-contract]
     status: planned
     feature: null
     minimal_loop: false
@@ -80,7 +240,7 @@ items:
     status: planned
     feature: null
     minimal_loop: false
-    notes: skill 是 Agent 操作手册和 SOP，不是命令百科
+    notes: skill 是 Agent 操作手册和 SOP，不是命令百科；每个 command 和 workflow 深评结论必须回写
 
   - slug: codestable-truth-1-0-audit
     description: 全面重审 CodeStable 文档，确保 architecture/roadmap/command docs/issues/acceptance 角色清晰且证据状态准确
@@ -96,7 +256,7 @@ items:
     status: planned
     feature: null
     minimal_loop: false
-    notes: 需要基础 gate、真实环境 dogfood、skill SOP audit 和 CodeStable truth audit
+    notes: 需要基础 gate、真实环境 dogfood、每命令深评、workflow 串联、skill SOP audit 和 CodeStable truth audit
 
   - slug: rc-blocker-burn-down
     description: 修复 Pre-1.0 暴露的 P0/P1，冻结 1.0 contract
@@ -112,4 +272,4 @@ items:
     status: planned
     feature: null
     minimal_loop: false
-    notes: 1.0 不允许未解释 P0/P1，不允许 documented 能力伪装成 proven
+    notes: 1.0 不允许未解释 P0/P1，不允许 documented 能力伪装成 proven；必须映射每个 command、每条 workflow 和真实环境证据
