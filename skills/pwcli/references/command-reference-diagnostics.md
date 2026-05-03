@@ -31,6 +31,7 @@ state / auth / batch 命令见 `command-reference-advanced.md`。
 - `--request-id <id>`：单请求详情
 - 文本类 request/response 默认带 `requestBodySnippet` / `responseBodySnippet`（裁剪后的诊断片段，约 240 字符）
 - `--include-body`：返回完整 request/response body，上限 50KB；超过部分截断并标注 `truncated: true`
+- request 和 response 是两条记录；不要假设一个 record 同时有 request body 和 response body
 
 ### `pw sse --session <name>`
 

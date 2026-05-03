@@ -85,10 +85,10 @@ items:
   - slug: command-eval-network-console-errors
     description: 深评 network/console/errors/sse 的观测和过滤能力
     depends_on: [command-eval-diagnostics-runs]
-    status: planned
+    status: done
     feature: null
     minimal_loop: true
-    notes: 覆盖 request/response/body snippet/status/text/filter/field projection，避免 Agent 误判根因
+    notes: 2026-05-04 已完成 focused check；覆盖 console level/text/current、network method/url/status/text/kind/request-id/current/include-body、errors recent/current/clear、sse url/limit；评估见 evaluations/2026-05-04-command-eval-network-console-errors.md
 
   - slug: command-eval-trace-har-video-artifacts
     description: 深评 screenshot/pdf/trace/har/video/artifacts 的证据产出能力，并决定 HAR 是否进入 1.0

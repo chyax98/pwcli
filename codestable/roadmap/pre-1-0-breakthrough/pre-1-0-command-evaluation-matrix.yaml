@@ -69,8 +69,8 @@ commands:
   - command: console
     group: network-console-errors
     roadmap_item: command-eval-network-console-errors
-    status: planned
-    notes: 验证 level/text/filter/limit 和 bug 定位价值
+    status: proven
+    notes: 2026-05-04 focused check 覆盖 level error/warning、text、limit、current navigation 过滤；timeline/diagnostics 串联已在 diagnostics 专项证明
   - command: cookies
     group: auth-state
     roadmap_item: command-eval-auth-state-storage-profile
@@ -112,10 +112,10 @@ commands:
     status: planned
     notes: offline/geolocation/permissions/clock 必须覆盖
   - command: errors
-    group: diagnostics
-    roadmap_item: command-eval-diagnostics-runs
+    group: network-console-errors
+    roadmap_item: command-eval-network-console-errors
     status: proven
-    notes: 2026-05-04 focused check 覆盖 pageerror text filter、recent summary 和 clear baseline；network/console 串联仍在后续 network-console 专项继续覆盖
+    notes: 2026-05-04 diagnostics focused check 覆盖 recent/clear baseline；network-console focused check 补充 current navigation 过滤
   - command: fill
     group: interaction-input
     roadmap_item: command-eval-interaction-input
@@ -154,8 +154,8 @@ commands:
   - command: network
     group: network-console-errors
     roadmap_item: command-eval-network-console-errors
-    status: planned
-    notes: 覆盖 request/response/body/status/filter/field projection
+    status: proven
+    notes: 2026-05-04 focused check 覆盖 method/url/status/text/kind/request-id/current/include-body；request/response 分开记录，默认只返回 snippet，--include-body 返回 full body
   - command: observe
     group: observation
     roadmap_item: command-eval-observation-reading
@@ -234,8 +234,8 @@ commands:
   - command: sse
     group: network-console-errors
     roadmap_item: command-eval-network-console-errors
-    status: planned
-    notes: 验证 EventSource 记录和筛选
+    status: proven
+    notes: 2026-05-04 focused check 覆盖 EventSource message/custom 记录、url 过滤和 limit；SSE 作为 EventSource 观察，不替代 network
   - command: state
     group: auth-state
     roadmap_item: command-eval-auth-state-storage-profile

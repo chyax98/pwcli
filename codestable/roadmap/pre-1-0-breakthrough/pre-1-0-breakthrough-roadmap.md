@@ -353,3 +353,4 @@ skill_updates: string[]
 - 2026-05-04：完成 `command-eval-wait-assert-state`。覆盖 wait / verify / get / is / locate 的等待、断言、失败 envelope 和 false 状态，并修复 `wait --state` 未生效的问题。
 - 2026-05-04：完成 `command-eval-page-tab-workspace`。覆盖 page/tab/dialog/snapshot/ref workspace identity，修复 `snapshot status --output json` 双 envelope 问题，并明确 `page dialogs` 不是 pending browser dialog live list。
 - 2026-05-04：完成 `command-eval-diagnostics-runs`。覆盖 diagnostics digest/export/bundle/runs/show/grep/timeline、doctor 和 errors，并修复 doctor Node 24 环境基线误判与 diagnostics show/grep help 漂移。
+- 2026-05-04：完成 `command-eval-network-console-errors`。覆盖 console、network、errors、sse 的过滤、current navigation、body snippet/full body 和 requestfailed 观测。
