@@ -7,7 +7,7 @@
 
 ## 1. 当前发布面
 
-`pwcli` v0.1.0 当前承诺：
+`pwcli` v0.2.0 当前承诺：
 
 - named session lifecycle
 - 页面观察、动作、等待、断言
@@ -28,7 +28,7 @@
 当前 package contract：
 
 - package: `@chyax/pwcli`
-- version: `0.1.0`
+- version: `0.2.0`
 - command: `pw`
 - `bin.pw`: `dist/cli.js`
 - package files 必须包含：`dist`、`skills`、`README.md`
@@ -110,7 +110,7 @@ pnpm test:dogfood:e2e
 GitHub tag 安装：
 
 ```bash
-npm install -g github:chyax98/pwcli#v0.1.0
+npm install -g github:chyax98/pwcli#v0.2.0
 pw --version
 pw --help
 pw skill path

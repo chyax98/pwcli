@@ -59,7 +59,7 @@ pw auth dc -s dc-main --arg targetUrl='https://developer.example.com/forge'
 | 维护者 | [codestable/architecture/ARCHITECTURE.md](codestable/architecture/ARCHITECTURE.md) | 架构和维护文档入口 |
 | 命令面审计 | [codestable/architecture/command-surface.md](codestable/architecture/command-surface.md) | 从源码和 CLI help 对齐的命令能力地图 |
 | 命令设计覆盖 | [codestable/architecture/commands/coverage.md](codestable/architecture/commands/coverage.md) | 顶层 command 到命令族 ADR 的覆盖矩阵 |
-| 发布准备 | [codestable/architecture/release-v0.1.0.md](codestable/architecture/release-v0.1.0.md) | v0.1.0 发布前检查清单 |
+| 发布准备 | [codestable/architecture/release-v0.2.0.md](codestable/architecture/release-v0.2.0.md) | v0.2.0 发布前检查清单 |
 | Claude Code 协作 | [.claude/CLAUDE.md](.claude/CLAUDE.md) | 项目级规则入口 |
 
 ## 仓库结构
@@ -95,7 +95,7 @@ pnpm build
 pw --help
 ```
 
-发布前再跑完整 gate，见 [release-v0.1.0.md](codestable/architecture/release-v0.1.0.md)。
+发布前再跑完整 gate，见 [release-v0.2.0.md](codestable/architecture/release-v0.2.0.md)。
 
 ## 已知限制
 

@@ -13,18 +13,18 @@ items:
   - slug: p0-p1-bug-backlog-closure
     description: 记录并修复所有阻塞发布的 P0/P1 bug，形成 issue report/analysis/fix-note 闭环
     depends_on: [regression-smoke-green]
-    status: in-progress
+    status: done
     feature: null
     minimal_loop: false
-    notes: 2026-05-04 已关闭 geolocation contract drift、batch verify failure propagation、trace inspect CLI resolution、skill packaged path resolution；继续审计可验证 P0/P1，不把 P2/P3 当 blocker
+    notes: 2026-05-04 已关闭 geolocation contract drift、batch verify failure propagation、trace inspect CLI resolution、skill packaged path resolution；release-blocker audit 未发现新增 P0/P1，后续若 release gate 暴露新问题则新建 issue 闭环
 
   - slug: committed-feature-closure
     description: 梳理并完成已承诺 feature，逐条走设计、实现、验收和 roadmap 回写
     depends_on: [regression-smoke-green]
-    status: planned
+    status: done
     feature: null
     minimal_loop: false
-    notes: 不新增用户未确认的大功能
+    notes: 2026-05-04 committed feature closure audit 未发现新的实现缺口；仅修复 release contract v0.1.0 -> v0.2.0 文档漂移；不新增用户未确认的大功能
 
   - slug: truth-sync-cleanup
     description: 同步 skills、architecture、command docs、README，清除旧路径和 contract 漂移
@@ -45,39 +45,39 @@ items:
   - slug: agent-scenario-deep-validation
     description: Agent 按 skills/pwcli/ 深测浏览器任务矩阵，覆盖自动化、测试、表单、爬取、Deep Bug 和证据交接
     depends_on: [regression-smoke-green, command-docs-complete]
-    status: in-progress
+    status: done
     feature: null
     minimal_loop: false
-    notes: 2026-05-04 已追加 browser automation/deep bug/environment/crawler/automated testing/form-file/artifacts/state-auth dogfood；继续补剩余高价值命令和最终 release gate
+    notes: 2026-05-04 已完成 browser automation/deep bug/environment/crawler/automated testing/form-file/artifacts/state-auth/workspace-control/tooling-boundary Agent dogfood；auth dc 与 HAR 热录制保留为明确边界
 
   - slug: compounding-assets-archive
     description: 把验证过程中的失败、修复、经验和技巧沉淀进 CodeStable
     depends_on: [p0-p1-bug-backlog-closure, agent-scenario-deep-validation]
-    status: planned
+    status: done
     feature: null
     minimal_loop: false
-    notes: issue/fix-note、feature acceptance、compound learning/trick/decision/explore、benchmark results
+    notes: 2026-05-04 已沉淀 issue/fix-note、decision、roadmap evidence、release blocker audit、committed feature closure audit 和 command docs；benchmark results 作为辅助资产单独保留
 
   - slug: release-gate-green
     description: 跑完 release gate 并修复阻塞问题
     depends_on: [p0-p1-bug-backlog-closure, committed-feature-closure, command-docs-complete, agent-scenario-deep-validation, compounding-assets-archive]
-    status: planned
+    status: done
     feature: null
     minimal_loop: false
-    notes: typecheck/build/test:regression/diff-check/npm-pack
+    notes: 2026-05-04 release gate 通过 typecheck/build/smoke/check:*/YAML/diff-check/npm-pack；首次 smoke 因 240s 工具超时中断，600s 重跑脚本自身通过
 
   - slug: high-risk-dogfood-green
     description: 对高风险行为变化补 Agent dogfood evidence gate
     depends_on: [release-gate-green]
-    status: planned
+    status: done
     feature: null
     minimal_loop: false
-    notes: lifecycle/auth/action/ref/diagnostics/route/environment/package 变化时执行；优先 Agent 按 skill 真实验证，脚本 E2E 只作辅助回归
+    notes: 2026-05-04 高风险能力已有 Agent dogfood 与聚焦 contract checks；本轮最终改动只涉及文档和 release contract
 
   - slug: completion-acceptance-report
     description: 生成最终完成验收报告，列证据、剩余限制和后续非阻塞事项
     depends_on: [release-gate-green]
-    status: planned
+    status: done
     feature: null
     minimal_loop: false
-    notes: 高风险 Agent dogfood 若触发则也作为前置证据
+    notes: 2026-05-04 已生成 codestable/roadmap/project-completion/project-completion-acceptance.md

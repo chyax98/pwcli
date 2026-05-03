@@ -2,7 +2,7 @@
 doc_type: validation-evidence
 roadmap: project-completion
 item: agent-scenario-deep-validation
-status: partial
+status: passed
 date: 2026-05-04
 scenario: browser-automation-and-diagnostics
 tags:
@@ -102,16 +102,16 @@ Error: browserContext.setGeolocation: geolocation.longitude: expected float, got
 
 ## 本轮状态
 
-- `browser-automation`：partial pass。
-- `deep-bug-diagnosis`：partial pass。
-- `form-fill-validation`：partial pass；登录表单覆盖 fill/check/uncheck/get/click/wait，补充 fixture 覆盖 select，reproduce 页面覆盖 upload/drag/download。
-- `controlled-testing/environment`：partial pass；geolocation contract drift 已修复并有聚焦 contract test。2026-05-04 追加 Agent dogfood 覆盖 geolocation/offline/clock。
-- `simple-crawler`：partial pass；Agent 用 `read-text` + `pw code --file` 临时读取链接并逐跳跟踪，遇到 locator 歧义后按恢复建议继续。
-- `automated-testing`：partial pass；2026-05-04 追加 route mock、bootstrap apply、batch verify 链路。dogfood 暴露 batch verify 假绿 P1，已修复并用 `check:batch-verify` 固化。
-- `reproducible-handoff`：partial pass；bundle/runs 已覆盖，2026-05-04 追加 screenshot/pdf/accessibility/video/trace artifact 证据。dogfood 暴露 trace inspect 路径解析 P1，已修复并用 `check:trace-inspect` 固化。
-- `state-auth`：partial pass；2026-05-04 追加 fixture-auth、state diff/load、cookies/localStorage、IndexedDB export 证据。
-- `workspace-control`：partial pass；2026-05-04 追加 session/page projection、snapshot epoch、text alias、hover/scroll/resize/mouse dogfood。
-- `tooling-boundary`：partial pass；2026-05-04 追加 skill install/profile/dashboard/SSE/HAR limitation 验证。dogfood 暴露 skill packaged path P1，已修复并用 `check:skill-install` 固化。
+- `browser-automation`：pass；session / status / read-text / snapshot / action / wait / verify 主链覆盖。
+- `deep-bug-diagnosis`：pass；console / network / errors / diagnostics digest / export / bundle / runs 覆盖。
+- `form-fill-validation`：pass；登录表单覆盖 fill/check/uncheck/get/click/wait，fixture 覆盖 select，reproduce 页面覆盖 upload/drag/download。
+- `controlled-testing/environment`：pass；route mock、bootstrap apply、geolocation/offline/clock 覆盖；geolocation P1 已修复并用 `check:env-geolocation` 固化。
+- `simple-crawler`：pass；Agent 用 `read-text` + `pw code --file` 临时读取链接并逐跳跟踪，遇到 locator 歧义后按恢复建议继续。
+- `automated-testing`：pass；route mock、bootstrap apply、batch verify 链路覆盖；batch verify P1 已修复并用 `check:batch-verify` 固化。
+- `reproducible-handoff`：pass；bundle/runs、screenshot/pdf/accessibility/video/trace artifact 覆盖；trace inspect P1 已修复并用 `check:trace-inspect` 固化。
+- `state-auth`：pass；fixture-auth、state diff/load、cookies/localStorage、IndexedDB export 覆盖；真实 `auth dc` 仍是外部业务账号边界，不伪造成 proven。
+- `workspace-control`：pass；session/page projection、snapshot epoch、text alias、hover/scroll/resize/mouse 覆盖。
+- `tooling-boundary`：pass with documented boundary；skill install/profile/dashboard/SSE 覆盖，HAR start/stop 仍作为 `supported=false` limitation 记录，不升级为稳定热录制 contract。
 
 ## 追加验证：Environment controlled-testing
 

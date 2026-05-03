@@ -10,7 +10,7 @@ related_architecture:
   - ARCHITECTURE
   - command-surface
   - domain-status
-  - release-v0.1.0
+  - release-v0.2.0
   - e2e-dogfood-test-plan
 related_decisions:
   - 2026-05-04-decision-agent-driven-validation-strategy
@@ -262,16 +262,16 @@ reproducible-handoff      -> runs/events.jsonl/manifest.json/artifacts/fix-note
 2. **p0-p1-bug-backlog-closure** — 把剩余 P0/P1 bug 按 `cs-issue` 记录、分析、修复、验收。
    - 所属模块：Bug Closure
    - 依赖：`regression-smoke-green`
-   - 状态：planned
+   - 状态：done
    - 对应 feature：未启动
-   - 备注：只处理可验证 P0/P1，不把 P2/P3 当 blocker。
+   - 备注：已关闭 geolocation contract drift、batch verify failure propagation、trace inspect CLI resolution、skill packaged path resolution；release-blocker audit 未发现新增 P0/P1，后续若 release gate 暴露新问题则新建 issue 闭环。
 
 3. **committed-feature-closure** — 梳理并完成已承诺 feature，逐条走设计、实现、验收和 roadmap 回写。
    - 所属模块：Feature Closure
    - 依赖：`regression-smoke-green`
-   - 状态：planned
+   - 状态：done
    - 对应 feature：未启动
-   - 备注：不新增用户未确认的大功能。
+   - 备注：committed feature closure audit 未发现新的实现缺口；仅修复 release contract 版本文档漂移；不新增用户未确认的大功能。
 
 4. **truth-sync-cleanup** — 同步 skills、architecture、command docs、README，清除旧路径和 contract 漂移。
    - 所属模块：Truth Sync
@@ -290,37 +290,37 @@ reproducible-handoff      -> runs/events.jsonl/manifest.json/artifacts/fix-note
 6. **agent-scenario-deep-validation** — Agent 按 skill 深测浏览器任务矩阵：自动化、测试、表单、爬取、Deep Bug、证据交接。
    - 所属模块：Agent Scenario Deep Validation
    - 依赖：`regression-smoke-green`、`command-docs-complete`
-   - 状态：planned
+   - 状态：done
    - 对应 feature：未启动
-   - 备注：Agent 直接使用中文优先 `skills/pwcli/` 执行；基础契约可用集成测试兜底，不把大型 shell E2E 当主验证方式。
+   - 备注：已完成 browser automation、deep bug、environment、crawler、automated testing、form/file、artifacts、state/auth、workspace/control、tooling boundary Agent dogfood；`auth dc` 与 HAR 热录制保留为明确边界。
 
 7. **compounding-assets-archive** — 把验证过程中的失败、修复、经验和技巧沉淀进 CodeStable。
    - 所属模块：Compounding Assets
    - 依赖：`p0-p1-bug-backlog-closure`、`agent-scenario-deep-validation`
-   - 状态：planned
+   - 状态：done
    - 对应 feature：未启动
-   - 备注：issue/fix-note、feature acceptance、compound learning/trick/decision/explore、benchmark results。
+   - 备注：已沉淀 issue/fix-note、decision、roadmap evidence、release blocker audit、committed feature closure audit 和 command docs；benchmark results 作为辅助资产单独保留。
 
 8. **release-gate-green** — 跑完 release gate 并修复阻塞问题。
    - 所属模块：Release Gate
    - 依赖：`p0-p1-bug-backlog-closure`、`committed-feature-closure`、`command-docs-complete`、`agent-scenario-deep-validation`、`compounding-assets-archive`
-   - 状态：planned
+   - 状态：done
    - 对应 feature：未启动
-   - 备注：覆盖 typecheck / build / test:regression / diff-check / npm-pack。
+   - 备注：release gate 通过 typecheck / build / smoke / contract checks / YAML / diff-check / npm-pack；首次 smoke 因 240s 工具超时中断，600s 重跑脚本自身通过。
 
 9. **high-risk-dogfood-green** — 若本轮触碰 lifecycle/auth/action/ref/diagnostics/route/environment/package，补高风险 Agent dogfood 证据。
    - 所属模块：Release Gate
    - 依赖：`release-gate-green`
-   - 状态：planned
+   - 状态：done
    - 对应 feature：未启动
-   - 备注：按风险触发；优先 Agent 按 skill 真实执行，脚本 E2E 只作为辅助回归入口。
+   - 备注：高风险能力已有 Agent dogfood 与聚焦 contract checks；本轮最终改动只涉及文档和 release contract。
 
 10. **completion-acceptance-report** — 输出最终验收报告，列出完成项、剩余非阻塞限制、验证证据、后续 issue。
    - 所属模块：Release Gate
    - 依赖：`release-gate-green`
-   - 状态：planned
+   - 状态：done
    - 对应 feature：未启动
-   - 备注：高风险 Agent dogfood 若触发则也作为前置证据。
+   - 备注：已生成 `codestable/roadmap/project-completion/project-completion-acceptance.md`。
 
 **最小闭环**：第 1 条 `regression-smoke-green` 做完后，项目恢复完整 regression 验证能力，后续 bug / feature / release gate 都有可信基线。
 
@@ -346,3 +346,5 @@ reproducible-handoff      -> runs/events.jsonl/manifest.json/artifacts/fix-note
 - 2026-05-04：`regression-smoke-green` 完成，`pnpm smoke` 通过；`command-docs-complete` 完成，53 个顶层 command 均有 CodeStable 命令族文档映射。
 - 2026-05-04：`truth-sync-cleanup` 完成，README / skill / Claude 本地命令 / architecture 活跃文档已对齐当前路径和 route shipped contract。
 - 2026-05-04：按用户拍板更新验证策略：基础能力用集成/契约测试兜底，深度验证以 Agent 按中文优先 skill 执行真实任务为主，脚本 E2E 降级为辅助回归入口。
+- 2026-05-04：关闭 P0/P1 backlog、committed feature closure、Agent deep validation 和 compounding assets；发布契约同步到当前 `v0.2.0`。
+- 2026-05-04：release gate 通过并生成最终 completion acceptance report。

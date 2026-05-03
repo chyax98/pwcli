@@ -46,7 +46,7 @@ session create|attach|recreate
 | ADR-003 clock 边界 | [adr-003-environment-clock-boundary.md](adr-003-environment-clock-boundary.md) |
 | E2E dogfood 测试计划 | [e2e-dogfood-test-plan.md](e2e-dogfood-test-plan.md) |
 | E2E dogfood 体验报告 | [e2e-dogfood-experience-report.md](e2e-dogfood-experience-report.md) |
-| v0.1.0 发布检查 | [release-v0.1.0.md](release-v0.1.0.md) |
+| v0.2.0 发布检查 | [release-v0.2.0.md](release-v0.2.0.md) |
 | 命令 ADR 模板 | [commands/_template.md](commands/_template.md) |
 
 ## 使用教程
