@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT_DIR"
 
-CLI=(node dist/cli.js --output json)
+CLI=(node dist/cli.js)
 TEXT_CLI=(node dist/cli.js)
 PORT="${PWCLI_FIXTURE_PORT:-43179}"
 ORIGIN="http://127.0.0.1:${PORT}"
@@ -49,8 +49,8 @@ run_json() {
   local name="$1"
   shift
   local out="${TMP_DIR}/${name}.json"
-  if ! "${CLI[@]}" "$@" >"$out"; then
-    log "command failed: ${CLI[*]} $*"
+  if ! "${CLI[@]}" "$@" --output json >"$out"; then
+    log "command failed: ${CLI[*]} $* --output json"
     cat "$out" >&2 || true
     return 1
   fi
@@ -61,8 +61,8 @@ run_fail_json() {
   local name="$1"
   shift
   local out="${TMP_DIR}/${name}.json"
-  if "${CLI[@]}" "$@" >"$out"; then
-    log "command unexpectedly succeeded: ${CLI[*]} $*"
+  if "${CLI[@]}" "$@" --output json >"$out"; then
+    log "command unexpectedly succeeded: ${CLI[*]} $* --output json"
     cat "$out" >&2 || true
     return 1
   fi
@@ -283,14 +283,14 @@ INIT_SCRIPT="${TMP_DIR}/test-init.js"
 echo "// test init script" > "$INIT_SCRIPT"
 INIT_SESSION="si${RUN_ID}"
 out=$(run_json "session_init" session create "$INIT_SESSION" \
-  --init-script "$INIT_SCRIPT" --headless --open "$BLANK_URL")
+  --init-script "$INIT_SCRIPT" --no-headed --open "$BLANK_URL")
 assert_json "$out" ".ok" "true"
 assert_json "$out" ".data.bootstrapApplied" "true"
 # cleanup
 "${CLI[@]}" session close "$INIT_SESSION" >/dev/null 2>&1 || true
 
 log "session recreate bootstrapReapplied field"
-out=$(run_json "recreate_bootstrap" session recreate "$SESSION_NAME" --headless)
+out=$(run_json "recreate_bootstrap" session recreate "$SESSION_NAME" --no-headed)
 assert_json "$out" ".ok" "true"
 assert_json "$out" ".data.bootstrapReapplied" "typeof x === 'boolean'"
 
