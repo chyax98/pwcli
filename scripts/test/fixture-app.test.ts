@@ -61,7 +61,7 @@ describe("checkNodeVersion", () => {
     assert.ok(result, "should have nodeVersion");
     assert.equal(result.ok, true);
     assert.ok(result.version.startsWith("v"));
-    assert.equal(result.minimum, "18.15.0");
+    assert.equal(result.minimum, "24.12.0");
   });
 });
 

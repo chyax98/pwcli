@@ -77,10 +77,10 @@ items:
   - slug: command-eval-diagnostics-runs
     description: 深评 diagnostics digest/export/bundle/runs/show/grep/timeline/doctor/errors 的诊断和证据检索能力
     depends_on: [command-eval-page-tab-workspace]
-    status: planned
+    status: done
     feature: null
     minimal_loop: true
-    notes: 重点验证 run timeline、bundle manifest、失败复现证据和 handoff 可读性
+    notes: 2026-05-04 已完成 focused check；覆盖 diagnostics digest/export/bundle/runs/show/grep/timeline、doctor、errors recent/clear；发现并修复 doctor Node 24 误判和 diagnostics show|grep help 未声明 --run；评估见 evaluations/2026-05-04-command-eval-diagnostics-runs.md
 
   - slug: command-eval-network-console-errors
     description: 深评 network/console/errors/sse 的观测和过滤能力

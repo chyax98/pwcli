@@ -67,16 +67,34 @@ try {
     `network --help missing --include-body: ${network.stdout}`,
   );
 
+  const diagnosticsShow = await runHelp(["diagnostics", "show", "--help"]);
+  assert.equal(
+    diagnosticsShow.code,
+    0,
+    `diagnostics show --help failed: ${diagnosticsShow.stderr}`,
+  );
+  assert.ok(
+    diagnosticsShow.stdout.includes("--run=<id>"),
+    `diagnostics show --help missing --run: ${diagnosticsShow.stdout}`,
+  );
+
+  const diagnosticsGrep = await runHelp(["diagnostics", "grep", "--help"]);
+  assert.equal(
+    diagnosticsGrep.code,
+    0,
+    `diagnostics grep --help failed: ${diagnosticsGrep.stderr}`,
+  );
+  assert.ok(
+    diagnosticsGrep.stdout.includes("--run=<id>"),
+    `diagnostics grep --help missing --run: ${diagnosticsGrep.stdout}`,
+  );
+
   const locate = await runHelp(["locate", "--help"]);
   assert.equal(locate.code, 0, `locate --help failed: ${locate.stderr}`);
   assert.ok(
     locate.stdout.includes("--return-ref"),
     `locate --help missing --return-ref: ${locate.stdout}`,
   );
-
-  const get = await runHelp(["get", "--help"]);
-  assert.equal(get.code, 0, `get --help failed: ${get.stderr}`);
-  assert.ok(get.stdout.includes("--return-ref"), `get --help missing --return-ref: ${get.stdout}`);
 
   const stateDiff = await runHelp(["state", "diff", "--help"]);
   assert.equal(stateDiff.code, 0, `state diff --help failed: ${stateDiff.stderr}`);

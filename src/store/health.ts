@@ -283,20 +283,38 @@ export async function checkDiskSpace(dir: string): Promise<{ availableGB: number
   });
 }
 
+function parseNodeVersion(version: string) {
+  const [major = 0, minor = 0, patch = 0] = version.replace(/^v/, "").split(".").map(Number);
+  return { major, minor, patch };
+}
+
+function compareNodeVersion(left: string, right: string) {
+  const a = parseNodeVersion(left);
+  const b = parseNodeVersion(right);
+  for (const key of ["major", "minor", "patch"] as const) {
+    if (a[key] > b[key]) return 1;
+    if (a[key] < b[key]) return -1;
+  }
+  return 0;
+}
+
 export async function inspectEnvironment(cwd?: string): Promise<DoctorDiagnostic> {
   const version = process.version;
-  const minimum = "18.15.0";
-  const nodeOk = version.slice(1).split(".").map(Number).reduce((ok, n, i, arr) => {
-    if (!ok) return false;
-    const min = minimum.split(".").map(Number)[i] ?? 0;
-    return n > min ? true : n < min ? false : ok;
-  }, true);
+  const minimum = "24.12.0";
+  const maximumMajorExclusive = 26;
+  const parsed = parseNodeVersion(version);
+  const nodeOk =
+    compareNodeVersion(version, minimum) >= 0 && parsed.major < maximumMajorExclusive;
 
   const browserChecks = await checkPlaywrightBrowsers();
   const diskCheck = await checkDiskSpace(cwd ?? process.cwd());
 
   const items: Array<{ label: string; status: DoctorStatus; detail: string }> = [
-    { label: "Node.js version", status: nodeOk ? "ok" : "fail", detail: `${version} (required: >= ${minimum})` },
+    {
+      label: "Node.js version",
+      status: nodeOk ? "ok" : "fail",
+      detail: `${version} (required: >= ${minimum} < ${maximumMajorExclusive})`,
+    },
     ...browserChecks.map((b) => ({
       label: `Playwright ${b.browser}`,
       status: (b.installed ? "ok" : "warn") as DoctorStatus,
@@ -315,6 +333,11 @@ export async function inspectEnvironment(cwd?: string): Promise<DoctorDiagnostic
     kind: "environment",
     status: worstStatus,
     summary: worstStatus === "ok" ? "Environment checks passed" : "Environment issues detected",
-    details: { items, nodeVersion: { ok: nodeOk, version, minimum }, browsers: browserChecks, diskSpace: diskCheck },
+    details: {
+      items,
+      nodeVersion: { ok: nodeOk, version, minimum, maximum: `<${maximumMajorExclusive}` },
+      browsers: browserChecks,
+      diskSpace: diskCheck,
+    },
   };
 }

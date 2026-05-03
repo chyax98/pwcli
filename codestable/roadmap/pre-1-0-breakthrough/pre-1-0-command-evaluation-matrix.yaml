@@ -84,8 +84,8 @@ commands:
   - command: diagnostics
     group: diagnostics
     roadmap_item: command-eval-diagnostics-runs
-    status: planned
-    notes: digest/export/bundle/runs/show/grep/timeline 必须覆盖
+    status: proven
+    notes: 2026-05-04 focused check 覆盖 digest/export/bundle/runs/show/grep/timeline；show/grep 正式声明 --run；bundle 生成 manifest 并包含 auditConclusion
   - command: dialog
     group: page-workspace
     roadmap_item: command-eval-page-tab-workspace
@@ -94,8 +94,8 @@ commands:
   - command: doctor
     group: diagnostics
     roadmap_item: command-eval-diagnostics-runs
-    status: planned
-    notes: 必须输出可执行恢复建议
+    status: proven
+    notes: 2026-05-04 focused check 覆盖 session probe 和 endpoint probe；同轮修复 Node 24.12 被误判为 fail 的环境基线 bug；modal recovery 继续由 check:doctor-modal 和 recovery 专项覆盖
   - command: download
     group: interaction-input
     roadmap_item: command-eval-interaction-input
@@ -112,10 +112,10 @@ commands:
     status: planned
     notes: offline/geolocation/permissions/clock 必须覆盖
   - command: errors
-    group: network-console-errors
-    roadmap_item: command-eval-network-console-errors
-    status: planned
-    notes: 验证 page error 记录和 clear/recent 查询
+    group: diagnostics
+    roadmap_item: command-eval-diagnostics-runs
+    status: proven
+    notes: 2026-05-04 focused check 覆盖 pageerror text filter、recent summary 和 clear baseline；network/console 串联仍在后续 network-console 专项继续覆盖
   - command: fill
     group: interaction-input
     roadmap_item: command-eval-interaction-input
