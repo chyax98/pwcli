@@ -98,9 +98,11 @@ Error: browserContext.setGeolocation: geolocation.longitude: expected float, got
 
 已记录 issue：`codestable/issues/2026-05-04-environment-geolocation-contract-drift/environment-geolocation-contract-drift-report.md`。
 
+2026-05-04 更新：该 P1 已通过 `fix(environment): 支持 geolocation flag 参数` 修复。新增 `pnpm check:env-geolocation`，覆盖 help 中 `--lat/--lng`、实际 `--lat/--lng` 设置负数 longitude，以及 positional fallback。
+
 ## 本轮状态
 
 - `browser-automation`：partial pass。
 - `deep-bug-diagnosis`：partial pass。
 - `form-fill-validation`：partial pass（登录表单已覆盖基础 fill/click/wait/verify）。
-- `controlled-testing/environment`：blocked by documented issue。
+- `controlled-testing/environment`：partial pass；geolocation contract drift 已修复并有聚焦 contract test。
