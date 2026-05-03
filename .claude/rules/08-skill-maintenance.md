@@ -37,7 +37,7 @@ paths:
 3. 如果新增 limitation，写清楚触发条件、可恢复路径、不能包装成已支持。
 4. 如果是新工作流，写成可执行命令序列，不写长篇教程。
 5. 如果改变领域边界，同步 `codestable/architecture/`。
-6. 跑验证：`pnpm typecheck`、`pnpm build`、`pnpm smoke`。
+6. 跑受影响的最小验证；命令/行为风险明显时补 `pnpm typecheck`、`pnpm build`、`pnpm smoke` 或 Agent dogfood evidence gate。
 
 ## 写法
 

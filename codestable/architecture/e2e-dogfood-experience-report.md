@@ -1,23 +1,27 @@
-# E2E Dogfood Stable Conclusions
+# Agent Dogfood Stable Conclusions
 
-更新时间：2026-05-02
+更新时间：2026-05-04
 状态：active
 
-这份文档只保留 dogfood 后沉淀下来的稳定结论。历史修复流水、阶段计划和 issue 候选不在这里维护。
+这份文档只保留 Agent dogfood 后沉淀下来的稳定结论。历史修复流水、阶段计划和 issue 候选不在这里维护。
 
 ## 1. 已验证入口
 
+基础回归入口：
+
 ```bash
 pnpm smoke
-pnpm test:dogfood:e2e
+pnpm test:regression
 ```
 
-Dogfood fixture 和脚本位于：
+可复用 fixture 和辅助脚本位于：
 
 ```text
 scripts/e2e/dogfood-server.js
 scripts/e2e/pwcli-dogfood-e2e.sh
 ```
+
+深度验证入口不是固定脚本，而是 Agent 按 `skills/pwcli/` 执行真实浏览器任务，并把命令、结果、失败恢复和证据位置沉淀回 CodeStable。
 
 ## 2. 已验证能力
 
@@ -41,10 +45,11 @@ scripts/e2e/pwcli-dogfood-e2e.sh
 ## 4. 对架构的结论
 
 - `skills/pwcli/` 必须维持 Agent 可执行主链，而不是命令百科。
-- `docs/architecture/` 只保留架构边界、限制、contract 和稳定结论。
+- `codestable/architecture/` 只保留架构边界、限制、contract 和稳定结论。
 - 诊断能力优先深化 query/export/bundle，不引入第二套录制系统。
 - mock/environment/bootstrap 只在确定性测试或复现场景中出现，不进入常规探索默认链路。
 - 所有 workspace 写操作继续遵守 stable identity contract：tab 写操作只接受 `pageId`，ref 写操作必须校验 epoch。
+- 大型 shell E2E 不能成为主要产品深测方式；它只作为基础回归或特定 contract 复现工具。Agent 是否能读懂中文优先 skill 并完成任务，才是深度可用性的核心证据。
 
 ## 5. 后续维护
 
@@ -52,5 +57,5 @@ Dogfood 暴露的问题按以下规则处理：
 
 1. 命令行为变化：更新 `skills/pwcli/`。
 2. 新 limitation / recoverability：更新 `skills/pwcli/references/failure-recovery.md`。
-3. 架构边界变化：更新 `docs/architecture/domain-status.md` 或 ADR。
+3. 架构边界变化：更新 `codestable/architecture/domain-status.md` 或 ADR。
 4. 具体任务、修复流水、候选 issue：放 GitHub issues / PR，不长期保存在 docs。

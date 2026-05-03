@@ -44,4 +44,4 @@
 
 - 使用路径：`skills/pwcli/SKILL.md`
 - 精确参数：`skills/pwcli/references/command-reference-advanced.md`
-- 领域现状：`docs/architecture/domain-status.md`
+- 领域现状：`codestable/architecture/domain-status.md`

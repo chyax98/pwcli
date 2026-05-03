@@ -1,6 +1,6 @@
 # Ship / Release Contract
 
-更新时间：2026-05-02
+更新时间：2026-05-04
 状态：active
 
 这份文档记录当前本地 ship / release gate。它不替代 `package.json`、CI 或实际命令输出。
@@ -76,9 +76,9 @@ git diff --check
 npm pack --dry-run
 ```
 
-`pnpm test:regression` 是 Agent Product Regression：验证 CLI + `skills/pwcli/` + 真实浏览器任务链路。`pnpm smoke` 当前保留为兼容 alias，不代表 tiny smoke。
+`pnpm test:regression` 是基础回归入口；`pnpm smoke` 当前保留为兼容 alias，不代表 tiny smoke。深度发布证据来自 Agent 按 `skills/pwcli/` 执行真实任务矩阵，并把关键命令、结果和失败恢复写回 CodeStable。
 
-高风险行为变化再补：
+高风险行为变化再补 Agent dogfood evidence gate；可按需复用脚本夹具：
 
 ```bash
 pnpm test:dogfood:e2e
@@ -93,10 +93,12 @@ pnpm test:dogfood:e2e
 - route/environment/bootstrap substrate
 - package files / skill distribution
 
+`pnpm test:dogfood:e2e` 不是深度验证的唯一入口；脚本失败时先判定是产品 P0/P1、contract 漂移还是脚本维护问题。
+
 ## 5. Ship 检查清单
 
 - `package.json` version、name、bin、files 与发布目标一致。
-- `pw --help` 和 `docs/architecture/command-surface.md` 无明显漂移。
+- `pw --help` 和 `codestable/architecture/command-surface.md` 无明显漂移。
 - `skills/pwcli/SKILL.md` 能覆盖 80% 高频主链，专项路由到 reference。
 - 新 limitation 已写入 `failure-recovery.md` 或 architecture docs。
 - README 只保留入口，不复制完整教程。
@@ -135,5 +137,5 @@ pw session close relcheck
 
 - `pw skill path` 指向包内 `skills/pwcli`。
 - README 的最短链路可执行。
-- Agent Product Regression / dogfood 没有新增 P0/P1。
+- Agent Product Regression / Agent dogfood 没有新增 P0/P1。
 - issues / release notes 中的限制与 docs 一致。

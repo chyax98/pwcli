@@ -447,12 +447,12 @@ grep -r "from.*infra/\|from.*domain/\|from.*app/" src/ && echo "FAIL: old paths 
 
 重构完成后必须更新：
 
-- `docs/architecture/domain-status.md` → 描述新的 engine/cli/store 分层
-- `docs/architecture/command-surface.md` → 更新命令注册路径
+- `codestable/architecture/domain-status.md` → 描述新的 engine/cli/store 分层
+- `codestable/architecture/command-surface.md` → 更新命令注册路径
 - `.claude/rules/03-architecture-boundaries.md` → 更新分层规则为 cli/engine/store/auth
 - `AGENTS.md` → 更新项目结构说明
 - `skills/pwcli/` → 确认 CLI contract 未变，无需改动
 
 ---
 
-*本文完整描述了重构的目标状态和执行路径。重构完成后归档为 `docs/architecture/adr-004-engine-first-architecture.md`。*
+*本文完整描述了重构的目标状态和执行路径。重构完成后归档为 `codestable/architecture/adr-004-engine-first-architecture.md`。*

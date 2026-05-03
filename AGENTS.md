@@ -81,6 +81,7 @@ pw <affected-command> ...
 - 不默认跑 `pnpm smoke` / 全量 gate。
 - 最终发布、合并前总验收，或用户明确要求时，才跑全量测试。
 - 类型风险明显时再补 `pnpm typecheck`。
+- 深度产品验证以 Agent 按 `skills/pwcli/` 真实 dogfood 为主；脚本 E2E 只作基础回归、fixture 或特定 contract 辅助，不把修脚本当默认最高优先级。
 
 ## Review guidelines
 

@@ -3,7 +3,7 @@ doc_type: roadmap
 slug: project-completion
 status: active
 created: 2026-05-03
-last_reviewed: 2026-05-03
+last_reviewed: 2026-05-04
 tags: [completion, release, regression, codestable, command-docs, agent-product]
 related_requirements: []
 related_architecture:
@@ -12,6 +12,8 @@ related_architecture:
   - domain-status
   - release-v0.1.0
   - e2e-dogfood-test-plan
+related_decisions:
+  - 2026-05-04-decision-agent-driven-validation-strategy
 ---
 
 # pwcli Project Completion
@@ -52,9 +54,9 @@ project-completion
 ├── Feature Closure：已承诺 feature 从 roadmap item 到 acceptance
 ├── Truth Sync：skill / architecture / README / command docs 对齐
 ├── Command Docs：每个 command 映射到 CodeStable command doc 和证据状态
-├── Agent Scenario Deep Validation：按 Agent 真实任务矩阵深测
+├── Agent Scenario Deep Validation：Agent 按 skill 执行真实任务矩阵深测
 ├── Compounding Assets：沉淀可复用证据、经验和决策
-└── Release Gate：typecheck/build/regression/pack/dogfood 按风险执行
+└── Release Gate：typecheck/build/regression/pack + Agent dogfood evidence 按风险执行
 ```
 
 ### Regression Gate
@@ -89,9 +91,9 @@ project-completion
 
 ### Agent Scenario Deep Validation
 
-- **职责**：用真实 Agent 任务矩阵证明 CLI + Skill 能完成核心浏览器任务，不只证明单命令可运行。
+- **职责**：用 Agent 按 `skills/pwcli/` 执行真实任务，证明 CLI + Skill 能完成核心浏览器任务，不只证明单命令或脚本可运行。
 - **承载的子 feature**：`agent-scenario-deep-validation`
-- **触碰的现有代码 / 模块**：`scripts/smoke/`、`scripts/benchmark/`、`benchmark/`、`skills/pwcli/workflows/`、必要时新增验证报告。
+- **触碰的现有代码 / 模块**：`skills/pwcli/`、`codestable/compound/`、`codestable/issues/`、`codestable/architecture/commands/`、必要时新增小型集成测试或验证报告。
 
 ### Compounding Assets
 
@@ -177,8 +179,8 @@ domain boundary 变化
 
 ### 4.4 验证门禁协议
 
-**方向**：Release Gate → 本地命令  
-**形式**：shell 命令
+**方向**：Release Gate → 本地命令 + Agent 证据
+**形式**：基础命令、契约测试、Agent dogfood 证据
 
 **契约**：
 
@@ -188,14 +190,22 @@ pnpm smoke
 pnpm typecheck
 git diff --check
 npm pack --dry-run
-pnpm test:dogfood:e2e
+```
+
+```text
+Agent dogfood evidence:
+  - Agent 按 skills/pwcli/ 执行真实任务矩阵
+  - 每个场景记录关键 pw 命令、结果、失败恢复和证据位置
+  - P0/P1 失败进入 codestable/issues/
+  - 稳定结论进入 architecture / decision / learning / command docs
 ```
 
 **约束**：
 
 - 日常改动优先最小验证。
 - 最终发布、合并前总验收或用户明确要求时跑全量 smoke。
-- 高风险行为变化才补 dogfood E2E。
+- 高风险行为变化必须补 Agent dogfood 证据；小型脚本 E2E 可作为基础回归或夹具复用，但不替代 Agent 按 skill 的真实使用验证。
+- Node 24 + pnpm 10+ 是验证基线；不为 Volta/proto/本地 Node 漂移写产品补丁。
 
 ### 4.5 Command Doc Coverage 协议
 
@@ -235,7 +245,8 @@ reproducible-handoff      -> runs/events.jsonl/manifest.json/artifacts/fix-note
 
 **约束**：
 
-- 每个场景必须有真实 CLI 命令证据，不用裸 Playwright 脚本替代产品验证。
+- 每个场景必须由 Agent 按 `skills/pwcli/` 真实执行，留下 CLI 命令证据，不用裸 Playwright 脚本替代产品验证。
+- 基础 contract 可以用 Vitest、集成测试、fixture 或小型脚本兜底；它们是底层保障，不是主要产品深测。
 - 失败要进入 CodeStable issue 或 compound learning；不能只停在临时 smoke 输出。
 - Skill 必须能教会 Agent 进入对应 workflow。
 
@@ -276,12 +287,12 @@ reproducible-handoff      -> runs/events.jsonl/manifest.json/artifacts/fix-note
    - 对应 feature：未启动
    - 备注：已建立 `codestable/architecture/commands/coverage.md`，`node dist/cli.js --help` 53/53 顶层 command 均映射到命令族 ADR。
 
-6. **agent-scenario-deep-validation** — 深测 Agent 浏览器任务矩阵：自动化、测试、表单、爬取、Deep Bug、证据交接。
+6. **agent-scenario-deep-validation** — Agent 按 skill 深测浏览器任务矩阵：自动化、测试、表单、爬取、Deep Bug、证据交接。
    - 所属模块：Agent Scenario Deep Validation
    - 依赖：`regression-smoke-green`、`command-docs-complete`
    - 状态：planned
    - 对应 feature：未启动
-   - 备注：用真实 `pw` 命令和 skill workflow 验证，不用裸 Playwright 替代。
+   - 备注：Agent 直接使用中文优先 `skills/pwcli/` 执行；基础契约可用集成测试兜底，不把大型 shell E2E 当主验证方式。
 
 7. **compounding-assets-archive** — 把验证过程中的失败、修复、经验和技巧沉淀进 CodeStable。
    - 所属模块：Compounding Assets
@@ -297,19 +308,19 @@ reproducible-handoff      -> runs/events.jsonl/manifest.json/artifacts/fix-note
    - 对应 feature：未启动
    - 备注：覆盖 typecheck / build / test:regression / diff-check / npm-pack。
 
-9. **high-risk-dogfood-green** — 若本轮触碰 lifecycle/auth/action/ref/diagnostics/route/environment/package，补 dogfood E2E gate。
+9. **high-risk-dogfood-green** — 若本轮触碰 lifecycle/auth/action/ref/diagnostics/route/environment/package，补高风险 Agent dogfood 证据。
    - 所属模块：Release Gate
    - 依赖：`release-gate-green`
    - 状态：planned
    - 对应 feature：未启动
-   - 备注：按风险触发，不默认跑。
+   - 备注：按风险触发；优先 Agent 按 skill 真实执行，脚本 E2E 只作为辅助回归入口。
 
 10. **completion-acceptance-report** — 输出最终验收报告，列出完成项、剩余非阻塞限制、验证证据、后续 issue。
    - 所属模块：Release Gate
    - 依赖：`release-gate-green`
    - 状态：planned
    - 对应 feature：未启动
-   - 备注：dogfood 若触发则也作为前置证据。
+   - 备注：高风险 Agent dogfood 若触发则也作为前置证据。
 
 **最小闭环**：第 1 条 `regression-smoke-green` 做完后，项目恢复完整 regression 验证能力，后续 bug / feature / release gate 都有可信基线。
 
@@ -326,6 +337,7 @@ reproducible-handoff      -> runs/events.jsonl/manifest.json/artifacts/fix-note
 - command architecture 文档已提交为命令族 ADR，并补 `coverage.md` 覆盖矩阵。
 - `route load` 不是当前 source/help 注册命令；已在 `tools.md` 和 `coverage.md` 标为旧文档残留风险，不写成 shipped 能力。
 - `doctor` 在当前 Node 24 / pnpm 10+ 环境下仍会报告环境 diagnostic；smoke 只验证 endpoint 和 recovery，不用产品补丁绕过版本管理差异。
+- 深度验证策略已调整为 Agent 按 `skills/pwcli/` 真实 dogfood 为主；大型 shell E2E 只作辅助回归和夹具，不作为主要产品验收方式。
 
 ## 8. 变更日志
 
@@ -333,3 +345,4 @@ reproducible-handoff      -> runs/events.jsonl/manifest.json/artifacts/fix-note
 - 2026-05-04：扩展 roadmap，加入每个 command 的 CodeStable 文档覆盖、Agent 场景深测和复利资产归档。
 - 2026-05-04：`regression-smoke-green` 完成，`pnpm smoke` 通过；`command-docs-complete` 完成，53 个顶层 command 均有 CodeStable 命令族文档映射。
 - 2026-05-04：`truth-sync-cleanup` 完成，README / skill / Claude 本地命令 / architecture 活跃文档已对齐当前路径和 route shipped contract。
+- 2026-05-04：按用户拍板更新验证策略：基础能力用集成/契约测试兜底，深度验证以 Agent 按中文优先 skill 执行真实任务为主，脚本 E2E 降级为辅助回归入口。

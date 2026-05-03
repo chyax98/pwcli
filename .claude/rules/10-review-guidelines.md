@@ -125,11 +125,11 @@ pnpm smoke
 
 如果改动影响深链路，检查是否需要：
 
-```bash
-pnpm test:dogfood:e2e
+```text
+Agent dogfood evidence gate
 ```
 
-可以接受等价的更小验证，但 review 必须确认它覆盖了变更风险。
+Agent dogfood evidence gate 指 Agent 按 `skills/pwcli/` 执行受影响真实任务，并记录关键 `pw` 命令、结果、失败恢复和证据位置。`pnpm test:dogfood:e2e` 可以作为辅助回归或 fixture 复用，但不是唯一或默认深度验证入口。可以接受等价的更小验证，但 review 必须确认它覆盖了变更风险。
 
 ## 2. pwcli 专项风险清单
 

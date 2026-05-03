@@ -127,7 +127,7 @@ state / auth / batch 命令见 `command-reference-advanced.md`。
 - patch 模式先拿 upstream response 再做 JSON merge patch，只适用于 upstream `application/json`
 - patch 模式与 `--abort` / fulfill 选项 / inject 选项互斥
 
-当前 shipped route 子命令只有 `add|remove|list`。多条 route 用多次 `route add`，或用 `batch` 串行编排多个 `route add`；不要使用旧文档里的 `route load`。
+当前顶层 `pw route` 子命令只有 `add|remove|list`。多条 route 用多次 `route add`，或用 `batch` 串行编排；不要把旧文档里的 `pw route load` 当作顶层命令。Batch 内部 route 子集见 `command-reference-advanced.md`。
 
 示例：
 

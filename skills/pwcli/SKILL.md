@@ -353,7 +353,7 @@ pw route list -s test-a
 pw route remove '**/api/**' -s test-a
 ```
 
-多条 route 需要逐条 `route add`，或用 `batch` 串行编排多个 `route add`；当前没有 `route load` 命令。
+多条 route 在主链里优先逐条 `route add`，或用 `batch` 串行编排多个 `route add`；当前没有顶层 `pw route load` 命令。
 
 Environment：
 

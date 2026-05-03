@@ -18,7 +18,7 @@
 | 删除命令或子命令 | 在文档里注明删除原因和日期 |
 | 修改 flag / 参数 | 更新"技术原理"和"已知限制"章节 |
 | 修改错误码 | 更新"已知限制"章节 |
-| benchmark / dogfood 新证据 | 更新"使用证据"和状态标记 |
+| benchmark / Agent dogfood 新证据 | 更新"使用证据"和状态标记 |
 | 发现新 limitation | 更新"已知限制" |
 
 ## 文件结构
@@ -38,7 +38,7 @@ codestable/architecture/commands/
 
 每个命令文档必须有明确的状态：
 
-- `proven`：benchmark 或真实 dogfood 端到端验证过，可信赖
+- `proven`：benchmark、基础回归或真实 Agent dogfood 端到端验证过，可信赖
 - `documented`：skill 有记录，但无 benchmark 证据，谨慎使用
 - `experimental`：代码存在，无 skill 也无 benchmark 记录，可能不工作
 

@@ -43,12 +43,12 @@ items:
     notes: 2026-05-04 已建立 codestable/architecture/commands/coverage.md，node dist/cli.js --help 53/53 顶层 command 均映射到命令族 ADR
 
   - slug: agent-scenario-deep-validation
-    description: 深测 Agent 浏览器任务矩阵，覆盖自动化、测试、表单、爬取、Deep Bug 和证据交接
+    description: Agent 按 skills/pwcli/ 深测浏览器任务矩阵，覆盖自动化、测试、表单、爬取、Deep Bug 和证据交接
     depends_on: [regression-smoke-green, command-docs-complete]
     status: planned
     feature: null
     minimal_loop: false
-    notes: 用真实 pw 命令和 skill workflow 验证，不用裸 Playwright 替代
+    notes: 以 Agent 真实 dogfood 为主；基础契约可用 Vitest/集成测试/小型 fixture 兜底，不把大型 shell E2E 当主验证方式
 
   - slug: compounding-assets-archive
     description: 把验证过程中的失败、修复、经验和技巧沉淀进 CodeStable
@@ -67,12 +67,12 @@ items:
     notes: typecheck/build/test:regression/diff-check/npm-pack
 
   - slug: high-risk-dogfood-green
-    description: 对高风险行为变化补 dogfood E2E gate
+    description: 对高风险行为变化补 Agent dogfood evidence gate
     depends_on: [release-gate-green]
     status: planned
     feature: null
     minimal_loop: false
-    notes: lifecycle/auth/action/ref/diagnostics/route/environment/package 变化时执行
+    notes: lifecycle/auth/action/ref/diagnostics/route/environment/package 变化时执行；优先 Agent 按 skill 真实验证，脚本 E2E 只作辅助回归
 
   - slug: completion-acceptance-report
     description: 生成最终完成验收报告，列证据、剩余限制和后续非阻塞事项
@@ -80,4 +80,4 @@ items:
     status: planned
     feature: null
     minimal_loop: false
-    notes: dogfood 若触发则也作为前置证据
+    notes: 高风险 Agent dogfood 若触发则也作为前置证据
