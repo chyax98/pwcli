@@ -30,7 +30,8 @@
     "test:dogfood:e2e": "pnpm build && bash scripts/e2e/pwcli-dogfood-e2e.sh",
     "check:skill": "node scripts/check-skill-contract.js",
     "check:env-geolocation": "node scripts/check-environment-geolocation-contract.js",
-    "check:batch-verify": "node scripts/check-batch-verify-contract.js"
+    "check:batch-verify": "node scripts/check-batch-verify-contract.js",
+    "check:trace-inspect": "node scripts/check-trace-inspect-contract.js"
   },
   "imports": {
     "#engine/*": "./dist/engine/*",

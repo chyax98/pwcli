@@ -108,6 +108,7 @@ Error: browserContext.setGeolocation: geolocation.longitude: expected float, got
 - `controlled-testing/environment`：partial pass；geolocation contract drift 已修复并有聚焦 contract test。2026-05-04 追加 Agent dogfood 覆盖 geolocation/offline/clock。
 - `simple-crawler`：partial pass；Agent 用 `read-text` + `pw code --file` 临时读取链接并逐跳跟踪，遇到 locator 歧义后按恢复建议继续。
 - `automated-testing`：partial pass；2026-05-04 追加 route mock、bootstrap apply、batch verify 链路。dogfood 暴露 batch verify 假绿 P1，已修复并用 `check:batch-verify` 固化。
+- `reproducible-handoff`：partial pass；bundle/runs 已覆盖，2026-05-04 追加 screenshot/pdf/accessibility/video/trace artifact 证据。dogfood 暴露 trace inspect 路径解析 P1，已修复并用 `check:trace-inspect` 固化。
 
 ## 追加验证：Environment controlled-testing
 
@@ -259,3 +260,47 @@ pw diagnostics runs --session formdog --limit 16
 观察：
 
 - deterministic fixture 触发了 `/favicon.ico -> 404` 噪声；这是 fixture 页面缺少 favicon 的可解释噪声，不影响 `select/check` 命令结论。
+
+## 追加验证：Artifacts / reproducible handoff
+
+2026-05-04 追加可交接证据 artifact dogfood。主链使用 `scripts/e2e/dogfood-server.js 43287` 和 session `artdog`；trace 显式 start/stop 补充使用 session `tracedog`。
+
+核心链路：
+
+```bash
+pw session create artdog --no-headed --open http://127.0.0.1:43287/login
+pw screenshot -s artdog --path /tmp/pwcli-artdog/login.png --full-page
+pw pdf -s artdog --path /tmp/pwcli-artdog/login.pdf
+pw accessibility -s artdog --interactive-only
+pw video start -s artdog
+pw fill -s artdog --selector '#email' artifact@example.com
+pw video stop -s artdog
+pw trace stop -s artdog
+pw trace inspect .pwcli/playwright/traces/trace-1777832767561.trace --section actions --limit 20
+pw diagnostics bundle -s artdog --out /tmp/pwcli-artdog/bundle --limit 20
+pw diagnostics runs --session artdog --limit 8
+pw session create tracedog --no-headed --no-trace --open 'data:text/html,<main><button>trace button</button></main>'
+pw trace start -s tracedog
+pw click -s tracedog --text 'trace button'
+pw trace stop -s tracedog
+pw trace inspect .pwcli/playwright/traces/trace-1777832953035.trace --section actions --limit 8
+pnpm check:trace-inspect
+```
+
+关键证据：
+
+- screenshot artifact：`/tmp/pwcli-artdog/login.png`，PNG 1280x720，27632 bytes。
+- PDF artifact：`/tmp/pwcli-artdog/login.pdf`，PDF 1 page，87023 bytes。
+- accessibility：`pw accessibility --interactive-only` 输出 Email、Password、Remember me、Sign in 等 interactive nodes。
+- video artifact：`video stop` 输出 `.pwcli/playwright/video-2026-05-03T18-26-19-258Z.webm`，WebM，53897 bytes。
+- trace artifact：`trace stop` 输出 `.pwcli/playwright/traces/trace-1777832767561.trace`，74617 bytes；修复后 `trace inspect --section actions` 输出 Playwright actions 表。
+- explicit trace chain：`tracedog` 使用 `--no-trace` 创建 session 后显式 `trace start`，`trace stop` 输出 `.pwcli/playwright/traces/trace-1777832953035.trace`，`trace inspect` 成功。
+- diagnostics bundle：`/tmp/pwcli-artdog/bundle/manifest.json` 生成成功，21778 bytes；timeline 包含 screenshot/pdf/fill run events。
+- run evidence：`2026-05-03T18-26-15-874Z-artdog`、`2026-05-03T18-26-18-088Z-artdog`、`2026-05-03T18-26-26-444Z-artdog`、`2026-05-03T18-29-25-813Z-tracedog`。
+
+本轮 dogfood 暴露并修复 P1：
+
+- 问题：`trace stop` 生成 artifact 后，`trace inspect` 查找父目录 `node_modules/playwright-core`，返回 `TRACE_CLI_UNAVAILABLE`。
+- 记录：`codestable/issues/2026-05-04-trace-inspect-cli-resolution/trace-inspect-cli-resolution-report.md`。
+- 修复：`src/engine/diagnose/trace.ts` 改用 `createRequire(import.meta.url).resolve("playwright-core/package.json")` 定位当前安装包。
+- 固化验证：新增 `pnpm check:trace-inspect`，覆盖 `trace start -> action -> trace stop -> trace inspect`。

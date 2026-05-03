@@ -1,8 +1,8 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, rmSync } from "node:fs";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
 import { runManagedSessionCommand, parsePageSummary } from "../session.js";
 import { managedRunCode, maybeRawOutput, stateAccessPrelude } from "../shared.js";
 
@@ -22,23 +22,17 @@ export class TraceInspectError extends Error {
   }
 }
 
-function packageRoot() {
-  return resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
+const requireFromHere = createRequire(import.meta.url);
+
+function playwrightCoreRoot() {
+  return dirname(requireFromHere.resolve("playwright-core/package.json"));
 }
 
 function playwrightTraceCliPaths() {
-  const root = packageRoot();
+  const root = playwrightCoreRoot();
   return {
-    entrypoint: resolve(root, "node_modules", "playwright-core", "cli.js"),
-    traceCli: resolve(
-      root,
-      "node_modules",
-      "playwright-core",
-      "lib",
-      "tools",
-      "trace",
-      "traceCli.js",
-    ),
+    entrypoint: resolve(root, "cli.js"),
+    traceCli: resolve(root, "lib", "tools", "trace", "traceCli.js"),
   };
 }
 
