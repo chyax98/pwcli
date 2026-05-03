@@ -142,6 +142,53 @@ describe("interaction", { concurrency: false }, () => {
     assert.deepEqual(json.data.values, ["b"]);
   });
 
+  it("wait --state hidden honors selector state", async () => {
+    const name = makeSessionName();
+    sessionsToClean.push(name);
+
+    await runPw([
+      "session",
+      "create",
+      name,
+      "--headless",
+      "--open",
+      "about:blank",
+      "--output",
+      "json",
+    ]);
+
+    await runPw([
+      "code",
+      "--session",
+      name,
+      'async page => { await page.setContent(\'<div id="hidden-target" style="display:none">Hidden</div>\'); }',
+      "--output",
+      "json",
+    ]);
+
+    const result = await runPw([
+      "wait",
+      "--selector",
+      "#hidden-target",
+      "--state",
+      "hidden",
+      "--session",
+      name,
+      "--output",
+      "json",
+    ]);
+    assert.equal(result.code, 0, `wait hidden failed: ${result.stderr}`);
+    const json = result.json as {
+      ok: boolean;
+      data: { matched: boolean; condition: { kind: string; selector: string; state: string } };
+    };
+    assert.equal(json.ok, true);
+    assert.equal(json.data.matched, true);
+    assert.equal(json.data.condition.kind, "selector");
+    assert.equal(json.data.condition.selector, "#hidden-target");
+    assert.equal(json.data.condition.state, "hidden");
+  });
+
   it("check checks a checkbox", async () => {
     const name = makeSessionName();
     sessionsToClean.push(name);

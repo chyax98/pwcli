@@ -236,7 +236,7 @@
 - `verify text|text-absent|visible|hidden|enabled|disabled|checked|unchecked --text <text>`
 - `verify url --contains <text>`、`verify url --equals <url>`、`verify url --matches <regex>`
 - `verify count --equals <n>`、`verify count --min <n>`、`verify count --max <n>`
-- `wait network-idle`（或 `--networkidle`）、`wait --text`、`wait --selector`、`wait --request`、`wait --response`
+- `wait network-idle`（或 `--networkidle`）、`wait --text`、`wait --selector`、`wait --selector <selector> --state <state>`、`wait --request`、`wait --response`
 - `screenshot ...`、`status` / `observe`、`errors recent|clear`
 - `route list|add|load|remove ...`、`bootstrap apply ...`
 - `state save|load`、`page current|list|frames|dialogs`

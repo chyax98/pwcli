@@ -573,6 +573,7 @@ export async function managedWait(options: {
   response?: string;
   method?: string;
   status?: string;
+  state?: "visible" | "hidden" | "stable" | "attached" | "detached";
   sessionName?: string;
 }) {
   let source = "";
@@ -618,9 +619,14 @@ export async function managedWait(options: {
     condition = { kind: "networkidle" };
     source = `async page => { await page.waitForLoadState('networkidle'); return 'networkidle'; }`;
   } else if (options.selector) {
-    condition = { kind: "selector", selector: options.selector };
+    condition = { kind: "selector", selector: options.selector, state: options.state ?? "visible" };
     conditionKind = "selector";
-    source = `async page => { await page.locator(${JSON.stringify(options.selector)}).waitFor(); return 'selector'; }`;
+    source = `async page => {
+      await page.locator(${JSON.stringify(options.selector)}).waitFor({
+        state: ${JSON.stringify(options.state ?? "visible")},
+      });
+      return JSON.stringify({ kind: 'selector', selector: ${JSON.stringify(options.selector)}, state: ${JSON.stringify(options.state ?? "visible")} });
+    }`;
   } else if (options.text) {
     condition = { kind: "text", text: options.text };
     source = `async page => { await page.getByText(${JSON.stringify(options.text)}, { exact: false }).waitFor(); return 'text'; }`;

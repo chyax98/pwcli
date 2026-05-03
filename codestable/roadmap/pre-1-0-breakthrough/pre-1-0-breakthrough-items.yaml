@@ -61,10 +61,10 @@ items:
   - slug: command-eval-wait-assert-state
     description: 深评 wait/verify/is/get/locate 的等待、断言和状态判断能力
     depends_on: [command-eval-interaction-input]
-    status: planned
+    status: done
     feature: null
     minimal_loop: true
-    notes: 覆盖 selector/text/response/network-idle/timeout/negative evidence，不把 false positive 包装成通过
+    notes: 2026-05-04 已完成 focused check；覆盖 wait selector/text/state/response/network-idle，verify 正负断言和失败 envelope，get text/value/count，is true/false，locate nth；发现并修复 wait --state 未传入 engine/batch 的缺陷；评估见 evaluations/2026-05-04-command-eval-wait-assert-state.md
 
   - slug: command-eval-page-tab-workspace
     description: 深评 page/tab/frame/dialog/ref/workspace identity，验证写操作稳定身份契约

@@ -20,7 +20,7 @@ export default defineCommand({
     const a = args as CliArgs;
     try {
       const target = firstPos(a);
-      print("wait", await managedWait({ sessionName: session(a), target: bool(a.networkidle) ? undefined : target, text: str(a.text), selector: str(a.selector), request: str(a.request), response: str(a.response), method: str(a.method), status: str(a.status), networkidle: bool(a.networkidle) || (target ? /^network[-_]?idle$/i.test(target) : false) }), a);
+      print("wait", await managedWait({ sessionName: session(a), target: bool(a.networkidle) ? undefined : target, text: str(a.text), selector: str(a.selector), request: str(a.request), response: str(a.response), method: str(a.method), status: str(a.status), state: str(a.state) as "visible" | "hidden" | "stable" | "attached" | "detached" | undefined, networkidle: bool(a.networkidle) || (target ? /^network[-_]?idle$/i.test(target) : false) }), a);
     } catch (error) {
       withCliError("wait", a, error, "wait failed");
     }

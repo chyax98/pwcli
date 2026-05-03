@@ -313,6 +313,7 @@ export async function executeBatchStep(tokens: string[], sessionName: string) {
       let response: string | undefined;
       let method: string | undefined;
       let status: string | undefined;
+      let state: "visible" | "hidden" | "stable" | "attached" | "detached" | undefined;
       let networkidle = false;
       for (let index = 0; index < args.length; index += 1) {
         const arg = args[index];
@@ -335,10 +336,17 @@ export async function executeBatchStep(tokens: string[], sessionName: string) {
         } else if (arg === "--status") {
           status = args[index + 1];
           index += 1;
+        } else if (arg === "--state") {
+          const value = args[index + 1];
+          if (!["visible", "hidden", "stable", "attached", "detached"].includes(value)) {
+            throw new Error(`unsupported wait state '${value}'`);
+          }
+          state = value as typeof state;
+          index += 1;
         } else if (!arg.startsWith("--") && !target) target = arg;
         else throw new Error(`unsupported wait batch argument '${arg}'`);
       }
-      return { ok: true, command: "wait", data: await managedWait({ target: networkidle ? undefined : target, text, selector, request, response, method, status, networkidle: networkidle || (target ? /^network[-_]?idle$/i.test(target) : false), sessionName }) };
+      return { ok: true, command: "wait", data: await managedWait({ target: networkidle ? undefined : target, text, selector, request, response, method, status, state, networkidle: networkidle || (target ? /^network[-_]?idle$/i.test(target) : false), sessionName }) };
     }
     case "state":
       if (args[0] === "save") return { ok: true, command: "state save", data: await managedStateSave(args[1], { sessionName }) };

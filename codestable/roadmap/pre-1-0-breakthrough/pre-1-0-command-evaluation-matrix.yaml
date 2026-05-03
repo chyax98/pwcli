@@ -125,7 +125,7 @@ commands:
     group: observation
     roadmap_item: command-eval-observation-reading
     status: proven
-    notes: 2026-05-04 focused check 覆盖 --fact text 读取 h1；count/value 组合后续在 wait/assert 评测补充
+    notes: 2026-05-04 observation 覆盖 text；wait/assert 评测补齐 value/count
   - command: har
     group: artifacts
     roadmap_item: command-eval-trace-har-video-artifacts
@@ -139,13 +139,13 @@ commands:
   - command: is
     group: wait-assert-state
     roadmap_item: command-eval-wait-assert-state
-    status: planned
-    notes: 2026-05-04 observation focused check 已证明 visible=true 基础路径；hidden/enabled/checked/false 组合仍在 wait/assert 评测中完成
+    status: proven
+    notes: 2026-05-04 wait/assert focused check 覆盖 visible/enabled/checked true，以及 missing/unchecked false
   - command: locate
     group: observation
     roadmap_item: command-eval-observation-reading
     status: proven
-    notes: 2026-05-04 focused check 覆盖 text candidates 和 --return-ref；同轮修复 checked checkbox ref 解析缺陷
+    notes: 2026-05-04 observation 覆盖 text candidates 和 --return-ref；wait/assert 评测补齐 --nth 2
   - command: mouse
     group: interaction-input
     roadmap_item: command-eval-interaction-input
@@ -284,8 +284,8 @@ commands:
   - command: verify
     group: wait-assert-state
     roadmap_item: command-eval-wait-assert-state
-    status: planned
-    notes: 2026-05-04 observation focused check 已证明 text/url passed=true 基础路径；negative/count/失败传播仍在 wait/assert 评测中完成
+    status: proven
+    notes: 2026-05-04 wait/assert focused check 覆盖 text/text-absent/url/visible/hidden/enabled/disabled/checked/unchecked/count 和 VERIFY_FAILED envelope
   - command: video
     group: artifacts
     roadmap_item: command-eval-trace-har-video-artifacts
@@ -294,5 +294,5 @@ commands:
   - command: wait
     group: wait-assert-state
     roadmap_item: command-eval-wait-assert-state
-    status: planned
-    notes: selector/text/response/network-idle/timeout 必须覆盖
+    status: proven
+    notes: 2026-05-04 focused check 覆盖 selector/text/state hidden+detached/response 200/network-idle；同轮修复 --state 未传入 engine/batch
