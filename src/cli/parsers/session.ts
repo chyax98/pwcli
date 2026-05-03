@@ -12,6 +12,34 @@ import { managedRunCode } from "#engine/shared.js";
 import { appendRunEvent, ensureRunDir } from "#store/artifacts.js";
 import { type RecoveryKind, printCommandError } from "../output.js";
 
+function domainError(message: string) {
+  if (message.startsWith("STATE_TARGET_NOT_FOUND:")) {
+    let target: unknown;
+    try { target = JSON.parse(message.slice("STATE_TARGET_NOT_FOUND:".length)); } catch { /* ignore */ }
+    return {
+      code: "STATE_TARGET_NOT_FOUND",
+      message: "The state target was not found in the current page.",
+      retryable: true,
+      suggestions: [
+        "Run `pw snapshot -i --session <name>` to inspect current refs",
+        "Run `pw locate --session <name> --selector <selector>` to find the element",
+      ],
+      recovery: { kind: "inspect" as const, commands: ["pw snapshot -i --session <name>"] },
+      details: target ? { target } : {},
+    };
+  }
+  if (message.startsWith("READ_TEXT_SELECTOR_NOT_FOUND:")) {
+    return {
+      code: "READ_TEXT_SELECTOR_NOT_FOUND",
+      message: "The selector did not match any element.",
+      retryable: true,
+      suggestions: ["Run `pw snapshot -i --session <name>` to inspect current state"],
+      recovery: { kind: "inspect" as const, commands: ["pw snapshot -i --session <name>"] },
+    };
+  }
+  return null;
+}
+
 export function requireSessionName(session?: string): string {
   const sessionName = session?.trim();
   if (!sessionName) throw new Error("SESSION_REQUIRED");
@@ -39,6 +67,11 @@ export function printSessionAwareCommandError(
   const routing = sessionRoutingError(message);
   if (routing) {
     printCommandError(command, routing, output);
+    return;
+  }
+  const domain = domainError(message);
+  if (domain) {
+    printCommandError(command, domain, output);
     return;
   }
   if (isActionFailure(error)) {
