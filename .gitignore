@@ -4,6 +4,11 @@ dist
 .playwright
 .playwright-cli
 .pwcli
+scripts/test-app/.next/
+scripts/test-app/node_modules/
+scripts/tmp/
+scripts/eval/*.log
+scripts/eval/raw_results.tsv
 benchmark/artifacts/closure/
 benchmark/reports/closure/
 benchmark/tasks/generated/

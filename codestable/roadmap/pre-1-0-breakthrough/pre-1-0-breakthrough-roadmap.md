@@ -251,3 +251,4 @@ CodeStable truth audit: pass
 ## 8. 变更日志
 
 - 2026-05-04：创建 Pre-1.0 系统攻关 roadmap，作为下一轮 goal-driven 工作入口。
+- 2026-05-04：完成 `repo-cleanup-baseline`。删除 tracked 生成物/过程文件 309 个，补充 `.gitignore` 防回归，清理审计写入 `codestable/audits/2026-05-04-repo-cleanup-baseline/index.md`。

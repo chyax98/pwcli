@@ -5,10 +5,10 @@ items:
   - slug: repo-cleanup-baseline
     description: 清理过程文件、旧文档、无入口资产和脚本漂移，建立仓库保留/删除清单
     depends_on: []
-    status: planned
+    status: done
     feature: null
     minimal_loop: true
-    notes: 当前已删除未跟踪 handoff_smoke.md、交接文档.md、BENCHMARK_REPORT_2.md 和 .github/.DS_Store；仍需审计 tracked eval/benchmark/e2e 资产
+    notes: 2026-05-04 已完成 baseline 清理；删除 tracked 生成物/过程文件 309 个（约 82.5MiB），补 .gitignore，审计见 codestable/audits/2026-05-04-repo-cleanup-baseline/index.md；scripts/e2e/eval/benchmark 保留到后续专项审计
 
   - slug: e2e-helper-contract-alignment
     description: 决定 scripts/e2e/pwcli-dogfood-e2e.sh 是保留、拆分还是移除；若保留，修到与当前唯一 contract 一致
