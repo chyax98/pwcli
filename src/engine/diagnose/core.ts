@@ -792,6 +792,11 @@ export async function managedObserveStatus(options?: { sessionName?: string }) {
     session: projection.session,
     page: projection.page,
     data: {
+      summary: {
+        pageCount: projection.data.workspace?.pageCount ?? 0,
+        currentUrl: projection.data.page?.url,
+        currentPageId: projection.data.workspace?.currentPageId,
+      },
       status: {
         page: projection.data.page,
         workspace: projection.data.workspace,
