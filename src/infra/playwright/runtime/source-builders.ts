@@ -83,7 +83,7 @@ export function semanticClickSource(target: NormalizedSemanticTarget, button?: s
     let openedPage = null;
     if (popup) {
       const context = page.context();
-      const state = context[DIAGNOSTICS_STATE_KEY] ||= {};
+      const state = context[${JSON.stringify(DIAGNOSTICS_STATE_KEY)}] ||= {};
       state.nextPageSeq = Number.isInteger(state.nextPageSeq) ? state.nextPageSeq : 1;
       const ensurePageId = (p) => {
         if (!p.__pwcliPageId)

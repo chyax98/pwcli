@@ -622,6 +622,9 @@ export async function managedRoute(
       const existing = Array.isArray(state.routes) ? state.routes : [];
       if (pattern) {
         await context.unroute(pattern);
+        if (typeof pattern === 'string' && pattern.startsWith('**/')) {
+          await context.unroute(pattern.slice(2)).catch(() => {});
+        }
         state.routes = existing.filter(route => route.pattern !== pattern);
       } else {
         await context.unrouteAll({ behavior: 'ignoreErrors' });
