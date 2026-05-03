@@ -1378,7 +1378,7 @@ pw verify text --session eval-ses-01 --text 'THIS_VERY_UNIQUE_ABSENT_TEXT_123'
 
 ---
 
-### TC-073: network list 有请求后列出
+### TC-073: network 有请求后列出（无 list 子命令，直接 pw network）
 
 **能力域**: Diagnostics
 **测试目标**: 验证 network 命令在页面有请求后列出捕获的 network 记录
@@ -2216,7 +2216,7 @@ pw session create eval-e2e-demo --open http://localhost:3099/login
 pw fill --session eval-e2e-demo --label 'Email address' 'demo@test.com'
 pw fill --session eval-e2e-demo --label 'Password' 'password123'
 pw click --session eval-e2e-demo --role button --name 'Sign in'
-pw wait --session eval-e2e-demo --url http://localhost:3099/dashboard 2>/dev/null || pw wait --text 'Total Users' --session eval-e2e-demo
+pw wait --text 'Total Users' --session eval-e2e-demo
 pw verify url --session eval-e2e-demo --contains '/dashboard'
 ```
 **预期输出包含**:
