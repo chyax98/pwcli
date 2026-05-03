@@ -74,19 +74,18 @@ try {
     "set",
     "-s",
     session,
-    "--output",
-    "json",
     "40.7128",
     "--",
     "-74.006",
   ]);
-  assertOk(positionalResult, "environment geolocation set positional fallback");
-
-  const positionalPayload = parseJson(positionalResult.stdout, "environment geolocation set positional");
-  const positionalGeolocation = positionalPayload?.data?.geolocation;
-  if (positionalGeolocation?.latitude !== 40.7128 || positionalGeolocation?.longitude !== -74.006) {
-    throw new Error(`unexpected positional payload: ${JSON.stringify(positionalPayload, null, 2)}`);
+  if (positionalResult.status === 0) {
+    throw new Error("environment geolocation set positional form unexpectedly succeeded");
   }
+  assertIncludes(
+    `${positionalResult.stdout}\n${positionalResult.stderr}`,
+    "requires --lat <lat> --lng <lng>",
+    "positional rejection",
+  );
 } finally {
   run(["session", "close", session]);
 }

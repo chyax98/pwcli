@@ -74,6 +74,7 @@ pageId -> old snapshot index -> close/select live tab by index
 - JSON 输出是否仍适合脚本解析
 - batch 子集是否保持显式收窄
 - action 结果是否保留必要 diagnostics/run evidence
+- 不允许为旧参数、旧行为或历史文档残留添加逻辑向后兼容分支；只接受命令名称层面的清晰别名，且内部必须收敛到唯一实现路径
 
 ### P0 / P1：Recoverability And Limitation Honesty
 

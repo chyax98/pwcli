@@ -25,12 +25,12 @@ tags:
 ## 2. 修复内容
 
 - `pw environment geolocation set` 新增 `--lat <lat>` 和 `--lng <lng>` 参数。
-- 参数读取优先使用 `--lat/--lng`，没有传 flag 时保留 positional fallback。
+- 参数读取只使用 `--lat/--lng`，旧 positional 形态明确失败。
 - 缺少或非法 latitude/longitude 时，在 CLI 层返回明确错误，不再把 `undefined` 传给 Playwright。
 - 新增 `pnpm check:env-geolocation` 聚焦契约验证：
   - help 必须展示 `--lat` 和 `--lng`。
   - 实际 session 中 `--lat/--lng` 能成功设置负数 longitude。
-  - positional fallback 仍可工作。
+  - 旧 positional 形态会失败，并提示使用 `--lat/--lng`。
 - 更新 command architecture 的参数 contract 和证据状态。
 
 ## 3. 验证
@@ -66,4 +66,4 @@ git diff --check
 
 ## 4. 结论
 
-P1 已修复。当前 skill 中的 `--lat/--lng` 示例与 CLI 实现对齐；负数 longitude 不再需要 Agent 记住 positional `--` 分隔陷阱。
+P1 已修复。当前 skill 中的 `--lat/--lng` 示例与 CLI 实现对齐；负数 longitude 不再需要 Agent 记住 positional `--` 分隔陷阱，内部也不保留旧 positional 逻辑兼容。

@@ -15,13 +15,10 @@ const geoSet = defineCommand({
   async run({ args }) {
     const a = args as CliArgs;
     try {
-      const p = positionals(a);
-      const latitude = num(str(a.lat) ?? p[0]);
-      const longitude = num(str(a.lng) ?? p[1]);
+      const latitude = num(str(a.lat));
+      const longitude = num(str(a.lng));
       if (latitude === undefined || longitude === undefined) {
-        throw new Error(
-          "environment geolocation set requires --lat <lat> --lng <lng> or positional <lat> <lng>",
-        );
+        throw new Error("environment geolocation set requires --lat <lat> --lng <lng>");
       }
       print(
         "environment geolocation set",

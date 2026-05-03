@@ -54,31 +54,31 @@ tags:
 
 ## 5. 修复方案
 
-### 方案 A：支持 `--lat/--lng`，保留 positional 兼容
+### 方案 A：支持 `--lat/--lng`，移除 positional 兼容
 
-- **做什么**：在 `src/cli/commands/environment.ts` 为 `geoSet` 增加 `lat` / `lng` 参数定义；读取时优先 `args.lat` / `args.lng`，没有则 fallback 到 positionals；补缺参 guard，给稳定错误码和恢复建议；同步 skill、command reference、command architecture；补一个聚焦 CLI/integration 测试。
-- **优点**：与当前中文 skill 对齐，负数 longitude 不再需要 `--`，Agent 可用性最好；保留 positional 不破坏已有用户。
-- **缺点 / 风险**：需要小幅改代码、输出错误处理和测试；要确认 `lng` 命名是否接受 `--longitude` alias。
+- **做什么**：在 `src/cli/commands/environment.ts` 为 `geoSet` 增加 `lat` / `lng` 参数定义；只读取 `args.lat` / `args.lng`；补缺参 guard，给稳定错误和恢复提示；同步 skill、command reference、command architecture；补一个聚焦 CLI/integration 测试，确保旧 positional 形态被拒绝。
+- **优点**：与当前中文 skill 对齐，负数 longitude 不再需要 `--`，Agent 可用性最好；内部实现唯一清晰，不为旧参数形态堆逻辑兼容。
+- **缺点 / 风险**：旧 positional 形态不再可用；这是有意的 contract 收敛。
 - **影响面**：`src/cli/commands/environment.ts`、skill/reference/command docs、测试。
 
 ### 方案 B：不改代码，只把 skill/docs 改成 positional + `--` 分隔
 
 - **做什么**：把 skill/reference 示例改为 `pw environment geolocation set -s test-a 37.7749 -- -122.4194`，help 无法展示 positional 的限制写进 failure recovery 或 gotchas。
 - **优点**：不碰代码，最快消除 skill 错误示例。
-- **缺点 / 风险**：Agent 可用性差；help 仍然不教人传 latitude/longitude；负数分隔是隐性陷阱，后续还会反复踩。
+- **缺点 / 风险**：违反“不写逻辑向后兼容实现”的项目约束；Agent 可用性差；help 仍然不教人传 latitude/longitude；负数分隔是隐性陷阱，后续还会反复踩。
 - **影响面**：只改文档。
 
-### 方案 C：改成只接受 positional，并在 CLI 层做强校验和错误提示
+### 方案 C：保留旧 positional，并在 CLI 层做强校验和错误提示
 
 - **做什么**：保留 positional contract，但在 `environment.ts` 对缺失/非法经纬度做显式校验，错误提示写出 `pw environment geolocation set -s <name> <lat> -- <lng>`；同步 docs。
 - **优点**：比方案 B 更诚实，错误恢复明确；代码改动小于方案 A。
-- **缺点 / 风险**：仍不如 `--lat/--lng` 适合 Agent；负数 longitude 的 `--` 规则仍然存在。
+- **缺点 / 风险**：违反“不写逻辑向后兼容实现”的项目约束；仍不如 `--lat/--lng` 适合 Agent；负数 longitude 的 `--` 规则仍然存在。
 - **影响面**：`src/cli/commands/environment.ts`、skill/reference/command docs、测试。
 
 ### 推荐方案
 
-**推荐方案 A**。理由：用户刚明确产品核心用户是 Agent，skill 是产品面的一部分。`--lat/--lng` 对 Agent 更稳定、可读、可由 help 明确展示，也避开负数 longitude 的 positional parser 陷阱；保留 positional fallback 可以降低兼容风险。
+**推荐方案 A**。理由：用户刚明确产品核心用户是 Agent，skill 是产品面的一部分。`--lat/--lng` 对 Agent 更稳定、可读、可由 help 明确展示，也避开负数 longitude 的 positional parser 陷阱；同时遵守“不写逻辑向后兼容实现”的项目约束。
 
 ## 6. 方案确认
 
-本轮 goal-driven 执行按推荐方案 A 进入修复：支持 `--lat/--lng`，保留 positional fallback，并补聚焦 contract 验证。
+本轮 goal-driven 执行按推荐方案 A 进入修复：支持 `--lat/--lng`，拒绝旧 positional 形态，并补聚焦 contract 验证。
