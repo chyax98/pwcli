@@ -53,13 +53,13 @@ RT=$($CLI read-text --help 2>&1 || true)
 # ── 4. API 改进验证 ────────────────────────────────────────────────────────
 echo ""
 echo "【4】API 改进"
-# --no-headed 替代 --headless
-SC=$($CLI session --help 2>&1 || true)
-echo "$SC" | grep -q "no-headed\|headed" \
+# --no-headed 替代 --headless（在 session create 子命令里）
+SC=$($CLI session create --help 2>&1 || true)
+echo "$SC" | grep -q "\-\-headed" \
   && ok "session 有 --headed/--no-headed" \
   || fail "session 缺少 --headed flag" ""
 
-echo "$SC" | grep -qv "headless" \
+echo "$SC" | grep -qv "\-\-headless" \
   && ok "session 已移除 --headless" \
   || fail "session 仍有 --headless（应删除）" ""
 
