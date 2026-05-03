@@ -244,6 +244,29 @@ function formatAccessibility(result: CommandResult): string {
   return yaml;
 }
 
+function formatScreenshot(result: CommandResult): string {
+  const path = asString(result.data.path) ?? "";
+  const annotations = asArray(result.data.annotations);
+  const lines: string[] = [];
+  if (path) {
+    lines.push(`Screenshot: ${path}`);
+  }
+  if (annotations.length > 0) {
+    lines.push("Annotations:");
+    for (const item of annotations) {
+      const annotation = asRecord(item);
+      const id = asNumber(annotation.id) ?? "?";
+      const role = asString(annotation.role) ?? "element";
+      const name = asString(annotation.name) ?? "";
+      const selector = asString(annotation.selector) ?? "";
+      lines.push(
+        `  @${id} ${role}${name ? ` "${name}"` : ""}${selector ? ` [css=${selector}]` : ""}`,
+      );
+    }
+  }
+  return lines.join("\n") || stringifyValue(result.data);
+}
+
 
 function formatNetworkRecord(record: unknown): string {
   const item = asRecord(record);
@@ -619,6 +642,9 @@ function formatCommandText(command: string, result: CommandResult): string {
   }
   if (command === "snapshot") {
     return formatSnapshot(result);
+  }
+  if (command === "screenshot") {
+    return formatScreenshot(result);
   }
   if (command === "accessibility") {
     return formatAccessibility(result);
