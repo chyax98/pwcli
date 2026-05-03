@@ -353,11 +353,7 @@ pw route list -s test-a
 pw route remove '**/api/**' -s test-a
 ```
 
-批量 route：
-
-```bash
-pw route load ./routes.json -s test-a
-```
+多条 route 需要逐条 `route add`，或用 `batch` 串行编排多个 `route add`；当前没有 `route load` 命令。
 
 Environment：
 
@@ -382,7 +378,7 @@ pw bootstrap apply -s test-a --headers-file ./headers.json
 
 ```bash
 pw session create test-a --no-headed --open '<url>'
-pw route load ./routes.json -s test-a
+pw route add '**/api/**' -s test-a --method GET --status 200 --content-type application/json --body '{"ok":true}'
 pw bootstrap apply -s test-a --init-script ./bootstrap.js
 pw click -s test-a --selector '<selector>'
 pw wait -s test-a --text '<expected>'

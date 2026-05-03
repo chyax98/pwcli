@@ -25,7 +25,7 @@ paths:
    - Forge/DC → `references/forge-dc-auth.md`
    - 任务链路 → `references/workflows.md` / `workflows/*.md`
    - 领域边界 → `domains/*.md`
-4. 不写内部实现细节：Playwright daemon、源码路径、substrate timeout、实现权衡进 `docs/architecture/` 或 ADR；`SKILL.md` 只写对 Agent 有用的表现、限制和下一步。
+4. 不写内部实现细节：Playwright daemon、源码路径、substrate timeout、实现权衡进 `codestable/architecture/` 或 ADR；`SKILL.md` 只写对 Agent 有用的表现、限制和下一步。
 5. 不写项目历史、迁移过程、调研、issue backlog、测试账号、真实业务域名。
 6. 主文档出现“解释为什么这么实现”时，优先下沉到 architecture；出现“完整参数百科”时，优先下沉到 reference。
 

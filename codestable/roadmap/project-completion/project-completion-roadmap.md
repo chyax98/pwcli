@@ -265,9 +265,9 @@ reproducible-handoff      -> runs/events.jsonl/manifest.json/artifacts/fix-note
 4. **truth-sync-cleanup** — 同步 skills、architecture、command docs、README，清除旧路径和 contract 漂移。
    - 所属模块：Truth Sync
    - 依赖：`regression-smoke-green`
-   - 状态：planned
+   - 状态：done
    - 对应 feature：未启动
-   - 备注：README 已发现旧路径观察项。
+   - 备注：已修 README 旧路径/旧结构、Claude 本地命令旧 architecture 路径、skill 中 `route load` 旧用法，并修复 `check-skill-contract` citty help 解析。
 
 5. **command-docs-complete** — 为所有顶层 command 建立 CodeStable command doc 覆盖矩阵并补齐缺口。
    - 所属模块：Command Docs
@@ -321,7 +321,7 @@ reproducible-handoff      -> runs/events.jsonl/manifest.json/artifacts/fix-note
 
 ## 7. 观察项
 
-- `README.md` 仍引用旧 `docs/architecture/` 和旧 `src/app|domain|infra` 结构，需要在 truth sync 阶段修。
+- README、skill route mock 文档和 Claude 本地命令旧路径已在 truth sync 阶段修正。
 - `handoff_smoke.md` 是过程交接文档，长期不应作为 active truth；完成 smoke 后应转成 issue/fix-note 或删除。
 - command architecture 文档已提交为命令族 ADR，并补 `coverage.md` 覆盖矩阵。
 - `route load` 不是当前 source/help 注册命令；已在 `tools.md` 和 `coverage.md` 标为旧文档残留风险，不写成 shipped 能力。
@@ -332,3 +332,4 @@ reproducible-handoff      -> runs/events.jsonl/manifest.json/artifacts/fix-note
 - 2026-05-03：创建项目完成 roadmap，定义从 regression 绿到 release gate 的收敛路径。
 - 2026-05-04：扩展 roadmap，加入每个 command 的 CodeStable 文档覆盖、Agent 场景深测和复利资产归档。
 - 2026-05-04：`regression-smoke-green` 完成，`pnpm smoke` 通过；`command-docs-complete` 完成，53 个顶层 command 均有 CodeStable 命令族文档映射。
+- 2026-05-04：`truth-sync-cleanup` 完成，README / skill / Claude 本地命令 / architecture 活跃文档已对齐当前路径和 route shipped contract。

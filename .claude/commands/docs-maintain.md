@@ -1,12 +1,12 @@
 # /docs-maintain
 
-Use this command to maintain `skills/pwcli/` and `docs/architecture/` without turning docs into process logs.
+Use this command to maintain `skills/pwcli/` and `codestable/architecture/` without turning docs into process logs.
 
 ## Procedure
 
 1. Read:
    - `AGENTS.md`
-   - `docs/architecture/documentation-governance.md`
+   - `codestable/architecture/documentation-governance.md`
    - `.claude/rules/08-skill-maintenance.md`
    - `.claude/rules/09-skill-writing-standard.md`
 2. Check `git status --short`; do not overwrite unrelated work.
@@ -21,7 +21,7 @@ Use this command to maintain `skills/pwcli/` and `docs/architecture/` without tu
    - `references/`: precise command parameters, diagnostics, advanced details
    - `workflows/`: executable task chains and success criteria
    - `domains/`: boundaries, misuse, decision rules
-   - `docs/architecture/`: architecture facts, contracts, ADRs, stable conclusions
+   - `codestable/architecture/`: architecture facts, contracts, ADRs, stable conclusions
 5. Remove or rewrite:
    - process plans
    - surveys not converted to ADR/decision notes

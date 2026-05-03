@@ -30,10 +30,11 @@ Patch upstream JSON：
 pw route add '**/api/**' --session <name> --patch-json-file ./patch.json --patch-status 298
 ```
 
-批量加载：
+多条 route：
 
 ```bash
-pw route load ./routes.json --session <name>
+printf '%s\n' '[["route","add","**/api/a","--status","200","--body","{\"ok\":true}"],["route","add","**/api/b","--status","204"]]' \
+  | pw batch --session <name> --stdin-json
 ```
 
 清理：
@@ -67,7 +68,7 @@ pw bootstrap apply --session <name> --headers-file ./headers.json
 
 ```bash
 pw session create test-a --no-headed --open '<url>'
-pw route load ./routes.json --session test-a
+pw route add '**/api/**' --session test-a --method GET --status 200 --content-type application/json --body '{"ok":true}'
 pw environment permissions grant geolocation --session test-a
 pw bootstrap apply --session test-a --init-script ./bootstrap.js
 pw click --session test-a --selector '<selector>'

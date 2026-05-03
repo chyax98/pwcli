@@ -56,22 +56,26 @@ pw auth dc -s dc-main --arg targetUrl='https://developer.example.com/forge'
 | 参数核对 | [skills/pwcli/references/command-reference.md](skills/pwcli/references/command-reference.md) | 核心命令 reference |
 | 诊断链路 | [skills/pwcli/references/command-reference-diagnostics.md](skills/pwcli/references/command-reference-diagnostics.md) | diagnostics / route / trace |
 | 状态与自动化 | [skills/pwcli/references/command-reference-advanced.md](skills/pwcli/references/command-reference-advanced.md) | auth / state / batch / environment |
-| 维护者 | [docs/README.md](docs/README.md) | 架构和维护文档入口 |
-| 命令面审计 | [docs/architecture/command-surface.md](docs/architecture/command-surface.md) | 从源码和 CLI help 对齐的命令能力地图 |
-| 发布准备 | [docs/architecture/release-v0.1.0.md](docs/architecture/release-v0.1.0.md) | v0.1.0 发布前检查清单 |
+| 维护者 | [codestable/architecture/ARCHITECTURE.md](codestable/architecture/ARCHITECTURE.md) | 架构和维护文档入口 |
+| 命令面审计 | [codestable/architecture/command-surface.md](codestable/architecture/command-surface.md) | 从源码和 CLI help 对齐的命令能力地图 |
+| 命令设计覆盖 | [codestable/architecture/commands/coverage.md](codestable/architecture/commands/coverage.md) | 顶层 command 到命令族 ADR 的覆盖矩阵 |
+| 发布准备 | [codestable/architecture/release-v0.1.0.md](codestable/architecture/release-v0.1.0.md) | v0.1.0 发布前检查清单 |
 | Claude Code 协作 | [.claude/CLAUDE.md](.claude/CLAUDE.md) | 项目级规则入口 |
 
 ## 仓库结构
 
 ```text
 src/
-  app/        # commander 命令、batch、输出 envelope
-  domain/     # session/workspace/interaction/diagnostics/environment 语义
-  infra/      # Playwright substrate、fs、auth provider、外部脚本适配
+  cli/        # citty 命令、batch、输出 envelope
+  engine/     # Playwright substrate 和浏览器能力封装
+  store/      # artifacts、skill path、持久化辅助
+  auth/       # 内置 auth provider
 skills/
   pwcli/      # Agent 使用教程的唯一真相
-docs/
-  architecture/ # 架构事实、限制、扩展口、发布检查
+codestable/
+  architecture/ # 架构事实、限制、扩展口、发布检查、命令 ADR
+  roadmap/      # 大型目标拆解与状态
+  compound/     # decision / learning / trick / explore
 .claude/      # Claude Code 项目指令和 rules
 ```
 
@@ -91,7 +95,7 @@ pnpm build
 pw --help
 ```
 
-发布前再跑完整 gate，见 [release-v0.1.0.md](docs/architecture/release-v0.1.0.md)。
+发布前再跑完整 gate，见 [release-v0.1.0.md](codestable/architecture/release-v0.1.0.md)。
 
 ## 已知限制
 

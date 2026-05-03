@@ -90,8 +90,8 @@ pw auth <provider> --session <name> --arg key=value
 7. 同步文档：
    - 通用 auth 命令变化：`skills/pwcli/references/command-reference-advanced.md`
    - 特定业务 provider 行为：新增或更新对应 `skills/pwcli/references/*.md`
-   - 架构边界变化：`docs/architecture/domain-status.md`
-   - 命令能力面变化：`docs/architecture/command-surface.md`
+   - 架构边界变化：`codestable/architecture/domain-status.md`
+   - 命令能力面变化：`codestable/architecture/command-surface.md`
 8. 验证：
    - 开发期：`pnpm typecheck`、`pnpm build`、`pw auth list`、`pw auth info <provider>`
    - provider contract：真实或 fixture session 中执行 provider，验证 `pageState`、`resolvedTargetUrl`、`--save-state`

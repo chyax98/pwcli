@@ -258,14 +258,15 @@
 
 - `route list`
 - `route add`
-- `route add --match-query <key=value>`
-- `route add --match-header <key=value>`
-- `route load`
+- `route add --match-query-file <path>`
+- `route add --match-headers-file <path>`
+- `route add --match-json-file <path>`
 - `route remove`
 - `--abort`
 - `--method`
 - `--match-body`
 - `--patch-json|--patch-json-file`
+- `--patch-text-file`
 - `--patch-status`
 - `--body|--body-file`
 - `--headers-file`
@@ -331,7 +332,7 @@ batch 稳定子集覆盖：
 ### 当前实现
 
 - `skills/pwcli/` 是唯一使用教程真相
-- `docs/architecture/` 只维护设计与现状
+- `codestable/architecture/` 只维护设计与现状
 - `.claude/` 维护 Agent 项目指令、review 规则、skill 维护规则，不承载项目文档、项目规划、过程归档或 active truth
 
 ### 当前限制

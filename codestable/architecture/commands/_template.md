@@ -3,7 +3,7 @@
 <!--
   这是命令设计决策文档（ADR）模板。
   每个命令族（一级命令 + 其子命令）对应一个文件。
-  docs/commands/ 是命令的设计真相，skills/pwcli/ 是使用教程真相，两者不重复。
+  codestable/architecture/commands/ 是命令设计真相，skills/pwcli/ 是使用教程真相，两者不重复。
 -->
 
 ## 是什么

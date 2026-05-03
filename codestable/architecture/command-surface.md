@@ -19,7 +19,7 @@ node dist/cli.js --help
 然后按影响同步：
 
 1. `skills/pwcli/`：使用路径、参数、错误恢复。
-2. `docs/architecture/domain-status.md`：领域边界、限制、扩展口。
+2. `codestable/architecture/domain-status.md`：领域边界、限制、扩展口。
 3. 本文件：命令家族、源码入口、Agent 价值。
 
 ## 2. 命令家族

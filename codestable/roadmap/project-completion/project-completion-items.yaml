@@ -29,10 +29,10 @@ items:
   - slug: truth-sync-cleanup
     description: 同步 skills、architecture、command docs、README，清除旧路径和 contract 漂移
     depends_on: [regression-smoke-green]
-    status: planned
+    status: done
     feature: null
     minimal_loop: false
-    notes: README 已发现旧路径观察项
+    notes: 2026-05-04 已修 README 旧路径/旧结构、Claude 本地命令旧 architecture 路径、skill 中 route load 旧用法，并修复 check-skill-contract citty help 解析
 
   - slug: command-docs-complete
     description: 为所有顶层 command 建立 CodeStable command doc 覆盖矩阵并补齐缺口

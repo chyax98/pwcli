@@ -34,20 +34,31 @@ function parseCLICommands() {
       stdio: ['pipe', 'pipe', 'pipe'],
     });
   } catch (err) {
-    // commander writes help to stdout and exits 0; some versions exit non-zero
+    // Help should normally exit 0; keep stderr fallback for CLI library drift.
     helpOutput = err.stdout || '';
-    if (!helpOutput.includes('Commands:')) {
+    if (!helpOutput.includes('COMMANDS') && !helpOutput.includes('Commands:')) {
       console.error('ERROR: Could not run `node dist/cli.js --help`. Run `pnpm build` first.');
       console.error(err.message);
       process.exit(2);
     }
   }
 
+  helpOutput = stripAnsi(helpOutput);
   const commands = new Set();
+
+  const usageMatch = helpOutput.match(/\bUSAGE\s+pw\s+([^\n]+)/);
+  if (usageMatch) {
+    for (const item of usageMatch[1].trim().split('|')) {
+      const cmd = item.trim().match(/^([a-z][-a-z]+)/)?.[1];
+      if (cmd) commands.add(cmd);
+    }
+    if (commands.size > 0) return commands;
+  }
+
   let inCommands = false;
 
   for (const line of helpOutput.split('\n')) {
-    if (/^Commands:/.test(line)) {
+    if (/^COMMANDS\b/.test(line.trim()) || /^Commands:/.test(line)) {
       inCommands = true;
       continue;
     }
@@ -66,6 +77,10 @@ function parseCLICommands() {
   }
 
   return commands;
+}
+
+function stripAnsi(value) {
+  return value.replace(/\x1b\[[0-9;]*m/g, '');
 }
 
 // ── 2. Collect skill markdown files ────────────────────────────────────────

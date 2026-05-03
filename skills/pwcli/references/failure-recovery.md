@@ -680,8 +680,8 @@ Common causes:
 Recovery:
 
 1. Use `route list` to inspect current state
-2. Validate JSON file contents for `route load`
-3. Retry with the smallest possible mock
+2. If a file-based option is involved, validate the referenced JSON/text file contents
+3. Retry with the smallest possible `route add`; current shipped route 子命令只有 `add|remove|list`
 
 ## Diagnostics export / run replay failures
 

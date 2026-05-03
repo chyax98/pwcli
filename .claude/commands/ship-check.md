@@ -6,8 +6,8 @@ Use this command before a local ship, release candidate, tag, or package dry run
 
 1. Read:
    - `AGENTS.md`
-   - `docs/architecture/release-v0.1.0.md`
-   - `docs/architecture/command-surface.md`
+   - `codestable/architecture/release-v0.1.0.md`
+   - `codestable/architecture/command-surface.md`
    - `skills/pwcli/SKILL.md`
 2. Check `git status --short`; identify unrelated work.
 3. Verify package contract:
