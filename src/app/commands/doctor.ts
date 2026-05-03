@@ -14,12 +14,14 @@ import {
   type DoctorDiagnostic,
   compactDoctorDiagnostic,
   doctorRecovery,
+  summarizeDiagnostics,
+} from "../../domain/environment/health-checks.js";
+import {
   inspectEnvironment,
   inspectProfilePath,
   inspectStatePath,
   probeEndpoint,
-  summarizeDiagnostics,
-} from "../../domain/environment/health-checks.js";
+} from "../../infra/environment/health-probes.js";
 import { printCommandError, printCommandResult } from "../output.js";
 import { addSessionOption } from "./session-options.js";
 
