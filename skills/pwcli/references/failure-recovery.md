@@ -15,6 +15,20 @@ pw session create bug-a --open 'https://example.com'
 pw snapshot --session bug-a
 ```
 
+### `SESSION_NAME_INVALID`
+
+Meaning:
+
+- session name contains characters outside `[a-zA-Z0-9_-]`
+
+Recovery:
+
+```bash
+pw session create valid-name --open 'https://example.com'
+```
+
+Use only letters, digits, hyphens, and underscores. Max 16 characters.
+
 ### `SESSION_NOT_FOUND`
 
 Meaning:
@@ -126,6 +140,23 @@ pw cookies list --session bug-a
 ```
 
 If `blockedState=challenge|two_factor|interstitial`, treat the result as a human handoff point instead of forcing another automated login loop.
+
+### `STORAGE_ORIGIN_UNAVAILABLE`
+
+Meaning:
+
+- a storage or auth-state probe ran on a page without a stable origin
+- common cases are `about:blank`, `data:`, or other `origin === "null"` pages
+- auth probe and state diff operations require a real https/http origin
+
+Recovery:
+
+```bash
+pw open --session bug-a 'https://example.com/app'
+pw status --session bug-a
+```
+
+Navigate to a page with a stable origin before re-running the storage or auth operation.
 
 ### `INDEXEDDB_ORIGIN_UNAVAILABLE`
 
@@ -604,6 +635,37 @@ pw bootstrap apply --session <name> --remove-init-script <old-path>
   pw tab select <pageId> --session <name>
   pw tab close <pageId> --session <name>
   ```
+
+### `TAB_PAGE_NOT_FOUND`
+
+Meaning:
+
+- `pageId` passed to `tab select` or `tab close` does not exist in the live browser context
+- page may have been closed by the site or a previous action
+
+Recovery:
+
+```bash
+pw page list --session <name>
+```
+
+Re-fetch the current page list and use a valid `pageId`. Do not guess or cache `pageId` across actions.
+
+### `TAB_PAGE_SELECTION_RACE`
+
+Meaning:
+
+- `tab select` resolved the target page but the page closed before `bringToFront` completed
+- typically caused by a redirect or page tear-down racing with the select
+
+Recovery:
+
+```bash
+pw page list --session <name>
+pw status --session <name>
+```
+
+Re-fetch current pages, verify which page is active now, and retry or reopen the target URL if needed.
 
 ## Route / mock failures
 

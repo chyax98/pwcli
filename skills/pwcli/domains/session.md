@@ -31,7 +31,7 @@ Session domain 只回答一个问题：**浏览器任务上下文如何存在、
 1. 新任务 / 新系统 / 新 URL 空间 / 新登录态：`session create`。
 2. 用户明确说继续旧页面：`session list --with-page` 后复用。
 3. 已有 session 换 URL：`open`，不要 recreate。
-4. 需要改变 headed/headless/profile/state shape：`session recreate`。
+4. 需要改变 headed/non-headed/profile/state shape：`session recreate`。
 5. 需要接管已有 browser endpoint：`session attach` 或 attachable flow。
 6. 需要人类观察多 session：`dashboard open`，不要放进 Agent 自动化主链。
 
