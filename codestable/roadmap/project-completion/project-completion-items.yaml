@@ -13,10 +13,10 @@ items:
   - slug: p0-p1-bug-backlog-closure
     description: 记录并修复所有阻塞发布的 P0/P1 bug，形成 issue report/analysis/fix-note 闭环
     depends_on: [regression-smoke-green]
-    status: planned
+    status: in-progress
     feature: null
     minimal_loop: false
-    notes: 只处理可验证 P0/P1，不把 P2/P3 当 blocker
+    notes: 2026-05-04 已关闭 geolocation contract drift、batch verify failure propagation、trace inspect CLI resolution；继续审计可验证 P0/P1，不把 P2/P3 当 blocker
 
   - slug: committed-feature-closure
     description: 梳理并完成已承诺 feature，逐条走设计、实现、验收和 roadmap 回写
@@ -45,10 +45,10 @@ items:
   - slug: agent-scenario-deep-validation
     description: Agent 按 skills/pwcli/ 深测浏览器任务矩阵，覆盖自动化、测试、表单、爬取、Deep Bug 和证据交接
     depends_on: [regression-smoke-green, command-docs-complete]
-    status: planned
+    status: in-progress
     feature: null
     minimal_loop: false
-    notes: 以 Agent 真实 dogfood 为主；基础契约可用 Vitest/集成测试/小型 fixture 兜底，不把大型 shell E2E 当主验证方式
+    notes: 2026-05-04 已追加 browser automation/deep bug/environment/crawler/automated testing/form-file/artifacts/state-auth dogfood；继续补剩余高价值命令和最终 release gate
 
   - slug: compounding-assets-archive
     description: 把验证过程中的失败、修复、经验和技巧沉淀进 CodeStable
