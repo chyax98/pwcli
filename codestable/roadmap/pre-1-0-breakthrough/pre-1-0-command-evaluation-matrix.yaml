@@ -1,0 +1,298 @@
+roadmap: pre-1-0-breakthrough
+created: 2026-05-04
+status: active
+
+protocol:
+  required_fields:
+    - command
+    - group
+    - purpose
+    - inputs
+    - outputs
+    - errors
+    - recovery
+    - focused_checks
+    - workflow_links
+    - evidence
+    - status
+    - gaps
+  statuses:
+    - planned
+    - in-progress
+    - proven
+    - documented
+    - blocked
+    - dropped
+  rules:
+    - 每个 command 至少需要 focused check 或真实 Agent dogfood 证据
+    - 高风险 command 必须同时有单命令深评和 workflow 串联证据
+    - documented 不能伪装成 proven
+    - blocked 必须有 issue 或 real-env blocker
+    - dropped 必须同步 skill 和 command docs，不能留下半支持状态
+
+commands:
+  - command: accessibility
+    group: observation
+    roadmap_item: command-eval-observation-reading
+    status: planned
+    notes: 验证 accessibility tree 对 Agent 定位和首读是否有实际帮助
+  - command: auth
+    group: auth-state
+    roadmap_item: command-eval-auth-state-storage-profile
+    status: planned
+    notes: auth dc 必须进入真实测试/RND 环境证明或 blocker
+  - command: batch
+    group: tooling-boundary
+    roadmap_item: command-eval-batch-code-dashboard-skill-sse
+    status: planned
+    notes: 只验证结构化 string[][] 稳定子集
+  - command: bootstrap
+    group: route-mock-bootstrap
+    roadmap_item: command-eval-route-mock-bootstrap
+    status: planned
+    notes: 验证 init script 和 headers 对受控测试是否稳定
+  - command: check
+    group: interaction-input
+    roadmap_item: command-eval-interaction-input
+    status: planned
+    notes: 和 uncheck/select 一起验证表单控件
+  - command: click
+    group: interaction-input
+    roadmap_item: command-eval-interaction-input
+    status: planned
+    notes: 高风险动作命令，必须覆盖 stale ref、modal blocked 和 diagnosticsDelta
+  - command: code
+    group: tooling-boundary
+    roadmap_item: command-eval-batch-code-dashboard-skill-sse
+    status: planned
+    notes: escape hatch，不扩大为长流程 runner
+  - command: console
+    group: network-console-errors
+    roadmap_item: command-eval-network-console-errors
+    status: planned
+    notes: 验证 level/text/filter/limit 和 bug 定位价值
+  - command: cookies
+    group: auth-state
+    roadmap_item: command-eval-auth-state-storage-profile
+    status: planned
+    notes: 验证 list/set 和 state 复用边界
+  - command: dashboard
+    group: tooling-boundary
+    roadmap_item: command-eval-batch-code-dashboard-skill-sse
+    status: planned
+    notes: 只做本地 dashboard，不做云端 viewer
+  - command: diagnostics
+    group: diagnostics
+    roadmap_item: command-eval-diagnostics-runs
+    status: planned
+    notes: digest/export/bundle/runs/show/grep/timeline 必须覆盖
+  - command: dialog
+    group: page-workspace
+    roadmap_item: command-eval-page-tab-workspace
+    status: planned
+    notes: 验证 browser dialog handle 和 modal blocked state 的边界
+  - command: doctor
+    group: diagnostics
+    roadmap_item: command-eval-diagnostics-runs
+    status: planned
+    notes: 必须输出可执行恢复建议
+  - command: download
+    group: interaction-input
+    roadmap_item: command-eval-interaction-input
+    status: planned
+    notes: 和 upload/drag/file workflow 一起验证
+  - command: drag
+    group: interaction-input
+    roadmap_item: command-eval-interaction-input
+    status: planned
+    notes: 覆盖 selector/ref 和坐标误用恢复
+  - command: environment
+    group: environment
+    roadmap_item: command-eval-environment-controls
+    status: planned
+    notes: offline/geolocation/permissions/clock 必须覆盖
+  - command: errors
+    group: network-console-errors
+    roadmap_item: command-eval-network-console-errors
+    status: planned
+    notes: 验证 page error 记录和 clear/recent 查询
+  - command: fill
+    group: interaction-input
+    roadmap_item: command-eval-interaction-input
+    status: planned
+    notes: 表单 workflow 主命令
+  - command: get
+    group: observation
+    roadmap_item: command-eval-observation-reading
+    status: planned
+    notes: read-only state fact，需要防 false positive
+  - command: har
+    group: artifacts
+    roadmap_item: command-eval-trace-har-video-artifacts
+    status: planned
+    notes: 1.0 必须决定 proven、blocked 或 dropped
+  - command: hover
+    group: interaction-input
+    roadmap_item: command-eval-interaction-input
+    status: planned
+    notes: 覆盖 hover-triggered UI
+  - command: is
+    group: wait-assert-state
+    roadmap_item: command-eval-wait-assert-state
+    status: planned
+    notes: read-only boolean check，必须清楚表达 false
+  - command: locate
+    group: observation
+    roadmap_item: command-eval-observation-reading
+    status: planned
+    notes: 验证定位候选对 Agent 的可用性
+  - command: mouse
+    group: interaction-input
+    roadmap_item: command-eval-interaction-input
+    status: planned
+    notes: 坐标动作需要额外状态验证，不能只看 acted=true
+  - command: network
+    group: network-console-errors
+    roadmap_item: command-eval-network-console-errors
+    status: planned
+    notes: 覆盖 request/response/body/status/filter/field projection
+  - command: observe
+    group: observation
+    roadmap_item: command-eval-observation-reading
+    status: planned
+    notes: 兼容别名，只允许命令名称层兼容，内部主路是 status
+  - command: open
+    group: lifecycle-navigation
+    roadmap_item: command-eval-lifecycle-navigation
+    status: planned
+    notes: 只导航，不创建 session、不改变 browser shape
+  - command: page
+    group: page-workspace
+    roadmap_item: command-eval-page-tab-workspace
+    status: planned
+    notes: current/list/frames/dialogs 需要 workspace identity 证据
+  - command: pdf
+    group: artifacts
+    roadmap_item: command-eval-trace-har-video-artifacts
+    status: planned
+    notes: 验证输出文件和证据路径
+  - command: press
+    group: interaction-input
+    roadmap_item: command-eval-interaction-input
+    status: planned
+    notes: 键盘动作后必须串 wait/verify
+  - command: profile
+    group: auth-state
+    roadmap_item: command-eval-auth-state-storage-profile
+    status: planned
+    notes: 本地 profile discovery，不提交真实 profile state
+  - command: read-text
+    group: observation
+    roadmap_item: command-eval-observation-reading
+    status: planned
+    notes: Agent 首读核心命令
+  - command: resize
+    group: interaction-input
+    roadmap_item: command-eval-interaction-input
+    status: planned
+    notes: 响应式 workflow 必须验证 viewport 实际生效
+  - command: route
+    group: route-mock-bootstrap
+    roadmap_item: command-eval-route-mock-bootstrap
+    status: planned
+    notes: add/remove/list/load/match/patch 必须覆盖
+  - command: screenshot
+    group: artifacts
+    roadmap_item: command-eval-trace-har-video-artifacts
+    status: planned
+    notes: 验证 page/selector/full-page 输出
+  - command: scroll
+    group: interaction-input
+    roadmap_item: command-eval-interaction-input
+    status: planned
+    notes: 滚动后必须复查目标状态，避免坐标动作误判
+  - command: select
+    group: interaction-input
+    roadmap_item: command-eval-interaction-input
+    status: planned
+    notes: 表单 select workflow
+  - command: session
+    group: lifecycle-navigation
+    roadmap_item: command-eval-lifecycle-navigation
+    status: planned
+    notes: create/attach/recreate/list/status/close 是唯一 lifecycle 主路
+  - command: skill
+    group: tooling-boundary
+    roadmap_item: command-eval-batch-code-dashboard-skill-sse
+    status: planned
+    notes: packaged skill path/install 必须持续验证
+  - command: snapshot
+    group: observation
+    roadmap_item: command-eval-observation-reading
+    status: planned
+    notes: snapshot -i refs 必须验证 stale/ref recovery
+  - command: sse
+    group: network-console-errors
+    roadmap_item: command-eval-network-console-errors
+    status: planned
+    notes: 验证 EventSource 记录和筛选
+  - command: state
+    group: auth-state
+    roadmap_item: command-eval-auth-state-storage-profile
+    status: planned
+    notes: save/load/diff 是登录态复用主路
+  - command: status
+    group: observation
+    roadmap_item: command-eval-observation-reading
+    status: planned
+    notes: 当前主 status 命令，observe 只作名称兼容
+  - command: storage
+    group: auth-state
+    roadmap_item: command-eval-auth-state-storage-profile
+    status: planned
+    notes: local/session/indexeddb 读写边界必须清晰
+  - command: tab
+    group: page-workspace
+    roadmap_item: command-eval-page-tab-workspace
+    status: planned
+    notes: 写操作只接受 pageId
+  - command: text
+    group: observation
+    roadmap_item: command-eval-observation-reading
+    status: planned
+    notes: 兼容别名，只允许命令名称层兼容，内部主路是 read-text
+  - command: trace
+    group: artifacts
+    roadmap_item: command-eval-trace-har-video-artifacts
+    status: planned
+    notes: start/stop/inspect 必须可复查
+  - command: type
+    group: interaction-input
+    roadmap_item: command-eval-interaction-input
+    status: planned
+    notes: 需要和 fill/press 分清使用场景
+  - command: uncheck
+    group: interaction-input
+    roadmap_item: command-eval-interaction-input
+    status: planned
+    notes: 表单控件 workflow
+  - command: upload
+    group: interaction-input
+    roadmap_item: command-eval-interaction-input
+    status: planned
+    notes: 文件 workflow 主命令
+  - command: verify
+    group: wait-assert-state
+    roadmap_item: command-eval-wait-assert-state
+    status: planned
+    notes: 断言失败必须准确传播，不可 false positive
+  - command: video
+    group: artifacts
+    roadmap_item: command-eval-trace-har-video-artifacts
+    status: planned
+    notes: start/stop 和 WebM artifact 输出必须验证
+  - command: wait
+    group: wait-assert-state
+    roadmap_item: command-eval-wait-assert-state
+    status: planned
+    notes: selector/text/response/network-idle/timeout 必须覆盖

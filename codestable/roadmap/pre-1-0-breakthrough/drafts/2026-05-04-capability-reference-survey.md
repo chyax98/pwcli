@@ -17,10 +17,24 @@ related_roadmap: pre-1-0-breakthrough
 
 | 参考对象 | 参考点 | pwcli 取舍 |
 |---|---|---|
-| Playwright CLI | 本地测试运行、codegen、trace、report、截图/PDF 等成熟 CLI 体验 | 吸收本地验证、证据、trace/report 可复查能力；不把 pwcli 改成 Playwright Test 的替代品 |
-| browser-use | Agent 驱动浏览器任务、任务级执行、可观测步骤和 browser control | 吸收 Agent 可执行任务链、step evidence 和任务复盘；不做云端托管执行 |
-| Agent Browser / Stagehand 类工具 | observe/act/extract 这类 Agent 友好的浏览器抽象 | 吸收 Agent-first 的观察/动作/提取 ergonomics；但内部仍保持唯一清晰命令实现 |
-| cla / Claude Code 类 CLI | 本地 Agent CLI 的会话、命令、文档和工具协作体验 | 吸收本地开发工具的可脚本化、可审计、可恢复体验；不做账号托管或云端 worker |
+| Playwright Test CLI | 本地测试运行、codegen、trace viewer、report merge、browser install 等成熟 CLI 体验 | 吸收本地验证、证据、trace/report 可复查能力；不把 pwcli 改成 Playwright Test 的替代品 |
+| Playwright Agent CLI | coding-agent 优先、token-efficient、skill install、snapshot refs、sessions、dashboard、network/storage/devtools/video capability groups | 吸收 command 分组、skill 驱动和可监控 session 体验；保持 pwcli 的 session-first lifecycle 和中文 SOP |
+| browser-use CLI | persistent browser automation、multi-session daemon、导航/检查/交互/tabs/cookies/wait/get/JS/Python/profile/session 等本地命令面，同时带 cloud/tunnel 能力 | 吸收本地 persistent automation 和多 session ergonomics；cloud/tunnel/API endpoint 能力明确不做 |
+| Agent Browser / Stagehand 类工具 | `observe` / `act` / `extract`：先发现可行动作，再执行或抽取结构化数据 | 吸收 Agent-first 的观察、计划、动作、提取 ergonomics；但内部仍保持唯一清晰命令实现，不引入无边界自然语言 recipe 平台 |
+| cla / Claude Code 类 CLI | 本地 Agent CLI 的会话继续、pipe、resume、skills/plugins、Chrome/browser integration、debug/logging、tool allowlist | 吸收本地 CLI 的会话恢复、可脚本化、skill 分发、权限和日志经验；不做 remote-control / 云端 worker |
+
+## 能力候选池
+
+| 能力 | 来源启发 | 1.0 处理 |
+|---|---|---|
+| command capability groups | Playwright Agent CLI / browser-use CLI | 纳入每命令深评矩阵，按 lifecycle / observe / interaction / diagnostics / storage / environment / artifacts 分组 |
+| token-efficient first read | Playwright Agent CLI snapshot / Stagehand observe | 强化 `status`、`read-text`、`snapshot -i` 的 Agent 首读证据；不默认输出超大树 |
+| action planning before acting | Stagehand observe | 评估是否需要 `page assess` / `snapshot -i` / `locate` 的 SOP 强化；不直接引入 LLM observe API |
+| structured extraction | Stagehand extract / browser-use get | 进入 workflow 深评；先评估现有 `read-text`、`get`、`diagnostics export` 是否足够，不恢复旧 extract recipe |
+| trace / video / dashboard | Playwright CLI / Agent CLI | trace/video/dashboard 必须有可复查证据和本地路径；不做云端 viewer |
+| state/profile/session reuse | Playwright Agent CLI / browser-use CLI | 加强 auth/state/storage/profile 深评；真实 Forge/DC 进入测试/RND 验证 |
+| local scripted escape hatch | browser-use JS/Python / Claude CLI pipe | 保留 `pw code` 作为 escape hatch，但不扩大为长流程 runner |
+| permissions/logging/debug | Claude Code CLI | 纳入 evidence bundle / diagnostics 设计；不引入复杂权限系统 |
 
 ## 本地边界
 
@@ -55,6 +69,8 @@ related_roadmap: pre-1-0-breakthrough
 ## 来源
 
 - Playwright CLI docs: `https://playwright.dev/docs/test-cli`
+- Playwright Agent CLI capabilities: `https://playwright.dev/agent-cli/capabilities`
+- Playwright Agent CLI getting started: `https://playwright.dev/docs/next/getting-started-cli`
 - Playwright command line tools: `https://playwright.dev/docs/cli`
 - browser-use docs: `https://docs.browser-use.com/`
 - browser-use CLI docs: `https://docs.browser-use.com/open-source/browser-use-cli`
