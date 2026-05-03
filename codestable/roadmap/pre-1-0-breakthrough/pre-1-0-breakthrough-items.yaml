@@ -69,10 +69,10 @@ items:
   - slug: command-eval-page-tab-workspace
     description: 深评 page/tab/frame/dialog/ref/workspace identity，验证写操作稳定身份契约
     depends_on: [command-eval-wait-assert-state]
-    status: planned
+    status: done
     feature: null
     minimal_loop: true
-    notes: tab 写操作只接受 pageId；ref 写操作必须拒绝 stale ref 并给恢复路径
+    notes: 2026-05-04 已完成 focused check；覆盖 page current/list/frames/dialogs/assess、tab select/close、dialog dismiss、snapshot status fresh/stale、stale ref REF_STALE；发现并修复 snapshot status --output json 双 envelope 缺陷；评估见 evaluations/2026-05-04-command-eval-page-tab-workspace.md
 
   - slug: command-eval-diagnostics-runs
     description: 深评 diagnostics digest/export/bundle/runs/show/grep/timeline/doctor/errors 的诊断和证据检索能力

@@ -167,6 +167,7 @@ pw page dialogs -s task-a
 ```
 
 `tab select|close` 只接受 `pageId`，不要用 index/title/URL substring 做写操作目标。
+`page dialogs` 只是在未阻塞状态下读取 observed dialog events，不是 pending browser dialog live list。
 
 ## 5. 页面动作
 
@@ -267,14 +268,14 @@ HAR start/stop 当前不是稳定证据录制路径；稳定诊断优先 `networ
 
 ## 7. Dialog、modal 和卡死恢复
 
-先看状态：
+未阻塞时先看状态：
 
 ```bash
 pw status -s bug-a
 pw page dialogs -s bug-a
 ```
 
-browser dialog：
+如果 action 返回 `modalPending=true` 或错误码 `MODAL_STATE_BLOCKED`，不要继续堆叠 `page dialogs` / `status` 读取，直接处理 browser dialog：
 
 ```bash
 pw dialog accept -s bug-a

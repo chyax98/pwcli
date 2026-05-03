@@ -2,7 +2,7 @@ import { defineCommand } from "citty";
 import { managedSnapshot } from "#engine/observe.js";
 import { managedSnapshotStatus } from "#engine/act/element.js";
 import { sharedArgs } from "#cli/args.js";
-import { bool, print, session, withCliError, type CliArgs } from "./_helpers.js";
+import { bool, firstPos, print, session, withCliError, type CliArgs } from "./_helpers.js";
 
 const status = defineCommand({
   meta: { name: "status", description: "Inspect latest snapshot ref epoch" },
@@ -19,6 +19,7 @@ export default defineCommand({
   subCommands: { status },
   async run({ args }) {
     const a = args as CliArgs;
+    if (firstPos(a) === "status") return;
     try {
       print("snapshot", await managedSnapshot({ sessionName: session(a), interactive: bool(a.interactive), compact: bool(a.compact) }), a);
     } catch (error) {

@@ -163,6 +163,60 @@ describe("page reading", { concurrency: false }, () => {
     assert.ok(json.data.snapshot.includes("Example Domain"));
   });
 
+  it("snapshot status returns a single JSON envelope", async () => {
+    const name = makeSessionName();
+    sessionsToClean.push(name);
+
+    await runPw([
+      "session",
+      "create",
+      name,
+      "--headless",
+      "--open",
+      "about:blank",
+      "--output",
+      "json",
+    ]);
+
+    await runPw([
+      "code",
+      "--session",
+      name,
+      'async page => { await page.setContent(`<button type="button">Stable Action</button>`); }',
+      "--output",
+      "json",
+    ]);
+
+    const snapshotResult = await runPw([
+      "snapshot",
+      "-i",
+      "--session",
+      name,
+      "--output",
+      "json",
+    ]);
+    assert.equal(snapshotResult.code, 0, `snapshot failed: ${snapshotResult.stderr}`);
+
+    const result = await runPw([
+      "snapshot",
+      "status",
+      "--session",
+      name,
+      "--output",
+      "json",
+    ]);
+    assert.equal(result.code, 0, `snapshot status failed: ${result.stderr}`);
+    const json = JSON.parse(result.stdout.trim()) as {
+      ok: boolean;
+      command: string;
+      data: { status: string; refCount: number };
+    };
+    assert.equal(json.ok, true);
+    assert.equal(json.command, "snapshot status");
+    assert.equal(json.data.status, "fresh");
+    assert.ok(json.data.refCount > 0);
+  });
+
   it("locate --return-ref returns refs for checked controls", async () => {
     const name = makeSessionName();
     sessionsToClean.push(name);

@@ -84,7 +84,7 @@ state / auth / batch / environment 命令见 `command-reference-advanced.md`。
 ### `pw page current|list|frames|dialogs --session <name>`
 
 - `page list` text 输出包含 `pageId`、`index`、`navigationId`、`current`、URL/title；`pageId` 可直接传给 `tab select|close`
-- `dialogs` 是事件投影，不是 authoritative live dialog set
+- `dialogs` 是未阻塞状态下的 observed event 投影，不是 authoritative live dialog set，也不是 pending browser dialog live list
 
 ### `pw page assess --session <name>`
 
@@ -224,6 +224,7 @@ Use `locate/get/is/verify` for narrow state checks. Use `snapshot -i` when you n
 ### `pw dialog accept [prompt]|dismiss --session <name>`
 
 - `MODAL_STATE_BLOCKED` 后的原地恢复；`prompt` 只在 prompt dialog 需要显式文本时传
+- action 返回 `modalPending=true` 后直接执行 `dialog accept|dismiss`，不要继续堆叠 run-code-backed 读取命令
 
 ## 动作与等待
 

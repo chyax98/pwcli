@@ -351,3 +351,4 @@ skill_updates: string[]
 - 2026-05-04：完成 `command-eval-observation-reading`。覆盖 Agent 首读和页面事实读取主链，并修复 `locate --return-ref` 在 checked checkbox 场景不返回 ref 的缺陷。
 - 2026-05-04：完成 `command-eval-interaction-input`。覆盖表单输入、点击、键盘、hover、滚动、坐标 mouse、resize、上传、拖拽和下载主链。
 - 2026-05-04：完成 `command-eval-wait-assert-state`。覆盖 wait / verify / get / is / locate 的等待、断言、失败 envelope 和 false 状态，并修复 `wait --state` 未生效的问题。
+- 2026-05-04：完成 `command-eval-page-tab-workspace`。覆盖 page/tab/dialog/snapshot/ref workspace identity，修复 `snapshot status --output json` 双 envelope 问题，并明确 `page dialogs` 不是 pending browser dialog live list。

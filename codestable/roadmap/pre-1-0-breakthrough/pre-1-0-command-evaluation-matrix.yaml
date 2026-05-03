@@ -60,7 +60,7 @@ commands:
     group: interaction-input
     roadmap_item: command-eval-interaction-input
     status: proven
-    notes: 2026-05-04 focused check 覆盖 selector click、登录导航和 diagnosticsDelta；stale ref/modal blocked 后续 recovery 专项继续覆盖
+    notes: 2026-05-04 interaction focused check 覆盖 selector click、登录导航和 diagnosticsDelta；page-tab focused check 补充 browser dialog 后 modalPending/MODAL_STATE_BLOCKED，以及导航后旧 ref 返回 REF_STALE + snapshot -i recovery
   - command: code
     group: tooling-boundary
     roadmap_item: command-eval-batch-code-dashboard-skill-sse
@@ -89,8 +89,8 @@ commands:
   - command: dialog
     group: page-workspace
     roadmap_item: command-eval-page-tab-workspace
-    status: planned
-    notes: 验证 browser dialog handle 和 modal blocked state 的边界
+    status: proven
+    notes: 2026-05-04 page-tab focused check 触发 alert 后 click 返回 modalPending=true/MODAL_STATE_BLOCKED，随后 dialog dismiss 返回 handled=true；accept/prompt 留 recovery 专项继续补证
   - command: doctor
     group: diagnostics
     roadmap_item: command-eval-diagnostics-runs
@@ -169,8 +169,8 @@ commands:
   - command: page
     group: page-workspace
     roadmap_item: command-eval-page-tab-workspace
-    status: planned
-    notes: 2026-05-04 observation focused check 已证明 current/list/frames 读取子集；dialogs/assess 和 workspace identity 仍在 page-tab-workspace 评测中完成
+    status: proven
+    notes: 2026-05-04 page-tab focused check 覆盖 current/list/frames/assess、popup opener projection、page dialogs 未阻塞投影和 pending browser dialog 的 MODAL_STATE_BLOCKED limitation
   - command: pdf
     group: artifacts
     roadmap_item: command-eval-trace-har-video-artifacts
@@ -230,7 +230,7 @@ commands:
     group: observation
     roadmap_item: command-eval-observation-reading
     status: proven
-    notes: 2026-05-04 focused check 覆盖 -i interactive mode 和 fresh refs；stale/ref recovery 后续在 workspace/recovery 评测中完成
+    notes: 2026-05-04 observation focused check 覆盖 -i interactive mode 和 fresh refs；page-tab focused check 补充 snapshot status fresh/stale、单 JSON envelope 回归和 stale ref recovery
   - command: sse
     group: network-console-errors
     roadmap_item: command-eval-network-console-errors
@@ -254,8 +254,8 @@ commands:
   - command: tab
     group: page-workspace
     roadmap_item: command-eval-page-tab-workspace
-    status: planned
-    notes: 写操作只接受 pageId
+    status: proven
+    notes: 2026-05-04 page-tab focused check 验证 tab select/close 只接受 pageId；tab select 0 返回 TAB_SELECT_FAILED/TAB_PAGE_NOT_FOUND:0；关闭 popup 后 fallbackPageId=p1
   - command: text
     group: observation
     roadmap_item: command-eval-observation-reading
