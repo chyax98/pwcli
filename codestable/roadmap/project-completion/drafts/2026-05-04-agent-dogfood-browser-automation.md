@@ -106,6 +106,7 @@ Error: browserContext.setGeolocation: geolocation.longitude: expected float, got
 - `deep-bug-diagnosis`：partial pass。
 - `form-fill-validation`：partial pass（登录表单已覆盖基础 fill/click/wait/verify）。
 - `controlled-testing/environment`：partial pass；geolocation contract drift 已修复并有聚焦 contract test。2026-05-04 追加 Agent dogfood 覆盖 geolocation/offline/clock。
+- `simple-crawler`：partial pass；Agent 用 `read-text` + `pw code --file` 临时读取链接并逐跳跟踪，遇到 locator 歧义后按恢复建议继续。
 
 ## 追加验证：Environment controlled-testing
 
@@ -142,3 +143,36 @@ pw diagnostics runs --session envdog --limit 12
 - `offline off` 后同一 probe 返回 `offline-result: 200:pong:offline-1`。
 - `clock set` 后页面 `clock-probe` 显示 `clock-result: 2024-12-10T10:00:00.000Z`。
 - run evidence 包含 `2026-05-03T17-58-50-946Z-envdog` 到 `2026-05-03T18-00-08-986Z-envdog`。
+
+## 追加验证：Simple crawler
+
+2026-05-04 追加真实页面简单爬取验证。Agent 不维护长期 crawler 脚本；本轮仅用临时 `pw code --file` 读取当前页链接，再用一等命令逐跳跟踪。
+
+核心链路：
+
+```bash
+pw session create crawl1 --no-headed --open http://127.0.0.1:43282/login
+pw click -s crawl1 --selector '#login-submit'
+pw wait -s crawl1 --selector '#project-alpha'
+pw read-text -s crawl1 --max-chars 800
+pw code -s crawl1 --file <transient-link-scan.js>
+pw click -s crawl1 --selector '#project-alpha'
+pw wait -s crawl1 --text 'Project Alpha'
+pw code -s crawl1 --file <transient-link-scan.js>
+pw click -s crawl1 --selector '#alpha-incidents'
+pw verify visible -s crawl1 --role heading --name Incidents
+pw code -s crawl1 --file <transient-link-scan.js>
+pw click -s crawl1 --selector '#incident-checkout-timeout'
+pw wait -s crawl1 --text 'Incident Summary'
+pw verify text -s crawl1 --text 'Open reproduce workspace'
+pw diagnostics runs --session crawl1 --limit 12
+```
+
+关键证据：
+
+- `/app/projects?from=login` 提取到链接：`App`、`Projects`、`alpha / checkout platform`、`beta / unused fixture row`。
+- `/app/projects/alpha` 提取到链接：`App`、`Projects`、`Alpha`、`Open incidents`。
+- `/app/projects/alpha/incidents` 提取到链接：`App`、`Projects`、`Alpha`、`Incidents`、`Inspect`。
+- 逐跳跟踪到 `/app/projects/alpha/incidents/checkout-timeout`，最终 `verify text` 通过 `Open reproduce workspace`。
+- 中途 `pw wait -s crawl1 --text 'Incidents'` 因 link 和 heading 同名触发 `ACTION_TARGET_AMBIGUOUS`；CLI 给出 `add --nth / narrower selector / role-name` 建议，Agent 改用 `pw verify visible -s crawl1 --role heading --name Incidents` 后恢复。
+- run evidence 包含失败恢复 run：`2026-05-03T18-03-12-227Z-crawl1`，以及完成链路 run：`2026-05-03T18-03-36-815Z-crawl1`、`2026-05-03T18-03-45-984Z-crawl1`。
