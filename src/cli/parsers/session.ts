@@ -12,7 +12,8 @@ import { managedRunCode } from "#engine/shared.js";
 import { appendRunEvent, ensureRunDir } from "#store/artifacts.js";
 import { type RecoveryKind, printCommandError } from "../output.js";
 
-function domainError(message: string) {
+function domainError(rawMessage: string) {
+  const message = rawMessage.startsWith("Error: ") ? rawMessage.slice("Error: ".length) : rawMessage;
   if (message.startsWith("STATE_TARGET_NOT_FOUND:")) {
     let target: unknown;
     try { target = JSON.parse(message.slice("STATE_TARGET_NOT_FOUND:".length)); } catch { /* ignore */ }
