@@ -284,14 +284,14 @@ echo "// test init script" > "$INIT_SCRIPT"
 INIT_SESSION="si${RUN_ID}"
 out=$(run_json "session_init" session create "$INIT_SESSION" \
   --init-script "$INIT_SCRIPT" --no-headed --open "$BLANK_URL")
-assert_json "$out" ".ok" "true"
-assert_json "$out" ".data.bootstrapApplied" "true"
+assert_json "$out" ".ok" "x === true"
+assert_json "$out" ".data.bootstrapApplied" "x === true"
 # cleanup
 "${CLI[@]}" session close "$INIT_SESSION" >/dev/null 2>&1 || true
 
 log "session recreate bootstrapReapplied field"
 out=$(run_json "recreate_bootstrap" session recreate "$SESSION_NAME" --no-headed)
-assert_json "$out" ".ok" "true"
+assert_json "$out" ".ok" "x === true"
 assert_json "$out" ".data.bootstrapReapplied" "typeof x === 'boolean'"
 
 log "snapshot"
@@ -353,7 +353,7 @@ assert_json "$stale_download_json" "stale download ref reuse returns REF_STALE" 
 
 log "recovery envelope field in session not found error"
 out=$(run_fail_json "recovery_field" session status "nope${RUN_ID}")
-assert_json "$out" ".ok" "false"
+assert_json "$out" ".ok" "x === false"
 assert_json "$out" ".error.recovery.kind" "typeof x === 'string'"
 assert_json "$out" ".error.recovery.commands" "Array.isArray(x)"
 
@@ -730,7 +730,7 @@ assert_json "$route_json" "route add ok" \
 
 log "sse observation (no events expected from blank page)"
 out=$(run_json "sse" sse --session "$SESSION_NAME" --output json)
-assert_json "$out" ".ok" "true"
+assert_json "$out" ".ok" "x === true"
 assert_json "$out" ".data.count" "typeof x === 'number'"
 
 log "diagnostics fixture setup"
