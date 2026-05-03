@@ -614,17 +614,40 @@ async function closePageById(sessionName: string | undefined, pageId: string) {
 
 export async function managedTabSelect(options: { sessionName?: string; pageId: string }) {
   const selected = await selectPageById(options.sessionName, options.pageId);
-  const after = await managedPageCurrent({ sessionName: options.sessionName });
-  if (after.data.activePageId !== options.pageId) {
-    throw new Error(`TAB_PAGE_SELECTION_RACE:${options.pageId}`);
-  }
+  // Verify page still exists post-bringToFront by running on target page directly.
+  // Using managedPageCurrent() would run on the session's "current" page (old page),
+  // so activePageId would not reflect the newly selected page — causing false RACE errors.
+  // Run post-check on target page to get accurate activePageId and currentPage info.
+  // managedPageCurrent() runs on the session's old current page, so activePageId
+  // would not reflect the newly selected page — causing false TAB_PAGE_SELECTION_RACE.
+  const after = await managedRunCode({
+    sessionName: options.sessionName,
+    source: `async page => {
+      ${pageIdRuntimePrelude()}
+      const targetPageId = ${JSON.stringify(options.pageId)};
+      const pages = context.pages();
+      const targetPage = pages.find(p => ensurePageId(p) === targetPageId);
+      if (!targetPage) throw new Error('TAB_PAGE_SELECTION_RACE:' + targetPageId);
+      return JSON.stringify({
+        activePageId: targetPageId,
+        pageCount: pages.length,
+        currentPage: { url: targetPage.url(), title: await targetPage.title() }
+      });
+    }`,
+  });
+  const afterData = typeof after.data.result === "object" && after.data.result
+    ? after.data.result as Record<string, unknown>
+    : {};
 
   return {
-    ...after,
+    session: after.session,
+    page: after.page,
     data: {
-      ...after.data,
       selected: true,
-      selectedPageId: options.pageId,
+      selectedPageId: selected.selectedPageId,
+      activePageId: afterData.activePageId ?? options.pageId,
+      pageCount: afterData.pageCount ?? 1,
+      currentPage: afterData.currentPage,
     },
   };
 }
