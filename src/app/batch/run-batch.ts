@@ -978,14 +978,9 @@ async function executeBatchStep(tokens: string[], sessionName: string) {
       };
     }
     case "press": {
-      const target = parseBatchSemanticArgs(args, "press");
-      const { trailingValues, ...targetRest } = target;
-      const key = trailingValues.join(" ");
-      if (targetRest.semantic || targetRest.selector || targetRest.ref) {
-        throw new Error(
-          `batch press 只支持 ["press","Enter"] 无目标形式；有目标的按键请用 pw press 单命令`,
-        );
-      }
+      // press takes only a key (e.g. "Enter", "Tab", "Shift+Tab") — no locator targeting.
+      // Do not use parseBatchSemanticArgs here; it would misidentify the key as a ref.
+      const key = args.join(" ");
       if (!key) {
         throw new Error(`batch step '${rawStep}' requires a key`);
       }

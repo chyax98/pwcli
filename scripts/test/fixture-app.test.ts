@@ -1,7 +1,7 @@
 import { before, after, describe, it } from "node:test";
 import { strict as assert } from "node:assert";
 import { startFixtureServer, stopFixtureServer } from "../fixtures/realistic-app.mjs";
-import { checkNodeVersion } from "../../dist/domain/environment/health-checks.js";
+import { checkNodeVersion } from "../../dist/infra/environment/health-probes.js";
 import { isThirdPartyUrl } from "../../dist/domain/diagnostics/signals.js";
 import { SUPPORTED_BATCH_TOP_LEVEL } from "../../dist/app/batch/run-batch.js";
 
@@ -59,7 +59,7 @@ describe("checkNodeVersion", () => {
     const result = await checkNodeVersion();
     assert.equal(result.ok, true);
     assert.ok(result.version.startsWith("v"));
-    assert.equal(result.minimum, "18.0.0");
+    assert.equal(result.minimum, "18.15.0");
   });
 });
 
