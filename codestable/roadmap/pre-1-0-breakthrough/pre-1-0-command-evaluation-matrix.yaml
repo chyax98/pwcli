@@ -164,7 +164,7 @@ commands:
   - command: open
     group: lifecycle-navigation
     roadmap_item: command-eval-lifecycle-navigation
-    status: planned
+    status: proven
     notes: 只导航，不创建 session、不改变 browser shape
   - command: page
     group: page-workspace
@@ -184,8 +184,8 @@ commands:
   - command: profile
     group: auth-state
     roadmap_item: command-eval-auth-state-storage-profile
-    status: planned
-    notes: 本地 profile discovery，不提交真实 profile state
+    status: proven
+    notes: 2026-05-04 lifecycle focused check 覆盖 list-chrome；本地 profile discovery，不提交真实 profile state
   - command: read-text
     group: observation
     roadmap_item: command-eval-observation-reading
@@ -219,8 +219,8 @@ commands:
   - command: session
     group: lifecycle-navigation
     roadmap_item: command-eval-lifecycle-navigation
-    status: planned
-    notes: create/attach/recreate/list/status/close 是唯一 lifecycle 主路
+    status: proven
+    notes: 2026-05-04 focused check 覆盖 create/list/status/attach/recreate/close；是唯一 lifecycle 主路
   - command: skill
     group: tooling-boundary
     roadmap_item: command-eval-batch-code-dashboard-skill-sse

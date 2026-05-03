@@ -37,10 +37,10 @@ items:
   - slug: command-eval-lifecycle-navigation
     description: 深评 session/open/profile lifecycle 与导航 contract，验证 session create|attach|recreate 主路和 open 只导航
     depends_on: [command-evaluation-contract]
-    status: planned
+    status: done
     feature: null
     minimal_loop: true
-    notes: 覆盖 create/attach/recreate/close/list/status/open/profile；不得恢复兼容 lifecycle 命令
+    notes: 2026-05-04 已完成 focused check，覆盖 session create/list/status/attach/recreate/close、open、profile list-chrome；评估见 evaluations/2026-05-04-command-eval-lifecycle-navigation.md
 
   - slug: command-eval-observation-reading
     description: 深评 status/observe/page/read-text/snapshot/locate/get/is/verify/accessibility 的页面事实能力
