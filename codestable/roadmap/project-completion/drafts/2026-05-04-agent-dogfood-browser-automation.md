@@ -105,4 +105,40 @@ Error: browserContext.setGeolocation: geolocation.longitude: expected float, got
 - `browser-automation`：partial pass。
 - `deep-bug-diagnosis`：partial pass。
 - `form-fill-validation`：partial pass（登录表单已覆盖基础 fill/click/wait/verify）。
-- `controlled-testing/environment`：partial pass；geolocation contract drift 已修复并有聚焦 contract test。
+- `controlled-testing/environment`：partial pass；geolocation contract drift 已修复并有聚焦 contract test。2026-05-04 追加 Agent dogfood 覆盖 geolocation/offline/clock。
+
+## 追加验证：Environment controlled-testing
+
+2026-05-04 追加真实页面验证：
+
+```bash
+pw session create envdog --no-headed --open http://127.0.0.1:43281/login
+pw click -s envdog --selector '#login-submit'
+pw wait -s envdog --selector '#project-alpha'
+pw open -s envdog http://127.0.0.1:43281/app/projects/alpha/incidents/checkout-timeout/reproduce
+pw wait -s envdog --text 'Reproduce workspace'
+pw environment permissions grant geolocation -s envdog
+pw environment geolocation set -s envdog --lat 37.7749 --lng -122.4194
+pw click -s envdog --selector '#geo-probe'
+pw wait -s envdog --text 'geo-result: 37.7749,-122.4194'
+pw environment offline on -s envdog
+pw click -s envdog --selector '#offline-probe'
+pw wait -s envdog --text 'offline-result:'
+pw environment offline off -s envdog
+pw click -s envdog --selector '#offline-probe'
+pw wait -s envdog --text 'offline-result: 200:pong:offline-1'
+pw environment clock install -s envdog
+pw environment clock set -s envdog 2024-12-10T10:00:00.000Z
+pw click -s envdog --selector '#clock-probe'
+pw wait -s envdog --text 'clock-result: 2024-12-10T10:00:00.000Z'
+pw diagnostics digest -s envdog
+pw diagnostics runs --session envdog --limit 12
+```
+
+关键证据：
+
+- `geolocation set` 返回 `latitude: 37.7749`、`longitude: -122.4194`，页面 `geo-probe` 显示 `geo-result: 37.7749,-122.4194`。
+- `offline on` 后 `offline-probe` 触发 `net::ERR_INTERNET_DISCONNECTED`，符合受控 offline 预期。
+- `offline off` 后同一 probe 返回 `offline-result: 200:pong:offline-1`。
+- `clock set` 后页面 `clock-probe` 显示 `clock-result: 2024-12-10T10:00:00.000Z`。
+- run evidence 包含 `2026-05-03T17-58-50-946Z-envdog` 到 `2026-05-03T18-00-08-986Z-envdog`。
