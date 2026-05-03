@@ -1,0 +1,74 @@
+=== TC-001: session create 基本创建 ===
+=== TC-002: session create --headed ===
+=== TC-003: session create --open URL ===
+=== TC-004: session status 查询存活 ===
+=== TC-005: session status 查询不存在 ===
+=== TC-006: session list ===
+=== TC-007: session list --with-page ===
+=== TC-008: session recreate ===
+=== TC-009: session list --attachable ===
+=== TC-010: session close ===
+=== TC-011: observe status ===
+=== TC-012: read-text 默认全页 ===
+=== TC-013: read-text --max-chars ===
+=== TC-014: read-text --selector ===
+=== TC-015: snapshot 完整结构树 ===
+=== TC-016: snapshot -i 交互节点 ===
+=== TC-017: snapshot -c 紧凑模式 ===
+=== TC-018: accessibility 基本 ===
+=== TC-019: accessibility -i 仅交互 ===
+=== TC-020: screenshot 基本 ===
+=== TC-021: screenshot --full-page ===
+=== TC-022: pdf 生成 ===
+=== TC-023: page current ===
+=== TC-024: page frames ===
+=== TC-025: page assess ===
+=== TC-026: open 导航 ===
+=== TC-027: tab list 多 tab ===
+=== TC-030: wait network-idle ===
+=== TC-031: wait --selector ===
+=== TC-032: wait --text ===
+=== TC-033: wait --networkidle ===
+=== TC-034: page dialogs ===
+=== TC-035: resize viewport ===
+=== TC-036: click selector ===
+=== TC-037: click role/name ===
+=== TC-039: fill 填充 ===
+scripts/eval/run_part1.sh: line 30: timeout: command not found
+=== TC-040: type 逐字符输入 ===
+=== TC-041: press Enter ===
+=== TC-042: hover tooltip ===
+scripts/eval/run_part1.sh: line 30: timeout: command not found
+=== TC-043: select 下拉 ===
+=== TC-044: check checkbox ===
+=== TC-045: uncheck checkbox ===
+=== TC-046: drag 拖拽 ===
+=== TC-047: upload 文件上传 ===
+=== TC-048: download 下载 ===
+=== TC-049: scroll down ===
+=== TC-050: scroll up ===
+=== TC-051: mouse move ===
+=== TC-052: mouse click ===
+=== TC-053: mouse wheel ===
+=== TC-054: click popup 新页面 ===
+=== TC-055: mouse dblclick ===
+=== TC-056: batch 单命令 ===
+scripts/eval/run_part1.sh: line 30: timeout: command not found
+=== TC-057: batch 登录流程 ===
+scripts/eval/run_part1.sh: line 30: timeout: command not found
+=== TC-058: batch 表单填写 ===
+scripts/eval/run_part1.sh: line 30: timeout: command not found
+=== TC-059: batch SESSION_NOT_FOUND ===
+scripts/eval/run_part1.sh: line 30: timeout: command not found
+=== TC-060: batch continue-on-error ===
+scripts/eval/run_part1.sh: line 30: timeout: command not found
+=== TC-063: verify text ===
+=== TC-064: verify text-absent ===
+=== TC-065: verify visible ===
+=== TC-066: verify disabled ===
+=== TC-067: verify url ===
+=== TC-068: verify count ===
+=== TC-069: get text ===
+=== TC-070: locate 语义定位 ===
+=== TC-071: is visible ===
+=== TC-072: verify VERIFY_FAILED ===
