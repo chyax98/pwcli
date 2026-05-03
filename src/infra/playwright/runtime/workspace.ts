@@ -1,5 +1,6 @@
 import { runManagedSessionCommand } from "../cli-client.js";
 import { managedRunCode } from "./code.js";
+import { managedScreenshot } from "./interaction.js";
 import { managedEnsureDiagnosticsHooks } from "./hooks.js";
 import { DIAGNOSTICS_STATE_KEY, maybeRawOutput } from "./shared.js";
 
@@ -631,6 +632,130 @@ export async function managedTabClose(options: { sessionName?: string; pageId: s
       closedPageId: options.pageId,
       closedIndex: closed.closedIndex,
       fallbackPageId,
+    },
+  };
+}
+
+export async function managedAnnotatedScreenshot(options?: {
+  ref?: string;
+  selector?: string;
+  path?: string;
+  fullPage?: boolean;
+  sessionName?: string;
+}) {
+  let annotations: unknown[] = [];
+  let screenshotResult:
+    | Awaited<ReturnType<typeof managedScreenshot>>
+    | undefined;
+
+  try {
+    const injectResult = await managedRunCode({
+      sessionName: options?.sessionName,
+      source: `async page => {
+        const annotations = await page.evaluate(() => {
+          const selectors = [
+            'button', 'a[href]', 'input', 'textarea', 'select',
+            'summary', '[role="button"]', '[role="link"]', '[role="textbox"]',
+            '[role="menuitem"]', '[role="tab"]'
+          ];
+          const elements = Array.from(document.querySelectorAll(selectors.join(',')))
+            .filter(el => {
+              if (!(el instanceof HTMLElement)) return false;
+              const style = window.getComputedStyle(el);
+              if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') return false;
+              const rect = el.getBoundingClientRect();
+              return rect.width > 0 && rect.height > 0;
+            });
+
+          const container = document.createElement('div');
+          container.id = '__pwcli_annotate_overlay__';
+          container.style.position = 'absolute';
+          container.style.top = '0';
+          container.style.left = '0';
+          container.style.width = '100%';
+          container.style.height = '100%';
+          container.style.pointerEvents = 'none';
+          container.style.zIndex = '9999';
+          document.body.appendChild(container);
+
+          function buildSelector(el) {
+            const tag = el.tagName.toLowerCase();
+            if (el.id) return tag + '#' + CSS.escape(el.id);
+            const type = el.getAttribute('type');
+            if (type) return tag + '[type="' + CSS.escape(type) + '"]';
+            const classes = Array.from(el.classList).filter(c => c).slice(0, 2);
+            if (classes.length) return tag + '.' + classes.map(CSS.escape).join('.');
+            return tag;
+          }
+
+          const results = [];
+          elements.forEach((el, index) => {
+            const id = index + 1;
+            const rect = el.getBoundingClientRect();
+            const label = document.createElement('div');
+            label.textContent = String(id);
+            label.style.position = 'absolute';
+            label.style.left = (rect.left + window.scrollX) + 'px';
+            label.style.top = (rect.top + window.scrollY) + 'px';
+            label.style.backgroundColor = 'rgba(255, 0, 0, 0.7)';
+            label.style.color = 'white';
+            label.style.fontSize = '12px';
+            label.style.fontWeight = 'bold';
+            label.style.padding = '2px 6px';
+            label.style.borderRadius = '3px';
+            label.style.fontFamily = 'sans-serif';
+            label.style.lineHeight = '1';
+            label.style.whiteSpace = 'nowrap';
+            container.appendChild(label);
+
+            const tag = el.tagName.toLowerCase();
+            const role = el.getAttribute('role') || (tag === 'a' ? 'link' : tag === 'input' ? (el.getAttribute('type') || 'input') : tag);
+            const name = el.getAttribute('aria-label') || el.getAttribute('placeholder') || el.getAttribute('name') || el.textContent?.substring(0, 50).trim() || '';
+            const selector = buildSelector(el);
+            results.push({ id, role, name, selector, ref: null });
+          });
+
+          return results;
+        });
+        return JSON.stringify({ annotations });
+      }`,
+    });
+
+    const parsed =
+      typeof injectResult.data.result === "object" && injectResult.data.result
+        ? (injectResult.data.result as Record<string, unknown>)
+        : {};
+    annotations = Array.isArray(parsed.annotations) ? parsed.annotations : [];
+
+    screenshotResult = await managedScreenshot({
+      sessionName: options?.sessionName,
+      ref: options?.ref,
+      selector: options?.selector,
+      path: options?.path,
+      fullPage: options?.fullPage,
+    });
+  } finally {
+    await managedRunCode({
+      sessionName: options?.sessionName,
+      source: `async page => {
+        await page.evaluate(() => {
+          const container = document.getElementById('__pwcli_annotate_overlay__');
+          if (container) container.remove();
+        });
+      }`,
+    }).catch(() => {});
+  }
+
+  if (!screenshotResult) {
+    throw new Error("SCREENSHOT_FAILED");
+  }
+
+  return {
+    session: screenshotResult.session,
+    page: screenshotResult.page,
+    data: {
+      ...screenshotResult.data,
+      annotations,
     },
   };
 }
