@@ -104,7 +104,7 @@ Error: browserContext.setGeolocation: geolocation.longitude: expected float, got
 
 - `browser-automation`：partial pass。
 - `deep-bug-diagnosis`：partial pass。
-- `form-fill-validation`：partial pass（登录表单已覆盖基础 fill/click/wait/verify）。
+- `form-fill-validation`：partial pass；登录表单覆盖 fill/check/uncheck/get/click/wait，补充 fixture 覆盖 select，reproduce 页面覆盖 upload/drag/download。
 - `controlled-testing/environment`：partial pass；geolocation contract drift 已修复并有聚焦 contract test。2026-05-04 追加 Agent dogfood 覆盖 geolocation/offline/clock。
 - `simple-crawler`：partial pass；Agent 用 `read-text` + `pw code --file` 临时读取链接并逐跳跟踪，遇到 locator 歧义后按恢复建议继续。
 - `automated-testing`：partial pass；2026-05-04 追加 route mock、bootstrap apply、batch verify 链路。dogfood 暴露 batch verify 假绿 P1，已修复并用 `check:batch-verify` 固化。
@@ -213,3 +213,49 @@ pw diagnostics runs --session autot2 --limit 12
 - 记录：`codestable/issues/2026-05-04-batch-verify-failure-propagation/batch-verify-failure-propagation-report.md`。
 - 修复：`src/cli/batch/executor.ts` 现在把 `passed=false` 转成 `VERIFY_FAILED`，并保留 verify suggestions。
 - 固化验证：新增 `pnpm check:batch-verify`，断言 batch verify failure 必须非零退出并返回 `BATCH_STEP_FAILED`。
+
+## 追加验证：Form / file interaction
+
+2026-05-04 追加表单填写与文件交互 dogfood。主链使用 `scripts/e2e/dogfood-server.js 43285`，补充 select 控件使用 `scripts/manual/deterministic-fixture-server.js 43286`。
+
+核心链路：
+
+```bash
+pw session create formdog --no-headed --open http://127.0.0.1:43285/login
+pw read-text -s formdog --max-chars 800
+pw snapshot -i -s formdog
+pw uncheck -s formdog --selector '#remember-me'
+pw verify unchecked -s formdog --selector '#remember-me'
+pw fill -s formdog --selector '#email' agent.form@example.com
+pw fill -s formdog --selector '#password' pwcli-secret
+pw get -s formdog --selector '#email' --fact value
+pw check -s formdog --selector '#remember-me'
+pw verify checked -s formdog --selector '#remember-me'
+pw click -s formdog --selector '#login-submit'
+pw wait -s formdog --selector '#project-alpha'
+pw open -s formdog http://127.0.0.1:43285/app/projects/alpha/incidents/checkout-timeout/reproduce
+pw wait -s formdog --text 'Reproduce workspace'
+pw upload -s formdog --selector '#upload-input' scripts/e2e/dogfood-route-body.txt
+pw wait -s formdog --text 'upload-result: dogfood-route-body.txt'
+pw drag -s formdog --from-selector '#drag-card-a' --to-selector '#drag-lane-done'
+pw wait -s formdog --text 'drag-status: moved triage customer report'
+pw download -s formdog --selector '#download-report' --dir /tmp/pwcli-formdog-downloads
+pw open -s formdog http://127.0.0.1:43286/blank
+pw select -s formdog --selector '#smoke-select' b
+pw get -s formdog --selector '#smoke-select' --fact value
+pw diagnostics runs --session formdog --limit 16
+```
+
+关键证据：
+
+- checkbox 链路：`uncheck` 后 `verify unchecked passed=true`；`check` 后 `verify checked passed=true`。
+- fill/get 链路：`get --fact value` 返回 `agent.form@example.com`；登录后 console 记录 `login-success {email: agent.form@example.com, remember: true}`。
+- upload 链路：`upload uploaded=true`，页面显示 `upload-result: dogfood-route-body.txt`。
+- drag 链路：`drag ok`，页面显示 `drag-status: moved triage customer report`。
+- download 链路：`download downloaded=true`，`/tmp/pwcli-formdog-downloads/dogfood-report.txt` 内容包含 `dogfood-report:dogfood-1`。
+- select 链路：`select selected=true`，`get --fact value` 返回 `b`。
+- run evidence 包含 `2026-05-03T18-20-31-080Z-formdog`、`2026-05-03T18-21-21-402Z-formdog`、`2026-05-03T18-22-02-783Z-formdog`、`2026-05-03T18-22-19-213Z-formdog`、`2026-05-03T18-22-28-509Z-formdog`、`2026-05-03T18-23-35-653Z-formdog`、`2026-05-03T18-23-43-927Z-formdog`。
+
+观察：
+
+- deterministic fixture 触发了 `/favicon.ico -> 404` 噪声；这是 fixture 页面缺少 favicon 的可解释噪声，不影响 `select/check` 命令结论。
