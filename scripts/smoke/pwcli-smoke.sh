@@ -532,7 +532,7 @@ assert_json "$observe_json" "observe status workspace is healthy" \
 
 log "batch surfaces"
 batch_out="${TMP_DIR}/batch.json"
-if ! printf '[["observe","status"],["page","dialogs"]]' | "${CLI[@]}" batch --session "$SESSION_NAME" --stdin-json >"$batch_out"; then
+if ! printf '[["observe","status"],["page","dialogs"]]' | "${CLI[@]}" batch --session "$SESSION_NAME" --stdin-json --output json >"$batch_out"; then
   log "command failed: ${CLI[*]} batch --session ${SESSION_NAME} --stdin-json"
   cat "$batch_out" >&2 || true
   exit 1
@@ -545,7 +545,7 @@ assert_json "$batch_json" "batch summary reflects successful execution" \
 
 batch_fail_out="${TMP_DIR}/batch-fail.json"
 set +e
-printf '[["session","list"]]' | "${CLI[@]}" --output json batch --session "$SESSION_NAME" --stdin-json >"$batch_fail_out"
+printf '[["session","list"]]' | "${CLI[@]}" batch --session "$SESSION_NAME" --stdin-json --output json >"$batch_fail_out"
 batch_fail_code=$?
 set -e
 if [ "$batch_fail_code" -eq 0 ]; then
@@ -565,7 +565,7 @@ console.log(JSON.stringify([
 ]));
 NODE
 )"
-if ! printf '%s' "$batch_continue_steps" | "${CLI[@]}" --output json batch --session "$SESSION_NAME" --stdin-json --continue-on-error >"$batch_continue_out"; then
+if ! printf '%s' "$batch_continue_steps" | "${CLI[@]}" batch --session "$SESSION_NAME" --stdin-json --continue-on-error --output json >"$batch_continue_out"; then
   log "command failed: ${CLI[*]} --output json batch --session ${SESSION_NAME} --stdin-json --continue-on-error"
   cat "$batch_continue_out" >&2 || true
   exit 1
@@ -575,7 +575,7 @@ assert_json "$batch_continue_json" "batch continue-on-error preserves success en
   "data.ok === true && data.data.summary.stepCount === 2 && data.data.summary.successCount === 1 && data.data.summary.failedCount === 1 && data.data.results.length === 2 && data.data.results[0].ok === false && data.data.results[0].error.message.includes('batch continue smoke failure') && data.data.results[1].ok === true"
 
 batch_verbose_out="${TMP_DIR}/batch-verbose.json"
-if ! printf '[["observe","status"],["page","dialogs"]]' | "${CLI[@]}" --output json batch --session "$SESSION_NAME" --stdin-json --include-results >"$batch_verbose_out"; then
+if ! printf '[["observe","status"],["page","dialogs"]]' | "${CLI[@]}" batch --session "$SESSION_NAME" --stdin-json --include-results --output json >"$batch_verbose_out"; then
   log "command failed: ${CLI[*]} --output json batch --session ${SESSION_NAME} --stdin-json --include-results"
   cat "$batch_verbose_out" >&2 || true
   exit 1
@@ -585,7 +585,7 @@ assert_json "$batch_verbose_json" "batch include-results keeps full step outputs
   "data.ok === true && Array.isArray(data.data.results) && data.data.results.length === 2 && data.data.results.every(item => item.ok === true)"
 
 batch_summary_only_out="${TMP_DIR}/batch-summary-only.json"
-if ! printf '[["observe","status"],["page","dialogs"]]' | "${CLI[@]}" --output json batch --session "$SESSION_NAME" --stdin-json --summary-only >"$batch_summary_only_out"; then
+if ! printf '[["observe","status"],["page","dialogs"]]' | "${CLI[@]}" batch --session "$SESSION_NAME" --stdin-json --summary-only --output json >"$batch_summary_only_out"; then
   log "command failed: ${CLI[*]} --output json batch --session ${SESSION_NAME} --stdin-json --summary-only"
   cat "$batch_summary_only_out" >&2 || true
   exit 1
@@ -684,7 +684,7 @@ console.log(JSON.stringify([
 NODE
 )"
 batch_semantic_out="${TMP_DIR}/batch-semantic.json"
-if ! printf '%s' "$semantic_batch" | "${CLI[@]}" batch --session "$SESSION_NAME" --stdin-json >"$batch_semantic_out"; then
+if ! printf '%s' "$semantic_batch" | "${CLI[@]}" batch --session "$SESSION_NAME" --stdin-json --output json >"$batch_semantic_out"; then
   log "command failed: ${CLI[*]} batch --session ${SESSION_NAME} --stdin-json"
   cat "$batch_semantic_out" >&2 || true
   exit 1
@@ -696,7 +696,7 @@ assert_json "$batch_semantic_json" "batch supports semantic role/text click" \
 bad_semantic_batch='[["click","--label","Missing Label"]]'
 bad_semantic_out="${TMP_DIR}/batch-bad-semantic.json"
 set +e
-printf '%s' "$bad_semantic_batch" | "${CLI[@]}" batch --session "$SESSION_NAME" --stdin-json >"$bad_semantic_out"
+printf '%s' "$bad_semantic_batch" | "${CLI[@]}" batch --session "$SESSION_NAME" --stdin-json --output json >"$bad_semantic_out"
 bad_semantic_code=$?
 set -e
 if [ "$bad_semantic_code" -eq 0 ]; then
