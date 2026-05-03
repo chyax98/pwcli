@@ -352,7 +352,7 @@ assert_json "$stale_download_json" "stale download ref reuse returns REF_STALE" 
   "data.ok === false && data.error.code === 'REF_STALE' && data.error.retryable === false && data.error.details.reason === 'navigation-changed'"
 
 log "recovery envelope field in session not found error"
-out=$(run_fail_json "recovery_field" session status "nonexistent${RUN_ID}")
+out=$(run_fail_json "recovery_field" session status "nope${RUN_ID}")
 assert_json "$out" ".ok" "false"
 assert_json "$out" ".error.recovery.kind" "typeof x === 'string'"
 assert_json "$out" ".error.recovery.commands" "Array.isArray(x)"
