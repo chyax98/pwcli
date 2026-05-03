@@ -110,6 +110,7 @@ Error: browserContext.setGeolocation: geolocation.longitude: expected float, got
 - `automated-testing`：partial pass；2026-05-04 追加 route mock、bootstrap apply、batch verify 链路。dogfood 暴露 batch verify 假绿 P1，已修复并用 `check:batch-verify` 固化。
 - `reproducible-handoff`：partial pass；bundle/runs 已覆盖，2026-05-04 追加 screenshot/pdf/accessibility/video/trace artifact 证据。dogfood 暴露 trace inspect 路径解析 P1，已修复并用 `check:trace-inspect` 固化。
 - `state-auth`：partial pass；2026-05-04 追加 fixture-auth、state diff/load、cookies/localStorage、IndexedDB export 证据。
+- `workspace-control`：partial pass；2026-05-04 追加 session/page projection、snapshot epoch、text alias、hover/scroll/resize/mouse dogfood。
 
 ## 追加验证：Environment controlled-testing
 
@@ -340,3 +341,48 @@ pw storage indexeddb export -s statedog --database pwcli-dogfood --store items -
 观察：
 
 - state/auth/storage 命令本身不都产生 `.pwcli/runs` action event；本轮证据以命令结构化输出和 state/diff 文件为主。
+
+## 追加验证：Workspace / control commands
+
+2026-05-04 追加 workspace 观察和低层控制 dogfood。sessions 为 `controldog`、`mousedog2`。
+
+核心链路：
+
+```bash
+pw session create controldog --no-headed --open '<tall data url with buttons>'
+pw session list --with-page
+pw session status controldog
+pw page list -s controldog
+pw page dialogs -s controldog
+pw page assess -s controldog
+pw snapshot -i -s controldog
+pw snapshot status -s controldog
+pw text -s controldog --max-chars 300
+pw hover -s controldog --selector '#hover-target'
+pw scroll -s controldog down 900
+pw wait -s controldog --text 'bottom marker'
+pw resize -s controldog --preset iphone --view mobile-dogfood
+pw mouse move -s controldog 80 40
+pw mouse click -s controldog 110 15
+pw code -s controldog '<read mouse/viewport/scrollY>'
+pw session create mousedog2 --no-headed --open '<encoded button data url>'
+pw mouse click -s mousedog2 60 40
+pw code -s mousedog2 '<read body dataset>'
+```
+
+关键证据：
+
+- `session list --with-page` 返回 `controldog alive=true` 和当前 page projection；`session status` 返回 active socket、Playwright version、workspaceDir 和 pageId/navigationId。
+- `page dialogs` 返回 `dialogCount=0`，并明确 limitation：它是 observed dialog events projection，不是 authoritative live dialog set。
+- `page assess` 返回 inference summary、nextSteps 和 limitations。
+- `snapshot status` 返回 `status=fresh`、`snapshotId=snap-1`、`refCount=4`。
+- `text` 短别名输出 `Hover target Mouse target bottom marker`。
+- `hover` 返回 `acted=true` 且有 run evidence：`2026-05-03T18-38-10-342Z-controldog`。
+- `scroll down 900` 后 `wait --text 'bottom marker'` 通过；页面复查 `scrollY=900`。
+- `resize --preset iphone --view mobile-dogfood` 返回 viewport `390x844`，后续 `pw code` 复查 `innerWidth=390`、`innerHeight=844`。
+- `mouse move` 和第一次 coordinate click 都返回 action evidence；第一次 click 未命中业务目标，复查 `data-mouse=null`。
+- Agent 随后用 `mousedog2` 构造可控坐标目标，`mouse click 60 40` 后页面状态复查为 `clicked`。
+
+观察：
+
+- 坐标级 mouse command 的 `acted=true` 只代表动作发出，不代表业务命中；必须继续用 `code/get/read-text/verify` 复查页面状态。
