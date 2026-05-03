@@ -109,6 +109,7 @@ Error: browserContext.setGeolocation: geolocation.longitude: expected float, got
 - `simple-crawler`：partial pass；Agent 用 `read-text` + `pw code --file` 临时读取链接并逐跳跟踪，遇到 locator 歧义后按恢复建议继续。
 - `automated-testing`：partial pass；2026-05-04 追加 route mock、bootstrap apply、batch verify 链路。dogfood 暴露 batch verify 假绿 P1，已修复并用 `check:batch-verify` 固化。
 - `reproducible-handoff`：partial pass；bundle/runs 已覆盖，2026-05-04 追加 screenshot/pdf/accessibility/video/trace artifact 证据。dogfood 暴露 trace inspect 路径解析 P1，已修复并用 `check:trace-inspect` 固化。
+- `state-auth`：partial pass；2026-05-04 追加 fixture-auth、state diff/load、cookies/localStorage、IndexedDB export 证据。
 
 ## 追加验证：Environment controlled-testing
 
@@ -304,3 +305,38 @@ pnpm check:trace-inspect
 - 记录：`codestable/issues/2026-05-04-trace-inspect-cli-resolution/trace-inspect-cli-resolution-report.md`。
 - 修复：`src/engine/diagnose/trace.ts` 改用 `createRequire(import.meta.url).resolve("playwright-core/package.json")` 定位当前安装包。
 - 固化验证：新增 `pnpm check:trace-inspect`，覆盖 `trace start -> action -> trace stop -> trace inspect`。
+
+## 追加验证：State / auth reuse
+
+2026-05-04 追加状态和认证复用 dogfood。主链使用 `scripts/e2e/dogfood-server.js 43288`，sessions 为 `statedog` 和 `statedog2`。
+
+核心链路：
+
+```bash
+pw session create statedog --no-headed --open http://127.0.0.1:43288/login
+pw auth list
+pw auth info fixture-auth
+pw state diff -s statedog --before /tmp/pwcli-statedog-before.json
+pw auth fixture-auth -s statedog --arg marker=state-dog --save-state /tmp/pwcli-statedog-auth.json
+pw state diff -s statedog --before /tmp/pwcli-statedog-before.json --after /tmp/pwcli-statedog-after.json --include-values
+pw session create statedog2 --no-headed --state /tmp/pwcli-statedog-auth.json --open http://127.0.0.1:43288/login
+pw storage local get pwcli-auth-marker -s statedog2
+pw cookies list -s statedog2 --domain 127.0.0.1
+pw auth probe -s statedog2
+pw code -s statedog '<transient indexeddb setup>'
+pw storage indexeddb export -s statedog --database pwcli-dogfood --store items --include-records --limit 3
+```
+
+关键证据：
+
+- `auth list` 返回 `dc` 和 `fixture-auth`；`auth info fixture-auth` 返回 provider args、examples 和 notes。
+- `state diff` 首次创建 baseline：`baselineCreated=true`，`beforePath=/tmp/pwcli-statedog-before.json`。
+- `auth fixture-auth` 写入 marker：`pageState.authMarker=state-dog`、`bodyMarker=state-dog`，并保存 state 到 `/tmp/pwcli-statedog-auth.json`。
+- before/after diff：`summary.changed=true`，`changedBuckets=["cookies","localStorage"]`；新增 cookie `pwcli_auth_marker=state-dog` 和 localStorage `pwcli-auth-marker=state-dog`。
+- `statedog2` 通过 `--state /tmp/pwcli-statedog-auth.json` 创建后，`storage local get pwcli-auth-marker` 返回 `state-dog`，`cookies list --domain 127.0.0.1` 返回同名 cookie。
+- `auth probe` 在登录页返回 `status=anonymous`，同时 `signals.storage` 命中 cookie/localStorage；这符合当前 heuristic：登录页 UI 仍优先判为需要 reauth，不把 storage signal 包装成强认证。
+- IndexedDB export：临时创建 `pwcli-dogfood/items` 后，`storage indexeddb export --include-records` 返回 `databaseCount=1`，sample record `{ id: "state-dog", value: "indexeddb-ready" }`。
+
+观察：
+
+- state/auth/storage 命令本身不都产生 `.pwcli/runs` action event；本轮证据以命令结构化输出和 state/diff 文件为主。
