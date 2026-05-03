@@ -229,7 +229,7 @@
 - `press <key>`、`scroll <direction> [distance]`、`type [ref] <value>`
 - `hover <ref>`、`check <ref>`、`uncheck <ref>`、`select <ref> <value>`
 - `open <url>`
-- `read-text`、`read-text --max-chars <n>`、`read-text --selector <selector>`、`read-text --no-include-overlay`
+- `read-text` / `text`、`read-text --max-chars <n>`、`read-text --selector <selector>`、`read-text --no-include-overlay`
 - `locate --text <text>`、`locate --selector <selector>`、`locate --role <role> --name <name>`
 - `get text|value|count --text <text>`、`get text|value|count --selector <selector>`
 - `is visible|enabled|checked --text <text>`、`is visible|enabled|checked --selector <selector>`
@@ -237,7 +237,7 @@
 - `verify url --contains <text>`、`verify url --equals <url>`、`verify url --matches <regex>`
 - `verify count --equals <n>`、`verify count --min <n>`、`verify count --max <n>`
 - `wait network-idle`（或 `--networkidle`）、`wait --text`、`wait --selector`、`wait --request`、`wait --response`
-- `screenshot ...`、`observe status`、`errors recent|clear`
+- `screenshot ...`、`status` / `observe`、`errors recent|clear`
 - `route list|add|load|remove ...`、`bootstrap apply ...`
 - `state save|load`、`page current|list|frames|dialogs`
 
@@ -261,7 +261,7 @@ Other semantic click flags stay outside batch. Run the single `pw click ...` com
 - `data.analysis.warnings` 是串行依赖提示
 - 默认 text 输出是轻量摘要，包含 step 数、成功/失败数、首个失败和 warnings，不倾倒嵌套 JSON
 - 脚本解析和字段断言必须加 `--output json`；JSON envelope 保持 `data.summary` 和 compact `data.results`
-- 默认 JSON `results` 只保留 step metadata、command、page summary 和可用 summary，避免 `observe status` 等命令重复嵌套完整 payload
+- 默认 JSON `results` 只保留 step metadata、command、page summary 和可用 summary，避免 `status` 等命令重复嵌套完整 payload
 - 需要完整 step 输出时加 `--include-results`
 - 只需要 JSON 汇总时加 `--summary-only`；失败信息看 `firstFailure*` 和 `failedSteps`
 - text 输出需要紧凑 step 明细时也加 `--include-results`

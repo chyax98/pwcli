@@ -19,19 +19,21 @@
 ## 2. 真相优先级
 
 1. **源码真相**
-   - `src/app`
-   - `src/domain`
-   - `src/infra`
+   - `src/engine/`、`src/cli/`、`src/store/`、`src/auth/`
 2. **使用真相**
-   - `skills/pwcli/`
-3. **架构真相**
-   - `docs/architecture/`
-4. **仓库入口**
+   - `skills/pwcli/`（怎么用）
+3. **命令设计真相**
+   - `docs/commands/`（为什么这样设计，ADR，证据状态）
+4. **架构真相**
+   - `docs/architecture/`（层边界、模块职责、重大决策）
+5. **仓库入口**
    - `README.md`
-5. **贡献约束**
+6. **贡献约束**
    - `AGENTS.md`
-6. **Agent 项目规则**
+7. **Agent 项目规则**
    - `.claude/`
+
+`docs/commands/` 新增为第 3 层真相：命令级别的 ADR，记录设计决策、技术原理、使用证据和已知限制。任何命令变动必须同步更新对应文档（见 `.claude/rules/12-command-doc-maintenance.md`）。
 
 如果文档和源码冲突，以源码和已通过验证的 shipped contract 为准。
 

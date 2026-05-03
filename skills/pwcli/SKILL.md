@@ -41,7 +41,7 @@ description: "Use pwcli for browser automation, page exploration, diagnostics, s
 
 ```bash
 pw session create explore-a --headed --open '<url>'
-pw observe status -s explore-a
+pw status -s explore-a
 pw read-text -s explore-a --max-chars 2000
 pw snapshot -i -s explore-a
 ```
@@ -81,7 +81,7 @@ pw errors recent -s bug-a --limit 20
 
 ```bash
 pw session create task-a --headed --open '<url>'
-pw session create task-a --headless --open '<url>'
+pw session create task-a --no-headed --open '<url>'
 ```
 
 复用本机 Chrome profile：
@@ -123,7 +123,7 @@ pw session close --all
 默认低噪声顺序：
 
 ```bash
-pw observe status -s task-a
+pw status -s task-a
 pw page current -s task-a
 pw read-text -s task-a --max-chars 2000
 pw locate -s task-a --text '<visible-text>'
@@ -142,7 +142,7 @@ pw verify visible -s task-a --selector '<selector>'
 
 规则：
 
-- `observe status` 看页面、dialog、console、network、errors、routes、bootstrap、modal 摘要。
+- `status` 看页面、dialog、console、network、errors、routes、bootstrap、modal 摘要；`observe` 仍作为兼容别名。
 - `read-text` 适合快速理解页面。
 - `locate|get|is|verify` 是 read-only state check，不返回 ref、不规划动作。
 - 需要 ref 或页面结构时用 `snapshot -i`；全量 `snapshot` 放最后。
@@ -270,7 +270,7 @@ HAR start/stop 当前不是稳定证据录制路径；稳定诊断优先 `networ
 先看状态：
 
 ```bash
-pw observe status -s bug-a
+pw status -s bug-a
 pw page dialogs -s bug-a
 ```
 
@@ -322,7 +322,7 @@ Forge/DC 路由规则（Agent 只读主文档时也必须能判定）：
 pw session create dc-main --headed
 pw auth dc -s dc-main --arg targetUrl='<forge-url>'
 pw read-text -s dc-main --max-chars 1200
-pw observe status -s dc-main
+pw status -s dc-main
 ```
 
 专项失败、缺手机号/验证码、目标错误、登录后仍在登录页：跳 `references/forge-dc-auth.md`。
@@ -381,7 +381,7 @@ pw bootstrap apply -s test-a --headers-file ./headers.json
 典型链路：
 
 ```bash
-pw session create test-a --headless --open '<url>'
+pw session create test-a --no-headed --open '<url>'
 pw route load ./routes.json -s test-a
 pw bootstrap apply -s test-a --init-script ./bootstrap.js
 pw click -s test-a --selector '<selector>'

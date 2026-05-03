@@ -3,7 +3,7 @@
 更新时间：2026-05-01
 状态：active
 
-这份文档是维护者用的命令能力地图。它从 `src/app/commands/index.ts`、各命令实现和 `node dist/cli.js --help` 对齐当前 shipped command surface。
+这份文档是维护者用的命令能力地图。它从 `src/cli/commands/index.ts`、各命令实现和 `node dist/cli.js --help` 对齐当前 shipped command surface。
 
 它不是第二套使用教程。Agent 执行任务时仍然以 [`skills/pwcli/SKILL.md`](../../skills/pwcli/SKILL.md) 和 `skills/pwcli/references/` 为准。
 
@@ -26,13 +26,13 @@ node dist/cli.js --help
 
 | 家族 | Commands | 主要源码 | Agent 价值 | 使用真相 |
 |---|---|---|---|---|
-| Lifecycle | `session create|attach|recreate|list|status|close` | `src/app/commands/session.ts` | 创建、接管、恢复、关闭 named session | `command-reference.md` |
-| Navigation | `open` | `src/app/commands/open.ts` | 只在已有 session 中导航 | `SKILL.md`、`command-reference.md` |
-| Human observation | `dashboard open` | `src/app/commands/dashboard.ts` | 打开 Playwright dashboard 供人观察或接管 | `command-reference-advanced.md` |
-| Workspace view | `observe status`、`page current|list|frames|dialogs`、`tab select|close` | `observe.ts`、`page.ts`、`tab.ts` | 读取当前页面、tabs、frames、dialog projection，并用 stable `pageId` 切换页面 | `command-reference.md` |
-| Page read | `read-text`、`snapshot`、`screenshot`、`pdf`、`accessibility` | `read-text.ts`、`snapshot.ts`、`screenshot.ts`、`pdf.ts`、`accessibility.ts` | 低噪声文本、结构树、图片和 PDF 证据 | `SKILL.md`、`command-reference.md` |
+| Lifecycle | `session create|attach|recreate|list|status|close` | `src/cli/commands/session.ts` | 创建、接管、恢复、关闭 named session | `command-reference.md` |
+| Navigation | `open` | `src/cli/commands/open.ts` | 只在已有 session 中导航 | `SKILL.md`、`command-reference.md` |
+| Human observation | `dashboard open` | `src/cli/commands/dashboard.ts` | 打开 Playwright dashboard 供人观察或接管 | `command-reference-advanced.md` |
+| Workspace view | `status`（`observe` 兼容别名）、`page current|list|frames|dialogs`、`tab select|close` | `status.ts`、`page.ts`、`tab.ts` | 读取当前页面、tabs、frames、dialog projection，并用 stable `pageId` 切换页面 | `command-reference.md` |
+| Page read | `read-text`（`text` 短别名）、`snapshot`、`screenshot`、`pdf`、`accessibility` | `read-text.ts`、`snapshot.ts`、`screenshot.ts`、`pdf.ts`、`accessibility.ts` | 低噪声文本、结构树、图片和 PDF 证据 | `SKILL.md`、`command-reference.md` |
 | State checks | `locate`、`get`、`is`、`verify` | `locate.ts`、`get.ts`、`is.ts`、`verify.ts` | read-only 定位、事实读取、布尔检查、断言闭环 | `command-reference.md` |
-| Actions | `click`、`fill`、`type`、`press`、`hover`、`scroll`、`check`、`uncheck`、`select`、`drag`、`upload`、`download`、`resize`、`dialog`、`wait`、`mouse` | 对应 `src/app/commands/*.ts` | 执行动作、处理弹窗、等待状态、产出 run evidence | `command-reference.md` |
+| Actions | `click`、`fill`、`type`、`press`、`hover`、`scroll`、`check`、`uncheck`、`select`、`drag`、`upload`、`download`、`resize`、`dialog`、`wait`、`mouse` | 对应 `src/cli/commands/*.ts` | 执行动作、处理弹窗、等待状态、产出 run evidence | `command-reference.md` |
 | Diagnostics | `diagnostics digest|export|bundle|runs|show|grep|timeline`、`console`、`network`、`sse`、`errors`、`doctor`、`video` | `diagnostics.ts`、`console.ts`、`network.ts`、`sse.ts`、`errors.ts`、`doctor.ts`、`video.ts` | 从 live session 和 run artifacts 归因、定位、导出证据 | `command-reference-diagnostics.md` |
 | Trace / HAR | `trace start|stop|inspect`、`har start|stop|replay|replay stop` | `trace.ts`、`har.ts` | trace zip 离线查询、HAR 录制与回放 | `command-reference-diagnostics.md` |
 | Mock / bootstrap | `route list|add|load|remove`、`bootstrap apply` | `route.ts`、`bootstrap.ts` | 请求拦截、fulfill、abort、JSON patch、headers/init script 注入 | `command-reference-diagnostics.md`、`command-reference-advanced.md` |
@@ -63,6 +63,8 @@ resize
 snapshot
 screenshot
 read-text
+text
+status
 check
 locate
 get
@@ -98,14 +100,14 @@ session
 skill
 ```
 
-如果 `src/app/commands/index.ts` 新增或删除命令，必须同步这份清单和对应 reference。
+如果 `src/cli/commands/index.ts` 新增或删除命令，必须同步这份清单和对应 reference。
 
 ## 4. Agent 消费路径
 
 ### 常规浏览器任务
 
 ```text
-session create -> observe status -> read-text/locate/snapshot -> action -> wait -> verify -> diagnostics digest
+session create -> status -> read-text/locate/snapshot -> action -> wait -> verify -> diagnostics digest
 ```
 
 目标是让 Agent 在少量命令里形成“看到页面、行动、确认结果、保留证据”的闭环。

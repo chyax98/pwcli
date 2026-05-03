@@ -44,6 +44,6 @@
 
 ## 恢复路径
 
-- `RUN_CODE_TIMEOUT`：查 `page current` / `observe status` / `diagnostics digest`，拆小步骤。
-- modal 阻断：`observe status` → `dialog accept|dismiss`。
+- `RUN_CODE_TIMEOUT`：查 `page current` / `status` / `diagnostics digest`，拆小步骤。
+- modal 阻断：`status` → `dialog accept|dismiss`。
 - selector 失败：回到 `locate` / `snapshot -i` 找目标。

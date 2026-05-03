@@ -83,7 +83,7 @@ Recovery:
 
 ```bash
 pw page current --session bug-a
-pw observe status --session bug-a
+pw status --session bug-a
 pw diagnostics digest --session bug-a
 ```
 
@@ -464,7 +464,7 @@ Meaning:
 
 - current managed session is blocked by a modal dialog
 - run-code-backed reads and some actions are unavailable
-- affected reads include `page assess`, `observe status`, and `pw code`
+- affected reads include `page assess`, `status`, and `pw code`
 
 Recovery order（dialog accept/dismiss 置顶）：
 
@@ -481,7 +481,7 @@ pw dialog dismiss --session bug-a
 
 ```bash
 pw doctor --session bug-a
-pw session recreate bug-a --open '<url from observe status>'
+pw session recreate bug-a --open '<url from status>'
 ```
 
 Use `pw doctor --session bug-a --verbose` only when the compact recovery summary is insufficient.
@@ -532,11 +532,11 @@ Recovery:
 
 ### Modal/overlay blocks interactions
 
-When `observe status` shows `modalCount > 0` or `snapshot status` shows `blockingModals`, HTML modals are intercepting pointer events.
+When `status` shows `modalCount > 0` or `snapshot status` shows `blockingModals`, HTML modals are intercepting pointer events.
 
 Recovery:
 
-1. Check `pw observe status --session <name>` for modal details.
+1. Check `pw status --session <name>` for modal details.
 2. Dismiss with `pw click --session <name> --selector '.modal.show .btn-close'` or the modal's dismiss button.
 3. If the modal has an accept/save action, use the appropriate button selector.
 4. Do not use `--text` for dismiss buttons when multiple elements share the same text (e.g., "Close" appears in both modal and sidebar).
@@ -628,7 +628,7 @@ Recovery:
 Recovery:
 
 1. Verify the session exists
-2. Re-run `observe status`
+2. Re-run `status`
 3. Re-run export with a writable `--out` path
 
 ### `DIAGNOSTICS_SHOW_FAILED` / `DIAGNOSTICS_GREP_FAILED`

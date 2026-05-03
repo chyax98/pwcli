@@ -63,6 +63,6 @@ favicon 404、第三方 warning、浏览器扩展噪声通常只作为背景。
 ## 恢复路径
 
 - 页面卡死或 substrate 异常：`doctor -s <name>`。
-- modal 阻断：`observe status` → `dialog accept|dismiss`。
+- modal 阻断：`status` → `dialog accept|dismiss`。
 - diagnostics 输出过多：加 `--limit`、`--text`、`--url`、`--fields`。
 - 需要人类交接：`diagnostics bundle --out <dir>`。

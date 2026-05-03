@@ -5,7 +5,7 @@
 诊断 / mock 命令见 `command-reference-diagnostics.md`；
 state / auth / batch / environment 命令见 `command-reference-advanced.md`。
 
-基线：以 `src/app/commands/*` 和 `node dist/cli.js --help` 为准。
+基线：以 `src/cli/commands/*` 和 `node dist/cli.js --help` 为准。
 
 ## 通用 contract
 
@@ -21,7 +21,7 @@ state / auth / batch / environment 命令见 `command-reference-advanced.md`。
 
 - `--open <url>`、`--profile <path>`、`--persistent`、`--state <file>`
 - `--from-system-chrome`、`--chrome-profile <directory-or-name>`：从本机 Chrome profile 启动 session，复用已有登录态
-- `--headed` / `--headless`、`--trace` / `--no-trace`
+- `--headed` / `--no-headed`、`--trace` / `--no-trace`
 - 默认打开 `about:blank`；`--state` 在创建后加载
 - `--profile` 与 `--from-system-chrome` 互斥；系统 Chrome profile 正被 Chrome 使用时，底层可能返回 profile locked，需要关闭 Chrome 或换 profile
 - 同名 session 的并发 create/reset 会按 per-session lock 串行；Agent 不应并发发同名 lifecycle 命令
@@ -34,7 +34,7 @@ state / auth / batch / environment 命令见 `command-reference-advanced.md`。
 
 ### `pw session recreate <name>`
 
-- `--headed` / `--headless`、`--open <url>`、`--trace` / `--no-trace`
+- `--headed` / `--no-headed`、`--open <url>`、`--trace` / `--no-trace`
 - 关闭并重建；尝试保存并恢复 state
 - stop + startup + registry load 受同一把 per-session lock 保护
 
@@ -73,12 +73,13 @@ state / auth / batch / environment 命令见 `command-reference-advanced.md`。
 - 在现有 session 中导航；不负责 lifecycle shape
 - 换 profile / headed / persistent 走 `session create|recreate`
 
-### `pw observe status --session <name>`
+### `pw status --session <name>` / `pw observe --session <name>`
 
 - compact 摘要：summary / currentPage / dialogs / routes / pageErrors / console / network / trace / har / bootstrap / modals
 - `summary.modalCount > 0` 表示有 HTML modal/overlay 阻断交互
 - `modals.items` 包含每个可见 modal 的 role 和文本摘要
 - `--verbose` 返回完整载荷
+- `status` 是主名称；`observe` 是兼容别名，指向同一实现。
 
 ### `pw page current|list|frames|dialogs --session <name>`
 
@@ -107,9 +108,10 @@ state / auth / batch / environment 命令见 `command-reference-advanced.md`。
 - `tab close` 关闭当前页后按 opener、前一个 page、后一个 page 的顺序回退 active target；没有剩余页面则 workspace 为空
 - 不接受 index、title、URL substring 作为目标
 
-### `pw read-text --session <name>`
+### `pw read-text --session <name>` / `pw text --session <name>`
 
 - `--selector <selector>`、`--no-include-overlay`、`--max-chars <count>`（默认 15000，overlay metadata 默认采集）
+- `text` 是 `read-text` 的短别名，输出与行为一致。
 - `--selector` 无匹配时抛出 `READ_TEXT_SELECTOR_NOT_FOUND`，不再静默返回空
 - 自动穿透 shadow DOM（web components），无需额外参数
 - 自动跳过 `<style>`、`<script>`、`<noscript>`、`<svg>`、`<math>`、`<template>` 等非可见内容标签
@@ -205,6 +207,7 @@ Use `locate/get/is/verify` for narrow state checks. Use `snapshot -i` when you n
 ### `pw screenshot [ref] --session <name>`
 
 - `--selector <selector>`、`--path <path>`、`--full-page`
+- `--format png|jpeg`（默认 `png`）
 
 ### `pw pdf --session <name> --path <path>`
 
@@ -318,7 +321,7 @@ Use `locate/get/is/verify` for narrow state checks. Use `snapshot -i` when you n
 ### `pw mouse click --session <name>`
 
 - `--x <number>`、`--y <number>`（必填）
-- `--button <left|right|middle>`（默认 `left`）
+- `--button left|right|middle`（enum，默认 `left`）
 - 在指定坐标点击
 
 ### `pw mouse dblclick --session <name>`
@@ -353,7 +356,7 @@ Use `locate/get/is/verify` for narrow state checks. Use `snapshot -i` when you n
 
 ### `pw wait [target] --session <name>`
 
-条件（一次只等一个）：毫秒 delay / aria ref / `--text` / `--selector` / `network-idle`（或 `--networkidle`）/ `--request <url>` / `--response <url>`
+条件（一次只等一个）：毫秒 delay / aria ref / `--text` / `--selector` / `network-idle`（或 `--networkidle`）/ `--request <url>` / `--response <url>` / `--state visible|hidden|stable|attached|detached`
 
 `--text` 使用 substring 匹配。`wait --text 'Saved'` 匹配 "Saved successfully"。
 
@@ -361,7 +364,7 @@ Use `locate/get/is/verify` for narrow state checks. Use `snapshot -i` when you n
 
 ## 当前限制
 
-- modal state 阻断 `page *` / `observe status` 读取链路
+- modal state 阻断 `page *` / `status` 读取链路
 - `page assess` 只做 inference summary，不直接导出 runtime state、storage state、network payload，也不做 selector-scoped assessment
 - `session status` 是快速检查；异常时用 `pw doctor --session <name>`
 - `session attach --browser-url/--cdp` 只接管本机可连接的调试端口

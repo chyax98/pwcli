@@ -1,0 +1,34 @@
+import { defineCommand } from "citty";
+import { getAuthProvider } from "#auth/registry.js";
+import { managedObserveStatus } from "#engine/diagnose/core.js";
+import { checkDiskSpace, checkPlaywrightBrowsers, compactDoctorDiagnostic, doctorRecovery, inspectEnvironment, inspectProfilePath, inspectStatePath, probeEndpoint, summarizeDiagnostics, type DoctorDiagnostic } from "#store/health.js";
+import { sharedArgs } from "#cli/args.js";
+import { bool, print, session, str, type CliArgs } from "./_helpers.js";
+import { printCommandError } from "../output.js";
+
+export default defineCommand({
+  meta: { name: "doctor", description: "Run local health checks" },
+  args: { ...sharedArgs, "auth-provider": { type: "string", description: "Resolve auth provider", valueHint: "name" }, profile: { type: "string", description: "Inspect profile path", valueHint: "path" }, state: { type: "string", description: "Inspect state path", valueHint: "path" }, endpoint: { type: "string", description: "Probe endpoint", valueHint: "url" }, verbose: { type: "boolean", description: "Return full diagnostics" } },
+  async run({ args }) {
+    const a = args as CliArgs;
+    try {
+      const diagnostics: DoctorDiagnostic[] = [];
+      diagnostics.push(await inspectEnvironment(process.cwd()));
+      diagnostics.push(...(await checkPlaywrightBrowsers()).map((item): DoctorDiagnostic => ({ kind: `browser:${item.browser}`, status: item.installed ? "ok" : "warn", summary: item.installed ? "browser installed" : "browser not installed", details: item })));
+      const disk = await checkDiskSpace(process.cwd());
+      diagnostics.push({ kind: "disk", status: disk.ok ? "ok" : "warn", summary: "workspace disk space", details: disk });
+      if (str(a.profile)) diagnostics.push(inspectProfilePath(str(a.profile)));
+      if (str(a.state)) diagnostics.push(inspectStatePath(str(a.state)));
+      if (str(a.endpoint)) diagnostics.push(await probeEndpoint(str(a.endpoint)));
+      if (str(a["auth-provider"])) diagnostics.push({ kind: "auth-provider", status: getAuthProvider(str(a["auth-provider"]) as string) ? "ok" : "fail", summary: `auth provider ${str(a["auth-provider"])}`, details: { name: str(a["auth-provider"]) } });
+      if (str(a.session)) {
+        const status = await managedObserveStatus({ sessionName: session(a) }).catch((error) => ({ data: { error: error instanceof Error ? error.message : String(error) } }));
+        diagnostics.push({ kind: "observe-status", status: "ok", summary: "session probe completed", details: status.data as Record<string, unknown> });
+      }
+      print("doctor", { data: { summary: summarizeDiagnostics(diagnostics), diagnostics: bool(a.verbose) ? diagnostics : diagnostics.map(compactDoctorDiagnostic), recovery: doctorRecovery(diagnostics) } }, a);
+    } catch (error) {
+      printCommandError("doctor", { code: "DOCTOR_FAILED", message: error instanceof Error ? error.message : "doctor failed" }, a.output);
+      process.exitCode = 1;
+    }
+  },
+});

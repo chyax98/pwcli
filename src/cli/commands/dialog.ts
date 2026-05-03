@@ -1,0 +1,24 @@
+import { defineCommand } from "citty";
+import { managedDialog } from "#engine/act/page.js";
+import { sharedArgs } from "#cli/args.js";
+import { firstPos, print, session, withCliError, type CliArgs } from "./_helpers.js";
+
+const accept = defineCommand({
+  meta: { name: "accept", description: "Accept the current dialog" },
+  args: sharedArgs,
+  async run({ args }) {
+    const a = args as CliArgs;
+    try { print("dialog accept", await managedDialog("accept", { sessionName: session(a), prompt: firstPos(a) }), a); } catch (error) { withCliError("dialog accept", a, error); }
+  },
+});
+
+const dismiss = defineCommand({
+  meta: { name: "dismiss", description: "Dismiss the current dialog" },
+  args: sharedArgs,
+  async run({ args }) {
+    const a = args as CliArgs;
+    try { print("dialog dismiss", await managedDialog("dismiss", { sessionName: session(a) }), a); } catch (error) { withCliError("dialog dismiss", a, error); }
+  },
+});
+
+export default defineCommand({ meta: { name: "dialog", description: "Handle browser dialogs" }, subCommands: { accept, dismiss } });

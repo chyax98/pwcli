@@ -66,7 +66,7 @@ pw bootstrap apply --session <name> --headers-file ./headers.json
 ## 组合模板
 
 ```bash
-pw session create test-a --headless --open '<url>'
+pw session create test-a --no-headed --open '<url>'
 pw route load ./routes.json --session test-a
 pw environment permissions grant geolocation --session test-a
 pw bootstrap apply --session test-a --init-script ./bootstrap.js

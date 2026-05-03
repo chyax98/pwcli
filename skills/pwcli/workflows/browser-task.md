@@ -13,7 +13,7 @@ pw session create <name> --headed --open '<url>'
 无头自动化：
 
 ```bash
-pw session create <name> --headless --open '<url>'
+pw session create <name> --no-headed --open '<url>'
 ```
 
 ## 继续旧任务
@@ -22,7 +22,7 @@ pw session create <name> --headless --open '<url>'
 
 ```bash
 pw session list --with-page
-pw observe status -s <name>
+pw status -s <name>
 pw page current -s <name>
 pw read-text -s <name>
 ```
@@ -30,7 +30,7 @@ pw read-text -s <name>
 ## 观察
 
 ```bash
-pw observe status -s <name>
+pw status -s <name>
 pw page current -s <name>
 pw read-text -s <name>
 ```

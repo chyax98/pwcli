@@ -46,7 +46,7 @@ Environment/Bootstrap domain 只处理 **已有 browser context 的运行条件*
 
 ## 恢复路径
 
-- 页面表现异常：`observe status` / `diagnostics digest`。
+- 页面表现异常：`status` / `diagnostics digest`。
 - bootstrap 注入后异常：recreate session，去掉 bootstrap 后复现。
 - clock 不生效：确认命令顺序，必要时用 `pw code` 在页面上下文读 `new Date()` 验证。
 - 权限/位置不生效：确认当前页面 origin 和权限提示状态。

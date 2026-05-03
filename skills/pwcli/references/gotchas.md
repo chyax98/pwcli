@@ -6,7 +6,7 @@
 
 ```bash
 pw session list
-pw observe status --session <old>
+pw status --session <old>
 ```
 
 把旧 session 当默认入口会污染场景，尤其是不同 URL、不同登录态、不同 mock 状态。

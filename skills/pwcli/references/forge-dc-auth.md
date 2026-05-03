@@ -23,7 +23,7 @@
 pw session create dc-main --headed
 pw auth dc --session dc-main --arg targetUrl='<forge-url>'
 pw read-text --session dc-main --max-chars 1200
-pw observe status --session dc-main
+pw status --session dc-main
 ```
 
 ### B. 已有 session 当前页就是 Forge/DC
@@ -33,7 +33,7 @@ pw observe status --session dc-main
 ```bash
 pw auth dc --session <session>
 pw read-text --session <session> --max-chars 1200
-pw observe status --session <session>
+pw status --session <session>
 ```
 
 ### C. 用户没给 URL，当前页也不是 Forge/DC
@@ -44,7 +44,7 @@ pw observe status --session <session>
 pw session create dc-main --headed
 pw auth dc --session dc-main
 pw read-text --session dc-main --max-chars 1200
-pw observe status --session dc-main
+pw status --session dc-main
 ```
 
 ## 3. Provider 参数规则
@@ -88,7 +88,7 @@ pw auth dc --session dc-main --arg baseURL='<origin>'
 
 ```bash
 pw read-text --session dc-main --max-chars 1200
-pw observe status --session dc-main
+pw status --session dc-main
 pw auth probe --session dc-main
 ```
 
