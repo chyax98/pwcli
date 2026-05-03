@@ -49,6 +49,7 @@ codestable/
 - `auth` 只做内置 auth provider 执行
 - `batch` 只走结构化 `string[][]`
 - skill 是唯一教程真相
+- 项目文档中文优先；`skills/pwcli/` 作为核心产品面必须中文优先，英文只保留在命令、flag、错误码、API、路径、协议字段和必要引用里
 - docs 只维护架构、限制、扩展方向
 - `.claude` 只维护 Claude Code 项目指令、规则和本地开发 slash commands，不承载项目文档或 backlog
 - limitation code 不能包装成“已支持”
