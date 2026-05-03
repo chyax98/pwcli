@@ -23,7 +23,18 @@ export default defineCommand({
         printError("batch", a, { code: "BATCH_INPUT_INVALID", message: "batch input must be a JSON array of argv string arrays" });
         return;
       }
-      print("batch", { data: await runBatch({ sessionName: session(a), commands, continueOnError: bool(a["continue-on-error"]), includeResults: bool(a["include-results"]), summaryOnly: bool(a["summary-only"]) }) }, a);
+      const continueOnError = bool(a["continue-on-error"]);
+      const result = await runBatch({ sessionName: session(a), commands, continueOnError, includeResults: bool(a["include-results"]), summaryOnly: bool(a["summary-only"]) });
+      if (result.summary.failedCount > 0 && !continueOnError) {
+        printError("batch", a, {
+          code: "BATCH_STEP_FAILED",
+          message: result.summary.firstFailureMessage ?? `batch step ${result.summary.firstFailedStep} failed`,
+          suggestions: result.summary.firstFailureSuggestions ?? [],
+          details: { summary: result.summary, results: result.results, analysis: result.analysis },
+        });
+      } else {
+        print("batch", { data: result }, a);
+      }
     } catch (e) { withCliError("batch", a, e); }
   },
 });
