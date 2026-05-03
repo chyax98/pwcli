@@ -1,3 +1,5 @@
+import { mkdir, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
 import { listRunDirs, readRunEvents } from "#store/artifacts.js";
 import { managedRunCode, stateAccessPrelude } from "../shared.js";
 import {
@@ -189,6 +191,12 @@ export function applyDiagnosticsExportFilter(
   };
 }
 
+export async function writeDiagnosticsExportFile(outPath: string, data: unknown) {
+  await mkdir(dirname(outPath), { recursive: true });
+  await writeFile(outPath, `${JSON.stringify(data, null, 2)}\n`, "utf8");
+  return outPath;
+}
+
 export async function readDiagnosticsRunView(options: {
   runId: string;
   command?: string;
@@ -225,6 +233,13 @@ export async function readDiagnosticsRunView(options: {
     total: filtered.length,
     events: fields.length > 0 ? limited.map((event) => projectRecord(event, fields)) : limited,
   };
+}
+
+export async function readDiagnosticsRunDigest(options: {
+  runId: string;
+  limit?: number;
+}) {
+  return buildRunDigest(options.runId, await readRunEvents(options.runId), options.limit ?? 5);
 }
 
 type TimelineEntry = {
@@ -394,6 +409,7 @@ export async function managedDiagnosticsBundle(options: {
   sessionName: string;
   limit?: number;
   exported: DiagnosticsExport;
+  outDir?: string;
 }) {
   const limit = Math.max(1, options.limit ?? 20);
   const digest = buildSessionDigest(options.exported, Math.min(limit, 10));
@@ -440,7 +456,7 @@ export async function managedDiagnosticsBundle(options: {
     .filter((e) => scoreTimelineEntry(e, pageUrl) >= 5)
     .slice(-limit);
 
-  return {
+  const result = {
     session: options.exported.session,
     page: options.exported.page,
     data: {
@@ -464,4 +480,15 @@ export async function managedDiagnosticsBundle(options: {
       },
     },
   };
+
+  if (options.outDir) {
+    await mkdir(options.outDir, { recursive: true });
+    await writeFile(
+      join(options.outDir, "manifest.json"),
+      `${JSON.stringify(result.data, null, 2)}\n`,
+      "utf8",
+    );
+  }
+
+  return result;
 }
