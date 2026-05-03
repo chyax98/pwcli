@@ -32,13 +32,12 @@
   },
   "imports": {
     "#engine/*": "./dist/engine/*",
-    "#cli/*":    "./dist/cli/*",
-    "#store/*":  "./dist/store/*",
-    "#auth/*":   "./dist/auth/*"
+    "#cli/*": "./dist/cli/*",
+    "#store/*": "./dist/store/*",
+    "#auth/*": "./dist/auth/*"
   },
   "dependencies": {
-    "citty": "0.1.6",
-    "commander": "14.0.3",
+    "citty": "^0.2.2",
     "playwright-core": "1.59.1"
   },
   "devDependencies": {
