@@ -1,6 +1,7 @@
 import { defineCommand } from "citty";
 import { getAuthProvider } from "#auth/registry.js";
 import { managedObserveStatus } from "#engine/diagnose/core.js";
+import { isModalStateBlockedMessage } from "#engine/shared.js";
 import { checkDiskSpace, checkPlaywrightBrowsers, compactDoctorDiagnostic, doctorRecovery, inspectEnvironment, inspectProfilePath, inspectStatePath, probeEndpoint, summarizeDiagnostics, type DoctorDiagnostic } from "#store/health.js";
 import { sharedArgs } from "#cli/args.js";
 import { bool, print, session, str, type CliArgs } from "./_helpers.js";
@@ -22,8 +23,28 @@ export default defineCommand({
       if (str(a.endpoint)) diagnostics.push(await probeEndpoint(str(a.endpoint)));
       if (str(a["auth-provider"])) diagnostics.push({ kind: "auth-provider", status: getAuthProvider(str(a["auth-provider"]) as string) ? "ok" : "fail", summary: `auth provider ${str(a["auth-provider"])}`, details: { name: str(a["auth-provider"]) } });
       if (str(a.session)) {
-        const status = await managedObserveStatus({ sessionName: session(a) }).catch((error) => ({ data: { error: error instanceof Error ? error.message : String(error) } }));
-        diagnostics.push({ kind: "observe-status", status: "ok", summary: "session probe completed", details: status.data as Record<string, unknown> });
+        const sessionName = session(a);
+        try {
+          const status = await managedObserveStatus({ sessionName });
+          diagnostics.push({ kind: "observe-status", status: "ok", summary: "session probe completed", details: status.data as Record<string, unknown> });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          if (isModalStateBlockedMessage(message)) {
+            diagnostics.push({
+              kind: "modal-state",
+              status: "fail",
+              summary: "session is blocked by a modal dialog",
+              details: { sessionName, code: "MODAL_STATE_BLOCKED" },
+            });
+          } else {
+            diagnostics.push({
+              kind: "observe-status",
+              status: "fail",
+              summary: "session probe failed",
+              details: { sessionName, error: message },
+            });
+          }
+        }
       }
       print("doctor", { data: { summary: summarizeDiagnostics(diagnostics), diagnostics: bool(a.verbose) ? diagnostics : diagnostics.map(compactDoctorDiagnostic), recovery: doctorRecovery(diagnostics) } }, a);
     } catch (error) {

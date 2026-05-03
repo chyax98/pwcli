@@ -243,7 +243,7 @@ CodeStable truth audit: pass
 
 ## 7. 观察项
 
-- 当前辅助 E2E 暴露：`doctor --session` 没有按脚本预期输出 `modal-state` recovery；这应作为 Pre-1.0 recovery breakthrough 的第一条真实输入。
+- 当前辅助 E2E 曾暴露：`doctor --session` 没有按脚本预期输出 `modal-state` recovery；2026-05-04 已修复并用 `check:doctor-modal` 固化。Pre-1.0 仍需继续覆盖页面级 modal 和复杂 blocked state。
 - `auth dc` 过去未验证的理由是缺真实外部业务环境证据；用户已明确可以进测试/RND 环境，因此下一轮不能再把它停留在 documented。
 - HAR 热录制是否进入 1.0 必须做明确决定；不能长期停在“代码有命令但 supported=false”的模糊状态。
 - `scripts/eval/`、`scripts/benchmark/results/` 和旧 E2E 资产需要清理审计：有入口、有复用价值才保留；否则移除或迁入 CodeStable 稳定结论。

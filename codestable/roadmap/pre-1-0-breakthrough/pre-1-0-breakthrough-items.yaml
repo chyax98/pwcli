@@ -16,7 +16,7 @@ items:
     status: planned
     feature: null
     minimal_loop: false
-    notes: 当前辅助 E2E 暴露 modal doctor recovery 断言失败；不得用逻辑兼容补丁掩盖
+    notes: 2026-05-04 已修复 modal doctor recovery P1 并跑通 pnpm test:dogfood:e2e；仍需正式审计该脚本是保留、拆分还是移除
 
   - slug: real-env-access-map
     description: 梳理测试/RND/Forge/DC 可访问入口、账号材料边界、验证 SOP 和安全记录规则
@@ -40,7 +40,7 @@ items:
     status: planned
     feature: null
     minimal_loop: false
-    notes: 当前真实输入为辅助 E2E 中 doctor 未输出 modal-state recovery
+    notes: 2026-05-04 当前暴露的 doctor 未输出 modal-state recovery 已修复并有 check:doctor-modal；Pre-1.0 仍需继续覆盖页面级 modal 和复杂 blocked state
 
   - slug: run-code-timeout-recovery-breakthrough
     description: 系统验证 RUN_CODE_TIMEOUT、长导航、长网络等待的恢复路径和 skill SOP

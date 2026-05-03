@@ -32,6 +32,7 @@
     "check:env-geolocation": "node scripts/check-environment-geolocation-contract.js",
     "check:batch-verify": "node scripts/check-batch-verify-contract.js",
     "check:trace-inspect": "node scripts/check-trace-inspect-contract.js",
+    "check:doctor-modal": "node scripts/check-doctor-modal-contract.js",
     "check:skill-install": "node scripts/check-skill-install-contract.js"
   },
   "imports": {

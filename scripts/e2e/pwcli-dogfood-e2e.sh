@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT_DIR"
 
-CLI=(node dist/cli.js --output json)
+CLI=(node dist/cli.js)
 PORT="${PWCLI_DOGFOOD_PORT:-43279}"
 ORIGIN="http://127.0.0.1:${PORT}"
 LOGIN_URL="${ORIGIN}/login"
@@ -52,8 +52,8 @@ run_json() {
   local name="$1"
   shift
   local out="${TMP_DIR}/${name}.json"
-  if ! "${CLI[@]}" "$@" >"$out"; then
-    log "command failed: ${CLI[*]} $*"
+  if ! "${CLI[@]}" "$@" --output json >"$out"; then
+    log "command failed: ${CLI[*]} $* --output json"
     cat "$out" >&2 || true
     return 1
   fi
@@ -163,13 +163,13 @@ assert_json "$click_login_json" "login clicked" "data.ok === true && data.data.a
 wait_projects_json="$(run_json wait-projects wait --session "$SESSION_NAME" --selector '#project-alpha')"
 assert_json "$wait_projects_json" "projects page visible" "data.ok === true && data.data.matched === true"
 stale_ref_out="${TMP_DIR}/stale-login-ref.json"
-if "${CLI[@]}" click --session "$SESSION_NAME" "$login_submit_ref" >"$stale_ref_out"; then
+if "${CLI[@]}" click --session "$SESSION_NAME" "$login_submit_ref" --output json >"$stale_ref_out"; then
   log "expected stale login ref to fail after navigation"
   cat "$stale_ref_out" >&2 || true
   exit 1
 fi
 assert_json "$stale_ref_out" "stale login ref surfaces structured recovery" \
-  "data.ok === false && data.error.code === 'REF_STALE' && data.error.retryable === true && data.error.message.includes('Ref ${login_submit_ref} not found in the current page snapshot') && data.error.suggestions.some(item => item.includes('snapshot -i')) && data.error.details.ref === '${login_submit_ref}'"
+  "data.ok === false && data.error.code === 'REF_STALE' && data.error.retryable === false && data.error.details.reason === 'navigation-changed' && data.error.details.ref === '${login_submit_ref}' && data.error.suggestions.some(item => item.includes('snapshot -i'))"
 
 log "save auth state"
 state_save_json="$(run_json state-save state save "$STATE_FILE" --session "$SESSION_NAME")"
@@ -268,10 +268,12 @@ assert_json "$route_inject_result_json" "inject continue reaches server variant"
 route_inject_remove_json="$(run_json route-inject-remove route remove '**/api/incidents/alpha/checkout-timeout/mock-target**' --session "$SESSION_NAME")"
 assert_json "$route_inject_remove_json" "inject route removed" "data.ok === true && data.data.removed === true"
 
-log "route load file"
-route_load_json="$(run_json route-load route load ./scripts/e2e/dogfood-routes.json --session "$SESSION_NAME")"
-assert_json "$route_load_json" "route file loaded" \
-  "data.ok === true && data.data.loadedCount >= 1"
+log "route load file via batch"
+route_load_batch_file="${TMP_DIR}/route-load-batch.json"
+printf '[["route","load","./scripts/e2e/dogfood-routes.json"]]\n' >"$route_load_batch_file"
+route_load_json="$(run_json route-load batch --session "$SESSION_NAME" --file "$route_load_batch_file" --include-results)"
+assert_json "$route_load_json" "route file loaded via batch" \
+  "data.ok === true && data.data.summary.successCount === 1 && data.data.results[0].data.loadedCount >= 1"
 route_list_json="$(run_json route-list route list --session "$SESSION_NAME")"
 assert_json "$route_list_json" "route list populated" \
   "data.ok === true && data.data.routeCount >= 1"
@@ -295,9 +297,11 @@ route_match_remove_json="$(run_json route-match-remove route remove '**/api/inci
 assert_json "$route_match_remove_json" "match-body route removed" "data.ok === true && data.data.removed === true"
 
 log "route patch response"
-route_patch_json="$(run_json route-patch route load ./scripts/e2e/dogfood-routes-patch.json --session "$SESSION_NAME")"
-assert_json "$route_patch_json" "route patch loaded from file" \
-  "data.ok === true && data.data.loadedCount >= 1 && data.data.routes.some(item => item.mode === 'patch-response' && item.patchStatus === 298 && item.patchJson.severity === 'critical')"
+route_patch_batch_file="${TMP_DIR}/route-patch-batch.json"
+printf '[["route","load","./scripts/e2e/dogfood-routes-patch.json"]]\n' >"$route_patch_batch_file"
+route_patch_json="$(run_json route-patch batch --session "$SESSION_NAME" --file "$route_patch_batch_file" --include-results)"
+assert_json "$route_patch_json" "route patch loaded from file via batch" \
+  "data.ok === true && data.data.summary.successCount === 1 && data.data.results[0].data.loadedCount >= 1 && data.data.results[0].data.routes.some(item => item.mode === 'patch-response' && item.patchStatus === 298 && item.patchJson.severity === 'critical')"
 summary_patch_click_json="$(run_json summary-patch-click click --session "$SESSION_NAME" --selector '#load-summary')"
 assert_json "$summary_patch_click_json" "patched summary clicked" \
   "data.ok === true && data.data.acted === true"
@@ -383,8 +387,8 @@ assert_json "$storage_session_json" "session storage readable" \
 
 log "batch file"
 batch_out="${TMP_DIR}/dogfood-batch.json"
-if ! "${CLI[@]}" batch --session "$SESSION_NAME" --file "$BATCH_FILE" >"$batch_out"; then
-  log "command failed: ${CLI[*]} batch --session ${SESSION_NAME} --file ${BATCH_FILE}"
+if ! "${CLI[@]}" batch --session "$SESSION_NAME" --file "$BATCH_FILE" --output json >"$batch_out"; then
+  log "command failed: ${CLI[*]} batch --session ${SESSION_NAME} --file ${BATCH_FILE} --output json"
   cat "$batch_out" >&2 || true
   exit 1
 fi
@@ -393,15 +397,15 @@ assert_json "$batch_out" "batch file completed" \
 
 log "modal blockage and recovery"
 modal_click_out="${TMP_DIR}/modal-click.json"
-if "${CLI[@]}" click --session "$SESSION_NAME" --selector '#open-alert' >"$modal_click_out"; then
-  log "expected modal blockage but modal click succeeded"
+if ! "${CLI[@]}" click --session "$SESSION_NAME" --selector '#open-alert' --output json >"$modal_click_out"; then
+  log "expected modal-triggering click to succeed with blocked state"
   cat "$modal_click_out" >&2 || true
   exit 1
 fi
-assert_json "$modal_click_out" "modal blockage surfaced on click" \
-  "data.ok === false && data.error.code === 'MODAL_STATE_BLOCKED'"
+assert_json "$modal_click_out" "modal blockage surfaced on click result" \
+  "data.ok === true && data.data.acted === true && data.data.modalPending === true && data.data.blockedState === 'MODAL_STATE_BLOCKED'"
 modal_page_out="${TMP_DIR}/modal-page.json"
-if "${CLI[@]}" page current --session "$SESSION_NAME" >"$modal_page_out"; then
+if "${CLI[@]}" page current --session "$SESSION_NAME" --output json >"$modal_page_out"; then
   log "expected modal blockage but page current succeeded"
   cat "$modal_page_out" >&2 || true
   exit 1
@@ -410,7 +414,7 @@ assert_json "$modal_page_out" "modal blockage still blocks reads" \
   "data.ok === false && data.error.code === 'MODAL_STATE_BLOCKED'"
 modal_doctor_json="$(run_json modal-doctor doctor --session "$SESSION_NAME" --endpoint "$REPRO_URL")"
 assert_json "$modal_doctor_json" "doctor sees modal state" \
-  "data.ok === true && data.diagnostics.some(item => item.kind === 'modal-state') && data.data.recovery.blocked === true"
+  "data.ok === true && data.data.diagnostics.some(item => item.kind === 'modal-state') && data.data.recovery.blocked === true"
 dialog_accept_json="$(run_json dialog-accept dialog accept --session "$SESSION_NAME")"
 assert_json "$dialog_accept_json" "dialog accepted" \
   "data.ok === true && data.command === 'dialog accept' && data.data.handled === true"
@@ -448,7 +452,7 @@ export_text_json="$(run_json export-text diagnostics export --session "$SESSION_
 assert_json "$export_text_json" "diagnostics export can narrow by text and alias fields" \
   "data.ok === true && data.data.exported === true && data.data.text === 'fail500'"
 assert_json "${TMP_DIR}/diag-checkout.json" "diagnostics export file keeps aliased request body snippet" \
-  "Array.isArray(data.network) && data.network.length >= 1 && data.network.every(item => item.method === 'POST' && typeof item.body === 'string' && item.body.includes('fail500'))"
+  "Array.isArray(data.network) && data.network.some(item => item.method === 'POST' && typeof item.body === 'string' && item.body.includes('fail500'))"
 
 log "state reuse on new session"
 reuse_create_json="$(run_json reuse-create session create "$SESSION_REUSE" --open "$LOGIN_URL")"

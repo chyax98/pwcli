@@ -72,6 +72,7 @@ pnpm build
 pnpm typecheck
 pnpm build
 pnpm test:regression
+pnpm check:doctor-modal
 git diff --check
 npm pack --dry-run
 ```
