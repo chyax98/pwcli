@@ -1478,7 +1478,7 @@ export async function managedClick(options: {
     ? { kind: "selector" as const, target: { selector: options.selector, nth }, source: selectorActionSource("CLICK", { selector: options.selector, nth }, (l) => `await ${l}.click(${clickOpts});`) }
     : { kind: "ref" as const, ref: normalizeRef(options.ref!), argv: ["click", normalizeRef(options.ref!), ...(options.button ? [options.button] : [])] };
   const tgt = "target" in locator ? locator.target as Record<string, unknown> : { ref: (locator as { ref: string }).ref };
-  return dispatchLocatorAction({ command: "click", sessionName: options.sessionName, before, locator, resultData: { ...tgt, ...(options.button ? { button: options.button } : {}), acted: true }, allowModal: true, pickFromResult: ["openedPage"] });
+  return dispatchLocatorAction({ command: "click", sessionName: options.sessionName, before, locator, resultData: { target: tgt, ...(options.button ? { button: options.button } : {}), acted: true }, allowModal: true, pickFromResult: ["openedPage"] });
 }
 
 // =============================================================================
@@ -1504,7 +1504,7 @@ export async function managedFill(options: {
     ? { kind: "selector" as const, target: { selector: options.selector, nth }, source: selectorActionSource("FILL", { selector: options.selector, nth }, (l) => `await ${l}.fill(${JSON.stringify(options.value)});`) }
     : { kind: "ref" as const, ref: normalizeRef(options.ref!), argv: ["fill", normalizeRef(options.ref!), options.value] };
   const tgt = "target" in locator ? locator.target as Record<string, unknown> : { ref: (locator as { ref: string }).ref };
-  return dispatchLocatorAction({ command: "fill", sessionName: options.sessionName, before, locator, resultData: { ...tgt, value: options.value, filled: true } });
+  return dispatchLocatorAction({ command: "fill", sessionName: options.sessionName, before, locator, resultData: { target: tgt, value: options.value, filled: true } });
 }
 
 // =============================================================================
@@ -1647,7 +1647,7 @@ async function managedBooleanControlAction(
     ? { kind: "selector" as const, target: { selector: options.selector, nth }, source: selectorActionSource(command.toUpperCase(), { selector: options.selector, nth }, (l) => `await ${l}.${command}();`) }
     : { kind: "ref" as const, ref: normalizeRef(options.ref!), argv: [command, normalizeRef(options.ref!)] };
   const tgt = "target" in locator ? locator.target as Record<string, unknown> : { ref: (locator as { ref: string }).ref };
-  return dispatchLocatorAction({ command, sessionName: options.sessionName, before, locator, resultData: { ...tgt, acted: true, checked: command === "check" } });
+  return dispatchLocatorAction({ command, sessionName: options.sessionName, before, locator, resultData: { target: tgt, acted: true, checked: command === "check" } });
 }
 
 export async function managedCheck(options: {
