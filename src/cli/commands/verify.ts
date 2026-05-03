@@ -17,7 +17,9 @@ export default defineCommand({
       const target = assertion === "url" ? undefined : stateTarget(a);
       const url = assertion === "url" ? { contains: str(a.contains), equals: str(a.equals), matches: str(a.matches) } : undefined;
       const count = assertion === "count" ? { equals: num(a.equals), min: num(a.min), max: num(a.max) } : undefined;
-      print("verify", await managedVerify({ sessionName: session(a), assertion, target, url, count }), a);
+      const result = await managedVerify({ sessionName: session(a), assertion, target, url, count });
+      print("verify", result, a);
+      if (result.data.passed === false) process.exitCode = 1;
     } catch (error) { withCliError("verify", a, error); }
   },
 });
