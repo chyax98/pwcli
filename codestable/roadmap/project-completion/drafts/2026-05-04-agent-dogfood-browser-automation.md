@@ -111,6 +111,7 @@ Error: browserContext.setGeolocation: geolocation.longitude: expected float, got
 - `reproducible-handoff`：partial pass；bundle/runs 已覆盖，2026-05-04 追加 screenshot/pdf/accessibility/video/trace artifact 证据。dogfood 暴露 trace inspect 路径解析 P1，已修复并用 `check:trace-inspect` 固化。
 - `state-auth`：partial pass；2026-05-04 追加 fixture-auth、state diff/load、cookies/localStorage、IndexedDB export 证据。
 - `workspace-control`：partial pass；2026-05-04 追加 session/page projection、snapshot epoch、text alias、hover/scroll/resize/mouse dogfood。
+- `tooling-boundary`：partial pass；2026-05-04 追加 skill install/profile/dashboard/SSE/HAR limitation 验证。dogfood 暴露 skill packaged path P1，已修复并用 `check:skill-install` 固化。
 
 ## 追加验证：Environment controlled-testing
 
@@ -386,3 +387,43 @@ pw code -s mousedog2 '<read body dataset>'
 观察：
 
 - 坐标级 mouse command 的 `acted=true` 只代表动作发出，不代表业务命中；必须继续用 `code/get/read-text/verify` 复查页面状态。
+
+## 追加验证：Tooling boundary commands
+
+2026-05-04 追加工具边界 dogfood，覆盖 skill 分发、profile discovery、dashboard dry-run、SSE 查询和 HAR 当前限制。
+
+核心链路：
+
+```bash
+pw skill path
+pw skill install /tmp/pwcli-skill-install
+pnpm build
+pnpm check:skill-install
+pw profile list-chrome --output json
+pw dashboard open --dry-run --output json
+pw session create ssedog --no-headed --open http://127.0.0.1:43289/
+pw wait -s ssedog --text 'sse-result: sse-dogfood'
+pw sse -s ssedog --url /events --limit 10
+pw session create hardog --no-headed --open 'data:text/html,<main>har fixture</main>'
+pw har start -s hardog --path /tmp/pwcli-hardog.har
+pw har stop -s hardog
+```
+
+关键证据：
+
+- `profile list-chrome --output json` 返回 2 个 system Chrome profile：`Default`、`Profile 1`。
+- `dashboard open --dry-run --output json` 返回 `available=true`，并解析到当前 `playwright-core@1.59.1` 的 `dashboardApp.js` 和 `cli.js`。
+- SSE fixture 页面通过 EventSource 收到 `sse-result: sse-dogfood`；`pw sse --url /events` 返回 connect/open/message 记录，message data 为 `sse-dogfood`。
+- HAR start/stop 当前返回 `supported=false` 和明确 limitation：existing BrowserContext 不暴露 HAR start/stop。该能力不升级为 proven。
+
+本轮 dogfood 暴露并修复 P1：
+
+- 问题：`pw skill path` 指向 `/Users/xd/work/tools/skills/pwcli` 且 `info.exists=false`，`pw skill install` 返回 `SKILL_INSTALL_FAILED`。
+- 记录：`codestable/issues/2026-05-04-skill-packaged-path-resolution/skill-packaged-path-resolution-report.md`。
+- 修复：`src/store/skill.ts` 从 `dist/store/skill.js` 解析到包内 `../../skills/pwcli`。
+- 固化验证：新增 `pnpm check:skill-install`，覆盖 `skill path` 和安装到临时 skills 目录。
+
+观察：
+
+- SSE message 当前出现重复记录；查询和证据链可用，重复去重不是本轮 P0/P1 blocker。
+- `dashboard open --dry-run` 只证明 bundled entrypoint 可用；真实人类观察窗口仍属于人工接管面，不是 Agent 主执行链。

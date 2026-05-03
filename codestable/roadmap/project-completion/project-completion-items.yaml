@@ -16,7 +16,7 @@ items:
     status: in-progress
     feature: null
     minimal_loop: false
-    notes: 2026-05-04 已关闭 geolocation contract drift、batch verify failure propagation、trace inspect CLI resolution；继续审计可验证 P0/P1，不把 P2/P3 当 blocker
+    notes: 2026-05-04 已关闭 geolocation contract drift、batch verify failure propagation、trace inspect CLI resolution、skill packaged path resolution；继续审计可验证 P0/P1，不把 P2/P3 当 blocker
 
   - slug: committed-feature-closure
     description: 梳理并完成已承诺 feature，逐条走设计、实现、验收和 roadmap 回写

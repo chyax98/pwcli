@@ -3,7 +3,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 export function resolvePackagedSkillRoot(): string {
-  return fileURLToPath(new URL("../../../skills/pwcli", import.meta.url));
+  return fileURLToPath(new URL("../../skills/pwcli", import.meta.url));
 }
 
 export function getPackagedSkillInfo() {
