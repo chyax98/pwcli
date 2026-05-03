@@ -6,13 +6,18 @@
     "rootDir": "src",
     "outDir": "dist",
     "types": ["node"],
-    "strict": false,
-    "noImplicitAny": false,
+    "strict": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "verbatimModuleSyntax": true,
     "forceConsistentCasingInFileNames": true,
-    "sourceMap": true
+    "sourceMap": true,
+    "paths": {
+      "#engine/*": ["./src/engine/*"],
+      "#cli/*":    ["./src/cli/*"],
+      "#store/*":  ["./src/store/*"],
+      "#auth/*":   ["./src/auth/*"]
+    }
   },
   "include": ["src/**/*.ts"]
 }

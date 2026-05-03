@@ -30,6 +30,12 @@
     "test:dogfood:e2e": "pnpm build && bash scripts/e2e/pwcli-dogfood-e2e.sh",
     "check:skill": "node scripts/check-skill-contract.js"
   },
+  "imports": {
+    "#engine/*": "./dist/engine/*",
+    "#cli/*":    "./dist/cli/*",
+    "#store/*":  "./dist/store/*",
+    "#auth/*":   "./dist/auth/*"
+  },
   "dependencies": {
     "commander": "14.0.3",
     "playwright-core": "1.59.1"
