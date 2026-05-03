@@ -5,10 +5,10 @@ items:
   - slug: regression-smoke-green
     description: 接续 handoff_smoke.md 修复当前 regression，直到 pnpm smoke 输出 all tests passed
     depends_on: []
-    status: planned
+    status: done
     feature: null
     minimal_loop: true
-    notes: 当前已知失败点是 diagnostics bundle 未生成 manifest.json
+    notes: 2026-05-04 已通过 pnpm smoke；修复 diagnostics bundle/export 产物写出和 smoke 旧 JSON 断言漂移
 
   - slug: p0-p1-bug-backlog-closure
     description: 记录并修复所有阻塞发布的 P0/P1 bug，形成 issue report/analysis/fix-note 闭环
@@ -37,10 +37,10 @@ items:
   - slug: command-docs-complete
     description: 为所有顶层 command 建立 CodeStable command doc 覆盖矩阵并补齐缺口
     depends_on: [truth-sync-cleanup]
-    status: planned
+    status: done
     feature: null
     minimal_loop: false
-    notes: 允许按命令族聚合，但每个顶层 command 必须可检索、可追证据状态
+    notes: 2026-05-04 已建立 codestable/architecture/commands/coverage.md，node dist/cli.js --help 53/53 顶层 command 均映射到命令族 ADR
 
   - slug: agent-scenario-deep-validation
     description: 深测 Agent 浏览器任务矩阵，覆盖自动化、测试、表单、爬取、Deep Bug 和证据交接

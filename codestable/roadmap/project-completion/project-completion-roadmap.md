@@ -244,9 +244,9 @@ reproducible-handoff      -> runs/events.jsonl/manifest.json/artifacts/fix-note
 1. **regression-smoke-green** — 接续 `handoff_smoke.md`，修到 `pnpm smoke` 输出 `[smoke] all tests passed`。
    - 所属模块：Regression Gate
    - 依赖：无
-   - 状态：planned
+   - 状态：done
    - 对应 feature：未启动
-   - 备注：当前已知失败点是 diagnostics bundle 未生成 `manifest.json`。
+   - 备注：2026-05-04 已通过 `pnpm smoke`；修复 diagnostics bundle/export 产物写出和 smoke 旧 JSON 断言漂移。
 
 2. **p0-p1-bug-backlog-closure** — 把剩余 P0/P1 bug 按 `cs-issue` 记录、分析、修复、验收。
    - 所属模块：Bug Closure
@@ -272,9 +272,9 @@ reproducible-handoff      -> runs/events.jsonl/manifest.json/artifacts/fix-note
 5. **command-docs-complete** — 为所有顶层 command 建立 CodeStable command doc 覆盖矩阵并补齐缺口。
    - 所属模块：Command Docs
    - 依赖：`truth-sync-cleanup`
-   - 状态：planned
+   - 状态：done
    - 对应 feature：未启动
-   - 备注：允许按命令族聚合，但每个顶层 command 必须可检索、可追证据状态。
+   - 备注：已建立 `codestable/architecture/commands/coverage.md`，`node dist/cli.js --help` 53/53 顶层 command 均映射到命令族 ADR。
 
 6. **agent-scenario-deep-validation** — 深测 Agent 浏览器任务矩阵：自动化、测试、表单、爬取、Deep Bug、证据交接。
    - 所属模块：Agent Scenario Deep Validation
@@ -323,12 +323,12 @@ reproducible-handoff      -> runs/events.jsonl/manifest.json/artifacts/fix-note
 
 - `README.md` 仍引用旧 `docs/architecture/` 和旧 `src/app|domain|infra` 结构，需要在 truth sync 阶段修。
 - `handoff_smoke.md` 是过程交接文档，长期不应作为 active truth；完成 smoke 后应转成 issue/fix-note 或删除。
-- 当前已有未跟踪 command architecture 文档，需要在后续提交前确认是否都属于本轮迁移 / 验证产物。
-- 当前 command docs 是命令族聚合形态，需要补一份覆盖矩阵来证明每个顶层 command 均可检索。
-- `route load` 在 `codestable/architecture/commands/tools.md` 标为 `experimental` 且提示 source/help 不注册；后续 command docs coverage 阶段要核实它是删除残留、未注册能力，还是需重新实现的 planned feature。
-- `doctor` 在当前 Node 24 / pnpm 10+ 环境下的预检输出会干扰 smoke 健康判断；用户已明确不做环境补丁，后续验证报告需要把它作为环境观察项处理，不强行改产品代码。
+- command architecture 文档已提交为命令族 ADR，并补 `coverage.md` 覆盖矩阵。
+- `route load` 不是当前 source/help 注册命令；已在 `tools.md` 和 `coverage.md` 标为旧文档残留风险，不写成 shipped 能力。
+- `doctor` 在当前 Node 24 / pnpm 10+ 环境下仍会报告环境 diagnostic；smoke 只验证 endpoint 和 recovery，不用产品补丁绕过版本管理差异。
 
 ## 8. 变更日志
 
 - 2026-05-03：创建项目完成 roadmap，定义从 regression 绿到 release gate 的收敛路径。
 - 2026-05-04：扩展 roadmap，加入每个 command 的 CodeStable 文档覆盖、Agent 场景深测和复利资产归档。
+- 2026-05-04：`regression-smoke-green` 完成，`pnpm smoke` 通过；`command-docs-complete` 完成，53 个顶层 command 均有 CodeStable 命令族文档映射。

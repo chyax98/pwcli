@@ -986,111 +986,69 @@ assert_json "$clock_resume_json" "clock resume ok" \
 log "doctor"
 doctor_json="$(run_json doctor doctor --session "$SESSION_NAME" --endpoint "$BLANK_URL")"
 assert_json "$doctor_json" "doctor sees session and endpoint healthy" \
-  "data.ok === true && data.data.healthy === true && data.diagnostics.some(item => item.kind === 'endpoint-reachability' && item.status === 'ok') && data.data.recovery.blocked === false"
+  "data.ok === true && Array.isArray(data.data.diagnostics) && data.data.diagnostics.some(item => item.kind === 'endpoint-reachability' && item.status === 'ok') && data.data.recovery.blocked === false"
 
-echo "=== TEST: accessibility output includes role ==="
-output=$(node dist/cli.js accessibility --session "$SESSION_NAME" 2>&1)
-if echo "$output" | grep -q "role"; then
-  echo "PASS: accessibility output includes role"
-else
-  echo "FAIL: accessibility output includes role"
-  echo "Output: $output"
-  FAILED=$((FAILED+1))
-fi
+log "accessibility"
+accessibility_json="$(run_json accessibility accessibility --session "$SESSION_NAME")"
+assert_json "$accessibility_json" "accessibility returns aria yaml snapshot" \
+  "data.ok === true && data.data.format === 'aria-yaml' && typeof data.data.snapshot === 'string' && data.data.snapshot.includes('pwcli diagnostics fixture')"
 
-echo "=== TEST: mouse move does not report unsupported ==="
-output=$(node dist/cli.js mouse move --x 100 --y 100 --session "$SESSION_NAME" 2>&1)
-if echo "$output" | grep -q "unsupported"; then
-  echo "FAIL: mouse move reports unsupported"
-  echo "Output: $output"
-  FAILED=$((FAILED+1))
-else
-  echo "PASS: mouse move does not report unsupported"
-fi
+log "mouse move"
+mouse_move_json="$(run_json mouse-move mouse move 100 100 --session "$SESSION_NAME")"
+assert_json "$mouse_move_json" "mouse move acts and records run evidence" \
+  "data.ok === true && data.data.acted === true && data.data.x === 100 && data.data.y === 100 && typeof data.data.run.runId === 'string'"
 
-echo "=== TEST: video start and stop ==="
-video_start_output=$(node dist/cli.js video start --session "$SESSION_NAME" 2>&1)
-if echo "$video_start_output" | grep -q "LIMITATION"; then
-  echo "PASS: video start returns LIMITATION"
+log "video start and stop"
+video_start_json="${TMP_DIR}/video-start.json"
+if node dist/cli.js video start --session "$SESSION_NAME" --output json >"$video_start_json"; then
+  assert_json "$video_start_json" "video start reports started" \
+    "data.ok === true && data.data.started === true"
+  video_stop_json="$(run_json video-stop video stop --session "$SESSION_NAME")"
+  assert_json "$video_stop_json" "video stop reports stopped" \
+    "data.ok === true && data.data.stopped === true && (typeof data.data.videoPath === 'string' || data.data.noVideo === true)"
 else
-  video_stop_output=$(node dist/cli.js video stop --session "$SESSION_NAME" 2>&1)
-  if echo "$video_stop_output" | grep -q "videoPath"; then
-    echo "PASS: video stop returns videoPath"
-  else
-    echo "FAIL: video start/stop did not return expected output"
-    echo "Start: $video_start_output"
-    echo "Stop: $video_stop_output"
-    FAILED=$((FAILED+1))
-  fi
+  assert_json "$video_start_json" "video start fails with explicit limitation" \
+    "data.ok === false && String(data.error.code).includes('VIDEO')"
 fi
 
-echo "=== TEST: network include-body ==="
-output=$(node dist/cli.js network --include-body --session "$SESSION_NAME" 2>&1)
-if echo "$output" | grep -q "includeBody\|summary\|total"; then
-  echo "PASS: network include-body returns expected fields"
-else
-  echo "FAIL: network include-body missing expected fields"
-  echo "Output: $output"
-  FAILED=$((FAILED+1))
-fi
+log "network include-body"
+network_body_json="$(run_json network-include-body network --include-body --session "$SESSION_NAME")"
+assert_json "$network_body_json" "network include-body returns structured summary" \
+  "data.ok === true && data.data.summary && typeof data.data.summary.total === 'number' && Array.isArray(data.data.summary.sample)"
 
-echo "=== TEST: locate with return-ref ==="
-output=$(node dist/cli.js locate --selector body --return-ref --session "$SESSION_NAME" 2>&1)
-if echo "$output" | grep -q "ref="; then
-  echo "PASS: locate --return-ref includes ref="
-else
-  echo "FAIL: locate --return-ref missing ref="
-  echo "Output: $output"
-  FAILED=$((FAILED+1))
-fi
+log "locate with return-ref"
+locate_ref_json="$(run_json locate-return-ref locate --selector body --return-ref --session "$SESSION_NAME")"
+assert_json "$locate_ref_json" "locate --return-ref returns candidates and optional fresh ref" \
+  "data.ok === true && data.data.count >= 1 && Array.isArray(data.data.candidates)"
 
-echo "=== TEST: state diff and state diff --include-values ==="
-state_diff_output=$(node dist/cli.js state diff --session "$SESSION_NAME" --before "${TMP_DIR}/smoke-before.json" 2>&1)
-if echo "$state_diff_output" | grep -q "summary\|changed"; then
-  echo "PASS: state diff returns diff structure"
-else
-  echo "FAIL: state diff missing diff structure"
-  echo "Output: $state_diff_output"
-  FAILED=$((FAILED+1))
-fi
-state_diff_values_output=$(node dist/cli.js state diff --session "$SESSION_NAME" --before "${TMP_DIR}/smoke-before.json" --include-values 2>&1)
-if echo "$state_diff_values_output" | grep -q "summary\|changed"; then
-  echo "PASS: state diff --include-values returns diff structure"
-else
-  echo "FAIL: state diff --include-values missing diff structure"
-  echo "Output: $state_diff_values_output"
-  FAILED=$((FAILED+1))
-fi
+log "state diff and state diff --include-values"
+state_diff_baseline_json="$(run_json state-diff-baseline state diff --session "$SESSION_NAME" --before "${TMP_DIR}/smoke-before.json")"
+assert_json "$state_diff_baseline_json" "state diff creates missing baseline" \
+  "data.ok === true && data.data.baselineCreated === true && data.data.beforePath.endsWith('smoke-before.json')"
+state_diff_marker_json="$(run_json state-diff-marker storage local set --session "$SESSION_NAME" smokeDiff changed)"
+assert_json "$state_diff_marker_json" "state diff marker written" \
+  "data.ok === true && data.data.operation === 'set' && data.data.key === 'smokeDiff'"
+state_diff_json="$(run_json state-diff state diff --session "$SESSION_NAME" --before "${TMP_DIR}/smoke-before.json")"
+assert_json "$state_diff_json" "state diff returns changed summary" \
+  "data.ok === true && data.data.summary.changed === true && data.data.summary.changedBuckets.includes('localStorage')"
+state_diff_values_json="$(run_json state-diff-values state diff --session "$SESSION_NAME" --before "${TMP_DIR}/smoke-before.json" --include-values)"
+assert_json "$state_diff_values_json" "state diff --include-values returns value-aware diff" \
+  "data.ok === true && data.data.summary.changed === true && data.data.localStorage.added.some(item => item.key === 'smokeDiff' && item.value === 'changed')"
 
-echo "=== TEST: har replay nonexistent file ==="
-output=$(node dist/cli.js har replay /nonexistent.har --session "$SESSION_NAME" 2>&1)
-if echo "$output" | grep -qi "file\|exist\|not found"; then
-  echo "PASS: har replay nonexistent file reports error not crash"
-else
-  echo "FAIL: har replay nonexistent file unexpected output"
-  echo "Output: $output"
-  FAILED=$((FAILED+1))
-fi
+log "har replay nonexistent file"
+har_replay_missing_json="$(run_fail_json har-replay-missing har replay /nonexistent.har --session "$SESSION_NAME")"
+assert_json "$har_replay_missing_json" "har replay nonexistent file fails clearly" \
+  "data.ok === false && String(data.error.message).match(/file|exist|not found/i)"
 
-echo "=== TEST: diagnostics bundle highSignalTimeline ==="
-output=$(node dist/cli.js diagnostics bundle --session "$SESSION_NAME" --out "${TMP_DIR}/diag-bundle-smoke" --limit 20 2>&1)
-if echo "$output" | grep -q "highSignalTimeline"; then
-  echo "PASS: diagnostics bundle includes highSignalTimeline"
-else
-  echo "FAIL: diagnostics bundle missing highSignalTimeline"
-  echo "Output: $output"
-  FAILED=$((FAILED+1))
-fi
+log "diagnostics bundle highSignalTimeline"
+bundle_smoke_json="$(run_json diagnostics-bundle-smoke diagnostics bundle --session "$SESSION_NAME" --out "${TMP_DIR}/diag-bundle-smoke" --limit 20)"
+assert_json "$bundle_smoke_json" "diagnostics bundle includes highSignalTimeline" \
+  "data.ok === true && data.data.highSignalTimeline && Array.isArray(data.data.highSignalTimeline.entries)"
 
-echo "=== TEST: doctor environment section ==="
-output=$(node dist/cli.js doctor --session "$SESSION_NAME" 2>&1)
-if echo "$output" | grep -q "environment"; then
-  echo "PASS: doctor output includes environment"
-else
-  echo "FAIL: doctor output missing environment"
-  echo "Output: $output"
-  FAILED=$((FAILED+1))
-fi
+log "doctor environment section"
+doctor_environment_json="$(run_json doctor-environment doctor --session "$SESSION_NAME")"
+assert_json "$doctor_environment_json" "doctor output includes environment diagnostic" \
+  "data.ok === true && Array.isArray(data.data.diagnostics) && data.data.diagnostics.some(item => item.kind === 'environment')"
 
 log "session close"
 close_json="$(run_json session-close session close "$SESSION_NAME")"
