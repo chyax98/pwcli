@@ -2,7 +2,7 @@ import { defineCommand } from "citty";
 import type { VerifyAssertion } from "#engine/observe.js";
 import { managedVerify } from "#engine/observe.js";
 import { actionArgs } from "#cli/args.js";
-import { firstPos, num, print, session, stateTarget, str, withCliError, type CliArgs } from "./_helpers.js";
+import { firstPos, num, print, printError, session, stateTarget, str, withCliError, type CliArgs } from "./_helpers.js";
 
 const assertions = ["text", "text-absent", "url", "visible", "hidden", "enabled", "disabled", "checked", "unchecked", "count"] as const;
 
@@ -18,8 +18,17 @@ export default defineCommand({
       const url = assertion === "url" ? { contains: str(a.contains), equals: str(a.equals), matches: str(a.matches) } : undefined;
       const count = assertion === "count" ? { equals: num(a.equals), min: num(a.min), max: num(a.max) } : undefined;
       const result = await managedVerify({ sessionName: session(a), assertion, target, url, count });
-      print("verify", result, a);
-      if (result.data.passed === false) process.exitCode = 1;
+      if (result.data.passed === false) {
+        printError("verify", a, {
+          code: "VERIFY_FAILED",
+          message: `verify ${assertion} failed`,
+          retryable: Boolean(result.data.retryable),
+          suggestions: result.data.suggestions ?? [],
+          details: result.data as Record<string, unknown>,
+        });
+      } else {
+        print("verify", result, a);
+      }
     } catch (error) { withCliError("verify", a, error); }
   },
 });
