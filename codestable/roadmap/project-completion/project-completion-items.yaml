@@ -34,9 +34,33 @@ items:
     minimal_loop: false
     notes: README 已发现旧路径观察项
 
+  - slug: command-docs-complete
+    description: 为所有顶层 command 建立 CodeStable command doc 覆盖矩阵并补齐缺口
+    depends_on: [truth-sync-cleanup]
+    status: planned
+    feature: null
+    minimal_loop: false
+    notes: 允许按命令族聚合，但每个顶层 command 必须可检索、可追证据状态
+
+  - slug: agent-scenario-deep-validation
+    description: 深测 Agent 浏览器任务矩阵，覆盖自动化、测试、表单、爬取、Deep Bug 和证据交接
+    depends_on: [regression-smoke-green, command-docs-complete]
+    status: planned
+    feature: null
+    minimal_loop: false
+    notes: 用真实 pw 命令和 skill workflow 验证，不用裸 Playwright 替代
+
+  - slug: compounding-assets-archive
+    description: 把验证过程中的失败、修复、经验和技巧沉淀进 CodeStable
+    depends_on: [p0-p1-bug-backlog-closure, agent-scenario-deep-validation]
+    status: planned
+    feature: null
+    minimal_loop: false
+    notes: issue/fix-note、feature acceptance、compound learning/trick/decision/explore、benchmark results
+
   - slug: release-gate-green
     description: 跑完 release gate 并修复阻塞问题
-    depends_on: [p0-p1-bug-backlog-closure, committed-feature-closure, truth-sync-cleanup]
+    depends_on: [p0-p1-bug-backlog-closure, committed-feature-closure, command-docs-complete, agent-scenario-deep-validation, compounding-assets-archive]
     status: planned
     feature: null
     minimal_loop: false
