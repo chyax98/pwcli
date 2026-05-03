@@ -1,12 +1,10 @@
 import assert from "node:assert/strict";
-import { checkNodeVersion } from "../../dist/domain/environment/health-checks.js";
+import { inspectEnvironment } from "../../dist/store/health.js";
 
-const result = await checkNodeVersion();
-
-assert.ok(
-  typeof result === "object" && result !== null,
-  "checkNodeVersion should return an object",
-);
+const diagnostic = await inspectEnvironment();
+const nodeVersion = diagnostic.details?.nodeVersion as { ok: boolean; version: string; minimum: string } | undefined;
+assert.ok(nodeVersion, "inspectEnvironment should include nodeVersion details");
+const result = nodeVersion;
 assert.ok("ok" in result, "result should have ok property");
 assert.ok("version" in result, "result should have version property");
 assert.ok("minimum" in result, "result should have minimum property");

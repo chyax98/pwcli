@@ -5,7 +5,7 @@ import { join } from "node:path";
 import {
   buildDiagnosticsAuditConclusion,
   managedDiagnosticsDigest,
-} from "../../src/domain/diagnostics/service.js";
+} from "../../src/engine/diagnose/core.js";
 
 const cwd = process.cwd();
 const tempDir = await mkdtemp(join(tmpdir(), "pwcli-diagnostics-failure-"));

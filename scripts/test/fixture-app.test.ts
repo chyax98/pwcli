@@ -1,8 +1,8 @@
 import { before, after, describe, it } from "node:test";
 import { strict as assert } from "node:assert";
 import { startFixtureServer, stopFixtureServer } from "../fixtures/realistic-app.mjs";
-import { checkNodeVersion } from "../../dist/infra/environment/health-probes.js";
-import { isThirdPartyUrl } from "../../dist/domain/diagnostics/signals.js";
+import { inspectEnvironment } from "../../dist/store/health.js";
+import { isThirdPartyUrl } from "../../dist/engine/diagnose/core.js";
 import { SUPPORTED_BATCH_TOP_LEVEL } from "../../dist/app/batch/run-batch.js";
 
 let fixtureServer: unknown;
@@ -56,7 +56,9 @@ describe("fixture server", async () => {
 
 describe("checkNodeVersion", () => {
   it("returns ok for current environment", async () => {
-    const result = await checkNodeVersion();
+    const diagnostic = await inspectEnvironment();
+    const result = diagnostic.details?.nodeVersion as { ok: boolean; version: string; minimum: string };
+    assert.ok(result, "should have nodeVersion");
     assert.equal(result.ok, true);
     assert.ok(result.version.startsWith("v"));
     assert.equal(result.minimum, "18.15.0");

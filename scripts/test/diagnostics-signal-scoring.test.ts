@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { isThirdPartyUrl } from "../../dist/domain/diagnostics/signals.js";
+import { isThirdPartyUrl } from "../../dist/engine/diagnose/core.js";
 
 // isThirdPartyUrl
 assert.equal(

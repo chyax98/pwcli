@@ -139,7 +139,7 @@ fi
 log "diagnostics audit conclusion domain contract"
 node --input-type=module <<'NODE'
 import assert from 'node:assert/strict';
-import { buildDiagnosticsAuditConclusion } from './dist/domain/diagnostics/service.js';
+import { buildDiagnosticsAuditConclusion } from './dist/engine/diagnose/export.js';
 
 const conclusion = buildDiagnosticsAuditConclusion({
   sessionName: 'audit-smoke',
@@ -178,8 +178,8 @@ NODE
 
 log "action failure classifier contract"
 node --input-type=module <<'NODE'
-import { ActionFailure } from './dist/domain/interaction/action-failure.js';
-import { throwManagedActionErrorText } from './dist/infra/playwright/runtime/action-failure-classifier.js';
+import { ActionFailure } from './dist/engine/act/element.js';
+import { throwManagedActionErrorText } from './dist/engine/act/element.js';
 
 function expectActionFailure(label, message, expectedCode) {
   try {
@@ -429,7 +429,7 @@ log "tab select and close"
 node --input-type=module <<'NODE'
 import { readFileSync } from 'node:fs';
 
-const source = readFileSync('./dist/infra/playwright/runtime/workspace.js', 'utf8');
+const source = readFileSync('./dist/engine/workspace.js', 'utf8');
 if (/\btab-close\b/.test(source)) {
   console.error('[smoke] workspace pageId close must not call index-based tab-close primitive');
   process.exit(1);
@@ -480,7 +480,7 @@ auth_info_dc_json="$(run_json auth-info-dc auth info dc)"
 assert_json "$auth_info_dc_json" "auth info exposes dc contract" \
   "data.ok === true && data.data.name === 'dc' && data.data.args.some(item => item.name === 'targetUrl') && !data.data.args.some(item => item.name === 'instance')"
 node --input-type=module <<'NODE'
-import { getAuthProvider, loadAuthProviderSource } from './dist/infra/auth-providers/registry.js';
+import { getAuthProvider, loadAuthProviderSource } from './dist/auth/registry.js';
 
 const provider = getAuthProvider('dc');
 const source = provider ? loadAuthProviderSource(provider) : '';
