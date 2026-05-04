@@ -213,11 +213,7 @@ export function isThirdPartyUrl(url: string, pageOrigin?: string): boolean {
   } catch {
     return false;
   }
-  if (
-    TRACKING_DOMAINS.some(
-      (domain) => hostname === domain || hostname.endsWith(`.${domain}`),
-    )
-  ) {
+  if (TRACKING_DOMAINS.some((domain) => hostname === domain || hostname.endsWith(`.${domain}`))) {
     return true;
   }
   if (pageOrigin) {
@@ -562,7 +558,9 @@ export function buildDiagnosticsAuditConclusion(input: {
       );
     }) ?? null;
   const selectedRunEvent =
-    latestRunHasFailure || latestRunHasFailureSignal ? asObject(latestRunFailureEvent ?? lastEvent) : null;
+    latestRunHasFailure || latestRunHasFailureSignal
+      ? asObject(latestRunFailureEvent ?? lastEvent)
+      : null;
   const selectedFailure = asObject(selectedRunEvent?.failure);
   const selectedFailureSignal = asObject(selectedRunEvent?.failureSignal);
   const failureLikely =
@@ -591,12 +589,13 @@ export function buildDiagnosticsAuditConclusion(input: {
   const latestRunId = input.latestRunId ?? asString(latestRunEvents.runId);
   const limit = Math.max(1, input.limit);
   const grepText = failureSummary ?? failureKind ?? "error";
-  const runFailureNextSteps = selectedRunEvent && latestRunId
-    ? [
-        `run: pw diagnostics show --run ${shellArg(latestRunId)} --limit ${limit}`,
-        `run: pw diagnostics grep --run ${shellArg(latestRunId)} --text ${shellArg(grepText)} --limit ${limit}`,
-      ]
-    : null;
+  const runFailureNextSteps =
+    selectedRunEvent && latestRunId
+      ? [
+          `run: pw diagnostics show --run ${shellArg(latestRunId)} --limit ${limit}`,
+          `run: pw diagnostics grep --run ${shellArg(latestRunId)} --text ${shellArg(grepText)} --limit ${limit}`,
+        ]
+      : null;
   const sessionFailureNextSteps = [
     `run: pw diagnostics timeline --session ${shellArg(input.sessionName)} --limit ${limit}`,
     `run: pw diagnostics digest --session ${shellArg(input.sessionName)} --limit ${Math.min(limit, 10)}`,

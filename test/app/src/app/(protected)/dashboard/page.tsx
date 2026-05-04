@@ -1,7 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Users, Activity, ShoppingCart, TrendingUp, ChevronDown, ChevronUp, Bell, Star } from "lucide-react";
+import {
+  Activity,
+  Bell,
+  ChevronDown,
+  ChevronUp,
+  ShoppingCart,
+  Star,
+  TrendingUp,
+  Users,
+} from "lucide-react";
+import { useEffect, useState } from "react";
 
 interface User {
   id: string;
@@ -11,18 +20,75 @@ interface User {
 }
 
 const STATS = [
-  { label: "Total Users", value: 12842, icon: Users, color: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/20", testId: "stat-users" },
-  { label: "Active Sessions", value: 384, icon: Activity, color: "text-green-400", bg: "bg-green-500/10", border: "border-green-500/20", testId: "stat-sessions" },
-  { label: "Orders Today", value: 1204, icon: ShoppingCart, color: "text-violet-400", bg: "bg-violet-500/10", border: "border-violet-500/20", testId: "stat-orders" },
-  { label: "Revenue", value: 98432, icon: TrendingUp, color: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/20", prefix: "$", testId: "stat-revenue" },
+  {
+    label: "Total Users",
+    value: 12842,
+    icon: Users,
+    color: "text-blue-400",
+    bg: "bg-blue-500/10",
+    border: "border-blue-500/20",
+    testId: "stat-users",
+  },
+  {
+    label: "Active Sessions",
+    value: 384,
+    icon: Activity,
+    color: "text-green-400",
+    bg: "bg-green-500/10",
+    border: "border-green-500/20",
+    testId: "stat-sessions",
+  },
+  {
+    label: "Orders Today",
+    value: 1204,
+    icon: ShoppingCart,
+    color: "text-violet-400",
+    bg: "bg-violet-500/10",
+    border: "border-violet-500/20",
+    testId: "stat-orders",
+  },
+  {
+    label: "Revenue",
+    value: 98432,
+    icon: TrendingUp,
+    color: "text-amber-400",
+    bg: "bg-amber-500/10",
+    border: "border-amber-500/20",
+    prefix: "$",
+    testId: "stat-revenue",
+  },
 ];
 
 const NOTIFICATIONS = [
   { id: "n1", type: "info", title: "System update completed", time: "2 min ago", read: false },
-  { id: "n2", type: "warning", title: "High memory usage detected", time: "15 min ago", read: false },
-  { id: "n3", type: "success", title: "Backup completed successfully", time: "1 hour ago", read: true },
-  { id: "n4", type: "error", title: "Failed login attempt detected", time: "2 hours ago", read: true },
-  { id: "n5", type: "info", title: "New user registration: alice@example.com", time: "3 hours ago", read: true },
+  {
+    id: "n2",
+    type: "warning",
+    title: "High memory usage detected",
+    time: "15 min ago",
+    read: false,
+  },
+  {
+    id: "n3",
+    type: "success",
+    title: "Backup completed successfully",
+    time: "1 hour ago",
+    read: true,
+  },
+  {
+    id: "n4",
+    type: "error",
+    title: "Failed login attempt detected",
+    time: "2 hours ago",
+    read: true,
+  },
+  {
+    id: "n5",
+    type: "info",
+    title: "New user registration: alice@example.com",
+    time: "3 hours ago",
+    read: true,
+  },
 ];
 
 const QUICK_ACTIONS = [
@@ -53,7 +119,8 @@ function AnimatedNumber({ value, prefix = "" }: { value: number; prefix?: string
 
   return (
     <span className="count-up">
-      {prefix}{display.toLocaleString()}
+      {prefix}
+      {display.toLocaleString()}
     </span>
   );
 }
@@ -66,12 +133,14 @@ export default function DashboardPage() {
   useEffect(() => {
     fetch("/api/auth/me")
       .then((r) => r.json())
-      .then((d) => { if (d.user) setUser(d.user); })
+      .then((d) => {
+        if (d.user) setUser(d.user);
+      })
       .catch(() => {});
   }, []);
 
   function markRead(id: string) {
-    setNotifications((prev) => prev.map((n) => n.id === id ? { ...n, read: true } : n));
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
   }
 
   const unreadCount = notifications.filter((n) => !n.read).length;
@@ -114,7 +183,9 @@ export default function DashboardPage() {
             >
               <div className="flex items-center justify-between mb-3">
                 <span className="text-xs text-zinc-500 font-medium">{stat.label}</span>
-                <div className={`w-8 h-8 rounded-lg ${stat.bg} border ${stat.border} flex items-center justify-center`}>
+                <div
+                  className={`w-8 h-8 rounded-lg ${stat.bg} border ${stat.border} flex items-center justify-center`}
+                >
                   <Icon size={14} className={stat.color} aria-hidden="true" />
                 </div>
               </div>
@@ -149,10 +220,11 @@ export default function DashboardPage() {
                 </span>
               )}
             </div>
-            {notificationsOpen
-              ? <ChevronUp size={16} className="text-zinc-500" aria-hidden="true" />
-              : <ChevronDown size={16} className="text-zinc-500" aria-hidden="true" />
-            }
+            {notificationsOpen ? (
+              <ChevronUp size={16} className="text-zinc-500" aria-hidden="true" />
+            ) : (
+              <ChevronDown size={16} className="text-zinc-500" aria-hidden="true" />
+            )}
           </button>
 
           {notificationsOpen && (
@@ -170,10 +242,13 @@ export default function DashboardPage() {
                 >
                   <div
                     className={`mt-0.5 w-2 h-2 rounded-full flex-shrink-0 ${
-                      n.type === "error" ? "bg-red-500" :
-                      n.type === "warning" ? "bg-amber-500" :
-                      n.type === "success" ? "bg-green-500" :
-                      "bg-blue-500"
+                      n.type === "error"
+                        ? "bg-red-500"
+                        : n.type === "warning"
+                          ? "bg-amber-500"
+                          : n.type === "success"
+                            ? "bg-green-500"
+                            : "bg-blue-500"
                     }`}
                     aria-hidden="true"
                   />

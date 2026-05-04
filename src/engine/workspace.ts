@@ -1,8 +1,6 @@
-import { runManagedSessionCommand } from "./session.js";
-import { managedRunCode } from "./shared.js";
 import { managedScreenshot } from "./act/page.js";
 import { managedEnsureDiagnosticsHooks } from "./session.js";
-import { DIAGNOSTICS_STATE_KEY, maybeRawOutput } from "./shared.js";
+import { DIAGNOSTICS_STATE_KEY, managedRunCode, maybeRawOutput } from "./shared.js";
 
 type WorkspacePage = {
   index: number;
@@ -10,9 +8,24 @@ type WorkspacePage = {
 };
 
 const INTERACTIVE_ARIA_ROLES = new Set([
-  "button", "link", "textbox", "checkbox", "radio", "combobox", "listbox",
-  "menuitem", "menuitemcheckbox", "menuitemradio", "tab", "slider",
-  "spinbutton", "switch", "treeitem", "gridcell", "searchbox", "select",
+  "button",
+  "link",
+  "textbox",
+  "checkbox",
+  "radio",
+  "combobox",
+  "listbox",
+  "menuitem",
+  "menuitemcheckbox",
+  "menuitemradio",
+  "tab",
+  "slider",
+  "spinbutton",
+  "switch",
+  "treeitem",
+  "gridcell",
+  "searchbox",
+  "select",
   "option",
 ]);
 
@@ -51,9 +64,7 @@ export async function managedAccessibilitySnapshot(options: {
 }) {
   // page.ariaSnapshot() returns ARIA YAML. ariaSnapshot() does not support interestingOnly —
   // interactive-only filtering is done on the Node.js side after capture.
-  const rootExpr = options?.root
-    ? `page.locator(${JSON.stringify(options.root)})`
-    : "page";
+  const rootExpr = options?.root ? `page.locator(${JSON.stringify(options.root)})` : "page";
   const result = await managedRunCode({
     sessionName: options?.sessionName,
     source: `async page => {
@@ -486,7 +497,7 @@ function recommendedNextSteps(options: {
   return [...new Set(nextSteps)].slice(0, 3);
 }
 
-function pageById(pages: WorkspacePage[], pageId: string) {
+function _pageById(pages: WorkspacePage[], pageId: string) {
   return pages.find((page) => page.pageId === pageId);
 }
 
@@ -570,9 +581,10 @@ async function selectPageById(sessionName: string | undefined, pageId: string) {
       return JSON.stringify({ selectedPageId: targetPageId });
     }`,
   });
-  const parsed = typeof result.data.result === "object" && result.data.result
-    ? result.data.result as Record<string, unknown>
-    : {};
+  const parsed =
+    typeof result.data.result === "object" && result.data.result
+      ? (result.data.result as Record<string, unknown>)
+      : {};
   return { selectedPageId: parsed.selectedPageId ?? pageId };
 }
 
@@ -635,9 +647,10 @@ export async function managedTabSelect(options: { sessionName?: string; pageId: 
       });
     }`,
   });
-  const afterData = typeof after.data.result === "object" && after.data.result
-    ? after.data.result as Record<string, unknown>
-    : {};
+  const afterData =
+    typeof after.data.result === "object" && after.data.result
+      ? (after.data.result as Record<string, unknown>)
+      : {};
 
   return {
     session: after.session,
@@ -710,9 +723,7 @@ export async function managedAnnotatedScreenshot(options?: {
   sessionName?: string;
 }) {
   let annotations: unknown[] = [];
-  let screenshotResult:
-    | Awaited<ReturnType<typeof managedScreenshot>>
-    | undefined;
+  let screenshotResult: Awaited<ReturnType<typeof managedScreenshot>> | undefined;
 
   try {
     const injectResult = await managedRunCode({

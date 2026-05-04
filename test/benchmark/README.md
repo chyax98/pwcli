@@ -1,6 +1,6 @@
 # pwcli Benchmark
 
-`benchmark/` 是 `pwcli` 的 repo-local 稳定性评测面。
+`test/benchmark/` 是 `pwcli` 的 repo-local 稳定性评测面。
 
 这里不是独立评测平台。它只负责验证 `pwcli` 作为 Agent-facing Browser CLI 的关键能力是否稳定：
 
@@ -34,7 +34,7 @@ session -> observe/read/snapshot -> act -> wait/verify -> diagnostics/evidence
 ## 目录约定
 
 ```text
-benchmark/
+test/benchmark/
   tasks/
     perception/
     diagnostics/
@@ -96,24 +96,24 @@ benchmark/
 单 task：
 
 ```bash
-node benchmark/runners/task/run-task.mjs \
-  --task benchmark/tasks/perception/fixture-perception-basic-001.json \
+node test/benchmark/runners/task/run-task.mjs \
+  --task test/benchmark/tasks/perception/fixture-perception-basic-001.json \
   --port 43210
 ```
 
 suite 聚合：
 
 ```bash
-node benchmark/runners/suite/run-suite.mjs \
-  --task benchmark/tasks/perception/fixture-perception-basic-001.json \
+node test/benchmark/runners/suite/run-suite.mjs \
+  --task test/benchmark/tasks/perception/fixture-perception-basic-001.json \
   --port 43210
 ```
 
 生成并跑 closure suite：
 
 ```bash
-node benchmark/scripts/generate-matrix.mjs
-node benchmark/scripts/run-closure-suite.mjs
+node test/benchmark/scripts/generate-matrix.mjs
+node test/benchmark/scripts/run-closure-suite.mjs
 ```
 
 可选参数：
@@ -125,8 +125,8 @@ node benchmark/scripts/run-closure-suite.mjs
 默认输出：
 
 ```text
-benchmark/reports/latest/summary.json
-benchmark/artifacts/<taskId>/<runId>/
+test/benchmark/reports/latest/summary.json
+test/benchmark/artifacts/<taskId>/<runId>/
 ```
 
 `summary.json` 是当前唯一稳定聚合输出，至少包含：

@@ -1,11 +1,9 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { describe, it, before, after } from "node:test";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { resolve } from "node:path";
+import { after, before, describe, it } from "node:test";
 
-const repoRoot = resolve(import.meta.dirname, "..", "..", "..");
+const repoRoot = resolve(import.meta.dirname, "..", "..");
 const cliPath = resolve(repoRoot, "dist", "cli.js");
 
 function runPw(args: string[], cwd?: string) {
@@ -81,51 +79,23 @@ describe("session lifecycle", { concurrency: false }, () => {
     const createJson = createResult.json as Record<string, unknown>;
     assert.equal(createJson.ok, true);
     assert.equal((createJson as { command: string }).command, "session create");
-    assert.equal(
-      (createJson as { session: { name: string } }).session.name,
-      sessionName,
-    );
-    assert.equal(
-      (createJson as { data: { created: boolean } }).data.created,
-      true,
-    );
+    assert.equal((createJson as { session: { name: string } }).session.name, sessionName);
+    assert.equal((createJson as { data: { created: boolean } }).data.created, true);
     sessionsToClean.push(sessionName);
 
-    const statusResult = await runPw([
-      "session",
-      "status",
-      sessionName,
-      "--output",
-      "json",
-    ]);
+    const statusResult = await runPw(["session", "status", sessionName, "--output", "json"]);
     assert.equal(statusResult.code, 0, `status failed: ${statusResult.stderr}`);
     const statusJson = statusResult.json as Record<string, unknown>;
     assert.equal(statusJson.ok, true);
-    assert.equal(
-      (statusJson as { data: { active: boolean } }).data.active,
-      true,
-    );
-    assert.ok(
-      (statusJson as { data: { socketPath: string } }).data.socketPath,
-    );
-    assert.ok(
-      (statusJson as { data: { version: string } }).data.version,
-    );
+    assert.equal((statusJson as { data: { active: boolean } }).data.active, true);
+    assert.ok((statusJson as { data: { socketPath: string } }).data.socketPath);
+    assert.ok((statusJson as { data: { version: string } }).data.version);
 
-    const closeResult = await runPw([
-      "session",
-      "close",
-      sessionName,
-      "--output",
-      "json",
-    ]);
+    const closeResult = await runPw(["session", "close", sessionName, "--output", "json"]);
     assert.equal(closeResult.code, 0, `close failed: ${closeResult.stderr}`);
     const closeJson = closeResult.json as Record<string, unknown>;
     assert.equal(closeJson.ok, true);
-    assert.equal(
-      (closeJson as { data: { closed: boolean } }).data.closed,
-      true,
-    );
+    assert.equal((closeJson as { data: { closed: boolean } }).data.closed, true);
     sessionsToClean.pop();
   });
 
@@ -158,10 +128,7 @@ describe("session lifecycle", { concurrency: false }, () => {
     assert.equal(r2.code, 0, `duplicate create failed: ${r2.stderr}`);
     const json = r2.json as Record<string, unknown>;
     assert.equal(json.ok, true);
-    assert.equal(
-      (json as { data: { created: boolean } }).data.created,
-      true,
-    );
+    assert.equal((json as { data: { created: boolean } }).data.created, true);
     // NOTE: pwcli currently does not return SESSION_ALREADY_EXISTS;
     // it silently recreates/resets the session.
   });
@@ -182,39 +149,17 @@ describe("session lifecycle", { concurrency: false }, () => {
     ]);
     assert.equal(createResult.code, 0);
 
-    const recreateResult = await runPw([
-      "session",
-      "recreate",
-      name,
-      "--output",
-      "json",
-    ]);
-    assert.equal(
-      recreateResult.code,
-      0,
-      `recreate failed: ${recreateResult.stderr}`,
-    );
+    const recreateResult = await runPw(["session", "recreate", name, "--output", "json"]);
+    assert.equal(recreateResult.code, 0, `recreate failed: ${recreateResult.stderr}`);
     const recJson = recreateResult.json as Record<string, unknown>;
     assert.equal(recJson.ok, true);
-    assert.equal(
-      (recJson as { data: { recreated: boolean } }).data.recreated,
-      true,
-    );
+    assert.equal((recJson as { data: { recreated: boolean } }).data.recreated, true);
 
-    const statusResult = await runPw([
-      "session",
-      "status",
-      name,
-      "--output",
-      "json",
-    ]);
+    const statusResult = await runPw(["session", "status", name, "--output", "json"]);
     assert.equal(statusResult.code, 0);
     const stJson = statusResult.json as Record<string, unknown>;
     assert.equal(stJson.ok, true);
-    assert.equal(
-      (stJson as { data: { active: boolean } }).data.active,
-      true,
-    );
+    assert.equal((stJson as { data: { active: boolean } }).data.active, true);
   });
 
   it("list includes newly created session", async () => {
@@ -272,13 +217,7 @@ describe("session lifecycle", { concurrency: false }, () => {
       "json",
     ]);
 
-    const closeResult = await runPw([
-      "session",
-      "close",
-      "--all",
-      "--output",
-      "json",
-    ]);
+    const closeResult = await runPw(["session", "close", "--all", "--output", "json"]);
     assert.equal(closeResult.code, 0, `close --all failed: ${closeResult.stderr}`);
     const closeJson = closeResult.json as {
       ok: boolean;
@@ -291,20 +230,12 @@ describe("session lifecycle", { concurrency: false }, () => {
     assert.equal(closeJson.ok, true);
     assert.equal(closeJson.data.all, true);
     assert.ok(closeJson.data.closedCount >= 2);
-    const closedNames = closeJson.data.sessions
-      .filter((s) => s.closed)
-      .map((s) => s.name);
+    const closedNames = closeJson.data.sessions.filter((s) => s.closed).map((s) => s.name);
     assert.ok(closedNames.includes(nameA), "nameA should be closed");
     assert.ok(closedNames.includes(nameB), "nameB should be closed");
 
     // Verify individual status returns not-found
-    const statusA = await runPw([
-      "session",
-      "status",
-      nameA,
-      "--output",
-      "json",
-    ]);
+    const statusA = await runPw(["session", "status", nameA, "--output", "json"]);
     assert.equal(statusA.code, 1, "expected status for closed session to fail");
     const stJson = statusA.json as { ok: boolean; error?: { code: string } };
     assert.equal(stJson.ok, false);

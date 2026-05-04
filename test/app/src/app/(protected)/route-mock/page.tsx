@@ -1,7 +1,7 @@
 "use client";
 
+import { RefreshCw, Search, ShoppingBag, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { ShoppingBag, Search, RefreshCw, Trash2 } from "lucide-react";
 
 interface Product {
   id: number;
@@ -81,8 +81,8 @@ export default function RouteMockPage() {
     <div data-testid="route-mock-page" aria-label="Route mock test page">
       <h1 className="text-2xl font-bold text-zinc-100 mb-1">Route Mock</h1>
       <p className="text-sm text-zinc-500 mb-8">
-        Test <code className="text-indigo-400">/api/products</code> endpoint.
-        Use <code className="text-indigo-400">pw route</code> to intercept and mock responses.
+        Test <code className="text-indigo-400">/api/products</code> endpoint. Use{" "}
+        <code className="text-indigo-400">pw route</code> to intercept and mock responses.
       </p>
 
       {/* Controls */}
@@ -98,10 +98,11 @@ export default function RouteMockPage() {
             disabled={state.status === "loading"}
             className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-all duration-150"
           >
-            {state.status === "loading"
-              ? <RefreshCw size={14} className="animate-spin" aria-hidden="true" />
-              : <ShoppingBag size={14} aria-hidden="true" />
-            }
+            {state.status === "loading" ? (
+              <RefreshCw size={14} className="animate-spin" aria-hidden="true" />
+            ) : (
+              <ShoppingBag size={14} aria-hidden="true" />
+            )}
             Load Products
           </button>
 
@@ -168,12 +169,18 @@ export default function RouteMockPage() {
           >
             {state.status === "idle" && state.products.length === 0 && (
               <div className="bg-zinc-800 border border-zinc-700 rounded-xl p-6 text-center">
-                <p className="text-sm text-zinc-600">Click &quot;Load Products&quot; to fetch data.</p>
+                <p className="text-sm text-zinc-600">
+                  Click &quot;Load Products&quot; to fetch data.
+                </p>
               </div>
             )}
             {state.status === "loading" && (
               <div className="bg-zinc-800 border border-zinc-700 rounded-xl p-6 text-center">
-                <RefreshCw size={20} className="animate-spin text-indigo-400 mx-auto mb-2" aria-hidden="true" />
+                <RefreshCw
+                  size={20}
+                  className="animate-spin text-indigo-400 mx-auto mb-2"
+                  aria-hidden="true"
+                />
                 <p className="text-sm text-zinc-500">Loading…</p>
               </div>
             )}
@@ -186,14 +193,23 @@ export default function RouteMockPage() {
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-sm font-medium text-zinc-200 truncate">{product.name}</span>
-                    {product.inStock
-                      ? <span className="px-1.5 py-0.5 text-xs bg-green-600/20 text-green-400 border border-green-600/30 rounded-full">In Stock</span>
-                      : <span className="px-1.5 py-0.5 text-xs bg-red-600/20 text-red-400 border border-red-600/30 rounded-full">Out</span>
-                    }
+                    <span className="text-sm font-medium text-zinc-200 truncate">
+                      {product.name}
+                    </span>
+                    {product.inStock ? (
+                      <span className="px-1.5 py-0.5 text-xs bg-green-600/20 text-green-400 border border-green-600/30 rounded-full">
+                        In Stock
+                      </span>
+                    ) : (
+                      <span className="px-1.5 py-0.5 text-xs bg-red-600/20 text-red-400 border border-red-600/30 rounded-full">
+                        Out
+                      </span>
+                    )}
                   </div>
                   <div className="flex items-center gap-3 text-xs text-zinc-500">
-                    <span className="text-xs px-1.5 py-0.5 bg-zinc-700 rounded">{product.category}</span>
+                    <span className="text-xs px-1.5 py-0.5 bg-zinc-700 rounded">
+                      {product.category}
+                    </span>
                     <span>ID: {product.id}</span>
                   </div>
                 </div>
@@ -228,13 +244,16 @@ export default function RouteMockPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs text-zinc-500">
           <div className="bg-zinc-900 rounded-lg p-3">
             <div className="text-zinc-300 font-medium mb-1">Mock entire response</div>
-            Use <code className="text-indigo-400">pw route add /api/products --body &apos;{"{}"}&apos;</code> to replace
-            the response with a mock.
+            Use{" "}
+            <code className="text-indigo-400">
+              pw route add /api/products --body &apos;{"{}"}&apos;
+            </code>{" "}
+            to replace the response with a mock.
           </div>
           <div className="bg-zinc-900 rounded-lg p-3">
             <div className="text-zinc-300 font-medium mb-1">Request counter</div>
-            The request count shows how many times the fetch was triggered. After route mock,
-            verify responses differ.
+            The request count shows how many times the fetch was triggered. After route mock, verify
+            responses differ.
           </div>
         </div>
       </div>

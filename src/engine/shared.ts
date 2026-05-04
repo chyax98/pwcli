@@ -1,6 +1,12 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { runManagedSessionCommand, parseErrorText, parseJsonStringLiteral, parsePageSummary, parseResultText } from "./session.js";
+import {
+  parseErrorText,
+  parseJsonStringLiteral,
+  parsePageSummary,
+  parseResultText,
+  runManagedSessionCommand,
+} from "./session.js";
 
 export const DIAGNOSTICS_STATE_KEY = "__pwcliDiagnostics";
 export const MODAL_STATE_BLOCKED_MARKER =
@@ -28,7 +34,6 @@ export function normalizeRef(ref: string) {
 export function isModalStateBlockedMessage(message: string) {
   return message === "MODAL_STATE_BLOCKED" || message.includes(MODAL_STATE_BLOCKED_MARKER);
 }
-
 
 /** Default timeout for managedRunCode calls.
  *  Protects against Playwright-core's waitForCompletion hanging

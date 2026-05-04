@@ -1,8 +1,8 @@
 import { defineCommand } from "citty";
+import { sharedArgs } from "#cli/args.js";
 import { managedScreenshot } from "#engine/act/page.js";
 import { managedAnnotatedScreenshot } from "#engine/workspace.js";
-import { sharedArgs } from "#cli/args.js";
-import { firstPos, bool, print, session, str, withCliError, type CliArgs } from "./_helpers.js";
+import { bool, type CliArgs, firstPos, print, session, str, withCliError } from "./_helpers.js";
 
 export default defineCommand({
   meta: { name: "screenshot", description: "Capture a page or element screenshot" },
@@ -18,8 +18,20 @@ export default defineCommand({
   async run({ args }) {
     const a = args as CliArgs;
     try {
-      const options = { sessionName: session(a), ref: str(a.ref) ?? firstPos(a), selector: str(a.selector), path: str(a.path), fullPage: bool(a["full-page"]) };
-      print("screenshot", bool(a.annotate) ? await managedAnnotatedScreenshot(options) : await managedScreenshot(options), a);
+      const options = {
+        sessionName: session(a),
+        ref: str(a.ref) ?? firstPos(a),
+        selector: str(a.selector),
+        path: str(a.path),
+        fullPage: bool(a["full-page"]),
+      };
+      print(
+        "screenshot",
+        bool(a.annotate)
+          ? await managedAnnotatedScreenshot(options)
+          : await managedScreenshot(options),
+        a,
+      );
     } catch (error) {
       withCliError("screenshot", a, error, "screenshot failed");
     }

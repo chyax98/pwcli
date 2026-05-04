@@ -3,7 +3,7 @@ import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, resolve } from "node:path";
-import { runManagedSessionCommand, parsePageSummary } from "../session.js";
+import { parsePageSummary, runManagedSessionCommand } from "../session.js";
 import { managedRunCode, maybeRawOutput, stateAccessPrelude } from "../shared.js";
 
 const TRACE_INSPECT_OUTPUT_LIMIT = 50_000;

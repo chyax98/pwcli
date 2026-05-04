@@ -299,17 +299,13 @@ try {
   assert.ok(
     valueDiffEnvelope.data.localStorage.changed.some(
       (entry) =>
-        entry.key === "featureFlag" &&
-        entry.before === "enabled" &&
-        entry.after === "disabled",
+        entry.key === "featureFlag" && entry.before === "enabled" && entry.after === "disabled",
     ),
   );
   assert.ok(
     valueDiffEnvelope.data.sessionStorage.changed.some(
       (entry) =>
-        entry.key === "workspaceId" &&
-        entry.before === "wk_123" &&
-        entry.after === "wk_456",
+        entry.key === "workspaceId" && entry.before === "wk_123" && entry.after === "wk_456",
     ),
   );
   await stat(valueChangedPath);

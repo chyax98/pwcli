@@ -1,5 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
-import { validateMfaCode, getSession, deleteSession, createSession, getUserById, SESSION_COOKIE } from "@/lib/auth";
+import { type NextRequest, NextResponse } from "next/server";
+import {
+  createSession,
+  deleteSession,
+  getSession,
+  getUserById,
+  SESSION_COOKIE,
+  validateMfaCode,
+} from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   try {

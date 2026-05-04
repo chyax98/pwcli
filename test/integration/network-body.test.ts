@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { describe, it, after } from "node:test";
 import { resolve } from "node:path";
+import { after, describe, it } from "node:test";
 
-const repoRoot = resolve(import.meta.dirname, "..", "..", "..");
+const repoRoot = resolve(import.meta.dirname, "..", "..");
 const cliPath = resolve(repoRoot, "dist", "cli.js");
 
 function runPw(args: string[]) {
@@ -89,7 +89,9 @@ describe("network --include-body", { concurrency: false }, () => {
       };
     };
     assert.equal(json.ok, true);
-    const responseRecord = json.data.summary.sample.find((r) => r.responseBodySnippet !== undefined);
+    const responseRecord = json.data.summary.sample.find(
+      (r) => r.responseBodySnippet !== undefined,
+    );
     assert.ok(responseRecord, "should have a response record");
     assert.equal(responseRecord.requestBody, undefined, "default should not include requestBody");
     assert.equal(responseRecord.responseBody, undefined, "default should not include responseBody");
@@ -134,14 +136,16 @@ describe("network --include-body", { concurrency: false }, () => {
       };
     };
     assert.equal(json.ok, true);
-    const responseRecord = json.data.summary.sample.find((r) => r.responseBodySnippet !== undefined);
+    const responseRecord = json.data.summary.sample.find(
+      (r) => r.responseBodySnippet !== undefined,
+    );
     assert.ok(responseRecord, "should have a response record");
     assert.ok(
       typeof responseRecord.responseBody === "string",
       "should include responseBody string",
     );
     assert.ok(
-      responseRecord.responseBody.length > responseRecord.responseBodySnippet!.length,
+      responseRecord.responseBody.length > responseRecord.responseBodySnippet?.length,
       "responseBody should be longer than snippet",
     );
   });

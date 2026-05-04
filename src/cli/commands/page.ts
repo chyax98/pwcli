@@ -1,10 +1,27 @@
 import { defineCommand } from "citty";
-import { managedPageAssess, managedPageCurrent, managedPageDialogs, managedPageFrames, managedPageList } from "#engine/workspace.js";
 import { sharedArgs } from "#cli/args.js";
-import { print, session, withCliError, type CliArgs } from "./_helpers.js";
+import {
+  managedPageAssess,
+  managedPageCurrent,
+  managedPageDialogs,
+  managedPageFrames,
+  managedPageList,
+} from "#engine/workspace.js";
+import { type CliArgs, print, session, withCliError } from "./_helpers.js";
 
 function sub(name: string, fn: (sessionName: string) => Promise<Parameters<typeof print>[1]>) {
-  return defineCommand({ meta: { name, description: `Page ${name}` }, args: sharedArgs, async run({ args }) { const a = args as CliArgs; try { print(`page ${name}`, await fn(session(a)), a); } catch (e) { withCliError(`page ${name}`, a, e); } } });
+  return defineCommand({
+    meta: { name, description: `Page ${name}` },
+    args: sharedArgs,
+    async run({ args }) {
+      const a = args as CliArgs;
+      try {
+        print(`page ${name}`, await fn(session(a)), a);
+      } catch (e) {
+        withCliError(`page ${name}`, a, e);
+      }
+    },
+  });
 }
 
 export default defineCommand({

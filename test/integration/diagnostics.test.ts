@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { describe, it, after } from "node:test";
 import { resolve } from "node:path";
+import { after, describe, it } from "node:test";
 
-const repoRoot = resolve(import.meta.dirname, "..", "..", "..");
+const repoRoot = resolve(import.meta.dirname, "..", "..");
 const cliPath = resolve(repoRoot, "dist", "cli.js");
 
 function runPw(args: string[]) {
@@ -74,13 +74,7 @@ describe("diagnostics", { concurrency: false }, () => {
       "json",
     ]);
 
-    const result = await runPw([
-      "console",
-      "--session",
-      name,
-      "--output",
-      "json",
-    ]);
+    const result = await runPw(["console", "--session", name, "--output", "json"]);
     assert.equal(result.code, 0, `console failed: ${result.stderr}`);
     const json = result.json as {
       ok: boolean;
@@ -106,13 +100,7 @@ describe("diagnostics", { concurrency: false }, () => {
       "json",
     ]);
 
-    const result = await runPw([
-      "network",
-      "--session",
-      name,
-      "--output",
-      "json",
-    ]);
+    const result = await runPw(["network", "--session", name, "--output", "json"]);
     assert.equal(result.code, 0, `network failed: ${result.stderr}`);
     const json = result.json as {
       ok: boolean;
@@ -145,14 +133,7 @@ describe("diagnostics", { concurrency: false }, () => {
       "json",
     ]);
 
-    const result = await runPw([
-      "errors",
-      "recent",
-      "--session",
-      name,
-      "--output",
-      "json",
-    ]);
+    const result = await runPw(["errors", "recent", "--session", name, "--output", "json"]);
     assert.equal(result.code, 0, `errors failed: ${result.stderr}`);
     const json = result.json as {
       ok: boolean;
@@ -183,14 +164,7 @@ describe("diagnostics", { concurrency: false }, () => {
       "json",
     ]);
 
-    const result = await runPw([
-      "diagnostics",
-      "digest",
-      "--session",
-      name,
-      "--output",
-      "json",
-    ]);
+    const result = await runPw(["diagnostics", "digest", "--session", name, "--output", "json"]);
     assert.equal(result.code, 0, `digest failed: ${result.stderr}`);
     const json = result.json as {
       ok: boolean;
@@ -225,27 +199,23 @@ describe("diagnostics", { concurrency: false }, () => {
       "json",
     ]);
 
-    const result = await runPw([
-      "doctor",
-      "--session",
-      name,
-      "--output",
-      "json",
-    ]);
+    const result = await runPw(["doctor", "--session", name, "--output", "json"]);
     assert.equal(result.code, 0, `doctor failed: ${result.stderr}`);
     const json = result.json as {
       ok: boolean;
-      diagnostics: Array<{
-        kind: string;
-        status: string;
-        summary: string;
-        details?: unknown;
-      }>;
+      data: {
+        diagnostics: Array<{
+          kind: string;
+          status: string;
+          summary: string;
+          details?: unknown;
+        }>;
+      };
     };
     assert.equal(json.ok, true);
-    assert.ok(Array.isArray(json.diagnostics));
-    const envDiag = json.diagnostics.find((d) => d.kind === "environment");
-    const sessionDiag = json.diagnostics.find((d) => d.kind === "session-substrate");
+    assert.ok(Array.isArray(json.data.diagnostics));
+    const envDiag = json.data.diagnostics.find((d) => d.kind === "environment");
+    const sessionDiag = json.data.diagnostics.find((d) => d.kind === "observe-status");
     assert.ok(envDiag, "expected environment diagnostic");
     assert.ok(sessionDiag, "expected session-substrate diagnostic");
     assert.ok(["ok", "warn", "error"].includes(envDiag.status));
@@ -257,17 +227,22 @@ describe("diagnostics", { concurrency: false }, () => {
     assert.equal(result.code, 0, `doctor failed: ${result.stderr}`);
     const json = result.json as {
       ok: boolean;
-      diagnostics: Array<{
-        kind: string;
-        status: string;
-        summary: string;
-        details?: { items?: Array<{ label: string; status: string; detail?: string }> };
-      }>;
+      data: {
+        diagnostics: Array<{
+          kind: string;
+          status: string;
+          summary: string;
+          details?: { items?: Array<{ label: string; status: string; detail?: string }> };
+        }>;
+      };
     };
     assert.equal(json.ok, true);
-    assert.ok(Array.isArray(json.diagnostics));
-    const envDiag = json.diagnostics.find((d) => d.kind === "environment");
+    assert.ok(Array.isArray(json.data.diagnostics));
+    const envDiag = json.data.diagnostics.find((d) => d.kind === "environment");
     assert.ok(envDiag, "expected environment diagnostic");
-    assert.ok(envDiag.details?.items?.some((i) => i.label.includes("Node")) || envDiag.details?.items?.some((i) => i.label.includes("Playwright")));
+    assert.ok(
+      envDiag.details?.items?.some((i) => i.label.includes("Node")) ||
+        envDiag.details?.items?.some((i) => i.label.includes("Playwright")),
+    );
   });
 });

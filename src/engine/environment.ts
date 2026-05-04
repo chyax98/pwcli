@@ -1,9 +1,9 @@
-import { runManagedSessionCommand } from "./session.js";
 import {
   parseErrorText,
   parseJsonStringLiteral,
   parsePageSummary,
   parseResultText,
+  runManagedSessionCommand,
 } from "./session.js";
 import { DIAGNOSTICS_STATE_KEY } from "./shared.js";
 
@@ -405,7 +405,6 @@ export async function managedEnvironmentClockResume(options?: ManagedEnvironment
     },
   });
 }
-
 
 import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import { homedir, platform } from "node:os";

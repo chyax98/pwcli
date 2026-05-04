@@ -83,12 +83,18 @@ export function parseBatchSemanticArgs(args: string[], commandName: string): Bat
       `batch ${commandName} accepts exactly one target: ref, --selector, --text, --role, --label, --placeholder, or --test-id`,
     );
   }
-  if (args.includes("--selector") && !selector) throw new Error(`batch ${commandName} requires a selector after --selector`);
-  if (args.includes("--text") && !text) throw new Error(`batch ${commandName} requires text after --text`);
-  if (args.includes("--role") && !role) throw new Error(`batch ${commandName} requires a role after --role`);
-  if (args.includes("--name") && !name) throw new Error(`batch ${commandName} requires a name after --name`);
-  if (args.includes("--label") && !label) throw new Error(`batch ${commandName} requires a label after --label`);
-  if (args.includes("--placeholder") && !placeholder) throw new Error(`batch ${commandName} requires text after --placeholder`);
+  if (args.includes("--selector") && !selector)
+    throw new Error(`batch ${commandName} requires a selector after --selector`);
+  if (args.includes("--text") && !text)
+    throw new Error(`batch ${commandName} requires text after --text`);
+  if (args.includes("--role") && !role)
+    throw new Error(`batch ${commandName} requires a role after --role`);
+  if (args.includes("--name") && !name)
+    throw new Error(`batch ${commandName} requires a name after --name`);
+  if (args.includes("--label") && !label)
+    throw new Error(`batch ${commandName} requires a label after --label`);
+  if (args.includes("--placeholder") && !placeholder)
+    throw new Error(`batch ${commandName} requires text after --placeholder`);
   if ((args.includes("--test-id") || args.includes("--testid")) && !testId) {
     throw new Error(`batch ${commandName} requires an id after --test-id`);
   }
@@ -109,9 +115,16 @@ export function parseBatchSemanticArgs(args: string[], commandName: string): Bat
   }
   if (label) return { semantic: { kind: "label", label, ...(nth ? { nth } : {}) }, trailingValues };
   if (placeholder) {
-    return { semantic: { kind: "placeholder", placeholder, ...(nth ? { nth } : {}) }, trailingValues };
+    return {
+      semantic: { kind: "placeholder", placeholder, ...(nth ? { nth } : {}) },
+      trailingValues,
+    };
   }
-  if (testId) return { semantic: { kind: "testid", testid: testId, ...(nth ? { nth } : {}) }, trailingValues };
+  if (testId)
+    return {
+      semantic: { kind: "testid", testid: testId, ...(nth ? { nth } : {}) },
+      trailingValues,
+    };
   if (selector) return { selector, trailingValues };
   if (ref) return { ref, trailingValues };
   return { trailingValues };

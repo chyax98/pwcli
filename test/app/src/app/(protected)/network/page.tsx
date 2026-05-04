@@ -1,7 +1,7 @@
 "use client";
 
+import { AlertTriangle, CheckCircle, Clock, Play, XCircle } from "lucide-react";
 import { useState } from "react";
-import { Play, CheckCircle, XCircle, Clock, AlertTriangle } from "lucide-react";
 
 interface RequestResult {
   status: number;
@@ -20,19 +20,30 @@ interface RequestEntry {
 
 const REQUESTS_CONFIG = [
   { id: "r1", label: "GET /api/data (normal)", url: "/api/data", method: "GET" },
-  { id: "r2", label: "GET /api/data?delay=3000 (slow 3s)", url: "/api/data?delay=3000", method: "GET" },
+  {
+    id: "r2",
+    label: "GET /api/data?delay=3000 (slow 3s)",
+    url: "/api/data?delay=3000",
+    method: "GET",
+  },
   { id: "r3", label: "GET /api/data/error (500)", url: "/api/data/error", method: "GET" },
-  { id: "r4", label: "POST /api/data (JSON body)", url: "/api/data", method: "POST", body: { test: true, source: "network-page", timestamp: Date.now() } },
+  {
+    id: "r4",
+    label: "POST /api/data (JSON body)",
+    url: "/api/data",
+    method: "POST",
+    body: { test: true, source: "network-page", timestamp: Date.now() },
+  },
   { id: "r5", label: "GET /api/auth/me (auth check)", url: "/api/auth/me", method: "GET" },
 ];
 
 export default function NetworkPage() {
   const [entries, setEntries] = useState<RequestEntry[]>(
-    REQUESTS_CONFIG.map((c) => ({ id: c.id, label: c.label, status: "idle" }))
+    REQUESTS_CONFIG.map((c) => ({ id: c.id, label: c.label, status: "idle" })),
   );
 
   function updateEntry(id: string, update: Partial<RequestEntry>) {
-    setEntries((prev) => prev.map((e) => e.id === id ? { ...e, ...update } : e));
+    setEntries((prev) => prev.map((e) => (e.id === id ? { ...e, ...update } : e)));
   }
 
   async function runRequest(config: (typeof REQUESTS_CONFIG)[number]) {
@@ -51,7 +62,11 @@ export default function NetworkPage() {
       const res = await fetch(config.url, options);
       const duration = Date.now() - start;
       let data: unknown;
-      try { data = await res.json(); } catch { data = null; }
+      try {
+        data = await res.json();
+      } catch {
+        data = null;
+      }
 
       updateEntry(config.id, {
         status: res.ok ? "success" : "error",
@@ -88,16 +103,26 @@ export default function NetworkPage() {
   }
 
   const StatusIcon = ({ status }: { status: RequestEntry["status"] }) => {
-    if (status === "pending") return <div className="w-4 h-4 border-2 border-zinc-600 border-t-indigo-500 rounded-full animate-spin" aria-hidden="true" />;
-    if (status === "success") return <CheckCircle size={14} className="text-green-400" aria-hidden="true" />;
-    if (status === "error") return <XCircle size={14} className="text-red-400" aria-hidden="true" />;
+    if (status === "pending")
+      return (
+        <div
+          className="w-4 h-4 border-2 border-zinc-600 border-t-indigo-500 rounded-full animate-spin"
+          aria-hidden="true"
+        />
+      );
+    if (status === "success")
+      return <CheckCircle size={14} className="text-green-400" aria-hidden="true" />;
+    if (status === "error")
+      return <XCircle size={14} className="text-red-400" aria-hidden="true" />;
     return <div className="w-4 h-4 rounded-full border border-zinc-700" aria-hidden="true" />;
   };
 
   return (
     <div data-testid="network-page" aria-label="Network diagnostics test page">
       <h1 className="text-2xl font-bold text-zinc-100 mb-1">Network & Diagnostics</h1>
-      <p className="text-sm text-zinc-500 mb-8">Test API requests, console output, and network conditions.</p>
+      <p className="text-sm text-zinc-500 mb-8">
+        Test API requests, console output, and network conditions.
+      </p>
 
       <div className="space-y-6">
         {/* Controls */}
@@ -136,7 +161,9 @@ export default function NetworkPage() {
                   <StatusIcon status={entry.status} />
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium text-zinc-200 truncate">{config.label}</div>
-                    <div className="text-xs text-zinc-500 font-mono">{config.method} {config.url}</div>
+                    <div className="text-xs text-zinc-500 font-mono">
+                      {config.method} {config.url}
+                    </div>
                   </div>
                   {entry.result && (
                     <div className="flex items-center gap-3 text-xs text-zinc-500">
@@ -185,12 +212,20 @@ export default function NetworkPage() {
         {/* Console triggers */}
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 card-glow">
           <h2 className="text-sm font-semibold text-zinc-200 mb-4">Console Output Triggers</h2>
-          <p className="text-xs text-zinc-500 mb-4">Click to emit console messages (check with <code className="text-indigo-400">pw console</code>)</p>
+          <p className="text-xs text-zinc-500 mb-4">
+            Click to emit console messages (check with{" "}
+            <code className="text-indigo-400">pw console</code>)
+          </p>
           <div className="flex flex-wrap gap-3">
             <button
               data-testid="console-log"
               aria-label="Trigger console.log"
-              onClick={() => console.log("[pwcli-test] console.log triggered at", new Date().toISOString(), { source: "network-page", level: "log" })}
+              onClick={() =>
+                console.log("[pwcli-test] console.log triggered at", new Date().toISOString(), {
+                  source: "network-page",
+                  level: "log",
+                })
+              }
               className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-sm font-medium rounded-lg transition-all"
             >
               console.log
@@ -198,7 +233,12 @@ export default function NetworkPage() {
             <button
               data-testid="console-warn"
               aria-label="Trigger console.warn"
-              onClick={() => console.warn("[pwcli-test] console.warn triggered at", new Date().toISOString(), { source: "network-page", level: "warn" })}
+              onClick={() =>
+                console.warn("[pwcli-test] console.warn triggered at", new Date().toISOString(), {
+                  source: "network-page",
+                  level: "warn",
+                })
+              }
               className="flex items-center gap-2 px-4 py-2 bg-amber-900/30 hover:bg-amber-900/50 text-amber-400 text-sm font-medium rounded-lg transition-all border border-amber-800/30"
             >
               <AlertTriangle size={14} aria-hidden="true" />
@@ -207,7 +247,13 @@ export default function NetworkPage() {
             <button
               data-testid="console-error"
               aria-label="Trigger console.error"
-              onClick={() => console.error("[pwcli-test] console.error triggered at", new Date().toISOString(), { source: "network-page", level: "error", stack: "fake stack trace" })}
+              onClick={() =>
+                console.error("[pwcli-test] console.error triggered at", new Date().toISOString(), {
+                  source: "network-page",
+                  level: "error",
+                  stack: "fake stack trace",
+                })
+              }
               className="flex items-center gap-2 px-4 py-2 bg-red-900/30 hover:bg-red-900/50 text-red-400 text-sm font-medium rounded-lg transition-all border border-red-800/30"
             >
               <XCircle size={14} aria-hidden="true" />
@@ -216,7 +262,12 @@ export default function NetworkPage() {
             <button
               data-testid="console-info"
               aria-label="Trigger console.info"
-              onClick={() => console.info("[pwcli-test] console.info triggered at", new Date().toISOString(), { source: "network-page", level: "info" })}
+              onClick={() =>
+                console.info("[pwcli-test] console.info triggered at", new Date().toISOString(), {
+                  source: "network-page",
+                  level: "info",
+                })
+              }
               className="flex items-center gap-2 px-4 py-2 bg-blue-900/30 hover:bg-blue-900/50 text-blue-400 text-sm font-medium rounded-lg transition-all border border-blue-800/30"
             >
               console.info
@@ -256,7 +307,9 @@ function SseDemo() {
   const [es, setEs] = useState<EventSource | null>(null);
 
   function connect() {
-    if (es) { es.close(); }
+    if (es) {
+      es.close();
+    }
     const source = new EventSource("/api/stream");
     setEs(source);
     setConnected(true);
@@ -303,11 +356,7 @@ function SseDemo() {
             className={`w-2 h-2 rounded-full ${connected ? "bg-green-500 animate-pulse" : "bg-zinc-700"}`}
             aria-hidden="true"
           />
-          <span
-            className="text-xs text-zinc-500"
-            data-testid="sse-status"
-            aria-live="polite"
-          >
+          <span className="text-xs text-zinc-500" data-testid="sse-status" aria-live="polite">
             {connected ? "Connected" : "Disconnected"}
           </span>
         </div>

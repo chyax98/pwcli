@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { ExternalLink, ArrowLeft } from "lucide-react";
+import { ArrowLeft, ExternalLink } from "lucide-react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 export default function TabChildPage() {
   const [loadTime] = useState(new Date().toISOString());
@@ -83,12 +83,13 @@ export default function TabChildPage() {
                 data-testid="child-opener"
                 aria-label="Opener available"
               >
-                {hasOpener === null
-                  ? <span className="text-zinc-600">Checking…</span>
-                  : hasOpener
-                    ? <span className="text-green-400">Yes (window.opener exists)</span>
-                    : <span className="text-zinc-500">No (noopener or direct)</span>
-                }
+                {hasOpener === null ? (
+                  <span className="text-zinc-600">Checking…</span>
+                ) : hasOpener ? (
+                  <span className="text-green-400">Yes (window.opener exists)</span>
+                ) : (
+                  <span className="text-zinc-500">No (noopener or direct)</span>
+                )}
               </div>
             </div>
           </div>

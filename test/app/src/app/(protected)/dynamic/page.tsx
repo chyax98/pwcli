@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
-import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, ArrowUpDown } from "lucide-react";
+import { ArrowUpDown, ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 // Skeleton component
 function Skeleton({ className = "" }: { className?: string }) {
@@ -10,19 +10,63 @@ function Skeleton({ className = "" }: { className?: string }) {
 
 // Accordion
 const ACCORDION_ITEMS = [
-  { id: "a1", title: "What is pwcli?", content: "pwcli is an Agent-first Playwright CLI that exposes browser facts, browser actions, and failure evidence in a stable CLI shape." },
-  { id: "a2", title: "How does session management work?", content: "Sessions are persistent browser contexts managed by pwcli. Each session has a name and can be attached, created, or recreated as needed." },
-  { id: "a3", title: "What is the observe command?", content: "The observe command takes a screenshot and returns page state, including title, URL, and visible elements for agent navigation." },
-  { id: "a4", title: "How do I handle authentication?", content: "Use the auth provider system or pw code to script site-specific login flows. Sessions persist cookies and storage." },
-  { id: "a5", title: "What is pw code used for?", content: "pw code is the escape hatch for site-specific or complex Playwright scripts that require programmatic control beyond standard commands." },
+  {
+    id: "a1",
+    title: "What is pwcli?",
+    content:
+      "pwcli is an Agent-first Playwright CLI that exposes browser facts, browser actions, and failure evidence in a stable CLI shape.",
+  },
+  {
+    id: "a2",
+    title: "How does session management work?",
+    content:
+      "Sessions are persistent browser contexts managed by pwcli. Each session has a name and can be attached, created, or recreated as needed.",
+  },
+  {
+    id: "a3",
+    title: "What is the observe command?",
+    content:
+      "The observe command takes a screenshot and returns page state, including title, URL, and visible elements for agent navigation.",
+  },
+  {
+    id: "a4",
+    title: "How do I handle authentication?",
+    content:
+      "Use the auth provider system or pw code to script site-specific login flows. Sessions persist cookies and storage.",
+  },
+  {
+    id: "a5",
+    title: "What is pw code used for?",
+    content:
+      "pw code is the escape hatch for site-specific or complex Playwright scripts that require programmatic control beyond standard commands.",
+  },
 ];
 
 // Tabs
 const TAB_ITEMS = [
-  { id: "overview", label: "Overview", content: "This is the overview tab content. It contains a summary of the dynamic page capabilities." },
-  { id: "details", label: "Details", content: "Detailed information tab. Here you would see more specific data, metrics, and diagnostic information." },
-  { id: "settings", label: "Settings", content: "Settings panel tab. Configure behavior, preferences, and test environment options here." },
-  { id: "logs", label: "Logs", content: "Log output tab. Shows recent system events, errors, warnings, and debug information." },
+  {
+    id: "overview",
+    label: "Overview",
+    content:
+      "This is the overview tab content. It contains a summary of the dynamic page capabilities.",
+  },
+  {
+    id: "details",
+    label: "Details",
+    content:
+      "Detailed information tab. Here you would see more specific data, metrics, and diagnostic information.",
+  },
+  {
+    id: "settings",
+    label: "Settings",
+    content:
+      "Settings panel tab. Configure behavior, preferences, and test environment options here.",
+  },
+  {
+    id: "logs",
+    label: "Logs",
+    content: "Log output tab. Shows recent system events, errors, warnings, and debug information.",
+  },
 ];
 
 // Generate table data
@@ -45,7 +89,9 @@ type SortDir = "asc" | "desc";
 
 export default function DynamicPage() {
   const [skeletonLoaded, setSkeletonLoaded] = useState(false);
-  const [infiniteItems, setInfiniteItems] = useState<string[]>(Array.from({ length: 10 }, (_, i) => `Item ${i + 1}`));
+  const [infiniteItems, setInfiniteItems] = useState<string[]>(
+    Array.from({ length: 10 }, (_, i) => `Item ${i + 1}`),
+  );
   const [counter, setCounter] = useState(0);
   const [openAccordion, setOpenAccordion] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
@@ -83,8 +129,10 @@ export default function DynamicPage() {
     const sentinel = loadMoreRef.current;
     if (!sentinel) return;
     const obs = new IntersectionObserver(
-      (entries) => { if (entries[0].isIntersecting) loadMore(); },
-      { threshold: 0.1 }
+      (entries) => {
+        if (entries[0].isIntersecting) loadMore();
+      },
+      { threshold: 0.1 },
     );
     obs.observe(sentinel);
     return () => obs.disconnect();
@@ -113,14 +161,21 @@ export default function DynamicPage() {
   return (
     <div data-testid="dynamic-page" aria-label="Dynamic content test page">
       <h1 className="text-2xl font-bold text-zinc-100 mb-1">Dynamic Content</h1>
-      <p className="text-sm text-zinc-500 mb-8">Test async loading, infinite scroll, live counters, and more.</p>
+      <p className="text-sm text-zinc-500 mb-8">
+        Test async loading, infinite scroll, live counters, and more.
+      </p>
 
       <div className="space-y-6">
         {/* Skeleton loader */}
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 card-glow">
           <h2 className="text-sm font-semibold text-zinc-200 mb-4">Skeleton Loader (2s delay)</h2>
           {!skeletonLoaded ? (
-            <div data-testid="skeleton-loading" aria-label="Loading content" aria-busy="true" className="space-y-3">
+            <div
+              data-testid="skeleton-loading"
+              aria-label="Loading content"
+              aria-busy="true"
+              className="space-y-3"
+            >
               <Skeleton className="h-6 w-1/2" />
               <Skeleton className="h-4 w-full" />
               <Skeleton className="h-4 w-5/6" />
@@ -132,16 +187,23 @@ export default function DynamicPage() {
               </div>
             </div>
           ) : (
-            <div data-testid="skeleton-loaded" aria-label="Content loaded" className="animate-fade-in">
+            <div
+              data-testid="skeleton-loaded"
+              aria-label="Content loaded"
+              className="animate-fade-in"
+            >
               <h3 className="text-base font-semibold text-zinc-100 mb-2">Content Loaded!</h3>
               <p className="text-sm text-zinc-400 mb-3">
-                The skeleton screen has been replaced with actual content after a 2-second delay. This simulates async data loading.
+                The skeleton screen has been replaced with actual content after a 2-second delay.
+                This simulates async data loading.
               </p>
               <div className="grid grid-cols-3 gap-3">
                 {["42 users", "128 events", "99.9% uptime"].map((stat) => (
                   <div key={stat} className="bg-zinc-800 rounded-lg p-3 text-center">
                     <div className="text-sm font-bold text-indigo-400">{stat.split(" ")[0]}</div>
-                    <div className="text-xs text-zinc-500">{stat.split(" ").slice(1).join(" ")}</div>
+                    <div className="text-xs text-zinc-500">
+                      {stat.split(" ").slice(1).join(" ")}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -166,7 +228,10 @@ export default function DynamicPage() {
               <div className="text-xs text-zinc-500">Ticks per second: 1</div>
               <div className="text-xs text-zinc-500">Running since page load</div>
               <div className="flex items-center gap-1 mt-1">
-                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" aria-hidden="true" />
+                <div
+                  className="w-2 h-2 rounded-full bg-green-500 animate-pulse"
+                  aria-hidden="true"
+                />
                 <span className="text-xs text-green-400">Live</span>
               </div>
             </div>
@@ -195,10 +260,19 @@ export default function DynamicPage() {
                     className="w-full flex items-center justify-between px-5 py-4 text-sm text-left font-medium text-zinc-200 hover:bg-zinc-800/50 transition-colors"
                   >
                     {item.title}
-                    {isOpen
-                      ? <ChevronUp size={16} className="text-zinc-500 flex-shrink-0" aria-hidden="true" />
-                      : <ChevronDown size={16} className="text-zinc-500 flex-shrink-0" aria-hidden="true" />
-                    }
+                    {isOpen ? (
+                      <ChevronUp
+                        size={16}
+                        className="text-zinc-500 flex-shrink-0"
+                        aria-hidden="true"
+                      />
+                    ) : (
+                      <ChevronDown
+                        size={16}
+                        className="text-zinc-500 flex-shrink-0"
+                        aria-hidden="true"
+                      />
+                    )}
                   </button>
                   {isOpen && (
                     <div
@@ -312,7 +386,9 @@ export default function DynamicPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${row.status === "Active" ? "bg-green-500/10 text-green-400 border border-green-500/20" : "bg-zinc-700 text-zinc-500"}`}>
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${row.status === "Active" ? "bg-green-500/10 text-green-400 border border-green-500/20" : "bg-zinc-700 text-zinc-500"}`}
+                      >
                         {row.status}
                       </span>
                     </td>
@@ -327,7 +403,11 @@ export default function DynamicPage() {
             data-testid="table-pagination"
             className="flex items-center justify-between px-4 py-3 border-t border-zinc-800"
           >
-            <span className="text-xs text-zinc-500" data-testid="pagination-info" aria-live="polite">
+            <span
+              className="text-xs text-zinc-500"
+              data-testid="pagination-info"
+              aria-live="polite"
+            >
               Page {tablePage} of {totalPages} ({TABLE_DATA.length} records)
             </span>
             <div className="flex gap-1" role="navigation" aria-label="Table pagination">
@@ -368,7 +448,11 @@ export default function DynamicPage() {
         {/* Infinite scroll */}
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 card-glow">
           <h2 className="text-sm font-semibold text-zinc-200 mb-4">
-            Infinite Scroll (<span data-testid="infinite-count" aria-live="polite">{infiniteItems.length}</span> items loaded)
+            Infinite Scroll (
+            <span data-testid="infinite-count" aria-live="polite">
+              {infiniteItems.length}
+            </span>{" "}
+            items loaded)
           </h2>
           <div
             data-testid="infinite-list"

@@ -120,7 +120,7 @@ printf '{"x-pwcli-header":"smoke-1"}' >"$HEADERS_FILE"
 printf '{"x-pwcli-route-mode":"smoke"}' >"$ROUTE_INJECT_HEADERS_FILE"
 
 log "starting deterministic fixture server on ${ORIGIN}"
-node scripts/manual/deterministic-fixture-server.js "$PORT" >"$SERVER_LOG" 2>&1 &
+node test/fixtures/manual/deterministic-fixture-server.js "$PORT" >"$SERVER_LOG" 2>&1 &
 SERVER_PID="$!"
 
 for _ in $(seq 1 50); do
@@ -711,7 +711,7 @@ assert_json "$bad_semantic_json" "missing batch semantic target fails" \
   "data.ok === false && data.error.code === 'BATCH_STEP_FAILED' && data.error.details.summary.failedCount === 1 && String(data.error.details.summary.firstFailureMessage).includes('CLICK_SEMANTIC_NOT_FOUND')"
 
 log "bootstrap apply"
-bootstrap_json="$(run_json bootstrap-apply bootstrap apply --session "$SESSION_NAME" --init-script ./scripts/manual/bootstrap-fixture.js --headers-file "$HEADERS_FILE")"
+bootstrap_json="$(run_json bootstrap-apply bootstrap apply --session "$SESSION_NAME" --init-script ./test/fixtures/manual/bootstrap-fixture.js --headers-file "$HEADERS_FILE")"
 assert_json "$bootstrap_json" "bootstrap applied" \
   "data.ok === true && data.data.applied === true && data.data.headersApplied === true && data.data.initScriptCount >= 1"
 
@@ -721,7 +721,7 @@ assert_json "$open_json" "open reused session" \
   "data.ok === true && data.data.navigated === true && data.page.url === '${BLANK_URL}'"
 
 log "bootstrap verify"
-bootstrap_verify_json="$(run_json bootstrap-verify code --session "$SESSION_NAME" --file ./scripts/manual/bootstrap-verify.js)"
+bootstrap_verify_json="$(run_json bootstrap-verify code --session "$SESSION_NAME" --file ./test/fixtures/manual/bootstrap-verify.js)"
 assert_json "$bootstrap_verify_json" "bootstrap verify sees injected hooks" \
   "data.ok === true && data.data.result.installed === true && data.data.result.fetchResult.headerEcho === 'smoke-1' && data.data.result.xhrResult.headerEcho === 'smoke-1'"
 
@@ -736,7 +736,7 @@ assert_json "$out" ".ok" "x === true"
 assert_json "$out" ".data.count" "typeof x === 'number'"
 
 log "diagnostics fixture setup"
-code_json="$(run_json diagnostics-code code --session "$SESSION_NAME" --file ./scripts/manual/diagnostics-fixture.js)"
+code_json="$(run_json diagnostics-code code --session "$SESSION_NAME" --file ./test/fixtures/manual/diagnostics-fixture.js)"
 assert_json "$code_json" "diagnostics fixture ready" \
   "data.ok === true && data.data.result === 'ready'"
 
@@ -853,7 +853,7 @@ assert_json "${bundle_dir}/manifest.json" "bundle manifest mirrors executable se
   "data.latestRunId === '${BUNDLE_RUN_ID}' && data.auditConclusion.failedCommand === null && data.auditConclusion.agentNextSteps.some(item => item.includes('diagnostics timeline') && item.includes('${SESSION_NAME}')) && data.auditConclusion.agentNextSteps.every(item => !item.includes('${BUNDLE_RUN_ID}')) && data.auditConclusion.agentNextSteps.every(item => !item.includes('<latestRunId>'))"
 
 log "fire diagnostics"
-diagnostics_restore_json="$(run_json diagnostics-restore code --session "$SESSION_NAME" --file ./scripts/manual/diagnostics-fixture.js)"
+diagnostics_restore_json="$(run_json diagnostics-restore code --session "$SESSION_NAME" --file ./test/fixtures/manual/diagnostics-fixture.js)"
 assert_json "$diagnostics_restore_json" "diagnostics fixture restored after control reset" \
   "data.ok === true && data.data.result === 'ready'"
 click_json="$(run_json click-fire click --session "$SESSION_NAME" --selector '#fire')"
@@ -967,7 +967,7 @@ log "route patch response"
 route_patch_json="$(run_json route-patch route add '**/__pwcli__/diagnostics/json**' --session "$SESSION_NAME" --patch-json '{"severity":"critical","meta":{"patched":true}}' --patch-status 218)"
 assert_json "$route_patch_json" "route patch added" \
   "data.ok === true && data.data.route.mode === 'patch-response' && data.data.route.patchStatus === 218 && data.data.route.patchJson.severity === 'critical'"
-route_patch_verify_json="$(run_json route-patch-verify code --session "$SESSION_NAME" --file ./scripts/manual/route-patch-verify.js)"
+route_patch_verify_json="$(run_json route-patch-verify code --session "$SESSION_NAME" --file ./test/fixtures/manual/route-patch-verify.js)"
 assert_json "$route_patch_verify_json" "route patch rewrites upstream json response" \
   "data.ok === true && data.data.result.status === 218 && data.data.result.payload.severity === 'critical' && data.data.result.payload.meta.patched === true && data.data.result.payload.meta.source === 'server'"
 
@@ -978,7 +978,7 @@ assert_json "$clock_install_json" "clock install ok" \
 clock_set_json="$(run_json clock-set environment clock set --session "$SESSION_NAME" 2024-12-10T10:00:00.000Z)"
 assert_json "$clock_set_json" "clock set uses stable method" \
   "data.ok === true && data.data.clock.currentTime === '2024-12-10T10:00:00.000Z' && (data.data.clock.setMethod === 'setFixedTime' || data.data.clock.setMethod === 'setSystemTime')"
-clock_verify_json="$(run_json clock-verify code --session "$SESSION_NAME" --file ./scripts/manual/clock-verify.js)"
+clock_verify_json="$(run_json clock-verify code --session "$SESSION_NAME" --file ./test/fixtures/manual/clock-verify.js)"
 assert_json "$clock_verify_json" "clock verify sees updated date" \
   "data.ok === true && data.data.result.iso.startsWith('2024-12-10T10:00:00')"
 clock_resume_json="$(run_json clock-resume environment clock resume --session "$SESSION_NAME")"

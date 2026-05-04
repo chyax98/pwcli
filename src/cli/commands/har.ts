@@ -40,7 +40,14 @@ const start = defineCommand({
     description:
       "Purpose: return the explicit unsupported guard for hot HAR recording.\nOptions: --path accepts the intended HAR path for the failure envelope.\nExamples:\n  pw har start -s task-a --path ./record.har\nNotes: hot HAR recording is unsupported for managed sessions; use har replay with a pre-recorded HAR, or network/diagnostics/trace for evidence.",
   },
-  args: { ...sharedArgs, path: { type: "string", description: "HAR path for unsupported capture request", valueHint: "path" } },
+  args: {
+    ...sharedArgs,
+    path: {
+      type: "string",
+      description: "HAR path for unsupported capture request",
+      valueHint: "path",
+    },
+  },
   async run({ args }) {
     const a = args as CliArgs;
     try {

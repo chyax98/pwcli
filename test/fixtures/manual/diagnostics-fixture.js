@@ -1,3 +1,4 @@
+// biome-ignore format: Playwright run-code wraps source as an expression; trailing semicolon breaks parsing.
 async (page) => {
   await page.setContent(`
     <!doctype html>

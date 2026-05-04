@@ -1,6 +1,6 @@
 # pwcli
 
-`pwcli` 是内部 Agent-first Playwright CLI，默认命令名是 `pw`。
+`pwcli` 是 Agent-first Playwright CLI，默认命令名是 `pw`。
 
 它不是 Playwright 教程，也不是测试框架外壳。它的目标是把浏览器任务变成 Agent 能稳定消费的命令链：创建 session、观察页面、执行动作、等待状态、收集诊断、恢复失败。
 
@@ -60,7 +60,7 @@ pw auth dc -s dc-main --arg targetUrl='https://developer.example.com/forge'
 | 维护者 | [codestable/architecture/ARCHITECTURE.md](codestable/architecture/ARCHITECTURE.md) | 架构和维护文档入口 |
 | 命令面审计 | [codestable/architecture/command-surface.md](codestable/architecture/command-surface.md) | 从源码和 CLI help 对齐的命令能力地图 |
 | 命令设计覆盖 | [codestable/architecture/commands/coverage.md](codestable/architecture/commands/coverage.md) | 顶层 command 到命令族 ADR 的覆盖矩阵 |
-| 发布准备 | [codestable/architecture/release-v0.2.0.md](codestable/architecture/release-v0.2.0.md) | v0.2.0 发布前检查清单 |
+| 发布准备 | [codestable/architecture/release-v1.0.0.md](codestable/architecture/release-v1.0.0.md) | v1.0.0 发布前检查清单 |
 | Claude Code 协作 | [.claude/CLAUDE.md](.claude/CLAUDE.md) | 项目级规则入口 |
 
 ## 仓库结构
@@ -75,8 +75,16 @@ skills/
   pwcli/      # Agent 使用教程的唯一真相
 codestable/
   architecture/ # 架构事实、限制、扩展口、发布检查、命令 ADR
-  roadmap/      # 大型目标拆解与状态
   compound/     # decision / learning / trick / explore
+test/
+  unit/          # 轻量 contract / 纯函数测试
+  integration/   # 真实 CLI 集成测试
+  contract/      # 命令和 skill 的专项契约验证
+  smoke/         # 发布前本地主链回归
+  e2e/           # Agent dogfood 辅助脚本
+  fixtures/      # 本地测试夹具
+  app/           # 测试应用
+  benchmark/     # deterministic stability harness
 .claude/      # Claude Code 项目指令和 rules
 ```
 
@@ -91,12 +99,17 @@ node dist/cli.js --help
 开发期优先跑受影响验证：
 
 ```bash
-pnpm typecheck
-pnpm build
+pnpm check
 pw --help
 ```
 
-发布前再跑完整 gate，见 [release-v0.2.0.md](codestable/architecture/release-v0.2.0.md)。
+发布前再跑完整 gate，见 [release-v1.0.0.md](codestable/architecture/release-v1.0.0.md)。
+
+当前版本发布方式是 GitHub tag 安装：
+
+```bash
+npm install -g github:chyax98/pwcli#v1.0.0
+```
 
 ## 已知限制
 

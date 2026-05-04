@@ -27,14 +27,14 @@ tags:
 
 ## 理由
 
-- 中文优先能减少项目规则、限制、roadmap、skill 指令之间的理解偏差。
+- 中文优先能减少项目规则、限制、架构结论和 skill 指令之间的理解偏差。
 - skill 是 Agent 的使用入口，中文优先可以让后续维护者明确默认写作风格，不把 reference 写成英文命令百科。
 - 命令名、flag、错误码等仍保留英文原文，避免破坏可复制执行性和源码可追溯性。
 
 ## 影响
 
 - 新增或修改 `skills/pwcli/**/*.md` 时，正文说明、任务流程、限制和恢复路径默认使用中文。
-- CodeStable 文档、roadmap、architecture、decision、learning 等长期资产默认使用中文。
+- CodeStable 文档、architecture、decision、learning 等长期资产默认使用中文。
 - 英文片段必须服务于可执行命令、源码标识、协议字段或外部引用，不能替代中文说明。
 
 ## 相关文档

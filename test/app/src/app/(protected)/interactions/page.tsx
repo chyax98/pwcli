@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect, MouseEvent } from "react";
-import { GripVertical, Download, Loader2, AlertTriangle, CheckCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle, Download, GripVertical, Loader2 } from "lucide-react";
+import { type MouseEvent, useEffect, useRef, useState } from "react";
 
 const INITIAL_LIST = [
   { id: "item-1", label: "First item" },
@@ -34,7 +34,7 @@ export default function InteractionsPage() {
           setScrollTriggered(true);
         }
       },
-      { threshold: 0.5 }
+      { threshold: 0.5 },
     );
     obs.observe(sentinel);
     return () => obs.disconnect();
@@ -104,7 +104,9 @@ export default function InteractionsPage() {
     <div
       data-testid="interactions-page"
       aria-label="Interactions test page"
-      onClick={() => { if (contextMenu) setContextMenu(null); }}
+      onClick={() => {
+        if (contextMenu) setContextMenu(null);
+      }}
     >
       <h1 className="text-2xl font-bold text-zinc-100 mb-1">Interactions</h1>
       <p className="text-sm text-zinc-500 mb-8">Test all browser interaction patterns.</p>
@@ -218,7 +220,11 @@ export default function InteractionsPage() {
             Right-click here
           </div>
           {contextAction && (
-            <div className="mt-2 text-xs text-zinc-400" data-testid="context-action-result" aria-live="polite">
+            <div
+              className="mt-2 text-xs text-zinc-400"
+              data-testid="context-action-result"
+              aria-live="polite"
+            >
               Action: <span className="text-indigo-400 font-medium">{contextAction}</span>
             </div>
           )}
@@ -273,7 +279,11 @@ export default function InteractionsPage() {
                 onDragEnd={handleDragEnd}
                 className={`flex items-center gap-3 px-3 py-2.5 bg-zinc-800 rounded-lg text-sm text-zinc-300 cursor-grab active:cursor-grabbing transition-all duration-150 select-none ${dragIndex === index ? "opacity-50 ring-1 ring-indigo-500" : "hover:bg-zinc-700"}`}
               >
-                <GripVertical size={14} className="text-zinc-600 flex-shrink-0" aria-hidden="true" />
+                <GripVertical
+                  size={14}
+                  className="text-zinc-600 flex-shrink-0"
+                  aria-hidden="true"
+                />
                 {item.label}
               </li>
             ))}
@@ -320,9 +330,13 @@ export default function InteractionsPage() {
           </div>
 
           <div className="border-t border-zinc-800 pt-4">
-            <p className="text-xs text-zinc-500 mb-2">Scroll sentinel (scroll into view to trigger)</p>
+            <p className="text-xs text-zinc-500 mb-2">
+              Scroll sentinel (scroll into view to trigger)
+            </p>
             <div className="h-32 overflow-y-auto bg-zinc-800 rounded-lg p-3 relative">
-              <div className="h-24 flex items-start text-xs text-zinc-600">Scroll down in this box →</div>
+              <div className="h-24 flex items-start text-xs text-zinc-600">
+                Scroll down in this box →
+              </div>
               <div
                 ref={scrollSentinelRef}
                 data-testid="scroll-sentinel"

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
 import { MessageSquare, Send } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 export default function IframePage() {
   const [messageInput, setMessageInput] = useState("");
@@ -24,7 +24,7 @@ export default function IframePage() {
     if (!iframeRef.current?.contentWindow) return;
     iframeRef.current.contentWindow.postMessage(
       { type: "host-message", message: messageInput },
-      window.location.origin
+      window.location.origin,
     );
   }
 
@@ -99,10 +99,13 @@ export default function IframePage() {
                 aria-live="polite"
                 className="min-h-[60px] px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-sm text-zinc-300 font-mono"
               >
-                {iframeResponse
-                  ? iframeResponse
-                  : <span className="text-zinc-600">No response yet. Send a message or submit the iframe form.</span>
-                }
+                {iframeResponse ? (
+                  iframeResponse
+                ) : (
+                  <span className="text-zinc-600">
+                    No response yet. Send a message or submit the iframe form.
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -111,8 +114,8 @@ export default function IframePage() {
             <p className="text-xs text-zinc-500">
               The iframe at <code className="text-indigo-400">/iframe/content</code> listens for
               <code className="text-indigo-400"> host-message</code> events and replies with
-              <code className="text-indigo-400"> iframe-reply</code>. Form submit inside iframe
-              also triggers a reply.
+              <code className="text-indigo-400"> iframe-reply</code>. Form submit inside iframe also
+              triggers a reply.
             </p>
           </div>
         </div>

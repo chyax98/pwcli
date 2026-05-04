@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { type NextRequest, NextResponse } from "next/server";
 
 export async function GET() {
   const cookieStore = await cookies();
@@ -13,7 +13,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json() as { name: string; value: string; maxAge?: number };
+    const body = (await request.json()) as { name: string; value: string; maxAge?: number };
     const { name, value, maxAge = 3600 } = body;
     if (!name) {
       return NextResponse.json({ error: "name is required" }, { status: 400 });
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const body = await request.json() as { name: string };
+    const body = (await request.json()) as { name: string };
     const { name } = body;
     if (!name) {
       return NextResponse.json({ error: "name is required" }, { status: 400 });

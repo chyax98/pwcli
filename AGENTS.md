@@ -39,6 +39,15 @@ skills/
 codestable/
   architecture/
   compound/
+test/
+  unit/
+  integration/
+  contract/
+  smoke/
+  e2e/
+  fixtures/
+  app/
+  benchmark/
 .claude/
 ```
 
@@ -61,6 +70,7 @@ codestable/
 | 改动 | 必须同步 |
 |---|---|
 | 命令、flag、错误码、输出变化 | `skills/pwcli/` |
+| 命令 surface / README 示例变化 | `README.md` |
 | 领域边界变化 | `codestable/architecture/` |
 | 新 limitation / recoverability | `skills/pwcli/references/failure-recovery.md` |
 | 新工作流 | `skills/pwcli/references/workflows.md` |
@@ -83,6 +93,7 @@ pw <affected-command> ...
 - 最终发布、合并前总验收，或用户明确要求时，才跑全量测试。
 - 类型风险明显时再补 `pnpm typecheck`。
 - 深度产品验证以 Agent 按 `skills/pwcli/` 真实 dogfood 为主；脚本 E2E 只作基础回归、fixture 或特定 contract 辅助，不把修脚本当默认最高优先级。
+- 测试资产统一放 `test/`；命令/skill 专项契约验证放 `test/contract/`，仓库不保留独立 `scripts/` 测试入口。
 
 ## Review guidelines
 

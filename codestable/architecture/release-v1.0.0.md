@@ -7,7 +7,7 @@
 
 ## 1. 当前发布面
 
-`pwcli` v0.2.0 当前承诺：
+`pwcli` v1.0.0 当前承诺：
 
 - named session lifecycle
 - 页面观察、动作、等待、断言
@@ -28,7 +28,7 @@
 当前 package contract：
 
 - package: `@chyax/pwcli`
-- version: `0.2.0`
+- version: `1.0.0`
 - command: `pw`
 - `bin.pw`: `dist/cli.js`
 - package files 必须包含：`dist`、`skills`、`README.md`
@@ -69,15 +69,13 @@ pnpm build
 正式 ship 前跑：
 
 ```bash
-pnpm typecheck
-pnpm build
-pnpm test:regression
-pnpm check:doctor-modal
+pnpm check
+pnpm smoke
 git diff --check
-npm pack --dry-run
+pnpm pack:check
 ```
 
-`pnpm test:regression` 是基础回归入口；`pnpm smoke` 当前保留为兼容 alias，不代表 tiny smoke。深度发布证据来自 Agent 按 `skills/pwcli/` 执行真实任务矩阵，并把关键命令、结果和失败恢复写回 CodeStable。
+`pnpm test` 是轻量基础 gate；`pnpm test:integration` 跑完整本地集成层；`pnpm smoke` 是重型本地 CLI 主链回归。深度发布证据来自 Agent 按 `skills/pwcli/` 执行真实任务矩阵，并把关键命令、结果和失败恢复写回 CodeStable。
 
 高风险行为变化再补 Agent dogfood evidence gate；可按需复用脚本夹具：
 
@@ -108,19 +106,10 @@ pnpm test:dogfood:e2e
 
 ## 6. 安装验证
 
-GitHub tag 安装：
+当前不发布 npm registry。正式版本以 GitHub tag 为发布锚点。
 
 ```bash
-npm install -g github:chyax98/pwcli#v0.2.0
-pw --version
-pw --help
-pw skill path
-```
-
-npm 包安装：
-
-```bash
-npm install -g @chyax/pwcli
+npm install -g github:chyax98/pwcli#v1.0.0
 pw --version
 pw --help
 pw skill path

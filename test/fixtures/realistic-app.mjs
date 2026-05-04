@@ -112,7 +112,7 @@ const server = createServer(async (req, res) => {
       });
       return res.end();
     }
-    return html(res, "<p>Invalid credentials</p>" + loginPage, 401);
+    return html(res, `<p>Invalid credentials</p>${loginPage}`, 401);
   }
 
   if (url.pathname === "/dashboard" && req.method === "GET") {
@@ -158,7 +158,7 @@ export function stopFixtureServer() {
   });
 }
 
-// Allow running directly: node scripts/fixtures/realistic-app.mjs
+// Allow running directly: node test/fixtures/realistic-app.mjs
 if (import.meta.url === `file://${process.argv[1]}`) {
   startFixtureServer();
 }

@@ -57,13 +57,37 @@ function runBatchJson(stdinData: string) {
 
 try {
   const allowedCases: Array<{ label: string; stdin: string; expectedReasonCode: string }> = [
-    { label: "fill", stdin: '[["fill","--selector","#x","val"]]', expectedReasonCode: "SESSION_NOT_FOUND" },
-    { label: "check", stdin: '[["check","--selector","#x"]]', expectedReasonCode: "SESSION_NOT_FOUND" },
-    { label: "select", stdin: '[["select","--selector","#x","opt"]]', expectedReasonCode: "SESSION_NOT_FOUND" },
-    { label: "hover", stdin: '[["hover","--selector","#x"]]', expectedReasonCode: "SESSION_NOT_FOUND" },
+    {
+      label: "fill",
+      stdin: '[["fill","--selector","#x","val"]]',
+      expectedReasonCode: "SESSION_NOT_FOUND",
+    },
+    {
+      label: "check",
+      stdin: '[["check","--selector","#x"]]',
+      expectedReasonCode: "SESSION_NOT_FOUND",
+    },
+    {
+      label: "select",
+      stdin: '[["select","--selector","#x","opt"]]',
+      expectedReasonCode: "SESSION_NOT_FOUND",
+    },
+    {
+      label: "hover",
+      stdin: '[["hover","--selector","#x"]]',
+      expectedReasonCode: "SESSION_NOT_FOUND",
+    },
     { label: "press", stdin: '[["press","Enter"]]', expectedReasonCode: "SESSION_NOT_FOUND" },
-    { label: "scroll", stdin: '[["scroll","down","300"]]', expectedReasonCode: "SESSION_NOT_FOUND" },
-    { label: "type", stdin: '[["type","--selector","#x","hello"]]', expectedReasonCode: "SESSION_NOT_FOUND" },
+    {
+      label: "scroll",
+      stdin: '[["scroll","down","300"]]',
+      expectedReasonCode: "SESSION_NOT_FOUND",
+    },
+    {
+      label: "type",
+      stdin: '[["type","--selector","#x","hello"]]',
+      expectedReasonCode: "SESSION_NOT_FOUND",
+    },
   ];
 
   for (const { label, stdin, expectedReasonCode } of allowedCases) {

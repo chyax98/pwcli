@@ -38,253 +38,255 @@ const DEFAULT_PHONE = "19545672859";
 const DEFAULT_SMS_CODE = "000000";
 const FORGE_SUBDOMAIN = "developer";
 
-const dcProviderSource = String(async (page: DcAuthPage, args: Record<string, string | undefined>) => {
-  const originFromUrl = (raw: unknown) => {
-    const match = String(raw || "").match(/^(https?:\/\/[^/]+)(?:\/.*)?$/);
-    return match?.[1] || "";
-  };
-  const pathFromUrl = (raw: unknown) => {
-    const origin = originFromUrl(raw);
-    return origin ? String(raw || "").slice(origin.length) || "/" : "";
-  };
-  const queryParam = (raw: unknown, name: string) => {
-    const decode = (value: string) => {
-      try {
-        return decodeURIComponent(value || "");
-      } catch {
-        return value || "";
-      }
+const dcProviderSource = String(
+  async (page: DcAuthPage, args: Record<string, string | undefined>) => {
+    const originFromUrl = (raw: unknown) => {
+      const match = String(raw || "").match(/^(https?:\/\/[^/]+)(?:\/.*)?$/);
+      return match?.[1] || "";
     };
-    const query =
-      String(raw || "")
-        .split("?")[1]
-        ?.split("#")[0] || "";
-    for (const part of query.split("&")) {
-      const [key, ...valueParts] = part.split("=");
-      if (decode(key) === name) {
-        return decode(valueParts.join("="));
+    const pathFromUrl = (raw: unknown) => {
+      const origin = originFromUrl(raw);
+      return origin ? String(raw || "").slice(origin.length) || "/" : "";
+    };
+    const queryParam = (raw: unknown, name: string) => {
+      const decode = (value: string) => {
+        try {
+          return decodeURIComponent(value || "");
+        } catch {
+          return value || "";
+        }
+      };
+      const query =
+        String(raw || "")
+          .split("?")[1]
+          ?.split("#")[0] || "";
+      for (const part of query.split("&")) {
+        const [key, ...valueParts] = part.split("=");
+        if (decode(key) === name) {
+          return decode(valueParts.join("="));
+        }
       }
-    }
-    return "";
-  };
-  const forgeTargetFromUrl = (raw: unknown): string => {
-    const url = String(raw || "").trim();
-    const origin = originFromUrl(url);
-    if (!origin) {
       return "";
+    };
+    const forgeTargetFromUrl = (raw: unknown): string => {
+      const url = String(raw || "").trim();
+      const origin = originFromUrl(url);
+      if (!origin) {
+        return "";
+      }
+      const host = origin.replace(/^https?:\/\//, "");
+      if (!host.startsWith("developer")) {
+        return "";
+      }
+      const path = pathFromUrl(url);
+      if (path.startsWith("/forge/auth/login")) {
+        const refer = queryParam(url, "refer");
+        return forgeTargetFromUrl(refer);
+      }
+      if (path === "/" || path === "") {
+        return `${origin}/forge`;
+      }
+      return path.startsWith("/forge") ? url : "";
+    };
+    const phone = String(args.phone ?? "19545672859").trim();
+    const smsCode = String(args.smsCode ?? "000000").trim();
+    const explicitTargetUrl = String(args.targetUrl ?? "").trim();
+    let resolvedBy = "";
+    let baseURL = String(args.baseURL ?? "")
+      .trim()
+      .replace(/\/$/, "");
+
+    let targetUrl = "";
+    if (explicitTargetUrl) {
+      targetUrl = explicitTargetUrl;
+      resolvedBy = "targetUrl";
+    } else if (baseURL) {
+      targetUrl = `${baseURL}/forge`;
+      resolvedBy = "baseURL";
+    } else {
+      const currentTargetUrl = forgeTargetFromUrl(page.url());
+      targetUrl = currentTargetUrl || String(args.detectedTargetUrl ?? "").trim();
+      resolvedBy = currentTargetUrl ? "current-page" : String(args.resolvedBy ?? "").trim();
     }
-    const host = origin.replace(/^https?:\/\//, "");
-    if (!host.startsWith("developer")) {
-      return "";
+
+    if (!baseURL && targetUrl) {
+      baseURL = originFromUrl(targetUrl);
     }
-    const path = pathFromUrl(url);
-    if (path.startsWith("/forge/auth/login")) {
-      const refer = queryParam(url, "refer");
-      return forgeTargetFromUrl(refer);
+    if (!targetUrl && baseURL) {
+      targetUrl = `${baseURL}/forge`;
     }
-    if (path === "/" || path === "") {
-      return `${origin}/forge`;
+
+    if (!phone) {
+      throw new Error("dc auth requires phone");
     }
-    return path.startsWith("/forge") ? url : "";
-  };
-  const phone = String(args.phone ?? "19545672859").trim();
-  const smsCode = String(args.smsCode ?? "000000").trim();
-  const explicitTargetUrl = String(args.targetUrl ?? "").trim();
-  let resolvedBy = "";
-  let baseURL = String(args.baseURL ?? "")
-    .trim()
-    .replace(/\/$/, "");
+    if (!baseURL || !targetUrl) {
+      throw new Error(
+        "DC_AUTH_URL_REQUIRED: dc auth could not resolve Forge URL. Pass --arg targetUrl=<url> or run from an existing Forge page.",
+      );
+    }
 
-  let targetUrl = "";
-  if (explicitTargetUrl) {
-    targetUrl = explicitTargetUrl;
-    resolvedBy = "targetUrl";
-  } else if (baseURL) {
-    targetUrl = `${baseURL}/forge`;
-    resolvedBy = "baseURL";
-  } else {
-    const currentTargetUrl = forgeTargetFromUrl(page.url());
-    targetUrl = currentTargetUrl || String(args.detectedTargetUrl ?? "").trim();
-    resolvedBy = currentTargetUrl ? "current-page" : String(args.resolvedBy ?? "").trim();
-  }
+    const loginPageUrl = `${baseURL}/forge/auth/login?refer=${encodeURIComponent(targetUrl)}`;
+    let interceptedLoginUrlPayload: LoginUrlPayload | null = null;
 
-  if (!baseURL && targetUrl) {
-    baseURL = originFromUrl(targetUrl);
-  }
-  if (!targetUrl && baseURL) {
-    targetUrl = `${baseURL}/forge`;
-  }
+    await page.route("**/api/auth/login/url**", async (route: DcAuthRoute) => {
+      const response = await route.fetch();
+      const text = await response.text();
+      let body = null;
+      try {
+        body = JSON.parse(text);
+      } catch {}
+      interceptedLoginUrlPayload = { status: response.status(), body, text };
+      await route.fulfill({ response, body: text });
+    });
 
-  if (!phone) {
-    throw new Error("dc auth requires phone");
-  }
-  if (!baseURL || !targetUrl) {
-    throw new Error(
-      "DC_AUTH_URL_REQUIRED: dc auth could not resolve Forge URL. Pass --arg targetUrl=<url> or run from an existing Forge page.",
-    );
-  }
-
-  const loginPageUrl = `${baseURL}/forge/auth/login?refer=${encodeURIComponent(targetUrl)}`;
-  let interceptedLoginUrlPayload: LoginUrlPayload | null = null;
-
-  await page.route("**/api/auth/login/url**", async (route: DcAuthRoute) => {
-    const response = await route.fetch();
-    const text = await response.text();
-    let body = null;
     try {
-      body = JSON.parse(text);
-    } catch {}
-    interceptedLoginUrlPayload = { status: response.status(), body, text };
-    await route.fulfill({ response, body: text });
-  });
+      await page.goto(loginPageUrl);
+    } catch (error) {
+      throw new Error(
+        `DC_AUTH_URL_UNREACHABLE: failed to open ${loginPageUrl}. ${resolvedBy ? `resolvedBy=${resolvedBy}. ` : ""}Pass --arg targetUrl=<forge-url>. cause=${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+    await page.waitForTimeout(2000);
 
-  try {
-    await page.goto(loginPageUrl);
-  } catch (error) {
-    throw new Error(
-      `DC_AUTH_URL_UNREACHABLE: failed to open ${loginPageUrl}. ${resolvedBy ? `resolvedBy=${resolvedBy}. ` : ""}Pass --arg targetUrl=<forge-url>. cause=${error instanceof Error ? error.message : String(error)}`,
-    );
-  }
-  await page.waitForTimeout(2000);
+    const payload = interceptedLoginUrlPayload as LoginUrlPayload | null;
+    if (!payload) {
+      throw new Error(
+        `DC_AUTH_LOGIN_URL_NOT_FOUND: dc auth failed to intercept /api/auth/login/url at ${loginPageUrl}. Pass --arg targetUrl=<forge-url>.`,
+      );
+    }
 
-  const payload = interceptedLoginUrlPayload as LoginUrlPayload | null;
-  if (!payload) {
-    throw new Error(
-      `DC_AUTH_LOGIN_URL_NOT_FOUND: dc auth failed to intercept /api/auth/login/url at ${loginPageUrl}. Pass --arg targetUrl=<forge-url>.`,
-    );
-  }
+    const loginEntryUrl = payload.body?.url || payload.body?.data?.url || "";
 
-  const loginEntryUrl = payload.body?.url || payload.body?.data?.url || "";
+    if (!loginEntryUrl) {
+      throw new Error("dc auth response did not include a business login URL");
+    }
 
-  if (!loginEntryUrl) {
-    throw new Error("dc auth response did not include a business login URL");
-  }
+    await page.goto(loginEntryUrl);
 
-  await page.goto(loginEntryUrl);
+    const authResult = await page.evaluate(
+      async ({
+        phone: p,
+        smsCode: s,
+        loginEntryUrl: entry,
+      }: {
+        phone: string;
+        smsCode: string;
+        loginEntryUrl: string;
+      }) => {
+        const authorizeUrl = new URL(entry);
+        const callbackUrl = authorizeUrl.searchParams.get("redirect_uri");
+        const clientId = authorizeUrl.searchParams.get("client_id");
+        const state = authorizeUrl.searchParams.get("state");
+        const scope = authorizeUrl.searchParams.get("scope") || "public_profile";
+        const uid = crypto.randomUUID();
+        const baseXua = `V=1&PN=Accounts&LANG=zh_CN&VN_CODE=10&LOC=CN&PLT=PC&DS=Android&UID=${uid}&OS=MacOS&OSV=10.15.7&DT=PC`;
 
-  const authResult = await page.evaluate(
-    async ({
-      phone: p,
-      smsCode: s,
-      loginEntryUrl: entry,
-    }: {
-      phone: string;
-      smsCode: string;
-      loginEntryUrl: string;
-    }) => {
-      const authorizeUrl = new URL(entry);
-      const callbackUrl = authorizeUrl.searchParams.get("redirect_uri");
-      const clientId = authorizeUrl.searchParams.get("client_id");
-      const state = authorizeUrl.searchParams.get("state");
-      const scope = authorizeUrl.searchParams.get("scope") || "public_profile";
-      const uid = crypto.randomUUID();
-      const baseXua = `V=1&PN=Accounts&LANG=zh_CN&VN_CODE=10&LOC=CN&PLT=PC&DS=Android&UID=${uid}&OS=MacOS&OSV=10.15.7&DT=PC`;
+        const phoneResp = await fetch(`/api/phone/login?X-UA=${encodeURIComponent(baseXua)}`, {
+          method: "POST",
+          headers: {
+            Accept: "application/json, text/plain, */*",
+            "Content-Type": "application/x-www-form-urlencoded",
+            "X-Requested-With": "XMLHttpRequest",
+            "X-UA": baseXua,
+          },
+          body: new URLSearchParams({
+            phone_code: s,
+            phone_number: `+86${p}`,
+            session_id: "",
+            session_type: "",
+          }).toString(),
+        });
+        const phoneBody = await phoneResp.json().catch(() => undefined);
+        if (!phoneResp.ok) {
+          throw new Error(
+            `DC_AUTH_PHONE_LOGIN_FAILED:status=${phoneResp.status}:errorCode=${phoneBody?.error || "unknown"}`,
+          );
+        }
 
-      const phoneResp = await fetch(`/api/phone/login?X-UA=${encodeURIComponent(baseXua)}`, {
-        method: "POST",
-        headers: {
-          Accept: "application/json, text/plain, */*",
-          "Content-Type": "application/x-www-form-urlencoded",
-          "X-Requested-With": "XMLHttpRequest",
-          "X-UA": baseXua,
-        },
-        body: new URLSearchParams({
-          phone_code: s,
-          phone_number: `+86${p}`,
-          session_id: "",
-          session_type: "",
-        }).toString(),
-      });
-      const phoneBody = await phoneResp.json().catch(() => undefined);
-      if (!phoneResp.ok) {
-        throw new Error(
-          `DC_AUTH_PHONE_LOGIN_FAILED:status=${phoneResp.status}:errorCode=${phoneBody?.error || "unknown"}`,
-        );
-      }
-
-      const getVid = () => {
-        const match = (globalThis.document?.cookie ?? "").match(
-          /(?:^|;\s*)ACCOUNTS_USER_ID=([^;]+)/,
-        );
-        return match?.[1] || "0";
-      };
-
-      const buildAuthRequest = (vid: string) => {
-        const xua = `${baseXua.replace("&DT=PC", "")}&VID=${vid}&DT=PC`;
-        const parameters = new URLSearchParams({
-          client_id: clientId || "",
-          redirect_uri: callbackUrl || "",
-          response_type: "code",
-          state: state || "",
-          scope,
-          session_id: "",
-          session_type: "",
-        }).toString();
-        return {
-          xua,
-          url: `/api/oauth2/auth/v2?parameters=${encodeURIComponent(parameters)}&X-UA=${encodeURIComponent(xua)}`,
+        const getVid = () => {
+          const match = (globalThis.document?.cookie ?? "").match(
+            /(?:^|;\s*)ACCOUNTS_USER_ID=([^;]+)/,
+          );
+          return match?.[1] || "0";
         };
-      };
 
-      let authInfo = buildAuthRequest(getVid());
-      let authResp = await fetch(authInfo.url, {
-        headers: {
-          Accept: "application/json, text/plain, */*",
-          "X-Requested-With": "XMLHttpRequest",
-          "X-UA": authInfo.xua,
-        },
-      });
-      let authBody = await authResp.json().catch(() => undefined);
+        const buildAuthRequest = (vid: string) => {
+          const xua = `${baseXua.replace("&DT=PC", "")}&VID=${vid}&DT=PC`;
+          const parameters = new URLSearchParams({
+            client_id: clientId || "",
+            redirect_uri: callbackUrl || "",
+            response_type: "code",
+            state: state || "",
+            scope,
+            session_id: "",
+            session_type: "",
+          }).toString();
+          return {
+            xua,
+            url: `/api/oauth2/auth/v2?parameters=${encodeURIComponent(parameters)}&X-UA=${encodeURIComponent(xua)}`,
+          };
+        };
 
-      if (authBody?.data?.error === "invalid_xua") {
-        authInfo = buildAuthRequest(getVid());
-        authResp = await fetch(authInfo.url, {
+        let authInfo = buildAuthRequest(getVid());
+        let authResp = await fetch(authInfo.url, {
           headers: {
             Accept: "application/json, text/plain, */*",
             "X-Requested-With": "XMLHttpRequest",
             "X-UA": authInfo.xua,
           },
         });
-        authBody = await authResp.json().catch(() => undefined);
-      }
+        let authBody = await authResp.json().catch(() => undefined);
 
-      return {
-        redirectUri: authBody?.data?.redirect_uri || "",
-      };
-    },
-    {
-      phone,
-      smsCode,
-      loginEntryUrl,
-    },
-  );
+        if (authBody?.data?.error === "invalid_xua") {
+          authInfo = buildAuthRequest(getVid());
+          authResp = await fetch(authInfo.url, {
+            headers: {
+              Accept: "application/json, text/plain, */*",
+              "X-Requested-With": "XMLHttpRequest",
+              "X-UA": authInfo.xua,
+            },
+          });
+          authBody = await authResp.json().catch(() => undefined);
+        }
 
-  if (!authResult?.redirectUri) {
-    throw new Error("dc auth did not receive redirectUri");
-  }
+        return {
+          redirectUri: authBody?.data?.redirect_uri || "",
+        };
+      },
+      {
+        phone,
+        smsCode,
+        loginEntryUrl,
+      },
+    );
 
-  const redirectUri = authResult.redirectUri.replace(/^http:\/\//, "https://");
-  await page.goto(redirectUri);
-  await page.waitForLoadState("networkidle").catch(() => {});
-  await page
-    .waitForURL((url) => !url.href.includes("/auth/callback/taptap"), {
-      timeout: 20000,
-    })
-    .catch(() => {});
+    if (!authResult?.redirectUri) {
+      throw new Error("dc auth did not receive redirectUri");
+    }
 
-  return {
-    ok: true,
-    resolvedTargetUrl: targetUrl,
-    resolvedBy,
-    baseURL,
-    pageState: await page.evaluate(() => ({
-      url: window.location.href,
-      title: document.title,
-      readyState: document.readyState,
-      heading: document.querySelector("h1")?.textContent ?? "",
-    })),
-  };
-});
+    const redirectUri = authResult.redirectUri.replace(/^http:\/\//, "https://");
+    await page.goto(redirectUri);
+    await page.waitForLoadState("networkidle").catch(() => {});
+    await page
+      .waitForURL((url) => !url.href.includes("/auth/callback/taptap"), {
+        timeout: 20000,
+      })
+      .catch(() => {});
+
+    return {
+      ok: true,
+      resolvedTargetUrl: targetUrl,
+      resolvedBy,
+      baseURL,
+      pageState: await page.evaluate(() => ({
+        url: window.location.href,
+        title: document.title,
+        readyState: document.readyState,
+        heading: document.querySelector("h1")?.textContent ?? "",
+      })),
+    };
+  },
+);
 
 export const dcAuthProvider: AuthProviderSpec = {
   name: "dc",

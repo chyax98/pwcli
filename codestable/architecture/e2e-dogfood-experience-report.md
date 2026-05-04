@@ -11,14 +11,14 @@
 
 ```bash
 pnpm smoke
-pnpm test:regression
+pnpm test
 ```
 
 可复用 fixture 和辅助脚本位于：
 
 ```text
-scripts/e2e/dogfood-server.js
-scripts/e2e/pwcli-dogfood-e2e.sh
+test/e2e/dogfood-server.js
+test/e2e/pwcli-dogfood-e2e.sh
 ```
 
 深度验证入口不是固定脚本，而是 Agent 按 `skills/pwcli/` 执行真实浏览器任务，并把命令、结果、失败恢复和证据位置沉淀回 CodeStable。

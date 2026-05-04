@@ -3,7 +3,7 @@ import { existsSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, resolve } from "node:path";
 import { defineCommand } from "citty";
-import { bool, print, printError, type CliArgs } from "./_helpers.js";
+import { bool, type CliArgs, print, printError } from "./_helpers.js";
 
 const require = createRequire(import.meta.url);
 const DASHBOARD_LAUNCH_OBSERVE_MS = 1000;
@@ -20,7 +20,9 @@ function playwrightDashboardPaths() {
   };
 }
 
-export function observeDashboardLaunch(child: ChildProcess): Promise<DashboardLaunchFailure | null> {
+export function observeDashboardLaunch(
+  child: ChildProcess,
+): Promise<DashboardLaunchFailure | null> {
   return new Promise((resolve) => {
     let settled = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -33,7 +35,8 @@ export function observeDashboardLaunch(child: ChildProcess): Promise<DashboardLa
       resolve(result);
     };
     const onError = (error: Error) => finish({ error, phase: "spawn" });
-    const onExit = (code: number | null, signal: NodeJS.Signals | null) => finish({ code, phase: "early-exit", signal });
+    const onExit = (code: number | null, signal: NodeJS.Signals | null) =>
+      finish({ code, phase: "early-exit", signal });
     timer = setTimeout(() => finish(null), DASHBOARD_LAUNCH_OBSERVE_MS);
     child.once("error", onError);
     child.once("exit", onExit);
@@ -42,29 +45,65 @@ export function observeDashboardLaunch(child: ChildProcess): Promise<DashboardLa
 
 const open = defineCommand({
   meta: { name: "open", description: "Open Playwright session dashboard" },
-  args: { output: { type: "string", description: "Output format: text|json", default: "text" }, "dry-run": { type: "boolean", description: "Validate without launching" } },
+  args: {
+    output: { type: "string", description: "Output format: text|json", default: "text" },
+    "dry-run": { type: "boolean", description: "Validate without launching" },
+  },
   async run({ args }) {
     const a = args as CliArgs;
     const paths = playwrightDashboardPaths();
     const entrypointAvailable = existsSync(paths.entrypoint);
     const dashboardAppAvailable = existsSync(paths.dashboardApp);
     if (!entrypointAvailable || !dashboardAppAvailable) {
-      printError("dashboard open", a, { code: "DASHBOARD_UNAVAILABLE", message: "Playwright dashboard entrypoint is unavailable in the installed playwright-core package", details: { ...paths, entrypointAvailable, dashboardAppAvailable }, suggestions: ["Run `pnpm install`", "Use `pw session list --with-page` for a CLI-only session overview"] });
+      printError("dashboard open", a, {
+        code: "DASHBOARD_UNAVAILABLE",
+        message:
+          "Playwright dashboard entrypoint is unavailable in the installed playwright-core package",
+        details: { ...paths, entrypointAvailable, dashboardAppAvailable },
+        suggestions: [
+          "Run `pnpm install`",
+          "Use `pw session list --with-page` for a CLI-only session overview",
+        ],
+      });
       return;
     }
     if (bool(a["dry-run"])) {
       print("dashboard open", { data: { available: true, ...paths, launched: false } }, a);
       return;
     }
-    const child = spawn(process.execPath, [paths.dashboardApp], { detached: true, stdio: "ignore" });
+    const child = spawn(process.execPath, [paths.dashboardApp], {
+      detached: true,
+      stdio: "ignore",
+    });
     const failure = await observeDashboardLaunch(child);
     if (failure && !(failure.phase === "early-exit" && failure.code === 0)) {
-      printError("dashboard open", a, { code: "DASHBOARD_LAUNCH_FAILED", message: "Playwright dashboard subprocess failed during startup", details: failure.phase === "spawn" ? { errorMessage: failure.error.message } : { exitCode: failure.code, signal: failure.signal } });
+      printError("dashboard open", a, {
+        code: "DASHBOARD_LAUNCH_FAILED",
+        message: "Playwright dashboard subprocess failed during startup",
+        details:
+          failure.phase === "spawn"
+            ? { errorMessage: failure.error.message }
+            : { exitCode: failure.code, signal: failure.signal },
+      });
       return;
     }
     child.unref();
-    print("dashboard open", { data: { command: "dashboardApp.js", dashboardApp: paths.dashboardApp, launched: true, alreadyRunning: failure?.phase === "early-exit" } }, a);
+    print(
+      "dashboard open",
+      {
+        data: {
+          command: "dashboardApp.js",
+          dashboardApp: paths.dashboardApp,
+          launched: true,
+          alreadyRunning: failure?.phase === "early-exit",
+        },
+      },
+      a,
+    );
   },
 });
 
-export default defineCommand({ meta: { name: "dashboard", description: "Open Playwright's bundled session dashboard" }, subCommands: { open } });
+export default defineCommand({
+  meta: { name: "dashboard", description: "Open Playwright's bundled session dashboard" },
+  subCommands: { open },
+});

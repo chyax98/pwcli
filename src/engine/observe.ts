@@ -1,7 +1,7 @@
-import { runManagedSessionCommand, parsePageSummary, parseSnapshotYaml } from "./session.js";
-import { managedRunCode, maybeRawOutput } from "./shared.js";
-import { pageIdRuntimePrelude, managedAccessibilitySnapshot } from "./workspace.js";
 import { recordActionRun } from "./act/element.js";
+import { parsePageSummary, parseSnapshotYaml, runManagedSessionCommand } from "./session.js";
+import { managedRunCode, maybeRawOutput } from "./shared.js";
+import { pageIdRuntimePrelude } from "./workspace.js";
 
 export { managedAccessibilitySnapshot } from "./workspace.js";
 
@@ -207,7 +207,6 @@ function foldRepeats(lines: string[]): string[] {
   }
   return result;
 }
-
 
 export type StateTarget =
   | { selector: string; nth?: number }
@@ -779,7 +778,6 @@ export async function managedVerify(options: VerifyOptions) {
     data,
   };
 }
-
 
 export const managedGet = managedGetFact;
 export const managedIs = managedIsState;

@@ -1,6 +1,6 @@
 # Benchmark Runners
 
-`benchmark/runners/` 当前只是稳定性评测执行面，不是独立 runner 平台。
+`test/benchmark/runners/` 当前只是稳定性评测执行面，不是独立 runner 平台。
 
 ## 任务边界
 
@@ -32,7 +32,7 @@ runner 分两层：
 - 写出 run 目录：
 
 ```text
-benchmark/artifacts/<taskId>/<runId>/
+test/benchmark/artifacts/<taskId>/<runId>/
 ```
 
 ## 当前非目标
@@ -53,20 +53,20 @@ benchmark/artifacts/<taskId>/<runId>/
 
 当前结构：
 
-- `benchmark/shared/load-task.mjs`
+- `test/benchmark/shared/load-task.mjs`
   - 读取 task spec
   - 做 `<port>` placeholder replacement
   - 递归发现 tasks dir 下的 JSON task
-- `benchmark/runners/task/run-task.mjs`
+- `test/benchmark/runners/task/run-task.mjs`
   - 按 `planKind` 跑单 task
   - 写 `commands.jsonl`、`stdout.json`、`task-summary.json`
-- `benchmark/runners/suite/run-suite.mjs`
+- `test/benchmark/runners/suite/run-suite.mjs`
   - 聚合一个或多个 task
   - 写 `summary.json`
   - 聚合 failure family 计数
-- `benchmark/scripts/generate-matrix.mjs`
+- `test/benchmark/scripts/generate-matrix.mjs`
   - 生成 deterministic task matrix
-- `benchmark/scripts/run-closure-suite.mjs`
+- `test/benchmark/scripts/run-closure-suite.mjs`
   - 启动 fixture server
   - 执行 closure suite
 
@@ -75,19 +75,19 @@ benchmark/artifacts/<taskId>/<runId>/
 至少要能稳定写出：
 
 ```text
-benchmark/reports/latest/summary.json
-benchmark/reports/latest/tasks/<taskId>.json
-benchmark/artifacts/<taskId>/<runId>/stdout.json
-benchmark/artifacts/<taskId>/<runId>/commands.jsonl
+test/benchmark/reports/latest/summary.json
+test/benchmark/reports/latest/tasks/<taskId>.json
+test/benchmark/artifacts/<taskId>/<runId>/stdout.json
+test/benchmark/artifacts/<taskId>/<runId>/commands.jsonl
 ```
 
 当前实现已经稳定写出：
 
 ```text
-benchmark/reports/latest/summary.json
-benchmark/artifacts/<taskId>/<runId>/stdout.json
-benchmark/artifacts/<taskId>/<runId>/commands.jsonl
-benchmark/artifacts/<taskId>/<runId>/task-summary.json
+test/benchmark/reports/latest/summary.json
+test/benchmark/artifacts/<taskId>/<runId>/stdout.json
+test/benchmark/artifacts/<taskId>/<runId>/commands.jsonl
+test/benchmark/artifacts/<taskId>/<runId>/task-summary.json
 ```
 
 `summary.json` 当前包含：

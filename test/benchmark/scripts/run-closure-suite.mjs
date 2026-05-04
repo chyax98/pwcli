@@ -7,7 +7,7 @@ import { createClosureSessionName, runLoadedTask, spawnPw } from "../runners/tas
 import { discoverTaskPaths, loadTaskList } from "../shared/load-task.mjs";
 import { generateMatrix } from "./generate-matrix.mjs";
 
-const repoRoot = resolve(import.meta.dirname, "..", "..");
+const repoRoot = resolve(import.meta.dirname, "..", "..", "..");
 
 function parseArgs(argv) {
   return {
@@ -62,15 +62,15 @@ export async function runClosureSuite(options = {}) {
   await generateMatrix();
   const fixture = await startFixtureServer();
   const workspaceDir = await mkdtemp(join(tmpdir(), "pwcli-benchmark-closure-"));
-  const reportsDir = resolve(repoRoot, "benchmark", "reports", "closure");
-  const artifactsDir = resolve(repoRoot, "benchmark", "artifacts", "closure");
+  const reportsDir = resolve(repoRoot, "test", "benchmark", "reports", "closure");
+  const artifactsDir = resolve(repoRoot, "test", "benchmark", "artifacts", "closure");
   try {
     if (!resume) {
       await rm(reportsDir, { recursive: true, force: true });
       await rm(artifactsDir, { recursive: true, force: true });
     }
     const taskPaths = (
-      await discoverTaskPaths([resolve(repoRoot, "benchmark", "tasks", "generated")])
+      await discoverTaskPaths([resolve(repoRoot, "test", "benchmark", "tasks", "generated")])
     ).filter((taskPath) => !taskPath.endsWith("/manifest.json"));
     const allTasks = (await loadTaskList(taskPaths, { port: String(fixture.port) })).filter(
       (task) => typeof task.task?.category === "string",

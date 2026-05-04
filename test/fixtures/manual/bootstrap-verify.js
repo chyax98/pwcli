@@ -1,3 +1,4 @@
+// biome-ignore format: Playwright run-code wraps source as an expression; trailing semicolon breaks parsing.
 async (page) => {
   return await page.evaluate(async () => {
     const fetchResult = await globalThis.__pwcliBootstrapFetch(

@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { describe, it, after } from "node:test";
-import { resolve } from "node:path";
 import { existsSync } from "node:fs";
+import { resolve } from "node:path";
+import { after, describe, it } from "node:test";
 
-const repoRoot = resolve(import.meta.dirname, "..", "..", "..");
+const repoRoot = resolve(import.meta.dirname, "..", "..");
 const cliPath = resolve(repoRoot, "dist", "cli.js");
 
 function runPw(args: string[]) {
@@ -84,14 +84,7 @@ describe("video", { concurrency: false }, () => {
     assert.equal(startJson.ok, true);
     assert.equal(startJson.data.started, true);
 
-    await runPw([
-      "open",
-      "https://example.com",
-      "--session",
-      name,
-      "--output",
-      "json",
-    ]);
+    await runPw(["open", "https://example.com", "--session", name, "--output", "json"]);
 
     const stopResult = await runPw(["video", "stop", "--session", name, "--output", "json"]);
     assert.equal(stopResult.code, 0, `video stop failed: ${stopResult.stderr}`);

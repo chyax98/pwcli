@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { isActionFailure, type ActionFailure } from "#engine/act/element.js";
+import { type ActionFailure, isActionFailure } from "#engine/act/element.js";
 import {
   MAX_SESSION_NAME_LENGTH,
   parsePageSummary,
@@ -10,13 +10,19 @@ import {
 } from "#engine/session.js";
 import { managedRunCode } from "#engine/shared.js";
 import { appendRunEvent, ensureRunDir } from "#store/artifacts.js";
-import { type RecoveryKind, printCommandError } from "../output.js";
+import { printCommandError, type RecoveryKind } from "../output.js";
 
 function domainError(rawMessage: string) {
-  const message = rawMessage.startsWith("Error: ") ? rawMessage.slice("Error: ".length) : rawMessage;
+  const message = rawMessage.startsWith("Error: ")
+    ? rawMessage.slice("Error: ".length)
+    : rawMessage;
   if (message.startsWith("STATE_TARGET_NOT_FOUND:")) {
     let target: unknown;
-    try { target = JSON.parse(message.slice("STATE_TARGET_NOT_FOUND:".length)); } catch { /* ignore */ }
+    try {
+      target = JSON.parse(message.slice("STATE_TARGET_NOT_FOUND:".length));
+    } catch {
+      /* ignore */
+    }
     return {
       code: "STATE_TARGET_NOT_FOUND",
       message: "The state target was not found in the current page.",
@@ -269,7 +275,9 @@ async function resolveBrowserWsEndpoint(browserURL: string) {
     : undefined;
   const cdpPort = parseBrowserPort(normalizedBrowserURL);
   if (!normalizedCdpWebSocketDebuggerUrl) {
-    throw new Error(`attach did not receive webSocketDebuggerUrl from ${normalizedBrowserURL}/json/version`);
+    throw new Error(
+      `attach did not receive webSocketDebuggerUrl from ${normalizedBrowserURL}/json/version`,
+    );
   }
   const registry = await readAttachBridgeRegistry();
   const registryMatch = registry.find((target) => {
@@ -287,7 +295,7 @@ async function resolveBrowserWsEndpoint(browserURL: string) {
   const wsEndpoint = registryMatch?.wsEndpoint?.trim();
   if (!wsEndpoint) {
     throw new Error(
-      `ATTACH_SUBSTRATE_UNAVAILABLE: ${normalizedBrowserURL} exposes CDP metadata but no Playwright ws bridge. Start a cooperating target such as \`node scripts/manual/attach-target.js\`, or attach with \`--ws-endpoint\`.`,
+      `ATTACH_SUBSTRATE_UNAVAILABLE: ${normalizedBrowserURL} exposes CDP metadata but no Playwright ws bridge. Start a cooperating target such as \`node test/fixtures/manual/attach-target.js\`, or attach with \`--ws-endpoint\`.`,
     );
   }
   return wsEndpoint;
@@ -298,19 +306,31 @@ export async function resolveAttachTarget(
   options: { wsEndpoint?: string; browserUrl?: string; cdp?: string },
 ): Promise<ResolvedAttachTarget> {
   const candidates = [
-    options.wsEndpoint ? { endpoint: options.wsEndpoint, resolvedVia: "ws-endpoint" as const } : null,
-    options.browserUrl ? { endpoint: options.browserUrl, resolvedVia: "browser-url" as const } : null,
-    options.cdp ? { endpoint: `http://127.0.0.1:${options.cdp}`, resolvedVia: "cdp" as const } : null,
+    options.wsEndpoint
+      ? { endpoint: options.wsEndpoint, resolvedVia: "ws-endpoint" as const }
+      : null,
+    options.browserUrl
+      ? { endpoint: options.browserUrl, resolvedVia: "browser-url" as const }
+      : null,
+    options.cdp
+      ? { endpoint: `http://127.0.0.1:${options.cdp}`, resolvedVia: "cdp" as const }
+      : null,
     endpoint ? { endpoint, resolvedVia: "argument" as const } : null,
   ].filter(Boolean) as RawAttachTarget[];
   if (candidates.length === 0) {
-    throw new Error("attach requires an endpoint, --ws-endpoint <url>, --browser-url <url>, or --cdp <port>");
+    throw new Error(
+      "attach requires an endpoint, --ws-endpoint <url>, --browser-url <url>, or --cdp <port>",
+    );
   }
   if (candidates.length > 1) throw new Error("attach accepts exactly one target source");
   const target = candidates[0];
   if (target.resolvedVia === "browser-url" || target.resolvedVia === "cdp") {
     const wsEndpoint = await resolveBrowserWsEndpoint(target.endpoint);
-    return { endpoint: wsEndpoint, resolvedVia: target.resolvedVia, browserURL: normalizeBrowserURL(target.endpoint) };
+    return {
+      endpoint: wsEndpoint,
+      resolvedVia: target.resolvedVia,
+      browserURL: normalizeBrowserURL(target.endpoint),
+    };
   }
   return target;
 }

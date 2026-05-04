@@ -1,41 +1,17 @@
 #!/usr/bin/env node
 
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
-import { resolve } from "node:path";
+import { runPw } from "./_helpers.js";
 
-const repoRoot = resolve(import.meta.dirname, "..");
-const cliPath = resolve(repoRoot, "dist", "cli.js");
 const ansiPattern = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, "g");
 
 function stripAnsi(value) {
   return value.replace(ansiPattern, "");
 }
 
-function runPw(args) {
-  return new Promise((resolveResult, reject) => {
-    const child = spawn(process.execPath, [cliPath, ...args], {
-      cwd: repoRoot,
-      env: process.env,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-    let stdout = "";
-    let stderr = "";
-    child.stdout.on("data", (chunk) => {
-      stdout += chunk.toString();
-    });
-    child.stderr.on("data", (chunk) => {
-      stderr += chunk.toString();
-    });
-    child.on("error", reject);
-    child.on("close", (code) => {
-      resolveResult({ code, stdout, stderr, text: stripAnsi(stdout) });
-    });
-  });
-}
-
 async function expectHelp(args, keywords) {
   const result = await runPw([...args, "--help"]);
+  result.text = stripAnsi(result.stdout);
   assert.equal(result.code, 0, `${args.join(" ")} --help failed: ${result.stderr}`);
   for (const keyword of keywords) {
     assert.ok(

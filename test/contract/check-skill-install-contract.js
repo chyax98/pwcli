@@ -1,29 +1,12 @@
-import { mkdtempSync, rmSync, existsSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { spawnSync } from "node:child_process";
-
-const cli = ["node", "dist/cli.js"];
-
-function run(args) {
-  return spawnSync(cli[0], [...cli.slice(1), ...args], {
-    cwd: process.cwd(),
-    encoding: "utf8",
-  });
-}
-
-function parseJson(stdout, label) {
-  try {
-    return JSON.parse(stdout);
-  } catch (error) {
-    throw new Error(`${label} did not return JSON: ${error.message}\n${stdout}`);
-  }
-}
+import { parseJson, runPwSync } from "./_helpers.js";
 
 const targetParent = mkdtempSync(join(tmpdir(), "pwcli-skill-install-"));
 
 try {
-  const pathResult = run(["skill", "path", "--output", "json"]);
+  const pathResult = runPwSync(["skill", "path", "--output", "json"]);
   if (pathResult.status !== 0) {
     throw new Error(`skill path failed\n${pathResult.stdout}\n${pathResult.stderr}`);
   }
@@ -36,7 +19,7 @@ try {
     throw new Error(`packaged skill root is not usable: ${JSON.stringify(pathPayload, null, 2)}`);
   }
 
-  const install = run(["skill", "install", targetParent, "--output", "json"]);
+  const install = runPwSync(["skill", "install", targetParent, "--output", "json"]);
   if (install.status !== 0) {
     throw new Error(`skill install failed\n${install.stdout}\n${install.stderr}`);
   }

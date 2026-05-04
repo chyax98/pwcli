@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
-import type { SemanticTarget } from "#engine/act/element.js";
 import { buildSemanticTarget, parseNth, parseStateTarget } from "#cli/parsers/target.js";
+import type { SemanticTarget } from "#engine/act/element.js";
 import { printCommandError, printCommandResult } from "../output.js";
 import { printSessionAwareCommandError, requireSessionName } from "../parsers/session.js";
 
@@ -71,7 +71,11 @@ export function withCliError(command: string, args: CliArgs, error: unknown, mes
   process.exitCode = 1;
 }
 
-export function print(command: string, result: Parameters<typeof printCommandResult>[1], args: CliArgs) {
+export function print(
+  command: string,
+  result: Parameters<typeof printCommandResult>[1],
+  args: CliArgs,
+) {
   printCommandResult(command, result, output(args));
 }
 

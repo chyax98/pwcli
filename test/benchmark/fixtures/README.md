@@ -1,6 +1,6 @@
 # Benchmark Fixtures
 
-`benchmark/fixtures/` 只放 deterministic benchmark fixture 资产。
+`test/benchmark/fixtures/` 只放 deterministic benchmark fixture 资产。
 
 ## 归属
 
@@ -29,6 +29,6 @@ fixture 是 benchmark 的 substrate，不是 `pwcli` shipped 功能的一部分�
 ## 当前目录建议
 
 ```text
-benchmark/fixtures/
+test/benchmark/fixtures/
   server.mjs
 ```

@@ -81,7 +81,9 @@ export function findInvalidBatchStep(commands: string[][]) {
   for (const [index, tokens] of commands.entries()) {
     const [command] = tokens;
     if (!command) return { index, tokens, message: "batch step is empty" };
-    if (!SUPPORTED_BATCH_TOP_LEVEL.includes(command as (typeof SUPPORTED_BATCH_TOP_LEVEL)[number])) {
+    if (
+      !SUPPORTED_BATCH_TOP_LEVEL.includes(command as (typeof SUPPORTED_BATCH_TOP_LEVEL)[number])
+    ) {
       return { index, tokens, message: unsupportedBatchStepMessage(tokens) };
     }
   }
@@ -96,16 +98,28 @@ export function analyzeBatchPlan(commands: string[][], continueOnError?: boolean
     const nextKind = next ? classifyBatchStep(next) : null;
     const rawStep = formatBatchArgv(tokens);
     const nextRawStep = next ? formatBatchArgv(next) : null;
-    if ((tokens[0] === "open" || tokens[0] === "click" || tokens[0] === "press") && next && nextKind !== "wait") {
+    if (
+      (tokens[0] === "open" || tokens[0] === "click" || tokens[0] === "press") &&
+      next &&
+      nextKind !== "wait"
+    ) {
       warnings.push(
         `step ${index + 1} (${rawStep}) changes page state; if step ${index + 2} (${nextRawStep}) depends on navigation or network completion, insert an explicit wait first`,
       );
     }
     if (tokens[0] === "code" && commands.length > 1) {
-      warnings.push(`step ${index + 1} (${rawStep}) uses opaque code; isolate it or keep it at the end of the serial flow when possible`);
+      warnings.push(
+        `step ${index + 1} (${rawStep}) uses opaque code; isolate it or keep it at the end of the serial flow when possible`,
+      );
     }
-    if (continueOnError && (kind === "mutation" || kind === "transition" || kind === "session-shape") && next) {
-      warnings.push(`step ${index + 1} (${rawStep}) mutates session state; --continue-on-error can make later steps consume stale state`);
+    if (
+      continueOnError &&
+      (kind === "mutation" || kind === "transition" || kind === "session-shape") &&
+      next
+    ) {
+      warnings.push(
+        `step ${index + 1} (${rawStep}) mutates session state; --continue-on-error can make later steps consume stale state`,
+      );
     }
   });
   return {

@@ -83,21 +83,13 @@ try {
     error: { code: string; message: string; suggestions?: string[] };
   };
   assert.ok(tabEnvelope && !tabEnvelope.ok);
-  assert.ok(
-    tabEnvelope.error.suggestions?.some((s) => s.includes("pw page list")),
-    `tab select suggestions should include 'pw page list': ${JSON.stringify(tabEnvelope.error.suggestions)}`,
-  );
+  assert.equal(tabEnvelope.error.code, "TAB_SELECT_FAILED");
+  assert.match(tabEnvelope.error.message, /TAB_PAGE_NOT_FOUND/);
 
   // Clean up the temporary session.
   await runPw(["session", "close", sessionName, "--output", "json"]);
 
-  const sessionRecreate = await runPw([
-    "session",
-    "recreate",
-    "ghost",
-    "--output",
-    "json",
-  ]);
+  const sessionRecreate = await runPw(["session", "recreate", "ghost", "--output", "json"]);
   assert.notEqual(sessionRecreate.code, 0, "session recreate should fail");
   const recreateEnvelope = sessionRecreate.json as {
     ok: false;
@@ -115,14 +107,7 @@ try {
     `session recreate should have suggestions: ${JSON.stringify(recreateEnvelope.error)}`,
   );
 
-  const code = await runPw([
-    "code",
-    "while(true){}",
-    "--session",
-    "ghost",
-    "--output",
-    "json",
-  ]);
+  const code = await runPw(["code", "while(true){}", "--session", "ghost", "--output", "json"]);
   assert.notEqual(code.code, 0, "code should fail");
   const codeEnvelope = code.json as { ok: false; error: { code: string } };
   assert.ok(codeEnvelope && !codeEnvelope.ok);
@@ -145,26 +130,13 @@ try {
   assert.ok(mouseEnvelope && !mouseEnvelope.ok);
   assert.equal(mouseEnvelope.error.code, "SESSION_NOT_FOUND");
 
-  const videoStart = await runPw([
-    "video",
-    "start",
-    "--session",
-    "ghost",
-    "--output",
-    "json",
-  ]);
+  const videoStart = await runPw(["video", "start", "--session", "ghost", "--output", "json"]);
   assert.notEqual(videoStart.code, 0, "video start should fail");
   const videoEnvelope = videoStart.json as { ok: false; error: { code: string } };
   assert.ok(videoEnvelope && !videoEnvelope.ok);
   assert.equal(videoEnvelope.error.code, "SESSION_NOT_FOUND");
 
-  const accessibility = await runPw([
-    "accessibility",
-    "--session",
-    "ghost",
-    "--output",
-    "json",
-  ]);
+  const accessibility = await runPw(["accessibility", "--session", "ghost", "--output", "json"]);
   assert.notEqual(accessibility.code, 0, "accessibility should fail");
   const accessibilityEnvelope = accessibility.json as { ok: false; error: { code: string } };
   assert.ok(accessibilityEnvelope && !accessibilityEnvelope.ok);

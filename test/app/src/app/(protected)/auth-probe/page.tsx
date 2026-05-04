@@ -1,7 +1,7 @@
 "use client";
 
+import { LogOut, RefreshCw, Shield, ShieldAlert } from "lucide-react";
 import { useState } from "react";
-import { Shield, ShieldAlert, RefreshCw, LogOut } from "lucide-react";
 
 interface ProbeResult {
   status: number;
@@ -22,7 +22,11 @@ export default function AuthProbePage() {
     try {
       const res = await fetch("/api/protected/data");
       let data: unknown = null;
-      try { data = await res.json(); } catch { data = null; }
+      try {
+        data = await res.json();
+      } catch {
+        data = null;
+      }
       setUserResult({ status: res.status, data, timestamp: new Date().toISOString() });
     } catch (e) {
       setUserResult({ status: 0, data: { error: String(e) }, timestamp: new Date().toISOString() });
@@ -37,10 +41,18 @@ export default function AuthProbePage() {
     try {
       const res = await fetch("/api/protected/admin");
       let data: unknown = null;
-      try { data = await res.json(); } catch { data = null; }
+      try {
+        data = await res.json();
+      } catch {
+        data = null;
+      }
       setAdminResult({ status: res.status, data, timestamp: new Date().toISOString() });
     } catch (e) {
-      setAdminResult({ status: 0, data: { error: String(e) }, timestamp: new Date().toISOString() });
+      setAdminResult({
+        status: 0,
+        data: { error: String(e) },
+        timestamp: new Date().toISOString(),
+      });
     } finally {
       setAdminStatus("done");
     }
@@ -64,14 +76,15 @@ export default function AuthProbePage() {
   function statusBadge(status: number | undefined) {
     if (status === undefined) return null;
     const color =
-      status === 200 ? "bg-green-600/20 text-green-400 border-green-600/30" :
-      status === 401 ? "bg-amber-600/20 text-amber-400 border-amber-600/30" :
-      status === 403 ? "bg-orange-600/20 text-orange-400 border-orange-600/30" :
-      "bg-red-600/20 text-red-400 border-red-600/30";
+      status === 200
+        ? "bg-green-600/20 text-green-400 border-green-600/30"
+        : status === 401
+          ? "bg-amber-600/20 text-amber-400 border-amber-600/30"
+          : status === 403
+            ? "bg-orange-600/20 text-orange-400 border-orange-600/30"
+            : "bg-red-600/20 text-red-400 border-red-600/30";
     return (
-      <span className={`px-2 py-0.5 rounded-full text-xs font-bold border ${color}`}>
-        {status}
-      </span>
+      <span className={`px-2 py-0.5 rounded-full text-xs font-bold border ${color}`}>{status}</span>
     );
   }
 
@@ -99,10 +112,11 @@ export default function AuthProbePage() {
             disabled={userStatus === "loading"}
             className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-all duration-150 mb-4"
           >
-            {userStatus === "loading"
-              ? <RefreshCw size={14} className="animate-spin" aria-hidden="true" />
-              : <Shield size={14} aria-hidden="true" />
-            }
+            {userStatus === "loading" ? (
+              <RefreshCw size={14} className="animate-spin" aria-hidden="true" />
+            ) : (
+              <Shield size={14} aria-hidden="true" />
+            )}
             Probe /api/protected/data
           </button>
 
@@ -135,9 +149,7 @@ export default function AuthProbePage() {
             )}
           </div>
 
-          {userResult && (
-            <p className="text-xs text-zinc-600 mt-2">{userResult.timestamp}</p>
-          )}
+          {userResult && <p className="text-xs text-zinc-600 mt-2">{userResult.timestamp}</p>}
         </div>
 
         {/* Admin probe */}
@@ -145,7 +157,9 @@ export default function AuthProbePage() {
           <div className="flex items-center gap-2 mb-4">
             <ShieldAlert size={16} className="text-violet-400" aria-hidden="true" />
             <h2 className="text-sm font-semibold text-zinc-200">Admin Auth Probe</h2>
-            <span className="ml-auto text-xs text-zinc-500 font-mono">GET /api/protected/admin</span>
+            <span className="ml-auto text-xs text-zinc-500 font-mono">
+              GET /api/protected/admin
+            </span>
           </div>
 
           <button
@@ -156,10 +170,11 @@ export default function AuthProbePage() {
             disabled={adminStatus === "loading"}
             className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-all duration-150 mb-4"
           >
-            {adminStatus === "loading"
-              ? <RefreshCw size={14} className="animate-spin" aria-hidden="true" />
-              : <ShieldAlert size={14} aria-hidden="true" />
-            }
+            {adminStatus === "loading" ? (
+              <RefreshCw size={14} className="animate-spin" aria-hidden="true" />
+            ) : (
+              <ShieldAlert size={14} aria-hidden="true" />
+            )}
             Probe /api/protected/admin
           </button>
 
@@ -192,9 +207,7 @@ export default function AuthProbePage() {
             )}
           </div>
 
-          {adminResult && (
-            <p className="text-xs text-zinc-600 mt-2">{adminResult.timestamp}</p>
-          )}
+          {adminResult && <p className="text-xs text-zinc-600 mt-2">{adminResult.timestamp}</p>}
         </div>
       </div>
 
@@ -205,8 +218,8 @@ export default function AuthProbePage() {
           Session Control
         </h2>
         <p className="text-xs text-zinc-500 mb-4">
-          Logout clears the <code className="text-indigo-400">pwcli_session</code> cookie.
-          Re-probe after logout to confirm 401/403 responses.
+          Logout clears the <code className="text-indigo-400">pwcli_session</code> cookie. Re-probe
+          after logout to confirm 401/403 responses.
         </p>
         <button
           aria-label="Logout and clear session cookie"
@@ -217,10 +230,7 @@ export default function AuthProbePage() {
           Logout
         </button>
         {logoutMsg && (
-          <p
-            aria-live="polite"
-            className="mt-3 text-sm text-zinc-400"
-          >
+          <p aria-live="polite" className="mt-3 text-sm text-zinc-400">
             {logoutMsg}
           </p>
         )}

@@ -123,7 +123,7 @@ cat >"$BATCH_FILE" <<'JSON'
 JSON
 
 log "starting dogfood server on ${ORIGIN}"
-node scripts/e2e/dogfood-server.js "$PORT" >"$SERVER_LOG" 2>&1 &
+node test/e2e/dogfood-server.js "$PORT" >"$SERVER_LOG" 2>&1 &
 SERVER_PID="$!"
 
 for _ in $(seq 1 50); do
@@ -270,7 +270,7 @@ assert_json "$route_inject_remove_json" "inject route removed" "data.ok === true
 
 log "route load file via batch"
 route_load_batch_file="${TMP_DIR}/route-load-batch.json"
-printf '[["route","load","./scripts/e2e/dogfood-routes.json"]]\n' >"$route_load_batch_file"
+printf '[["route","load","./test/e2e/dogfood-routes.json"]]\n' >"$route_load_batch_file"
 route_load_json="$(run_json route-load batch --session "$SESSION_NAME" --file "$route_load_batch_file" --include-results)"
 assert_json "$route_load_json" "route file loaded via batch" \
   "data.ok === true && data.data.summary.successCount === 1 && data.data.results[0].data.loadedCount >= 1"
@@ -298,7 +298,7 @@ assert_json "$route_match_remove_json" "match-body route removed" "data.ok === t
 
 log "route patch response"
 route_patch_batch_file="${TMP_DIR}/route-patch-batch.json"
-printf '[["route","load","./scripts/e2e/dogfood-routes-patch.json"]]\n' >"$route_patch_batch_file"
+printf '[["route","load","./test/e2e/dogfood-routes-patch.json"]]\n' >"$route_patch_batch_file"
 route_patch_json="$(run_json route-patch batch --session "$SESSION_NAME" --file "$route_patch_batch_file" --include-results)"
 assert_json "$route_patch_json" "route patch loaded from file via batch" \
   "data.ok === true && data.data.summary.successCount === 1 && data.data.results[0].data.loadedCount >= 1 && data.data.results[0].data.routes.some(item => item.mode === 'patch-response' && item.patchStatus === 298 && item.patchJson.severity === 'critical')"
@@ -336,7 +336,7 @@ assert_json "$clock_install_json" "clock install ok" "data.ok === true"
 clock_set_json="$(run_json clock-set environment clock set --session "$SESSION_NAME" 2024-12-10T10:00:00.000Z)"
 assert_json "$clock_set_json" "clock set ok" \
   "data.ok === true && data.data.clock.currentTime === '2024-12-10T10:00:00.000Z'"
-clock_verify_json="$(run_json clock-verify code --session "$SESSION_NAME" --file ./scripts/manual/clock-verify.js)"
+clock_verify_json="$(run_json clock-verify code --session "$SESSION_NAME" --file ./test/fixtures/manual/clock-verify.js)"
 assert_json "$clock_verify_json" "clock verify sees updated date" \
   "data.ok === true && data.data.result.iso.startsWith('2024-12-10T10:00:00')"
 clock_resume_json="$(run_json clock-resume environment clock resume --session "$SESSION_NAME")"
@@ -363,12 +363,12 @@ fi
 assert_contains "$download_path" "dogfood-report:dogfood-1"
 
 log "bootstrap and code"
-bootstrap_apply_json="$(run_json bootstrap-apply bootstrap apply --session "$SESSION_NAME" --init-script ./scripts/manual/bootstrap-fixture.js --headers-file "$HEADERS_FILE")"
+bootstrap_apply_json="$(run_json bootstrap-apply bootstrap apply --session "$SESSION_NAME" --init-script ./test/fixtures/manual/bootstrap-fixture.js --headers-file "$HEADERS_FILE")"
 assert_json "$bootstrap_apply_json" "bootstrap applied" \
   "data.ok === true && data.data.applied === true"
 open_repro_json="$(run_json open-repro open --session "$SESSION_NAME" "$REPRO_URL")"
 assert_json "$open_repro_json" "reopened reproduce page" "data.ok === true && data.page.url === '${REPRO_URL}'"
-bootstrap_verify_json="$(run_json bootstrap-verify code --session "$SESSION_NAME" --file ./scripts/e2e/dogfood-bootstrap.js)"
+bootstrap_verify_json="$(run_json bootstrap-verify code --session "$SESSION_NAME" --file ./test/e2e/dogfood-bootstrap.js)"
 assert_json "$bootstrap_verify_json" "bootstrap verify sees dogfood echo" \
   "data.ok === true && data.data.result.installed === true && data.data.result.fetchResult.headerEcho === 'dogfood-1' && data.data.result.xhrResult.headerEcho === 'dogfood-1'"
 

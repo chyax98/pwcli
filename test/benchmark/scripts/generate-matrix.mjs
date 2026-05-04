@@ -1,8 +1,8 @@
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 
-const repoRoot = resolve(import.meta.dirname, "..", "..");
-const defaultGeneratedRoot = resolve(repoRoot, "benchmark", "tasks", "generated");
+const repoRoot = resolve(import.meta.dirname, "..", "..", "..");
+const defaultGeneratedRoot = resolve(repoRoot, "test", "benchmark", "tasks", "generated");
 const BENCHMARK_MATRIX_CONTRACT_VERSION = 1;
 
 function pad(value) {

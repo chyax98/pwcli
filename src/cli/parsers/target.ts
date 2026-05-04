@@ -40,7 +40,12 @@ export function buildSemanticTarget(args: StateTargetOptions): SemanticTarget | 
   }
   if (args.text) return { kind: "text", text: args.text, ...(nth ? { nth } : {}) };
   if (args.role) {
-    return { kind: "role", role: args.role, ...(args.name ? { name: args.name } : {}), ...(nth ? { nth } : {}) };
+    return {
+      kind: "role",
+      role: args.role,
+      ...(args.name ? { name: args.name } : {}),
+      ...(nth ? { nth } : {}),
+    };
   }
   if (args.label) return { kind: "label", label: args.label, ...(nth ? { nth } : {}) };
   if (args.placeholder) {
@@ -68,7 +73,11 @@ export function parseStateTarget(options: StateTargetOptions): StateTarget {
   if (options.selector) return { selector: options.selector, ...(nth ? { nth } : {}) };
   if (options.text) return { text: options.text, ...(nth ? { nth } : {}) };
   if (options.role) {
-    return { role: options.role, ...(options.name ? { name: options.name } : {}), ...(nth ? { nth } : {}) };
+    return {
+      role: options.role,
+      ...(options.name ? { name: options.name } : {}),
+      ...(nth ? { nth } : {}),
+    };
   }
   if (options.label) return { label: options.label, ...(nth ? { nth } : {}) };
   if (options.placeholder) return { placeholder: options.placeholder, ...(nth ? { nth } : {}) };

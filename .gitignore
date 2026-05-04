@@ -4,16 +4,11 @@ dist
 .playwright
 .playwright-cli
 .pwcli
-scripts/test-app/.next/
-scripts/test-app/node_modules/
-scripts/tmp/
-scripts/eval/*.log
-scripts/eval/raw_results.tsv
-scripts/eval/
-scripts/benchmark/
-benchmark/artifacts/closure/
-benchmark/reports/closure/
-benchmark/tasks/generated/
+test/app/.next/
+test/app/node_modules/
+test/benchmark/artifacts/
+test/benchmark/reports/
+test/benchmark/tasks/generated/
 .tmp*
 .claude/settings.local.json
 .claude/local/
@@ -21,5 +16,3 @@ benchmark/tasks/generated/
 .claude/cache/
 .claude/skills/
 docs/superpowers/
-codestable/audits/
-codestable/roadmap/*/drafts/

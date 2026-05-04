@@ -20,7 +20,7 @@ tags:
 
 ## 症状
 
-controldog dogfood 中，`pw mouse click -s controldog 110 15` 返回 `acted=true`，但后续 `pw code` 读取页面状态时 `data-mouse=null`。动作发出了，但因为页面已 scroll/resize，坐标没有命中目标按钮。
+一次 Agent dogfood 中，`pw mouse click -s <session> 110 15` 返回 `acted=true`，但后续 `pw code` 读取页面状态时目标状态仍为空。动作发出了，但因为页面已 scroll/resize，坐标没有命中目标按钮。
 
 ## 没用的做法
 

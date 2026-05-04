@@ -3,7 +3,7 @@ import { access, appendFile, mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { loadTask } from "../../shared/load-task.mjs";
 
-const repoRoot = resolve(import.meta.dirname, "..", "..", "..");
+const repoRoot = resolve(import.meta.dirname, "..", "..", "..", "..");
 const cliPath = resolve(repoRoot, "dist", "cli.js");
 const sourceCliPath = resolve(repoRoot, "src", "cli.ts");
 const tsxCliPath = resolve(repoRoot, "node_modules", "tsx", "dist", "cli.mjs");
@@ -12,9 +12,9 @@ function parseArgs(argv) {
   const parsed = {
     task: null,
     port: null,
-    reportsDir: resolve(repoRoot, "benchmark", "reports"),
-    artifactsDir: resolve(repoRoot, "benchmark", "artifacts"),
-    workspaceDir: resolve(repoRoot, ".pwcli", "benchmark-workspace"),
+    reportsDir: resolve(repoRoot, "test", "benchmark", "reports"),
+    artifactsDir: resolve(repoRoot, "test", "benchmark", "artifacts"),
+    workspaceDir: resolve(repoRoot, ".pwcli", "test-benchmark-workspace"),
   };
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];

@@ -1,59 +1,44 @@
-# 竞品分析：Agent Browser 生态 vs pwcli
-
-## 1. 竞品速览
-
-| 产品 | 本质 | 眼 | 手 | 定价 |
-|------|------|-----|-----|------|
-| **Agent Browser** | Rust CLI，CDP 直连 | snapshot + `@e1` refs，annotated screenshot | click/fill/find/wait | 开源免费 |
-| **browser-use** | Python Agent 框架 | DOM + screenshot 双通道 | Playwright 执行 + LLM 决策 | 开源 / Cloud $0.06/hr |
-| **Stagehand** | TS SDK，Playwright 增强 | DOM chunking + ranking | `act/extract/observe` + caching | 开源 / Browserbase 云 |
-| **Playwright MCP** | MCP 工具层 | a11y tree + screenshot | 标准 Playwright 操作 | 完全免费 |
-
+---
+doc_type: explore
+status: reference
+area: competitive-reference
+summary: "Agent Browser 与同类工具对 pwcli 的稳定差异参考；不作为优先级或 roadmap。"
+tags:
+  - agent-browser
+  - competitive-reference
+  - local-cli
 ---
 
-## 2. pwcli vs Agent Browser 六维对比
+# Agent Browser 竞品差异参考
 
-| 维度 | 赢家 | 核心差距 |
-|------|------|----------|
-| **眼** | Agent Browser | annotated screenshot + 语义压缩（~10% token），pwcli 缺视觉标注 |
-| **手** | 平手 | 命令集高度重叠；pwcli `wait` 条件更丰富 |
-| **证据链** | **pwcli** | diagnostics bundle/timeline/grep + trace inspect 体系化程度远超 |
-| **Agent 集成** | Agent Browser | `chat` NL→命令 + Dashboard 实时观察 + Skills 分发 |
-| **托管/云端** | 各有场景 | Agent Browser 整合 Vercel 生态；pwcli 纯本地无 vendor lock-in |
-| **Playwright 兼容** | **pwcli** | 三浏览器（Chromium/Firefox/WebKit）；Agent Browser 仅 Chromium/CDP |
+这份文档保留竞品差异的稳定判断。它不定义 P0/P1，不承诺时间线，也不替代 GitHub issue / PR。
 
----
+## 1. 维度对比
 
-## 3. pwcli 绝对优势（现在就能做）
+| 维度 | 外部工具常见做法 | pwcli 当前判断 |
+|---|---|---|
+| 页面感知 | DOM、a11y tree、截图、视觉标注、token 压缩 | 优先使用 `read-text`、`snapshot`、`accessibility`、`screenshot`；是否增加视觉标注必须由真实任务证明 |
+| 操作执行 | selector/ref、坐标、自然语言 act、planner loop | 保持 Playwright action 薄封装；坐标命令必须状态复查；不内置 planner |
+| 证据链 | trace、screenshot、video、console/network、workflow history | `diagnostics` + run artifacts + trace/HAR 是 pwcli 的核心优势 |
+| 集成方式 | MCP、SDK、云端浏览器、dashboard | 当前主产品面是本地 CLI + skill；dashboard 是人类观察面，不是 Agent 主链 |
+| 运行边界 | Chromium/CDP 或云端容器 | pwcli 基于 Playwright-core，保持本地、三浏览器方向和 named session contract |
 
-1. **跨浏览器**：Agent Browser 只支持 Chromium，pwcli 原生三浏览器。
-2. **诊断深度**：`diagnostics bundle/export/timeline/grep` + `trace inspect` 是完整证据链，Agent Browser 只有基础 trace/console。
-3. **Controlled Testing**：`route mock` + `environment clock` + `bootstrap` 是确定性复现基础设施，竞品无此概念。
-4. **错误码体系**：20+ 结构化错误码（`REF_STALE`、`MODAL_STATE_BLOCKED` 等）+ 恢复文档，Agent Browser 恢复路径较薄。
-5. **Session 严格性**：`create|attach|recreate` 分离 + per-session lock，避免并发状态漂移。
+## 2. pwcli 已有优势
 
----
+- named session lifecycle 清晰：`session create|attach|recreate` 是唯一主路。
+- 诊断链更深：`diagnostics digest/export/bundle/runs/show/grep/timeline` 与 trace/HAR 形成证据闭环。
+- 受控测试能力明确：`route`、`environment`、`bootstrap` 支撑确定性复现。
+- 错误恢复面向 Agent：`REF_STALE`、`MODAL_STATE_BLOCKED`、`SESSION_BUSY` 等错误码带恢复路径。
+- 产品边界清晰：不把云端托管、完整 Agent loop、外部插件生命周期塞进本地 CLI。
 
-## 4. 需补差距（按优先级）
+## 3. 可参考但不能直接写成任务的方向
 
-| 优先级 | 项 | 难度 |
-|--------|-----|------|
-| **P0** | **Annotated Screenshot**（截图叠元素编号，视觉+文本双通道） | 中 |
-| **P0** | **Snapshot 语义压缩**（viewport 裁剪 + 去空节点，降 token） | 中 |
-| **P1** | **Diff 能力**（snapshot/screenshot/URL 对比，回归测试） | 低-中 |
-| **P1** | **Dashboard 增强**（live viewport + activity feed） | 中 |
-| **P2** | **NL→命令原语 `act`**（自然语言转操作，失败 fallback） | 高 |
-| **P2** | **自动 State 持久化**（session 自动 save/load） | 低 |
-| **P3** | **安全护栏**（domain allowlist、action policy） | 中 |
+- 视觉标注和 snapshot 压缩可能降低 Agent 上下文成本，但需要先有真实页面任务证据。
+- diff、dashboard activity、自然语言 act、自动 state 策略都可能有价值，但不能仅凭竞品存在就进入产品面。
+- 安全策略、domain allowlist、操作 policy 只有在真实敏感操作链路中被证明必要时才设计。
 
----
+## 4. 维护规则
 
-## 5. 战略建议（3 个月方向）
-
-> 不追 Rust 性能、不卷 token 压缩率。pwcli 的护城河是 **Playwright 完整兼容 + 诊断证据链 + 测试确定性**。
-
-最值得投入：
-
-1. **The Annotated Eye（6 周）**：`screenshot --annotate` + `snapshot --compact`，让 Agent 拥有视觉+文本双通道感知，替代各 Agent 重复解析 DOM。
-2. **The Receipt（4 周）**：把 diagnostics + trace 统一为 Agent 可消费的 `evidence.json`，失败时 Agent 能读取做 self-healing。
-3. **Hybrid Hand（8 周）**：`pw act "click submit"` 优先用 Playwright locator（确定性、零 LLM 成本），失败 fallback 语义解析——让 Playwright 获得自然语言弹性，而非替代它。
+- 如果某个参考方向被真实任务证明为高价值，先建 issue 或设计文档，再进入 implementation。
+- 进入 `architecture/` 的只能是已实现 contract、已拍板 ADR、明确 limitation 或稳定扩展口。
+- 本文件只记录外部参考，不保存路线图和优先级。

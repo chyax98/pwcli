@@ -4,8 +4,12 @@ import { mkdir, readdir, readFile, rm, rmdir, stat, writeFile } from "node:fs/pr
 import { createRequire } from "node:module";
 import { dirname, join, resolve } from "node:path";
 import { writeBootstrapConfig } from "#store/config.js";
-import { DIAGNOSTICS_STATE_KEY, isModalStateBlockedMessage, maybeRawOutput } from "./shared.js";
-import { managedRunCode } from "./shared.js";
+import {
+  DIAGNOSTICS_STATE_KEY,
+  isModalStateBlockedMessage,
+  managedRunCode,
+  maybeRawOutput,
+} from "./shared.js";
 import { pageIdRuntimePrelude } from "./workspace.js";
 
 const require = createRequire(import.meta.url);
@@ -14,7 +18,9 @@ const playwrightCoreRoot = dirname(require.resolve("playwright-core/package.json
 const sessionModule = require(join(playwrightCoreRoot, "lib/tools/cli-client/session.js"));
 const registryModule = require(join(playwrightCoreRoot, "lib/tools/cli-client/registry.js"));
 const serverRegistryModule = require(join(playwrightCoreRoot, "lib/serverRegistry.js"));
-const socketConnectionModule = require(join(playwrightCoreRoot, "lib/tools/utils/socketConnection.js"));
+const socketConnectionModule = require(
+  join(playwrightCoreRoot, "lib/tools/utils/socketConnection.js"),
+);
 
 const { Session } = sessionModule;
 const { Registry, createClientInfo, resolveSessionName } = registryModule;
@@ -568,11 +574,16 @@ export async function runManagedSessionCommand(
         const ensured = await ensureManagedSessionUnlocked(options);
         const { clientInfo: ensuredClientInfo, sessionName: ensuredSessionName, session } = ensured;
         const text = options?.timeoutMs
-          ? await runSessionCommandWithTimeout(session, ensuredClientInfo, { ...args }, {
-              timeoutMs: options.timeoutMs,
-              timeoutMessage: options.timeoutMessage,
-              timeoutCode: options.timeoutCode,
-            })
+          ? await runSessionCommandWithTimeout(
+              session,
+              ensuredClientInfo,
+              { ...args },
+              {
+                timeoutMs: options.timeoutMs,
+                timeoutMessage: options.timeoutMessage,
+                timeoutCode: options.timeoutCode,
+              },
+            )
           : await session.run(ensuredClientInfo, { ...args });
         return {
           sessionName: ensuredSessionName,
@@ -648,7 +659,7 @@ to start the browser session.`);
       params: { args, cwd: process.cwd() },
     };
     await connection.send(message);
-    return await responsePromise as { text: string };
+    return (await responsePromise) as { text: string };
   } finally {
     if (timer) {
       clearTimeout(timer);

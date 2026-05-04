@@ -387,7 +387,6 @@ export async function managedAuthProbe(options?: AuthProbeOptions) {
   };
 }
 
-
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
@@ -1360,8 +1359,6 @@ export async function managedStateLoad(file: string, options?: { sessionName?: s
     },
   };
 }
-
-
 
 type IndexedDbExportOptions = {
   sessionName?: string;

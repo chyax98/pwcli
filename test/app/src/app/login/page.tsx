@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { AlertCircle, Eye, EyeOff, LogIn, Terminal } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff, LogIn, Terminal, AlertCircle } from "lucide-react";
+import { type FormEvent, useState } from "react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -148,7 +148,10 @@ export default function LoginPage() {
                 onChange={(e) => setRemember(e.target.checked)}
                 className="w-4 h-4 rounded border-zinc-600 bg-zinc-800 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-0 focus:ring-1 cursor-pointer accent-indigo-600"
               />
-              <label htmlFor="remember" className="text-sm text-zinc-400 cursor-pointer select-none">
+              <label
+                htmlFor="remember"
+                className="text-sm text-zinc-400 cursor-pointer select-none"
+              >
                 Remember me
               </label>
             </div>

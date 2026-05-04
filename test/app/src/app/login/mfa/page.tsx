@@ -1,8 +1,15 @@
 "use client";
 
-import { useState, useRef, useEffect, FormEvent, KeyboardEvent, ClipboardEvent } from "react";
+import { AlertCircle, RotateCcw, ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { ShieldCheck, AlertCircle, RotateCcw } from "lucide-react";
+import {
+  type ClipboardEvent,
+  type FormEvent,
+  type KeyboardEvent,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 const CODE_LENGTH = 6;
 
@@ -52,7 +59,9 @@ export default function MfaPage() {
     const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, CODE_LENGTH);
     if (!pasted) return;
     const newDigits = Array(CODE_LENGTH).fill("");
-    pasted.split("").forEach((ch, i) => { newDigits[i] = ch; });
+    pasted.split("").forEach((ch, i) => {
+      newDigits[i] = ch;
+    });
     setDigits(newDigits);
     const focusIndex = Math.min(pasted.length, CODE_LENGTH - 1);
     inputRefs.current[focusIndex]?.focus();
@@ -116,7 +125,12 @@ export default function MfaPage() {
         </div>
 
         <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 card-glow">
-          <form onSubmit={handleSubmit} noValidate data-testid="mfa-form" aria-label="MFA verification form">
+          <form
+            onSubmit={handleSubmit}
+            noValidate
+            data-testid="mfa-form"
+            aria-label="MFA verification form"
+          >
             {error && (
               <div
                 data-testid="mfa-error"
@@ -139,7 +153,9 @@ export default function MfaPage() {
               {Array.from({ length: CODE_LENGTH }, (_, i) => (
                 <input
                   key={i}
-                  ref={(el) => { inputRefs.current[i] = el; }}
+                  ref={(el) => {
+                    inputRefs.current[i] = el;
+                  }}
                   data-testid={`mfa-digit-${i}`}
                   type="text"
                   inputMode="numeric"
@@ -164,7 +180,10 @@ export default function MfaPage() {
               className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-all duration-150 mb-4"
             >
               {loading ? (
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" aria-hidden="true" />
+                <div
+                  className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"
+                  aria-hidden="true"
+                />
               ) : (
                 "Verify"
               )}
@@ -195,7 +214,9 @@ export default function MfaPage() {
 
         <p className="text-center text-xs text-zinc-600 mt-4">
           Test code:{" "}
-          <span className="font-mono text-zinc-400" data-testid="mfa-hint">123456</span>
+          <span className="font-mono text-zinc-400" data-testid="mfa-hint">
+            123456
+          </span>
         </p>
       </div>
     </div>

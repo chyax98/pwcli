@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import { mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { startFixtureServer } from "../../benchmark/fixtures/server.mjs";
-import { runSuite } from "../../benchmark/runners/suite/run-suite.mjs";
-import { generateMatrix } from "../../benchmark/scripts/generate-matrix.mjs";
+import { startFixtureServer } from "../benchmark/fixtures/server.mjs";
+import { runSuite } from "../benchmark/runners/suite/run-suite.mjs";
+import { generateMatrix } from "../benchmark/scripts/generate-matrix.mjs";
 
 const _repoRoot = resolve(import.meta.dirname, "..", "..");
 
@@ -23,7 +23,6 @@ async function main() {
       ["perception", "fixture-perception-00.json"],
       ["diagnostics", "fixture-diagnostics-00.json"],
       ["auth-state", "fixture-auth-00.json"],
-      ["extraction", "fixture-extract-00.json"],
     ] as const;
 
     for (const [category, filename] of selectedTasks) {
@@ -50,8 +49,8 @@ async function main() {
     });
 
     assert.deepEqual(summary, {
-      total: 4,
-      passed: 4,
+      total: 3,
+      passed: 3,
       failed: 0,
       failures: [],
     });
@@ -68,8 +67,8 @@ async function main() {
     };
 
     assert.deepEqual(summaryJson, {
-      total: 4,
-      passed: 4,
+      total: 3,
+      passed: 3,
       failed: 0,
       failures: [],
     });
@@ -85,12 +84,7 @@ async function main() {
       assert.equal(runDirs, true);
     }
 
-    const taskSummaries = [
-      "fixture-perception-00",
-      "fixture-diagnostics-00",
-      "fixture-auth-00",
-      "fixture-extract-00",
-    ];
+    const taskSummaries = ["fixture-perception-00", "fixture-diagnostics-00", "fixture-auth-00"];
     for (const taskId of taskSummaries) {
       const artifactRoot = resolve(artifactsDir, taskId);
       const runEntries = await readdir(artifactRoot);

@@ -1,29 +1,12 @@
 import { existsSync } from "node:fs";
-import { spawnSync } from "node:child_process";
+import { parseJson, runPwSync } from "./_helpers.js";
 
-const cli = ["node", "dist/cli.js"];
 const session = "tracev";
 
-function run(args, options = {}) {
-  return spawnSync(cli[0], [...cli.slice(1), ...args], {
-    cwd: process.cwd(),
-    encoding: "utf8",
-    ...options,
-  });
-}
-
-function parseJson(stdout, label) {
-  try {
-    return JSON.parse(stdout);
-  } catch (error) {
-    throw new Error(`${label} did not return JSON: ${error.message}\n${stdout}`);
-  }
-}
-
-run(["session", "close", session]);
+runPwSync(["session", "close", session]);
 
 try {
-  const create = run([
+  const create = runPwSync([
     "session",
     "create",
     session,
@@ -36,30 +19,32 @@ try {
     throw new Error(`session create failed\n${create.stdout}\n${create.stderr}`);
   }
 
-  const start = run(["trace", "start", "--session", session, "--output", "json"]);
+  const start = runPwSync(["trace", "start", "--session", session, "--output", "json"]);
   if (start.status !== 0) {
     throw new Error(`trace start failed\n${start.stdout}\n${start.stderr}`);
   }
 
-  const click = run(["click", "--session", session, "--text", "trace target"]);
+  const click = runPwSync(["click", "--session", session, "--text", "trace target"]);
   if (click.status !== 0) {
     throw new Error(`trace target click failed\n${click.stdout}\n${click.stderr}`);
   }
 
-  const stop = run(["trace", "stop", "--session", session, "--output", "json"]);
+  const stop = runPwSync(["trace", "stop", "--session", session, "--output", "json"]);
   if (stop.status !== 0) {
     throw new Error(`trace stop failed\n${stop.stdout}\n${stop.stderr}`);
   }
   const stopPayload = parseJson(stop.stdout, "trace stop");
   const traceArtifactPath = stopPayload.data?.traceArtifactPath;
   if (typeof traceArtifactPath !== "string" || !traceArtifactPath) {
-    throw new Error(`trace stop did not return traceArtifactPath: ${JSON.stringify(stopPayload, null, 2)}`);
+    throw new Error(
+      `trace stop did not return traceArtifactPath: ${JSON.stringify(stopPayload, null, 2)}`,
+    );
   }
   if (!existsSync(traceArtifactPath)) {
     throw new Error(`trace artifact was not created: ${traceArtifactPath}`);
   }
 
-  const inspect = run([
+  const inspect = runPwSync([
     "trace",
     "inspect",
     traceArtifactPath,
@@ -78,8 +63,10 @@ try {
     throw new Error(`unexpected trace inspect payload: ${JSON.stringify(inspectPayload, null, 2)}`);
   }
   if (!String(inspectPayload.data?.output ?? "").includes("Action")) {
-    throw new Error(`trace inspect output did not include actions table: ${inspectPayload.data?.output ?? ""}`);
+    throw new Error(
+      `trace inspect output did not include actions table: ${inspectPayload.data?.output ?? ""}`,
+    );
   }
 } finally {
-  run(["session", "close", session]);
+  runPwSync(["session", "close", session]);
 }

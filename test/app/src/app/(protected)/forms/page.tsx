@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useRef, FormEvent, DragEvent, ChangeEvent } from "react";
-import { Eye, EyeOff, Upload, Check } from "lucide-react";
+import { Check, Eye, EyeOff, Upload } from "lucide-react";
+import { type ChangeEvent, type DragEvent, type FormEvent, useRef, useState } from "react";
 
 const MULTI_OPTIONS = [
   { value: "react", label: "React" },
@@ -40,7 +40,7 @@ export default function FormsPage() {
 
   function handleMultiToggle(value: string) {
     setSelectedMulti((prev) =>
-      prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]
+      prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value],
     );
   }
 
@@ -62,7 +62,9 @@ export default function FormsPage() {
     setSubmitting(true);
     const fd = new FormData(e.currentTarget);
     const data: Record<string, unknown> = {};
-    fd.forEach((val, key) => { data[key] = val; });
+    fd.forEach((val, key) => {
+      data[key] = val;
+    });
     data["frameworks"] = selectedMulti;
     data["level"] = selectedRadio;
     data["notifications"] = toggleValue;
@@ -101,7 +103,9 @@ export default function FormsPage() {
   return (
     <div data-testid="forms-page" aria-label="Forms test page">
       <h1 className="text-2xl font-bold text-zinc-100 mb-1">Forms</h1>
-      <p className="text-sm text-zinc-500 mb-8">Comprehensive form controls for browser automation testing.</p>
+      <p className="text-sm text-zinc-500 mb-8">
+        Comprehensive form controls for browser automation testing.
+      </p>
 
       <form
         ref={formRef}
@@ -117,40 +121,94 @@ export default function FormsPage() {
             <h2 className="text-sm font-semibold text-zinc-200">Text Inputs</h2>
 
             <div>
-              <label htmlFor="full-name" className={labelClass}>Full name</label>
-              <input id="full-name" type="text" name="fullName" data-testid="input-name"
-                aria-label="Full name" placeholder="John Doe" className={inputClass} />
+              <label htmlFor="full-name" className={labelClass}>
+                Full name
+              </label>
+              <input
+                id="full-name"
+                type="text"
+                name="fullName"
+                data-testid="input-name"
+                aria-label="Full name"
+                placeholder="John Doe"
+                className={inputClass}
+              />
             </div>
 
             <div>
-              <label htmlFor="email-input" className={labelClass}>Email address</label>
-              <input id="email-input" type="email" name="email" data-testid="input-email"
-                aria-label="Email address" placeholder="you@example.com" className={inputClass} />
+              <label htmlFor="email-input" className={labelClass}>
+                Email address
+              </label>
+              <input
+                id="email-input"
+                type="email"
+                name="email"
+                data-testid="input-email"
+                aria-label="Email address"
+                placeholder="you@example.com"
+                className={inputClass}
+              />
             </div>
 
             <div>
-              <label htmlFor="phone" className={labelClass}>Phone number</label>
-              <input id="phone" type="tel" name="phone" data-testid="input-phone"
-                aria-label="Phone number" placeholder="+1 (555) 000-0000" className={inputClass} />
+              <label htmlFor="phone" className={labelClass}>
+                Phone number
+              </label>
+              <input
+                id="phone"
+                type="tel"
+                name="phone"
+                data-testid="input-phone"
+                aria-label="Phone number"
+                placeholder="+1 (555) 000-0000"
+                className={inputClass}
+              />
             </div>
 
             <div>
-              <label htmlFor="website" className={labelClass}>Website URL</label>
-              <input id="website" type="url" name="website" data-testid="input-url"
-                aria-label="Website URL" placeholder="https://example.com" className={inputClass} />
+              <label htmlFor="website" className={labelClass}>
+                Website URL
+              </label>
+              <input
+                id="website"
+                type="url"
+                name="website"
+                data-testid="input-url"
+                aria-label="Website URL"
+                placeholder="https://example.com"
+                className={inputClass}
+              />
             </div>
 
             <div>
-              <label htmlFor="age" className={labelClass}>Age</label>
-              <input id="age" type="number" name="age" data-testid="input-number"
-                aria-label="Age" placeholder="25" min={1} max={120} className={inputClass} />
+              <label htmlFor="age" className={labelClass}>
+                Age
+              </label>
+              <input
+                id="age"
+                type="number"
+                name="age"
+                data-testid="input-number"
+                aria-label="Age"
+                placeholder="25"
+                min={1}
+                max={120}
+                className={inputClass}
+              />
             </div>
 
             <div>
-              <label htmlFor="birth-date" className={labelClass}>Birth date</label>
-              <input id="birth-date" type="date" name="birthDate" data-testid="input-date"
+              <label htmlFor="birth-date" className={labelClass}>
+                Birth date
+              </label>
+              <input
+                id="birth-date"
+                type="date"
+                name="birthDate"
+                data-testid="input-date"
                 aria-label="Birth date"
-                className={inputClass + " [color-scheme:dark]"} />
+                className={inputClass + " [color-scheme:dark]"}
+              />
             </div>
           </div>
 
@@ -160,7 +218,9 @@ export default function FormsPage() {
 
             {/* Password with toggle */}
             <div>
-              <label htmlFor="password-field" className={labelClass}>Password</label>
+              <label htmlFor="password-field" className={labelClass}>
+                Password
+              </label>
               <div className="relative">
                 <input
                   id="password-field"
@@ -185,7 +245,9 @@ export default function FormsPage() {
 
             {/* Textarea */}
             <div>
-              <label htmlFor="bio" className={labelClass}>Bio</label>
+              <label htmlFor="bio" className={labelClass}>
+                Bio
+              </label>
               <textarea
                 id="bio"
                 name="bio"
@@ -199,7 +261,9 @@ export default function FormsPage() {
 
             {/* Select */}
             <div>
-              <label htmlFor="country" className={labelClass}>Country</label>
+              <label htmlFor="country" className={labelClass}>
+                Country
+              </label>
               <select
                 id="country"
                 name="country"
@@ -250,7 +314,11 @@ export default function FormsPage() {
                 ))}
               </div>
             </fieldset>
-            <div className="mt-2 text-xs text-zinc-500" data-testid="multi-selected" aria-live="polite">
+            <div
+              className="mt-2 text-xs text-zinc-500"
+              data-testid="multi-selected"
+              aria-live="polite"
+            >
               Selected: {selectedMulti.length > 0 ? selectedMulti.join(", ") : "none"}
             </div>
           </div>
@@ -281,7 +349,11 @@ export default function FormsPage() {
                 ))}
               </div>
             </fieldset>
-            <div className="mt-2 text-xs text-zinc-500" data-testid="radio-selected" aria-live="polite">
+            <div
+              className="mt-2 text-xs text-zinc-500"
+              data-testid="radio-selected"
+              aria-live="polite"
+            >
               Selected: {selectedRadio || "none"}
             </div>
           </div>
@@ -294,7 +366,9 @@ export default function FormsPage() {
 
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label htmlFor="satisfaction" className={labelClass + " mb-0"}>Satisfaction</label>
+                <label htmlFor="satisfaction" className={labelClass + " mb-0"}>
+                  Satisfaction
+                </label>
                 <span
                   className="text-sm font-bold text-indigo-400 tabular-nums"
                   data-testid="slider-value"
@@ -357,14 +431,21 @@ export default function FormsPage() {
               aria-label="File upload drop zone. Click or drag files here"
               onDragEnter={() => setIsDragging(true)}
               onDragLeave={() => setIsDragging(false)}
-              onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setIsDragging(true);
+              }}
               onDrop={handleFileDrop}
               onClick={() => fileInputRef.current?.click()}
-              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") fileInputRef.current?.click(); }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") fileInputRef.current?.click();
+              }}
               className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all duration-200 ${isDragging ? "border-indigo-500 bg-indigo-500/5" : "border-zinc-700 hover:border-zinc-600 hover:bg-zinc-800/30"}`}
             >
               <Upload size={24} className="text-zinc-500 mx-auto mb-2" aria-hidden="true" />
-              <p className="text-sm text-zinc-400">Drop files here or <span className="text-indigo-400">browse</span></p>
+              <p className="text-sm text-zinc-400">
+                Drop files here or <span className="text-indigo-400">browse</span>
+              </p>
               <p className="text-xs text-zinc-600 mt-1">Any file type accepted</p>
             </div>
 
@@ -379,9 +460,16 @@ export default function FormsPage() {
             />
 
             {uploadedFiles.length > 0 && (
-              <div className="mt-3 space-y-1" data-testid="uploaded-files" aria-label="Uploaded files">
+              <div
+                className="mt-3 space-y-1"
+                data-testid="uploaded-files"
+                aria-label="Uploaded files"
+              >
                 {uploadedFiles.map((name, i) => (
-                  <div key={i} className="flex items-center gap-2 text-xs text-zinc-400 bg-zinc-800 rounded-lg px-3 py-1.5">
+                  <div
+                    key={i}
+                    className="flex items-center gap-2 text-xs text-zinc-400 bg-zinc-800 rounded-lg px-3 py-1.5"
+                  >
                     <Check size={12} className="text-green-400" aria-hidden="true" />
                     {name}
                   </div>
@@ -402,7 +490,10 @@ export default function FormsPage() {
             className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-all duration-150"
           >
             {submitting && (
-              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" aria-hidden="true" />
+              <div
+                className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"
+                aria-hidden="true"
+              />
             )}
             {submitting ? "Submitting…" : "Submit Form"}
           </button>

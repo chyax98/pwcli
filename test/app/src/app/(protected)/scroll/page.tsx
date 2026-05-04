@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { ArrowUp, AlignLeft } from "lucide-react";
+import { AlignLeft, ArrowUp } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 const SECTIONS = Array.from({ length: 20 }, (_, i) => ({
   id: i + 1,
@@ -95,7 +95,9 @@ export default function ScrollPage() {
             className="hidden lg:block w-48 flex-shrink-0"
           >
             <div className="sticky top-40 bg-zinc-800 border border-zinc-700 rounded-xl p-4 max-h-[70vh] overflow-y-auto">
-              <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3">Contents</h2>
+              <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3">
+                Contents
+              </h2>
               <ol className="space-y-1">
                 {SECTIONS.map((section) => (
                   <li key={section.id}>
@@ -117,9 +119,9 @@ export default function ScrollPage() {
         {/* Main content */}
         <div className="flex-1 space-y-8">
           <p className="text-sm text-zinc-500">
-            This page tests scroll detection, anchor navigation, and progress tracking.
-            Use <code className="text-indigo-400">pw scroll</code> commands and verify position
-            with <code className="text-indigo-400">pw screenshot</code>.
+            This page tests scroll detection, anchor navigation, and progress tracking. Use{" "}
+            <code className="text-indigo-400">pw scroll</code> commands and verify position with{" "}
+            <code className="text-indigo-400">pw screenshot</code>.
           </p>
 
           {SECTIONS.map((section) => (

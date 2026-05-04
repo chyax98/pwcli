@@ -16,7 +16,6 @@
 - `dashboard open` exposes Playwright-core's bundled session dashboard as a thin wrapper.
 - `session list --attachable` exposes Playwright server-registry discovery as read-only attach candidates.
 - `session attach --attachable-id <id>` attaches to one connectable server returned by `session list --attachable`
-- `session list --attachable` also projects machine-readable capability facts for workspace-level attachability and per-target attach capability
 - session 名硬限制：
   - 最长 16 字符
   - 只允许字母、数字、`-`、`_`
@@ -94,11 +93,9 @@
 - ref-backed `click` / `fill` / `type` validate against the latest snapshot epoch before reporting success
 - `locate|get|is` state-check primitives for compact read-only target checks
 - `upload` best-effort waits for input file count plus `change` / `input` settle, and returns `nextSteps` when page-level acceptance still needs verification
-- `domain/interaction/model.ts`：统一 domain 类型（`SemanticTarget`、`NormalizedSemanticTarget`、`SelectorTarget`、`RefEpochValidation`、`RunEvent`、`RunEventTargetKind`）和纯函数（`normalizeSemanticTarget`、`semanticLocatorExpression`、`buildRunEvent`、`parseRefEpochValidation`）
-- `domain/interaction/errors.ts`：集中 Node.js 侧错误码常量（`InteractionErrorCode`）、recovery 工厂函数（`refStaleFailure`、`inspectRecovery` 等）
-- `action-executor` 模块封装 action 执行编排：baseline capture、runCode、diagnostics delta、run event recording、失败截图
-- `dispatchLocatorAction` 统一 semantic/selector/ref 三分支模式，所有标准 action（click/fill/type/hover/check/uncheck/select）通过此接口执行
-- `source-builders` 模块集中 JS source 字符串构建函数（`selectorActionSource`、`semanticClickSource` 等），与执行逻辑分离
+- `src/engine/act/element.ts` 集中元素级 action contract：semantic target 类型、ref epoch 校验、结构化 action 失败、source 构建、diagnostics delta 和 run event 记录。
+- `dispatchLocatorAction` 统一 semantic / selector / ref 三分支模式，标准元素动作（click/fill/type/hover/check/uncheck/select）收敛到同一执行路径。
+- `src/engine/act/page.ts` 承担页面级动作：scroll、resize、mouse、upload、download、dialog、PDF/video 等。
 
 ### 当前限制
 
@@ -116,22 +113,21 @@
 - batch 只在真实高频场景下增量扩命令，不追求全量 parity
 - `verify` 后续只补真实场景断言覆盖，不扩大成动作规划器
 
-## 2.5 Environment Health Checks
+## 3.5 Environment Health Checks
 
 ### 当前实现
 
-- `domain/environment/health-checks.ts`：纯函数，从 `doctor.ts` 提取
-- 包括路径验证（`expandPath`、`canReadPath`、`canWritePath`）、profile 路径检查、网络连通性检查、Auth provider 可用性探测
-- 供 `pw doctor` 命令和未来 health check 命令复用
+- `src/store/health.ts` 提供本地健康检查：Node 版本、Playwright 浏览器安装、磁盘空间、endpoint 连通性、profile/state 路径、auth provider 可用性。
+- `src/cli/commands/doctor.ts` 负责把健康检查、session probe、modal/overlay probe 和 recovery envelope 组合成 `pw doctor` 输出。
 
 ### 当前限制
 
-- 目前只被 `doctor.ts` 消费
+- 目前主要被 `doctor.ts` 消费
 - 网络连通性检查依赖 Node.js `net.connect`，不走 Playwright
 
 ### 后续扩展
 
-- 如果出现第二个消费方（verify、CI health check），seam 已经存在，直接 import 即可
+- 如果出现第二个消费方，复用 `src/store/health.ts`，不新增第二套健康检查实现。
 
 ## 4. Identity State
 
@@ -144,9 +140,7 @@
 - `storage indexeddb export` read-only current-origin summary + optional sampled previews
 - `auth probe` read-only auth-state heuristic with `authenticated|anonymous|uncertain`, `confidence`, `blockedState`, `recommendedAction`, and three signal layers (`pageIdentity` / `protectedResource` / `storage`)
 - `auth probe` also projects machine-readable capability facts: `available`, `blocked`, `reusableStateLikely`
-- `profile inspect`
 - `profile list-chrome` discovers local Chrome profiles for `session create --from-system-chrome`
-- `profile inspect` / `profile list-chrome` project capability facts for persistent-profile-path and system-chrome-profile-source
 - `auth` 内置 provider 执行 + `save-state`
 - `dc` 是内置 DC/Forge auth provider；provider 参数以 `pw auth info dc` 为准，目标解析顺序为显式 `targetUrl`、当前 Forge 页面、provider 默认目标
 - `fixture-auth` 是内部 contract 测试 provider，用于 smoke 验证 auth 执行链
@@ -211,7 +205,7 @@
 
 ### 当前实现
 
-- `benchmark/` deterministic stability harness
+- `test/benchmark/` deterministic stability harness
 - fixture server
 - recursive task discovery
 - task runner

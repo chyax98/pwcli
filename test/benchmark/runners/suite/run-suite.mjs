@@ -3,15 +3,15 @@ import { resolve } from "node:path";
 import { discoverTaskPaths } from "../../shared/load-task.mjs";
 import { runTask } from "../task/run-task.mjs";
 
-const repoRoot = resolve(import.meta.dirname, "..", "..", "..");
+const repoRoot = resolve(import.meta.dirname, "..", "..", "..", "..");
 
 function parseArgs(argv) {
   const parsed = {
     tasks: [],
     port: null,
-    reportsDir: resolve(repoRoot, "benchmark", "reports"),
-    artifactsDir: resolve(repoRoot, "benchmark", "artifacts"),
-    workspaceDir: resolve(repoRoot, ".pwcli", "benchmark-workspace"),
+    reportsDir: resolve(repoRoot, "test", "benchmark", "reports"),
+    artifactsDir: resolve(repoRoot, "test", "benchmark", "artifacts"),
+    workspaceDir: resolve(repoRoot, ".pwcli", "test-benchmark-workspace"),
   };
 
   for (let index = 0; index < argv.length; index += 1) {

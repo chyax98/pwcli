@@ -10,15 +10,31 @@ import {
   managedType,
   managedUncheck,
 } from "#engine/act/element.js";
-import { managedReadText, managedScreenshot, managedScroll, managedWait } from "#engine/act/page.js";
+import {
+  managedReadText,
+  managedScreenshot,
+  managedScroll,
+  managedWait,
+} from "#engine/act/page.js";
 import { managedErrors, managedObserveStatus } from "#engine/diagnose/core.js";
 import { managedRoute } from "#engine/diagnose/route.js";
 import { managedStateLoad, managedStateSave } from "#engine/identity.js";
 import type { VerifyAssertion } from "#engine/observe.js";
-import { managedGetFact, managedIsState, managedLocate, managedSnapshot, managedVerify } from "#engine/observe.js";
-import { managedRunCode } from "#engine/shared.js";
+import {
+  managedGetFact,
+  managedIsState,
+  managedLocate,
+  managedSnapshot,
+  managedVerify,
+} from "#engine/observe.js";
 import { managedBootstrapApply, managedOpen } from "#engine/session.js";
-import { managedPageCurrent, managedPageDialogs, managedPageFrames, managedPageList } from "#engine/workspace.js";
+import { managedRunCode } from "#engine/shared.js";
+import {
+  managedPageCurrent,
+  managedPageDialogs,
+  managedPageFrames,
+  managedPageList,
+} from "#engine/workspace.js";
 import { parseBatchSemanticArgs, parseBatchStateTarget } from "../parsers/batch.js";
 import {
   analyzeBatchPlan,
@@ -63,7 +79,10 @@ function buildBatchStepSuggestions(message: string) {
     ];
   }
   if (message.includes("environment mutation")) {
-    return ["Run environment commands directly before batch", "Keep batch for deterministic page/read/action steps"];
+    return [
+      "Run environment commands directly before batch",
+      "Keep batch for deterministic page/read/action steps",
+    ];
   }
   return undefined;
 }
@@ -81,19 +100,34 @@ function jsonObject(value: unknown, label: string): Record<string, string> | und
   return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, String(item)]));
 }
 
-async function readJsonMaybeFile(spec: Record<string, unknown>, inlineKey: string, fileKey: string, dir: string) {
+async function readJsonMaybeFile(
+  spec: Record<string, unknown>,
+  inlineKey: string,
+  fileKey: string,
+  dir: string,
+) {
   if (typeof spec[fileKey] === "string") {
     return JSON.parse(await readFile(resolve(dir, spec[fileKey]), "utf8"));
   }
   return spec[inlineKey] !== undefined ? spec[inlineKey] : undefined;
 }
 
-async function readTextMaybeFile(spec: Record<string, unknown>, inlineKey: string, fileKey: string, dir: string) {
+async function readTextMaybeFile(
+  spec: Record<string, unknown>,
+  inlineKey: string,
+  fileKey: string,
+  dir: string,
+) {
   if (typeof spec[fileKey] === "string") return await readFile(resolve(dir, spec[fileKey]), "utf8");
   return typeof spec[inlineKey] === "string" ? spec[inlineKey] : undefined;
 }
 
-async function readHeadersMaybeFile(spec: Record<string, unknown>, inlineKey: string, fileKey: string, dir: string) {
+async function readHeadersMaybeFile(
+  spec: Record<string, unknown>,
+  inlineKey: string,
+  fileKey: string,
+  dir: string,
+) {
   const raw = await readJsonMaybeFile(spec, inlineKey, fileKey, dir);
   return jsonObject(raw, inlineKey);
 }
@@ -105,13 +139,20 @@ async function loadRouteSpecs(file: string, sessionName: string, rawStep: string
   const loaded = [];
   for (const spec of specs) {
     if (typeof spec.pattern !== "string" || !spec.pattern) {
-      throw new Error(`batch step '${rawStep}' requires every route spec to include a non-empty pattern`);
+      throw new Error(
+        `batch step '${rawStep}' requires every route spec to include a non-empty pattern`,
+      );
     }
     const body = await readTextMaybeFile(spec, "body", "bodyFile", dir);
     const patchJson = await readJsonMaybeFile(spec, "patchJson", "patchJsonFile", dir);
     const matchJson = await readJsonMaybeFile(spec, "matchJson", "matchJsonFile", dir);
     const headers = await readHeadersMaybeFile(spec, "headers", "headersFile", dir);
-    const injectHeaders = await readHeadersMaybeFile(spec, "injectHeaders", "injectHeadersFile", dir);
+    const injectHeaders = await readHeadersMaybeFile(
+      spec,
+      "injectHeaders",
+      "injectHeadersFile",
+      dir,
+    );
     const matchQuery = await readHeadersMaybeFile(spec, "matchQuery", "matchQueryFile", dir);
     const matchHeaders = await readHeadersMaybeFile(spec, "matchHeaders", "matchHeadersFile", dir);
     const patchText = await readHeadersMaybeFile(spec, "patchText", "patchTextFile", dir);
@@ -148,7 +189,11 @@ export async function executeBatchStep(tokens: string[], sessionName: string) {
   switch (command) {
     case "open":
       if (args.length !== 1) throw new Error(`batch step '${rawStep}' requires exactly one URL`);
-      return { ok: true, command: "open", data: await managedOpen(args[0], { sessionName, reset: false }) };
+      return {
+        ok: true,
+        command: "open",
+        data: await managedOpen(args[0], { sessionName, reset: false }),
+      };
     case "code": {
       const source = args.join(" ").trim();
       if (!source) throw new Error(`batch step '${rawStep}' requires inline code`);
@@ -162,7 +207,11 @@ export async function executeBatchStep(tokens: string[], sessionName: string) {
         else if (arg === "-c" || arg === "--compact") compact = true;
         else throw new Error(`unsupported snapshot batch argument '${arg}'`);
       }
-      return { ok: true, command: "snapshot", data: await managedSnapshot({ sessionName, interactive, compact }) };
+      return {
+        ok: true,
+        command: "snapshot",
+        data: await managedSnapshot({ sessionName, interactive, compact }),
+      };
     }
     case "screenshot": {
       let ref: string | undefined;
@@ -181,9 +230,15 @@ export async function executeBatchStep(tokens: string[], sessionName: string) {
         else if (!ref) ref = arg;
         else throw new Error(`unsupported screenshot batch argument '${arg}'`);
       }
-      if (args.includes("--selector") && !selector) throw new Error(`batch step '${rawStep}' requires a selector after --selector`);
-      if (args.includes("--path") && !path) throw new Error(`batch step '${rawStep}' requires a path after --path`);
-      return { ok: true, command: "screenshot", data: await managedScreenshot({ sessionName, ref, selector, path, fullPage }) };
+      if (args.includes("--selector") && !selector)
+        throw new Error(`batch step '${rawStep}' requires a selector after --selector`);
+      if (args.includes("--path") && !path)
+        throw new Error(`batch step '${rawStep}' requires a path after --path`);
+      return {
+        ok: true,
+        command: "screenshot",
+        data: await managedScreenshot({ sessionName, ref, selector, path, fullPage }),
+      };
     }
     case "read-text":
     case "text": {
@@ -201,34 +256,70 @@ export async function executeBatchStep(tokens: string[], sessionName: string) {
           index += 1;
         } else throw new Error(`unsupported read-text batch argument '${arg}'`);
       }
-      return { ok: true, command: "read-text", data: await managedReadText({ sessionName, selector, includeOverlay, maxChars }) };
+      return {
+        ok: true,
+        command: "read-text",
+        data: await managedReadText({ sessionName, selector, includeOverlay, maxChars }),
+      };
     }
     case "page":
-      if (args[0] === "current") return { ok: true, command: "page current", data: await managedPageCurrent({ sessionName }) };
-      if (args[0] === "list") return { ok: true, command: "page list", data: await managedPageList({ sessionName }) };
-      if (args[0] === "frames") return { ok: true, command: "page frames", data: await managedPageFrames({ sessionName }) };
-      if (args[0] === "dialogs") return { ok: true, command: "page dialogs", data: await managedPageDialogs({ sessionName }) };
+      if (args[0] === "current")
+        return {
+          ok: true,
+          command: "page current",
+          data: await managedPageCurrent({ sessionName }),
+        };
+      if (args[0] === "list")
+        return { ok: true, command: "page list", data: await managedPageList({ sessionName }) };
+      if (args[0] === "frames")
+        return { ok: true, command: "page frames", data: await managedPageFrames({ sessionName }) };
+      if (args[0] === "dialogs")
+        return {
+          ok: true,
+          command: "page dialogs",
+          data: await managedPageDialogs({ sessionName }),
+        };
       throw new Error(`unsupported page batch step '${rawStep}'`);
     case "observe":
     case "status":
-      if (command === "observe" && args[0] !== "status") throw new Error(`unsupported observe batch step '${rawStep}'`);
+      if (command === "observe" && args[0] !== "status")
+        throw new Error(`unsupported observe batch step '${rawStep}'`);
       return { ok: true, command: "status", data: await managedObserveStatus({ sessionName }) };
     case "errors":
-      if (args[0] !== "recent" && args[0] !== "clear") throw new Error(`unsupported errors batch step '${rawStep}'`);
-      return { ok: true, command: `errors ${args[0]}`, data: await managedErrors(args[0], { sessionName }) };
+      if (args[0] !== "recent" && args[0] !== "clear")
+        throw new Error(`unsupported errors batch step '${rawStep}'`);
+      return {
+        ok: true,
+        command: `errors ${args[0]}`,
+        data: await managedErrors(args[0], { sessionName }),
+      };
     case "route":
-      if (args[0] === "list") return { ok: true, command: "route list", data: await managedRoute("list", { sessionName }) };
+      if (args[0] === "list")
+        return {
+          ok: true,
+          command: "route list",
+          data: await managedRoute("list", { sessionName }),
+        };
       if (args[0] === "load") {
         const file = args[1];
         if (!file) throw new Error(`batch step '${rawStep}' requires a file after route load`);
         const routes = await loadRouteSpecs(file, sessionName, rawStep);
         return { ok: true, command: "route load", data: { loadedCount: routes.length, routes } };
       }
-      if (args[0] === "remove") return { ok: true, command: "route remove", data: await managedRoute("remove", { sessionName, pattern: args[1] }) };
+      if (args[0] === "remove")
+        return {
+          ok: true,
+          command: "route remove",
+          data: await managedRoute("remove", { sessionName, pattern: args[1] }),
+        };
       if (args[0] === "add") {
         const pattern = args[1];
         if (!pattern) throw new Error(`batch step '${rawStep}' requires a pattern after route add`);
-        return { ok: true, command: "route add", data: await managedRoute("add", { sessionName, pattern }) };
+        return {
+          ok: true,
+          command: "route add",
+          data: await managedRoute("add", { sessionName, pattern }),
+        };
       }
       throw new Error(`unsupported route batch step '${rawStep}'`);
     case "bootstrap": {
@@ -244,11 +335,16 @@ export async function executeBatchStep(tokens: string[], sessionName: string) {
           index += 1;
         } else if (arg === "--headers-file") {
           headersFile = args[index + 1];
-          if (!headersFile) throw new Error(`batch step '${rawStep}' requires a file after --headers-file`);
+          if (!headersFile)
+            throw new Error(`batch step '${rawStep}' requires a file after --headers-file`);
           index += 1;
         } else throw new Error(`unsupported bootstrap batch argument '${arg}'`);
       }
-      return { ok: true, command: "bootstrap apply", data: await managedBootstrapApply({ sessionName, initScripts, headersFile }) };
+      return {
+        ok: true,
+        command: "bootstrap apply",
+        data: await managedBootstrapApply({ sessionName, initScripts, headersFile }),
+      };
     }
     case "click":
     case "check":
@@ -304,7 +400,15 @@ export async function executeBatchStep(tokens: string[], sessionName: string) {
     }
     case "scroll":
       if (!args.length) throw new Error(`batch step '${rawStep}' requires direction`);
-      return { ok: true, command: "scroll", data: await managedScroll({ direction: args[0] as "up" | "down" | "left" | "right", distance: args[1] ? Number(args[1]) : undefined, sessionName }) };
+      return {
+        ok: true,
+        command: "scroll",
+        data: await managedScroll({
+          direction: args[0] as "up" | "down" | "left" | "right",
+          distance: args[1] ? Number(args[1]) : undefined,
+          sessionName,
+        }),
+      };
     case "wait": {
       let target: string | undefined;
       let text: string | undefined;
@@ -317,7 +421,8 @@ export async function executeBatchStep(tokens: string[], sessionName: string) {
       let networkidle = false;
       for (let index = 0; index < args.length; index += 1) {
         const arg = args[index];
-        if (/^network[-_]?idle$/i.test(arg) || arg === "--networkidle" || arg === "--network-idle") networkidle = true;
+        if (/^network[-_]?idle$/i.test(arg) || arg === "--networkidle" || arg === "--network-idle")
+          networkidle = true;
         else if (arg === "--text") {
           text = args[index + 1];
           index += 1;
@@ -346,30 +451,68 @@ export async function executeBatchStep(tokens: string[], sessionName: string) {
         } else if (!arg.startsWith("--") && !target) target = arg;
         else throw new Error(`unsupported wait batch argument '${arg}'`);
       }
-      return { ok: true, command: "wait", data: await managedWait({ target: networkidle ? undefined : target, text, selector, request, response, method, status, state, networkidle: networkidle || (target ? /^network[-_]?idle$/i.test(target) : false), sessionName }) };
+      return {
+        ok: true,
+        command: "wait",
+        data: await managedWait({
+          target: networkidle ? undefined : target,
+          text,
+          selector,
+          request,
+          response,
+          method,
+          status,
+          state,
+          networkidle: networkidle || (target ? /^network[-_]?idle$/i.test(target) : false),
+          sessionName,
+        }),
+      };
     }
     case "state":
-      if (args[0] === "save") return { ok: true, command: "state save", data: await managedStateSave(args[1], { sessionName }) };
-      if (args[0] === "load" && args[1]) return { ok: true, command: "state load", data: await managedStateLoad(args[1], { sessionName }) };
+      if (args[0] === "save")
+        return {
+          ok: true,
+          command: "state save",
+          data: await managedStateSave(args[1], { sessionName }),
+        };
+      if (args[0] === "load" && args[1])
+        return {
+          ok: true,
+          command: "state load",
+          data: await managedStateLoad(args[1], { sessionName }),
+        };
       throw new Error(`unsupported state batch step '${rawStep}'`);
     case "locate": {
       const target = parseBatchStateTarget(args);
-      if (!target) throw new Error(`batch step '${rawStep}' requires a target (--selector, --text, --role, --label, --placeholder, --test-id)`);
+      if (!target)
+        throw new Error(
+          `batch step '${rawStep}' requires a target (--selector, --text, --role, --label, --placeholder, --test-id)`,
+        );
       return { ok: true, command: "locate", data: await managedLocate({ sessionName, target }) };
     }
     case "get": {
       const fact = args[0] as "text" | "value" | "count" | undefined;
-      if (!fact || !["text", "value", "count"].includes(fact)) throw new Error(`batch step '${rawStep}' requires fact: text, value, or count`);
+      if (!fact || !["text", "value", "count"].includes(fact))
+        throw new Error(`batch step '${rawStep}' requires fact: text, value, or count`);
       const target = parseBatchStateTarget(args.slice(1));
       if (!target) throw new Error(`batch step '${rawStep}' requires a target after fact`);
-      return { ok: true, command: `get ${fact}`, data: await managedGetFact({ sessionName, target, fact }) };
+      return {
+        ok: true,
+        command: `get ${fact}`,
+        data: await managedGetFact({ sessionName, target, fact }),
+      };
     }
     case "is": {
       const state = args[0] as "visible" | "enabled" | "checked" | undefined;
-      if (!state || !["visible", "enabled", "checked"].includes(state)) throw new Error(`batch step '${rawStep}' requires state: visible, enabled, or checked`);
+      if (!state || !["visible", "enabled", "checked"].includes(state))
+        throw new Error(`batch step '${rawStep}' requires state: visible, enabled, or checked`);
       const target = parseBatchStateTarget(args.slice(1));
       if (!target) throw new Error(`batch step '${rawStep}' requires a target after state`);
-      return { ok: true, command: `is ${state}`, data: await managedIsState({ sessionName, target, state }) };
+      return {
+        ok: true,
+        command: `is ${state}`,
+        data: await managedIsState({ sessionName, target, state }),
+      };
     }
     case "verify": {
       const assertion = args[0];
@@ -431,11 +574,15 @@ function compactBatchSuccessResult(stepResult: Record<string, unknown>) {
       ? (stepResult.data as Record<string, unknown>)
       : {};
   const page =
-    commandResult.page && typeof commandResult.page === "object" && !Array.isArray(commandResult.page)
+    commandResult.page &&
+    typeof commandResult.page === "object" &&
+    !Array.isArray(commandResult.page)
       ? (commandResult.page as Record<string, unknown>)
       : undefined;
   const nestedData =
-    commandResult.data && typeof commandResult.data === "object" && !Array.isArray(commandResult.data)
+    commandResult.data &&
+    typeof commandResult.data === "object" &&
+    !Array.isArray(commandResult.data)
       ? (commandResult.data as Record<string, unknown>)
       : {};
   return {
@@ -445,7 +592,14 @@ function compactBatchSuccessResult(stepResult: Record<string, unknown>) {
     ok: stepResult.ok,
     command: stepResult.command,
     ...(page
-      ? { page: { pageId: page.pageId ?? null, navigationId: page.navigationId ?? null, url: page.url ?? null, title: page.title ?? null } }
+      ? {
+          page: {
+            pageId: page.pageId ?? null,
+            navigationId: page.navigationId ?? null,
+            url: page.url ?? null,
+            title: page.title ?? null,
+          },
+        }
       : {}),
     ...(nestedData.summary ? { summary: nestedData.summary } : {}),
   };
@@ -476,7 +630,13 @@ export async function runBatch(options: {
         firstFailureReasonCode: reasonCode ?? null,
         firstFailureMessage: invalidStep.message,
         firstFailureSuggestions: suggestions ?? null,
-        failedSteps: [{ step: invalidStep.index + 1, command: invalidStep.tokens[0] ?? null, reasonCode: reasonCode ?? null }],
+        failedSteps: [
+          {
+            step: invalidStep.index + 1,
+            command: invalidStep.tokens[0] ?? null,
+            reasonCode: reasonCode ?? null,
+          },
+        ],
         continueOnError: Boolean(options.continueOnError),
       },
       ...(!options.summaryOnly
@@ -487,7 +647,12 @@ export async function runBatch(options: {
                 index: invalidStep.index,
                 argv: invalidStep.tokens,
                 step: formatBatchArgv(invalidStep.tokens),
-                error: { code: "BATCH_STEP_FAILED", message: invalidStep.message, ...(reasonCode ? { reasonCode } : {}), ...(suggestions ? { suggestions } : {}) },
+                error: {
+                  code: "BATCH_STEP_FAILED",
+                  message: invalidStep.message,
+                  ...(reasonCode ? { reasonCode } : {}),
+                  ...(suggestions ? { suggestions } : {}),
+                },
               },
             ],
           }
@@ -496,7 +661,8 @@ export async function runBatch(options: {
   }
 
   const results = [];
-  const failedSteps: Array<{ step: number; command: string | null; reasonCode: string | null }> = [];
+  const failedSteps: Array<{ step: number; command: string | null; reasonCode: string | null }> =
+    [];
   let successCount = 0;
   let failedCount = 0;
   let firstFailedStep: number | null = null;
@@ -507,9 +673,18 @@ export async function runBatch(options: {
 
   for (const [index, argv] of options.commands.entries()) {
     try {
-      const stepResult = { index, argv, step: formatBatchArgv(argv), ...(await executeBatchStep(argv, options.sessionName)) };
+      const stepResult = {
+        index,
+        argv,
+        step: formatBatchArgv(argv),
+        ...(await executeBatchStep(argv, options.sessionName)),
+      };
       if (!options.summaryOnly) {
-        results.push(options.includeResults ? stepResult : compactBatchSuccessResult(stepResult as Record<string, unknown>));
+        results.push(
+          options.includeResults
+            ? stepResult
+            : compactBatchSuccessResult(stepResult as Record<string, unknown>),
+        );
       }
       successCount += 1;
     } catch (error) {
@@ -524,14 +699,23 @@ export async function runBatch(options: {
         firstFailureMessage = message;
         firstFailureSuggestions = suggestions ?? null;
       }
-      failedSteps.push({ step: index + 1, command: argv[0] ?? null, reasonCode: reasonCode ?? null });
+      failedSteps.push({
+        step: index + 1,
+        command: argv[0] ?? null,
+        reasonCode: reasonCode ?? null,
+      });
       if (!options.summaryOnly) {
         results.push({
           ok: false,
           index,
           argv,
           step: formatBatchArgv(argv),
-          error: { code: "BATCH_STEP_FAILED", message, ...(reasonCode ? { reasonCode } : {}), ...(suggestions ? { suggestions } : {}) },
+          error: {
+            code: "BATCH_STEP_FAILED",
+            message,
+            ...(reasonCode ? { reasonCode } : {}),
+            ...(suggestions ? { suggestions } : {}),
+          },
         });
       }
       if (!options.continueOnError) break;

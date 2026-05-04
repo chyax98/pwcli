@@ -1,6 +1,6 @@
 # Documentation Governance
 
-更新时间：2026-05-03
+更新时间：2026-05-04
 状态：active
 
 这份文档定义 `pwcli` 的文档边界、真相优先级、归档规则。
@@ -116,6 +116,7 @@
 
 - `README.md`
 - `AGENTS.md`
+- `codestable/README.md`
 - `.claude/CLAUDE.md`
 - `.claude/rules/**`
 - `.claude/commands/**`
@@ -127,13 +128,15 @@
 - `codestable/architecture/domain-status.md`
 - `codestable/architecture/adr-*.md`
 - `codestable/architecture/release-*.md`
+- `codestable/architecture/repository-governance.md`
 - `codestable/architecture/workspace-mutation-contract.md`
 - `codestable/architecture/browser-task-state-model.md`
 - `codestable/architecture/e2e-dogfood-test-plan.md`
 - `codestable/architecture/e2e-dogfood-experience-report.md`
 - `codestable/architecture/commands/_template.md`
 - `codestable/architecture/commands/*.md`（命令 ADR）
-- `codestable/compound/**`（explore / learning / trick / decision）
+- `codestable/compound/README.md`
+- `codestable/compound/**`（learning / trick / decision；探索类只保留已沉淀的长期参考）
 
 新增文档时，先判断是否属于这 4 类：
 
@@ -159,10 +162,10 @@
 - `.claude/settings.local.json`、`.claude/local/`、`.claude/tmp/`、`.claude/cache/` 不进入 git
 - `.claude/skills/` 不进入 git；项目内 CodeStable skill 源只保留在 `.agents/skills/`
 - `.claude/` 不能作为项目规划、过程归档、迁移记录或 backlog 区
-- backlog、推进记录、临时结论放 GitHub issues / PR
+- backlog、推进记录、临时结论放 GitHub issues / PR，不在仓库长期维护
 - 一旦决策稳定，必须吸收进 skill / ADR / `domain-status.md`
 - 过程稿如果没有转化为正式结论，就直接删除，不做仓内长期保存
-- roadmap drafts、`codestable/audits/`、旧 eval/benchmark 结果面不作为长期 truth；稳定结论必须进入 roadmap/evaluation/issue/ADR/command docs
+- roadmap drafts、历史 issue/fix-note、旧 eval/benchmark 结果面不作为长期 truth；稳定结论必须进入 skill、ADR、domain-status、repository-governance 或 GitHub issue / PR
 
 ## 6. 不允许的重复
 

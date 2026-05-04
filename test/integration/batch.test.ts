@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { describe, it, after } from "node:test";
 import { resolve } from "node:path";
+import { after, describe, it } from "node:test";
 
-const repoRoot = resolve(import.meta.dirname, "..", "..", "..");
+const repoRoot = resolve(import.meta.dirname, "..", "..");
 const cliPath = resolve(repoRoot, "dist", "cli.js");
 
 function runPw(args: string[], input?: string) {
@@ -98,7 +98,14 @@ describe("batch extended commands", { concurrency: false }, () => {
     assert.equal(result.code, 0, `batch fill failed: ${result.stderr}`);
     const json = result.json as {
       ok: boolean;
-      data: { completed: boolean; results: Array<{ ok: boolean; command: string; data: { data: { filled: boolean; value: string } } }> };
+      data: {
+        completed: boolean;
+        results: Array<{
+          ok: boolean;
+          command: string;
+          data: { data: { filled: boolean; value: string } };
+        }>;
+      };
     };
     assert.equal(json.ok, true);
     assert.equal(json.data.completed, true);
@@ -122,7 +129,14 @@ describe("batch extended commands", { concurrency: false }, () => {
     assert.equal(result.code, 0, `batch type failed: ${result.stderr}`);
     const json = result.json as {
       ok: boolean;
-      data: { completed: boolean; results: Array<{ ok: boolean; command: string; data: { data: { typed: boolean; value: string } } }> };
+      data: {
+        completed: boolean;
+        results: Array<{
+          ok: boolean;
+          command: string;
+          data: { data: { typed: boolean; value: string } };
+        }>;
+      };
     };
     assert.equal(json.ok, true);
     assert.equal(json.data.completed, true);
@@ -145,7 +159,14 @@ describe("batch extended commands", { concurrency: false }, () => {
     assert.equal(result.code, 0, `batch press failed: ${result.stderr}`);
     const json = result.json as {
       ok: boolean;
-      data: { completed: boolean; results: Array<{ ok: boolean; command: string; data: { data: { pressed: boolean; key: string } } }> };
+      data: {
+        completed: boolean;
+        results: Array<{
+          ok: boolean;
+          command: string;
+          data: { data: { pressed: boolean; key: string } };
+        }>;
+      };
     };
     assert.equal(json.ok, true);
     assert.equal(json.data.completed, true);
@@ -168,7 +189,14 @@ describe("batch extended commands", { concurrency: false }, () => {
     assert.equal(result.code, 0, `batch check failed: ${result.stderr}`);
     const json = result.json as {
       ok: boolean;
-      data: { completed: boolean; results: Array<{ ok: boolean; command: string; data: { data: { checked: boolean; acted: boolean } } }> };
+      data: {
+        completed: boolean;
+        results: Array<{
+          ok: boolean;
+          command: string;
+          data: { data: { checked: boolean; acted: boolean } };
+        }>;
+      };
     };
     assert.equal(json.ok, true);
     assert.equal(json.data.completed, true);
@@ -191,7 +219,14 @@ describe("batch extended commands", { concurrency: false }, () => {
     assert.equal(result.code, 0, `batch select failed: ${result.stderr}`);
     const json = result.json as {
       ok: boolean;
-      data: { completed: boolean; results: Array<{ ok: boolean; command: string; data: { data: { selected: boolean; values: string[] } } }> };
+      data: {
+        completed: boolean;
+        results: Array<{
+          ok: boolean;
+          command: string;
+          data: { data: { selected: boolean; values: string[] } };
+        }>;
+      };
     };
     assert.equal(json.ok, true);
     assert.equal(json.data.completed, true);
@@ -214,7 +249,10 @@ describe("batch extended commands", { concurrency: false }, () => {
     assert.equal(result.code, 0, `batch hover failed: ${result.stderr}`);
     const json = result.json as {
       ok: boolean;
-      data: { completed: boolean; results: Array<{ ok: boolean; command: string; data: { data: { acted: boolean } } }> };
+      data: {
+        completed: boolean;
+        results: Array<{ ok: boolean; command: string; data: { data: { acted: boolean } } }>;
+      };
     };
     assert.equal(json.ok, true);
     assert.equal(json.data.completed, true);
@@ -236,7 +274,14 @@ describe("batch extended commands", { concurrency: false }, () => {
     assert.equal(result.code, 0, `batch scroll failed: ${result.stderr}`);
     const json = result.json as {
       ok: boolean;
-      data: { completed: boolean; results: Array<{ ok: boolean; command: string; data: { data: { scrolled: boolean; direction: string; distance: number } } }> };
+      data: {
+        completed: boolean;
+        results: Array<{
+          ok: boolean;
+          command: string;
+          data: { data: { scrolled: boolean; direction: string; distance: number } };
+        }>;
+      };
     };
     assert.equal(json.ok, true);
     assert.equal(json.data.completed, true);
@@ -306,13 +351,19 @@ describe("batch extended commands", { concurrency: false }, () => {
     assert.notEqual(result.code, 0, "expected illegal command to fail");
     const json = result.json as {
       ok: boolean;
-      error: { code: string; message: string; details?: { summary?: { firstFailedCommand: string | null; firstFailureMessage: string } } };
+      error: {
+        code: string;
+        message: string;
+        details?: { summary?: { firstFailedCommand: string | null; firstFailureMessage: string } };
+      };
     };
     assert.equal(json.ok, false);
     assert.equal(json.error.code, "BATCH_STEP_FAILED");
     assert.equal(json.error.details?.summary?.firstFailedCommand, "session");
     assert.ok(
-      json.error.details?.summary?.firstFailureMessage.includes("batch does not support session lifecycle"),
+      json.error.details?.summary?.firstFailureMessage.includes(
+        "batch does not support session lifecycle",
+      ),
       `expected lifecycle rejection, got: ${json.error.details?.summary?.firstFailureMessage}`,
     );
   });

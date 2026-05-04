@@ -1,7 +1,7 @@
 import { defineCommand } from "citty";
-import { managedPress } from "#engine/act/element.js";
 import { sharedArgs } from "#cli/args.js";
-import { positionals, print, session, withCliError, type CliArgs } from "./_helpers.js";
+import { managedPress } from "#engine/act/element.js";
+import { type CliArgs, positionals, print, session, withCliError } from "./_helpers.js";
 
 export default defineCommand({
   meta: { name: "press", description: "Press a keyboard key" },

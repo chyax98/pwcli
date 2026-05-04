@@ -1,18 +1,18 @@
 "use client";
 
+import {
+  ExternalLink,
+  FormInput,
+  Layers,
+  LayoutDashboard,
+  LogOut,
+  MousePointer2,
+  Network,
+  Terminal,
+  Zap,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  LayoutDashboard,
-  FormInput,
-  MousePointer2,
-  Layers,
-  Zap,
-  ExternalLink,
-  Network,
-  LogOut,
-  Terminal,
-} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
@@ -66,7 +66,7 @@ export default function Sidebar() {
                     "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150",
                     isActive
                       ? "bg-indigo-600/20 text-indigo-400 border border-indigo-600/30"
-                      : "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800"
+                      : "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800",
                   )}
                 >
                   <Icon size={16} className={cn(isActive ? "text-indigo-400" : "text-zinc-500")} />

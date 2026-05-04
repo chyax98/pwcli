@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { describe, it, after } from "node:test";
 import { resolve } from "node:path";
+import { after, describe, it } from "node:test";
 
-const repoRoot = resolve(import.meta.dirname, "..", "..", "..");
+const repoRoot = resolve(import.meta.dirname, "..", "..");
 const cliPath = resolve(repoRoot, "dist", "cli.js");
 
 function runPw(args: string[]) {
@@ -92,8 +92,8 @@ describe("accessibility", { concurrency: false }, () => {
     assert.equal(json.ok, true);
     assert.equal(json.data.format, "aria-yaml");
     assert.equal(json.data.empty, false);
-    assert.ok(json.data.snapshot.includes("button \"Click me\""), "snapshot should contain button");
-    assert.ok(json.data.snapshot.includes("link \"Link\""), "snapshot should contain link");
+    assert.ok(json.data.snapshot.includes('button "Click me"'), "snapshot should contain button");
+    assert.ok(json.data.snapshot.includes('link "Link"'), "snapshot should contain link");
   });
 
   it("--interactive-only returns only interactive nodes", async () => {
@@ -115,7 +115,7 @@ describe("accessibility", { concurrency: false }, () => {
       "code",
       "--session",
       name,
-      'async page => { await page.setContent(`<button>Click me</button><p>Static text</p>`); }',
+      "async page => { await page.setContent(`<button>Click me</button><p>Static text</p>`); }",
       "--output",
       "json",
     ]);
@@ -136,7 +136,7 @@ describe("accessibility", { concurrency: false }, () => {
     assert.equal(json.ok, true);
     assert.equal(json.data.format, "aria-yaml");
     assert.equal(json.data.empty, false);
-    assert.ok(json.data.snapshot.includes("button \"Click me\""), "snapshot should contain button");
+    assert.ok(json.data.snapshot.includes('button "Click me"'), "snapshot should contain button");
   });
 
   it("empty page returns empty snapshot", async () => {

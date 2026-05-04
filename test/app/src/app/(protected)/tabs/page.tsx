@@ -1,7 +1,14 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { ExternalLink, Globe, Monitor, ArrowUpRight, MessageSquare, LayoutGrid } from "lucide-react";
+import {
+  ArrowUpRight,
+  ExternalLink,
+  Globe,
+  LayoutGrid,
+  MessageSquare,
+  Monitor,
+} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 export default function TabsPage() {
   const [popupResult, setPopupResult] = useState("");
@@ -35,24 +42,34 @@ export default function TabsPage() {
 
   function sendToOpener() {
     if (openerRef.current && !openerRef.current.closed) {
-      openerRef.current.postMessage({ type: "host-to-popup", message: "Hello from host" }, window.location.origin);
+      openerRef.current.postMessage(
+        { type: "host-to-popup", message: "Hello from host" },
+        window.location.origin,
+      );
     }
   }
 
   function switchSubTab(tab: "alpha" | "beta" | "gamma") {
     setSubTabActive(tab);
-    setSubTabLog((prev) => [...prev.slice(-9), `[${new Date().toLocaleTimeString()}] Switched to tab: ${tab}`]);
+    setSubTabLog((prev) => [
+      ...prev.slice(-9),
+      `[${new Date().toLocaleTimeString()}] Switched to tab: ${tab}`,
+    ]);
   }
 
   return (
     <div data-testid="tabs-page" aria-label="Multi-tab test page">
       <h1 className="text-2xl font-bold text-zinc-100 mb-1">Multi-Tab Scenarios</h1>
-      <p className="text-sm text-zinc-500 mb-8">Test opening links in new tabs and popup windows.</p>
+      <p className="text-sm text-zinc-500 mb-8">
+        Test opening links in new tabs and popup windows.
+      </p>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* target=_blank links */}
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 card-glow">
-          <h2 className="text-sm font-semibold text-zinc-200 mb-4">Open in New Tab (target=_blank)</h2>
+          <h2 className="text-sm font-semibold text-zinc-200 mb-4">
+            Open in New Tab (target=_blank)
+          </h2>
           <div className="space-y-3">
             <a
               href="/tabs/child"
@@ -62,9 +79,17 @@ export default function TabsPage() {
               aria-label="Open child page in new tab"
               className="flex items-center gap-3 px-4 py-3 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-sm text-zinc-300 hover:text-zinc-100 transition-all duration-150 group"
             >
-              <ExternalLink size={16} className="text-zinc-500 group-hover:text-indigo-400 transition-colors" aria-hidden="true" />
+              <ExternalLink
+                size={16}
+                className="text-zinc-500 group-hover:text-indigo-400 transition-colors"
+                aria-hidden="true"
+              />
               Open /tabs/child in new tab
-              <ArrowUpRight size={12} className="ml-auto text-zinc-600 group-hover:text-zinc-400" aria-hidden="true" />
+              <ArrowUpRight
+                size={12}
+                className="ml-auto text-zinc-600 group-hover:text-zinc-400"
+                aria-hidden="true"
+              />
             </a>
 
             <a
@@ -75,9 +100,17 @@ export default function TabsPage() {
               aria-label="Open dashboard in new tab"
               className="flex items-center gap-3 px-4 py-3 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-sm text-zinc-300 hover:text-zinc-100 transition-all duration-150 group"
             >
-              <Monitor size={16} className="text-zinc-500 group-hover:text-indigo-400 transition-colors" aria-hidden="true" />
+              <Monitor
+                size={16}
+                className="text-zinc-500 group-hover:text-indigo-400 transition-colors"
+                aria-hidden="true"
+              />
               Open /dashboard in new tab
-              <ArrowUpRight size={12} className="ml-auto text-zinc-600 group-hover:text-zinc-400" aria-hidden="true" />
+              <ArrowUpRight
+                size={12}
+                className="ml-auto text-zinc-600 group-hover:text-zinc-400"
+                aria-hidden="true"
+              />
             </a>
 
             <a
@@ -88,9 +121,17 @@ export default function TabsPage() {
               aria-label="Open forms page in new tab"
               className="flex items-center gap-3 px-4 py-3 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-sm text-zinc-300 hover:text-zinc-100 transition-all duration-150 group"
             >
-              <ExternalLink size={16} className="text-zinc-500 group-hover:text-indigo-400 transition-colors" aria-hidden="true" />
+              <ExternalLink
+                size={16}
+                className="text-zinc-500 group-hover:text-indigo-400 transition-colors"
+                aria-hidden="true"
+              />
               Open /forms in new tab
-              <ArrowUpRight size={12} className="ml-auto text-zinc-600 group-hover:text-zinc-400" aria-hidden="true" />
+              <ArrowUpRight
+                size={12}
+                className="ml-auto text-zinc-600 group-hover:text-zinc-400"
+                aria-hidden="true"
+              />
             </a>
 
             <a
@@ -101,9 +142,15 @@ export default function TabsPage() {
               aria-label="Open Playwright documentation in new tab (external)"
               className="flex items-center gap-3 px-4 py-3 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-sm text-zinc-300 hover:text-zinc-100 transition-all duration-150 group"
             >
-              <Globe size={16} className="text-zinc-500 group-hover:text-green-400 transition-colors" aria-hidden="true" />
+              <Globe
+                size={16}
+                className="text-zinc-500 group-hover:text-green-400 transition-colors"
+                aria-hidden="true"
+              />
               Open playwright.dev (external)
-              <span className="ml-auto px-1.5 py-0.5 text-xs bg-zinc-700 text-zinc-500 rounded">external</span>
+              <span className="ml-auto px-1.5 py-0.5 text-xs bg-zinc-700 text-zinc-500 rounded">
+                external
+              </span>
             </a>
           </div>
         </div>
@@ -118,7 +165,11 @@ export default function TabsPage() {
               onClick={() => openWindowOpen("/tabs/child", "child-popup")}
               className="w-full flex items-center gap-3 px-4 py-3 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-sm text-zinc-300 hover:text-zinc-100 transition-all duration-150 text-left group"
             >
-              <Monitor size={16} className="text-zinc-500 group-hover:text-violet-400 transition-colors" aria-hidden="true" />
+              <Monitor
+                size={16}
+                className="text-zinc-500 group-hover:text-violet-400 transition-colors"
+                aria-hidden="true"
+              />
               window.open(/tabs/child)
             </button>
 
@@ -128,7 +179,11 @@ export default function TabsPage() {
               onClick={() => openWindowOpen("/dashboard", "dashboard-popup")}
               className="w-full flex items-center gap-3 px-4 py-3 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-sm text-zinc-300 hover:text-zinc-100 transition-all duration-150 text-left group"
             >
-              <Monitor size={16} className="text-zinc-500 group-hover:text-violet-400 transition-colors" aria-hidden="true" />
+              <Monitor
+                size={16}
+                className="text-zinc-500 group-hover:text-violet-400 transition-colors"
+                aria-hidden="true"
+              />
               window.open(/dashboard)
             </button>
 
@@ -138,7 +193,11 @@ export default function TabsPage() {
               onClick={() => openWindowOpen("about:blank", "blank-popup")}
               className="w-full flex items-center gap-3 px-4 py-3 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-sm text-zinc-300 hover:text-zinc-100 transition-all duration-150 text-left group"
             >
-              <ExternalLink size={16} className="text-zinc-500 group-hover:text-violet-400 transition-colors" aria-hidden="true" />
+              <ExternalLink
+                size={16}
+                className="text-zinc-500 group-hover:text-violet-400 transition-colors"
+                aria-hidden="true"
+              />
               window.open(about:blank)
             </button>
 
@@ -167,7 +226,11 @@ export default function TabsPage() {
               onClick={() => openWithOpener("/tabs/child", "child-with-opener")}
               className="w-full flex items-center gap-3 px-4 py-3 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-sm text-zinc-300 hover:text-zinc-100 transition-all duration-150 text-left group"
             >
-              <ExternalLink size={16} className="text-zinc-500 group-hover:text-indigo-400 transition-colors" aria-hidden="true" />
+              <ExternalLink
+                size={16}
+                className="text-zinc-500 group-hover:text-indigo-400 transition-colors"
+                aria-hidden="true"
+              />
               window.open (with opener)
             </button>
             <button
@@ -176,7 +239,11 @@ export default function TabsPage() {
               onClick={sendToOpener}
               className="w-full flex items-center gap-3 px-4 py-3 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-sm text-zinc-300 hover:text-zinc-100 transition-all duration-150 text-left group"
             >
-              <MessageSquare size={16} className="text-zinc-500 group-hover:text-violet-400 transition-colors" aria-hidden="true" />
+              <MessageSquare
+                size={16}
+                className="text-zinc-500 group-hover:text-violet-400 transition-colors"
+                aria-hidden="true"
+              />
               Send postMessage to popup
             </button>
             {popupMessage && (
@@ -208,9 +275,10 @@ export default function TabsPage() {
                 role="tab"
                 onClick={() => switchSubTab(tab)}
                 className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all duration-150 capitalize
-                  ${subTabActive === tab
-                    ? "bg-indigo-600 text-white"
-                    : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700"
+                  ${
+                    subTabActive === tab
+                      ? "bg-indigo-600 text-white"
+                      : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700"
                   }`}
               >
                 {tab}
@@ -223,8 +291,8 @@ export default function TabsPage() {
             aria-label={`Content for sub-tab ${subTabActive}`}
             className="bg-zinc-800 rounded-lg p-4 mb-3 text-sm text-zinc-300"
           >
-            <span className="text-indigo-400 font-medium capitalize">{subTabActive}</span> tab content is active.
-            This panel simulates multi-tab UIs for agent interaction testing.
+            <span className="text-indigo-400 font-medium capitalize">{subTabActive}</span> tab
+            content is active. This panel simulates multi-tab UIs for agent interaction testing.
           </div>
           <div
             data-testid="sub-tab-log"
@@ -232,10 +300,15 @@ export default function TabsPage() {
             aria-live="polite"
             className="bg-zinc-950 rounded-lg p-2 h-20 overflow-y-auto font-mono text-xs space-y-0.5"
           >
-            {subTabLog.length === 0
-              ? <span className="text-zinc-700">No switches yet.</span>
-              : subTabLog.map((entry, i) => <div key={i} className="text-zinc-500">{entry}</div>)
-            }
+            {subTabLog.length === 0 ? (
+              <span className="text-zinc-700">No switches yet.</span>
+            ) : (
+              subTabLog.map((entry, i) => (
+                <div key={i} className="text-zinc-500">
+                  {entry}
+                </div>
+              ))
+            )}
           </div>
         </div>
 
@@ -245,11 +318,14 @@ export default function TabsPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-zinc-500">
             <div className="bg-zinc-800 rounded-lg p-3">
               <div className="text-zinc-300 font-medium mb-1">New Tab Detection</div>
-              Use <code className="text-indigo-400">pw page list</code> to enumerate all open pages after clicking a new-tab link.
+              Use <code className="text-indigo-400">pw page list</code> to enumerate all open pages
+              after clicking a new-tab link.
             </div>
             <div className="bg-zinc-800 rounded-lg p-3">
               <div className="text-zinc-300 font-medium mb-1">Popup Handling</div>
-              Playwright auto-captures popup events. Use <code className="text-indigo-400">page.waitForEvent(&apos;popup&apos;)</code> to intercept them.
+              Playwright auto-captures popup events. Use{" "}
+              <code className="text-indigo-400">page.waitForEvent(&apos;popup&apos;)</code> to
+              intercept them.
             </div>
             <div className="bg-zinc-800 rounded-lg p-3">
               <div className="text-zinc-300 font-medium mb-1">Session Scope</div>

@@ -2,10 +2,7 @@ import assert from "node:assert/strict";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import {
-  buildDiagnosticsAuditConclusion,
-  buildRunDigest,
-} from "../../src/engine/diagnose/core.js";
+import { buildDiagnosticsAuditConclusion, buildRunDigest } from "../../src/engine/diagnose/core.js";
 
 const cwd = process.cwd();
 const tempDir = await mkdtemp(join(tmpdir(), "pwcli-diagnostics-failure-"));

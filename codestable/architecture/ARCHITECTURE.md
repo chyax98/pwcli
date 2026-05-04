@@ -34,6 +34,7 @@ session create|attach|recreate
 
 | 关注点 | 文档 |
 |---|---|
+| CodeStable 根入口 | [../README.md](../README.md) |
 | 文档治理规则 | [documentation-governance.md](documentation-governance.md) |
 | 命令面全图 | [command-surface.md](command-surface.md) |
 | 领域现状和限制 | [domain-status.md](domain-status.md) |
@@ -44,7 +45,8 @@ session create|attach|recreate
 | ADR-003 clock 边界 | [adr-003-environment-clock-boundary.md](adr-003-environment-clock-boundary.md) |
 | E2E dogfood 测试计划 | [e2e-dogfood-test-plan.md](e2e-dogfood-test-plan.md) |
 | E2E dogfood 体验报告 | [e2e-dogfood-experience-report.md](e2e-dogfood-experience-report.md) |
-| v0.2.0 发布检查 | [release-v0.2.0.md](release-v0.2.0.md) |
+| v1.0.0 发布检查 | [release-v1.0.0.md](release-v1.0.0.md) |
+| 仓库治理 | [repository-governance.md](repository-governance.md) |
 | 命令 ADR 模板 | [commands/_template.md](commands/_template.md) |
 
 ## 使用教程

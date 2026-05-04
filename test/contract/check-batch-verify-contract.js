@@ -1,28 +1,11 @@
-import { spawnSync } from "node:child_process";
+import { parseJson, runPwSync } from "./_helpers.js";
 
-const cli = ["node", "dist/cli.js"];
 const session = "batchv";
 
-function run(args, options = {}) {
-  return spawnSync(cli[0], [...cli.slice(1), ...args], {
-    cwd: process.cwd(),
-    encoding: "utf8",
-    ...options,
-  });
-}
-
-function parseJson(stdout, label) {
-  try {
-    return JSON.parse(stdout);
-  } catch (error) {
-    throw new Error(`${label} did not return JSON: ${error.message}\n${stdout}`);
-  }
-}
-
-run(["session", "close", session]);
+runPwSync(["session", "close", session]);
 
 try {
-  const create = run([
+  const create = runPwSync([
     "session",
     "create",
     session,
@@ -34,7 +17,7 @@ try {
     throw new Error(`session create failed\n${create.stdout}\n${create.stderr}`);
   }
 
-  const batch = run(["batch", "--output", "json", "--session", session, "--stdin-json"], {
+  const batch = runPwSync(["batch", "--output", "json", "--session", session, "--stdin-json"], {
     input: JSON.stringify([["verify", "text", "--text", "missing text"]]),
   });
   if (batch.status === 0) {
@@ -50,5 +33,5 @@ try {
     throw new Error(`unexpected batch summary: ${JSON.stringify(summary, null, 2)}`);
   }
 } finally {
-  run(["session", "close", session]);
+  runPwSync(["session", "close", session]);
 }

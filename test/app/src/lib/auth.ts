@@ -43,7 +43,7 @@ function generateSessionId(): string {
 
 export function validateCredentials(
   email: string,
-  password: string
+  password: string,
 ): { success: false; error: string } | { success: true; user: User; requiresMfa: boolean } {
   const entry = USERS[email.toLowerCase()];
   if (!entry || entry.password !== password) {

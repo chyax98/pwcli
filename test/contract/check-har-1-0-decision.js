@@ -1,50 +1,28 @@
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { runPw } from "./_helpers.js";
 
-const repoRoot = resolve(import.meta.dirname, "..");
-const cliPath = resolve(repoRoot, "dist", "cli.js");
 const workspaceDir = await mkdtemp(join(tmpdir(), "pwcli-har-decision-"));
 const sessionName = `har${Date.now().toString(36).slice(-5)}`;
 const harFile = resolve(workspaceDir, "fixture.har");
 const targetUrl = "http://pwcli-har.local/api/data";
 
-function runPw(args) {
-  return new Promise((resolveResult, reject) => {
-    const child = spawn(process.execPath, [cliPath, ...args], {
-      cwd: workspaceDir,
-      env: process.env,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-    let stdout = "";
-    let stderr = "";
-    child.stdout.on("data", (chunk) => {
-      stdout += chunk.toString();
-    });
-    child.stderr.on("data", (chunk) => {
-      stderr += chunk.toString();
-    });
-    child.on("error", reject);
-    child.on("close", (code) => {
-      const trimmed = stdout.trim();
-      let json = null;
-      if (trimmed) {
-        try {
-          json = JSON.parse(trimmed);
-        } catch (error) {
-          reject(
-            new Error(
-              `Failed to parse JSON for ${args.join(" ")}: ${error.message}\nstdout=${stdout}\nstderr=${stderr}`,
-            ),
-          );
-          return;
-        }
-      }
-      resolveResult({ code, stdout, stderr, json });
-    });
-  });
+async function runPwInWorkspace(args) {
+  const result = await runPw(args, { cwd: workspaceDir });
+  const trimmed = result.stdout.trim();
+  let json = null;
+  if (trimmed) {
+    try {
+      json = JSON.parse(trimmed);
+    } catch (error) {
+      throw new Error(
+        `Failed to parse JSON for ${args.join(" ")}: ${error.message}\nstdout=${result.stdout}\nstderr=${result.stderr}`,
+      );
+    }
+  }
+  return { ...result, json };
 }
 
 function harFixture(url) {
@@ -93,7 +71,7 @@ function harFixture(url) {
 try {
   await writeFile(harFile, `${JSON.stringify(harFixture(targetUrl), null, 2)}\n`, "utf8");
 
-  const create = await runPw([
+  const create = await runPwInWorkspace([
     "session",
     "create",
     sessionName,
@@ -104,7 +82,7 @@ try {
   ]);
   assert.equal(create.code, 0, `session create failed: ${JSON.stringify(create)}`);
 
-  const start = await runPw([
+  const start = await runPwInWorkspace([
     "har",
     "start",
     "--session",
@@ -122,7 +100,7 @@ try {
     "PLAYWRIGHT_RECORD_HAR_REQUIRES_CONTEXT_CREATION",
   );
 
-  const replay = await runPw([
+  const replay = await runPwInWorkspace([
     "har",
     "replay",
     harFile,
@@ -135,10 +113,17 @@ try {
   assert.equal(replay.json?.data?.replayActive, true);
   assert.equal(replay.json?.data?.file, harFile);
 
-  const open = await runPw(["open", targetUrl, "--session", sessionName, "--output", "json"]);
+  const open = await runPwInWorkspace([
+    "open",
+    targetUrl,
+    "--session",
+    sessionName,
+    "--output",
+    "json",
+  ]);
   assert.equal(open.code, 0, `open replay URL failed: ${JSON.stringify(open)}`);
 
-  const text = await runPw([
+  const text = await runPwInWorkspace([
     "read-text",
     "--session",
     sessionName,
@@ -150,10 +135,19 @@ try {
   assert.equal(text.code, 0, `read-text failed: ${JSON.stringify(text)}`);
   assert.match(text.json?.data?.text ?? "", /har-fixture/);
 
-  const stop = await runPw(["har", "replay-stop", "--session", sessionName, "--output", "json"]);
+  const stop = await runPwInWorkspace([
+    "har",
+    "replay-stop",
+    "--session",
+    sessionName,
+    "--output",
+    "json",
+  ]);
   assert.equal(stop.code, 0, `har replay-stop failed: ${JSON.stringify(stop)}`);
   assert.equal(stop.json?.data?.replayActive, false);
 } finally {
-  await runPw(["session", "close", sessionName, "--output", "json"]).catch(() => undefined);
+  await runPwInWorkspace(["session", "close", sessionName, "--output", "json"]).catch(
+    () => undefined,
+  );
   await rm(workspaceDir, { recursive: true, force: true });
 }

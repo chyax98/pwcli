@@ -1,8 +1,16 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 
 const SESSION_COOKIE = "pwcli_session";
 
-const PROTECTED_PATHS = ["/dashboard", "/forms", "/interactions", "/modals", "/dynamic", "/tabs", "/network"];
+const PROTECTED_PATHS = [
+  "/dashboard",
+  "/forms",
+  "/interactions",
+  "/modals",
+  "/dynamic",
+  "/tabs",
+  "/network",
+];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;

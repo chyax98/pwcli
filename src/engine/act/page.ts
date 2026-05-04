@@ -1,11 +1,26 @@
 import { copyFile, mkdir } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { appendRunEvent, ensureRunDir } from "#store/artifacts.js";
-import { runManagedSessionCommand, parseDownloadEvent, parsePageSummary, stripQuotes } from "../session.js";
-import { managedRunCode, isModalStateBlockedMessage, maybeRawOutput, normalizeRef } from "../shared.js";
 import { captureDiagnosticsBaseline } from "../diagnose/core.js";
-import { managedPageCurrent, pageIdRuntimePrelude } from "../workspace.js";
-import { throwIfManagedActionError, assertFreshRefEpoch, buildDiagnosticsDeltaOrSignal, buildDialogPendingResult, errorMessage, isModalBlockedDelta, recordFailedActionRun, recordActionRun, validateRefEpoch, executeCodeAction, executeCommandAction, runManagedCommand, finalizeAction, dispatchLocatorAction, type DiagnosticsBaseline, type RunEventTargetKind } from "./element.js";
+import {
+  parseDownloadEvent,
+  parsePageSummary,
+  runManagedSessionCommand,
+  stripQuotes,
+} from "../session.js";
+import { managedRunCode, maybeRawOutput, normalizeRef } from "../shared.js";
+import { managedPageCurrent } from "../workspace.js";
+import {
+  assertFreshRefEpoch,
+  buildDiagnosticsDeltaOrSignal,
+  executeCodeAction,
+  finalizeAction,
+  type ManagedCodeResult,
+  type RunEventTargetKind,
+  recordActionRun,
+  recordFailedActionRun,
+  throwIfManagedActionError,
+} from "./element.js";
 
 export async function managedDialog(
   action: "accept" | "dismiss",
@@ -13,10 +28,7 @@ export async function managedDialog(
 ) {
   const command = action === "accept" ? "dialog-accept" : "dialog-dismiss";
   const argv = action === "accept" && options?.prompt ? [command, options.prompt] : [command];
-  const result = await runManagedSessionCommand(
-    { _: argv },
-    { sessionName: options?.sessionName },
-  );
+  const result = await runManagedSessionCommand({ _: argv }, { sessionName: options?.sessionName });
   throwIfManagedActionError(result.text, { command: "dialog", sessionName: options?.sessionName });
 
   return {
@@ -62,11 +74,17 @@ export async function managedScroll(options: {
   });
 
   const diagnosticsDelta = await buildDiagnosticsDeltaOrSignal(options.sessionName, before);
-  const run = await recordActionRun("scroll", options.sessionName, result.page, {
-    direction: options.direction,
-    distance,
-    diagnosticsDelta,
-  }, "none");
+  const run = await recordActionRun(
+    "scroll",
+    options.sessionName,
+    result.page,
+    {
+      direction: options.direction,
+      distance,
+      diagnosticsDelta,
+    },
+    "none",
+  );
   return {
     session: result.session,
     page: result.page,
@@ -169,10 +187,16 @@ export async function managedPdf(options: { path: string; sessionName?: string }
   });
   const parsed =
     typeof result.data.result === "object" && result.data.result ? result.data.result : {};
-  const run = await recordActionRun("pdf", options.sessionName, result.page, {
-    path,
-    url: typeof parsed.url === "string" ? parsed.url : undefined,
-  }, "none");
+  const run = await recordActionRun(
+    "pdf",
+    options.sessionName,
+    result.page,
+    {
+      path,
+      url: typeof parsed.url === "string" ? parsed.url : undefined,
+    },
+    "none",
+  );
   return {
     session: result.session,
     page: result.page,
@@ -274,13 +298,19 @@ export async function managedUpload(options: {
         };
   const nextSteps = Array.isArray(parsed.nextSteps) ? parsed.nextSteps : [];
   const diagnosticsDelta = await buildDiagnosticsDeltaOrSignal(options.sessionName, before);
-  const run = await recordActionRun("upload", options.sessionName, result.page, {
-    target: options.ref ? { ref: normalizeRef(options.ref) } : { selector: options.selector },
-    files: resolvedFiles,
-    settle,
-    nextSteps,
-    diagnosticsDelta,
-  }, options.ref ? "ref" : "selector");
+  const run = await recordActionRun(
+    "upload",
+    options.sessionName,
+    result.page,
+    {
+      target: options.ref ? { ref: normalizeRef(options.ref) } : { selector: options.selector },
+      files: resolvedFiles,
+      settle,
+      nextSteps,
+      diagnosticsDelta,
+    },
+    options.ref ? "ref" : "selector",
+  );
   return {
     session: result.session,
     page: result.page,
@@ -339,9 +369,15 @@ export async function managedDrag(options: {
   });
 
   const diagnosticsDelta = await buildDiagnosticsDeltaOrSignal(options.sessionName, before);
-  const run = await recordActionRun("drag", options.sessionName, result.page, {
-    diagnosticsDelta,
-  }, options.fromRef || options.toRef ? "ref" : "selector");
+  const run = await recordActionRun(
+    "drag",
+    options.sessionName,
+    result.page,
+    {
+      diagnosticsDelta,
+    },
+    options.fromRef || options.toRef ? "ref" : "selector",
+  );
   return {
     session: result.session,
     page: result.page,
@@ -639,7 +675,7 @@ export async function managedWait(options: {
   }
 
   const before = await captureDiagnosticsBaseline(options.sessionName);
-  let result;
+  let result: ManagedCodeResult;
   try {
     result = await executeCodeAction({
       command: "wait",
@@ -649,7 +685,9 @@ export async function managedWait(options: {
       details: { condition },
     });
   } catch (error) {
-    await recordFailedActionRun("wait", options.sessionName, undefined, before, error, { condition });
+    await recordFailedActionRun("wait", options.sessionName, undefined, before, error, {
+      condition,
+    });
     throw error;
   }
   return finalizeAction({
@@ -678,11 +716,7 @@ export async function managedWait(options: {
 // managedMouseMove
 // =============================================================================
 
-export async function managedMouseMove(options: {
-  x: number;
-  y: number;
-  sessionName?: string;
-}) {
+export async function managedMouseMove(options: { x: number; y: number; sessionName?: string }) {
   const before = await captureDiagnosticsBaseline(options.sessionName);
   const result = await managedRunCode({
     sessionName: options.sessionName,

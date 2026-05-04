@@ -27,7 +27,7 @@ tags:
 
 - **基础能力层**：用 Vitest、集成测试、contract check 或小型 fixture 验证命令解析、JSON envelope、错误码、route/batch/environment 等稳定行为。
 - **Agent dogfood 层**：Agent 按中文优先的 `skills/pwcli/` 执行浏览器自动化、自动化测试、表单填写、简单爬取、Deep Bug 复现与诊断、证据交接等真实场景。
-- **证据沉淀层**：把通过/失败结论写回 CodeStable，P0/P1 进入 issue/fix-note，稳定经验进入 architecture、decision、learning 或 command doc。
+- **证据沉淀层**：把通过/失败结论写回 CodeStable；阻断性问题进入 GitHub issue / PR，稳定经验进入 architecture、decision、learning 或 command doc。
 
 ## 理由
 
@@ -43,13 +43,13 @@ tags:
 
 ## 后果
 
-- roadmap 和 release gate 不能把 `pnpm test:dogfood:e2e` 写成默认深度验证的唯一入口。
+- release gate 不能把 `pnpm test:dogfood:e2e` 写成默认深度验证的唯一入口。
 - command doc 的 `proven` 状态应接受真实 Agent dogfood 证据，不局限于脚本覆盖。
 - 新能力必须同时考虑两类证据：基础 contract 是否被测试覆盖，Agent 是否能按 skill 完成真实任务。
-- 如果 shell E2E 失败，先判断它是产品 P0/P1、contract 漂移，还是脚本维护成本问题；不能默认把修脚本当作最高优先级。
+- 如果 shell E2E 失败，先判断它是产品阻断问题、contract 漂移，还是脚本维护成本问题；不能默认把修脚本当作最高优先级。
 
 ## 相关文档
 
 - `skills/pwcli/`
-- `codestable/roadmap/project-completion/project-completion-roadmap.md`
+- `codestable/architecture/repository-governance.md`
 - `codestable/architecture/e2e-dogfood-test-plan.md`

@@ -158,8 +158,14 @@ try {
   };
   assert.ok(batchEnvelope && !batchEnvelope.ok, "expected batch to fail");
   const supportedTopLevel = batchEnvelope.error.details.analysis.supportedTopLevel;
-  assert.ok(supportedTopLevel.includes("fill"), `supportedTopLevel missing fill: ${supportedTopLevel.join(", ")}`);
-  assert.ok(supportedTopLevel.includes("check"), `supportedTopLevel missing check: ${supportedTopLevel.join(", ")}`);
+  assert.ok(
+    supportedTopLevel.includes("fill"),
+    `supportedTopLevel missing fill: ${supportedTopLevel.join(", ")}`,
+  );
+  assert.ok(
+    supportedTopLevel.includes("check"),
+    `supportedTopLevel missing check: ${supportedTopLevel.join(", ")}`,
+  );
   assert.ok(
     supportedTopLevel.includes("select"),
     `supportedTopLevel missing select: ${supportedTopLevel.join(", ")}`,

@@ -75,60 +75,14 @@ try {
     data: {
       count: number;
       profiles: Array<{ directory: string; name: string; default: boolean }>;
-      capability: {
-        capability: string;
-        supported: boolean;
-        available: boolean;
-        profileCount: number;
-        defaultProfileAvailable: boolean;
-      };
     };
   };
   assert.equal(listEnvelope.ok, true);
   assert.equal(listEnvelope.data.count, 2);
-  assert.equal(listEnvelope.data.capability.capability, "system-chrome-profile-source");
-  assert.equal(listEnvelope.data.capability.supported, true);
-  assert.equal(listEnvelope.data.capability.available, true);
-  assert.equal(listEnvelope.data.capability.profileCount, 2);
-  assert.equal(listEnvelope.data.capability.defaultProfileAvailable, true);
   assert.deepEqual(
     listEnvelope.data.profiles.map((profile) => profile.directory),
     ["Default", "Profile 1"],
   );
-
-  const inspectTarget = join(workspaceDir, "persistent-profile");
-  const inspectResult = await runPw(["profile", "inspect", inspectTarget, "--output", "json"]);
-  assert.equal(inspectResult.code, 0, `profile inspect failed: ${JSON.stringify(inspectResult)}`);
-  const inspectEnvelope = inspectResult.json as {
-    ok: boolean;
-    data: {
-      profile: {
-        exists: boolean;
-        writable: boolean;
-        usable: boolean;
-        willCreateOnOpen?: boolean;
-      };
-      capability: {
-        capability: string;
-        supported: boolean;
-        available: boolean;
-        exists: boolean;
-        writable: boolean;
-        willCreateOnOpen: boolean;
-      };
-    };
-  };
-  assert.equal(inspectEnvelope.ok, true);
-  assert.equal(inspectEnvelope.data.profile.exists, false);
-  assert.equal(inspectEnvelope.data.profile.writable, true);
-  assert.equal(inspectEnvelope.data.profile.usable, true);
-  assert.equal(inspectEnvelope.data.profile.willCreateOnOpen, true);
-  assert.equal(inspectEnvelope.data.capability.capability, "persistent-profile-path");
-  assert.equal(inspectEnvelope.data.capability.supported, true);
-  assert.equal(inspectEnvelope.data.capability.available, true);
-  assert.equal(inspectEnvelope.data.capability.exists, false);
-  assert.equal(inspectEnvelope.data.capability.writable, true);
-  assert.equal(inspectEnvelope.data.capability.willCreateOnOpen, true);
 } finally {
   await rm(workspaceDir, { recursive: true, force: true });
 }

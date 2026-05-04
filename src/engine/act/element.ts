@@ -1,7 +1,19 @@
 import { appendRunEvent, ensureRunDir } from "#store/artifacts.js";
-import { runManagedSessionCommand, parseErrorText, parsePageSummary, parseSnapshotYaml, parseResultText } from "../session.js";
-import { managedRunCode, DIAGNOSTICS_STATE_KEY, isModalStateBlockedMessage, maybeRawOutput, normalizeRef } from "../shared.js";
 import { buildDiagnosticsDelta, captureDiagnosticsBaseline } from "../diagnose/core.js";
+import {
+  parseErrorText,
+  parsePageSummary,
+  parseResultText,
+  parseSnapshotYaml,
+  runManagedSessionCommand,
+} from "../session.js";
+import {
+  DIAGNOSTICS_STATE_KEY,
+  isModalStateBlockedMessage,
+  managedRunCode,
+  maybeRawOutput,
+  normalizeRef,
+} from "../shared.js";
 import { managedWorkspaceProjection, pageIdRuntimePrelude } from "../workspace.js";
 
 export type ActionFailureCode =
@@ -175,8 +187,7 @@ export const InteractionErrorCode = {
   MODAL_STATE_BLOCKED: "MODAL_STATE_BLOCKED",
 } as const satisfies Record<string, ActionFailureCode>;
 
-export type InteractionErrorCode =
-  (typeof InteractionErrorCode)[keyof typeof InteractionErrorCode];
+export type InteractionErrorCode = (typeof InteractionErrorCode)[keyof typeof InteractionErrorCode];
 
 function sessionFlag(sessionName: string | undefined): string {
   return `--session ${sessionName ?? "<name>"}`;
@@ -407,8 +418,12 @@ export function selectorActionSource(
   const locatorExpression = `page.locator(${JSON.stringify(target.selector)})`;
   const action = actionSource(`locator.nth(${nthIndex})`);
   const isClick = errorPrefix === "CLICK";
-  const popupPre = isClick ? `const popupPromise = page.waitForEvent('popup', { timeout: 1500 }).catch(() => null);\n    ` : "";
-  const popupPost = isClick ? `\n    const popup = await popupPromise;\n    let openedPage = null;\n    if (popup) {\n      const context = page.context();\n      const state = context[${JSON.stringify(DIAGNOSTICS_STATE_KEY)}] ||= {};\n      state.nextPageSeq = Number.isInteger(state.nextPageSeq) ? state.nextPageSeq : 1;\n      const ensurePageId = (p) => {\n        if (!p.__pwcliPageId)\n          p.__pwcliPageId = 'p' + state.nextPageSeq++;\n        return p.__pwcliPageId;\n      };\n      const newPageId = ensurePageId(popup);\n      openedPage = { pageId: newPageId, url: popup.url(), title: await popup.title().catch(() => '') };\n    }` : "";
+  const popupPre = isClick
+    ? `const popupPromise = page.waitForEvent('popup', { timeout: 1500 }).catch(() => null);\n    `
+    : "";
+  const popupPost = isClick
+    ? `\n    const popup = await popupPromise;\n    let openedPage = null;\n    if (popup) {\n      const context = page.context();\n      const state = context[${JSON.stringify(DIAGNOSTICS_STATE_KEY)}] ||= {};\n      state.nextPageSeq = Number.isInteger(state.nextPageSeq) ? state.nextPageSeq : 1;\n      const ensurePageId = (p) => {\n        if (!p.__pwcliPageId)\n          p.__pwcliPageId = 'p' + state.nextPageSeq++;\n        return p.__pwcliPageId;\n      };\n      const newPageId = ensurePageId(popup);\n      openedPage = { pageId: newPageId, url: popup.url(), title: await popup.title().catch(() => '') };\n    }`
+    : "";
   const openedPageField = isClick ? `,\n      openedPage` : "";
 
   return `async page => {
@@ -1107,10 +1122,7 @@ export async function executeCodeAction(options: {
   }
 }
 
-export async function runManagedCommand(options: {
-  sessionName?: string;
-  argv: string[];
-}) {
+export async function runManagedCommand(options: { sessionName?: string; argv: string[] }) {
   const result = await runManagedSessionCommand(
     { _: options.argv },
     { sessionName: options.sessionName },
@@ -1275,29 +1287,50 @@ export async function dispatchLocatorAction(options: {
     const targetRecord = locator.target as Record<string, unknown>;
     let result: ManagedCodeResult;
     try {
-      result = await executeCodeAction({ command, sessionName, source: locator.source, before, target: targetRecord });
+      result = await executeCodeAction({
+        command,
+        sessionName,
+        source: locator.source,
+        before,
+        target: targetRecord,
+      });
     } catch (error) {
       if (allowModal && isModalStateBlockedMessage(errorMessage(error))) {
         return buildDialogPendingResult({ command, sessionName, target: targetRecord, before });
       }
-      await recordFailedActionRun(command, sessionName, undefined, before, error, { target: targetRecord });
+      await recordFailedActionRun(command, sessionName, undefined, before, error, {
+        target: targetRecord,
+      });
       throw error;
     }
     if (allowModal) {
       const delta = await buildDiagnosticsDeltaOrSignal(sessionName, before);
       if (isModalBlockedDelta(delta)) {
-        return buildDialogPendingResult({ command, sessionName, page: result.page, target: targetRecord, before, diagnosticsDelta: delta });
+        return buildDialogPendingResult({
+          command,
+          sessionName,
+          page: result.page,
+          target: targetRecord,
+          before,
+          diagnosticsDelta: delta,
+        });
       }
     }
     const actionResult = (result.data?.result as Record<string, unknown>) ?? {};
     const picked = options.pickFromResult
       ? Object.fromEntries(
-          options.pickFromResult
-            .filter(k => k in actionResult)
-            .map(k => [k, actionResult[k]])
+          options.pickFromResult.filter((k) => k in actionResult).map((k) => [k, actionResult[k]]),
         )
       : {};
-    return finalizeAction({ command, sessionName, page: result.page, before, resultData: { ...options.resultData, ...picked }, runDetails, targetKind: locator.kind });
+    return finalizeAction({
+      command,
+      sessionName,
+      page: result.page,
+      before,
+      resultData: { ...options.resultData, ...picked },
+      runDetails,
+      targetKind: locator.kind,
+    });
   }
 
   // ref path
@@ -1310,14 +1343,18 @@ export async function dispatchLocatorAction(options: {
     beforePages = (beforeProjection.data.workspace.pages as Array<{ pageId: string }>) ?? [];
   }
 
-  const { sessionName: resolvedSession, text, page } = await runManagedCommand({ sessionName, argv });
+  const {
+    sessionName: resolvedSession,
+    text,
+    page,
+  } = await runManagedCommand({ sessionName, argv });
 
   let refResultData = options.resultData;
   if (command === "click") {
     const afterProjection = await managedWorkspaceProjection({ sessionName: resolvedSession });
     const afterPages = (afterProjection.data.workspace.pages as Array<{ pageId: string }>) ?? [];
-    const beforeIds = new Set(beforePages.map(p => p.pageId));
-    const newPage = afterPages.find(p => !beforeIds.has(p.pageId));
+    const beforeIds = new Set(beforePages.map((p) => p.pageId));
+    const newPage = afterPages.find((p) => !beforeIds.has(p.pageId));
     if (newPage) {
       refResultData = {
         ...options.resultData,
@@ -1334,7 +1371,14 @@ export async function dispatchLocatorAction(options: {
     throwIfManagedActionError(text, { command, sessionName: resolvedSession });
   } catch (error) {
     if (allowModal && isModalStateBlockedMessage(errorMessage(error))) {
-      return buildDialogPendingResult({ command, sessionName: resolvedSession, resultText: text, page, target: { ref }, before });
+      return buildDialogPendingResult({
+        command,
+        sessionName: resolvedSession,
+        resultText: text,
+        page,
+        target: { ref },
+        before,
+      });
     }
     await recordFailedActionRun(command, resolvedSession, page, before, error, { target: { ref } });
     throw error;
@@ -1342,10 +1386,27 @@ export async function dispatchLocatorAction(options: {
   if (allowModal) {
     const delta = await buildDiagnosticsDeltaOrSignal(sessionName, before);
     if (isModalBlockedDelta(delta)) {
-      return buildDialogPendingResult({ command, sessionName: resolvedSession, resultText: text, page, target: { ref }, before, diagnosticsDelta: delta });
+      return buildDialogPendingResult({
+        command,
+        sessionName: resolvedSession,
+        resultText: text,
+        page,
+        target: { ref },
+        before,
+        diagnosticsDelta: delta,
+      });
     }
   }
-  return finalizeAction({ command, sessionName: resolvedSession, page, before, resultData: refResultData, runDetails, targetKind: "ref", rawText: text });
+  return finalizeAction({
+    command,
+    sessionName: resolvedSession,
+    page,
+    before,
+    resultData: refResultData,
+    runDetails,
+    targetKind: "ref",
+    rawText: text,
+  });
 }
 
 // =============================================================================
@@ -1473,12 +1534,42 @@ export async function managedClick(options: {
   const nth = Math.max(1, Math.floor(Number(options.nth ?? 1)));
   const clickOpts = options.button ? JSON.stringify({ button: options.button }) : "undefined";
   const locator = options.semantic
-    ? (() => { const t = normalizeSemanticTarget(options.semantic!); return { kind: "semantic" as const, target: t, source: semanticClickSource(t, options.button) }; })()
+    ? (() => {
+        const t = normalizeSemanticTarget(options.semantic!);
+        return {
+          kind: "semantic" as const,
+          target: t,
+          source: semanticClickSource(t, options.button),
+        };
+      })()
     : options.selector
-    ? { kind: "selector" as const, target: { selector: options.selector, nth }, source: selectorActionSource("CLICK", { selector: options.selector, nth }, (l) => `await ${l}.click(${clickOpts});`) }
-    : { kind: "ref" as const, ref: normalizeRef(options.ref!), argv: ["click", normalizeRef(options.ref!), ...(options.button ? [options.button] : [])] };
-  const tgt = "target" in locator ? locator.target as Record<string, unknown> : { ref: (locator as { ref: string }).ref };
-  return dispatchLocatorAction({ command: "click", sessionName: options.sessionName, before, locator, resultData: { target: tgt, ...(options.button ? { button: options.button } : {}), acted: true }, allowModal: true, pickFromResult: ["openedPage"] });
+      ? {
+          kind: "selector" as const,
+          target: { selector: options.selector, nth },
+          source: selectorActionSource(
+            "CLICK",
+            { selector: options.selector, nth },
+            (l) => `await ${l}.click(${clickOpts});`,
+          ),
+        }
+      : {
+          kind: "ref" as const,
+          ref: normalizeRef(options.ref!),
+          argv: ["click", normalizeRef(options.ref!), ...(options.button ? [options.button] : [])],
+        };
+  const tgt =
+    "target" in locator
+      ? (locator.target as Record<string, unknown>)
+      : { ref: (locator as { ref: string }).ref };
+  return dispatchLocatorAction({
+    command: "click",
+    sessionName: options.sessionName,
+    before,
+    locator,
+    resultData: { target: tgt, ...(options.button ? { button: options.button } : {}), acted: true },
+    allowModal: true,
+    pickFromResult: ["openedPage"],
+  });
 }
 
 // =============================================================================
@@ -1499,12 +1590,40 @@ export async function managedFill(options: {
   const before = await captureDiagnosticsBaseline(options.sessionName);
   const nth = Math.max(1, Math.floor(Number(options.nth ?? 1)));
   const locator = options.semantic
-    ? (() => { const t = normalizeSemanticTarget(options.semantic!); return { kind: "semantic" as const, target: t, source: semanticInputSource("FILL", t, "fill", options.value) }; })()
+    ? (() => {
+        const t = normalizeSemanticTarget(options.semantic!);
+        return {
+          kind: "semantic" as const,
+          target: t,
+          source: semanticInputSource("FILL", t, "fill", options.value),
+        };
+      })()
     : options.selector
-    ? { kind: "selector" as const, target: { selector: options.selector, nth }, source: selectorActionSource("FILL", { selector: options.selector, nth }, (l) => `await ${l}.fill(${JSON.stringify(options.value)});`) }
-    : { kind: "ref" as const, ref: normalizeRef(options.ref!), argv: ["fill", normalizeRef(options.ref!), options.value] };
-  const tgt = "target" in locator ? locator.target as Record<string, unknown> : { ref: (locator as { ref: string }).ref };
-  return dispatchLocatorAction({ command: "fill", sessionName: options.sessionName, before, locator, resultData: { target: tgt, value: options.value, filled: true } });
+      ? {
+          kind: "selector" as const,
+          target: { selector: options.selector, nth },
+          source: selectorActionSource(
+            "FILL",
+            { selector: options.selector, nth },
+            (l) => `await ${l}.fill(${JSON.stringify(options.value)});`,
+          ),
+        }
+      : {
+          kind: "ref" as const,
+          ref: normalizeRef(options.ref!),
+          argv: ["fill", normalizeRef(options.ref!), options.value],
+        };
+  const tgt =
+    "target" in locator
+      ? (locator.target as Record<string, unknown>)
+      : { ref: (locator as { ref: string }).ref };
+  return dispatchLocatorAction({
+    command: "fill",
+    sessionName: options.sessionName,
+    before,
+    locator,
+    resultData: { target: tgt, value: options.value, filled: true },
+  });
 }
 
 // =============================================================================
@@ -1642,12 +1761,40 @@ async function managedBooleanControlAction(
   const before = await captureDiagnosticsBaseline(options.sessionName);
   const nth = Math.max(1, Math.floor(Number(options.nth ?? 1)));
   const locator = options.semantic
-    ? (() => { const t = normalizeSemanticTarget(options.semantic!); return { kind: "semantic" as const, target: t, source: semanticBooleanControlSource(command, t) }; })()
+    ? (() => {
+        const t = normalizeSemanticTarget(options.semantic!);
+        return {
+          kind: "semantic" as const,
+          target: t,
+          source: semanticBooleanControlSource(command, t),
+        };
+      })()
     : options.selector
-    ? { kind: "selector" as const, target: { selector: options.selector, nth }, source: selectorActionSource(command.toUpperCase(), { selector: options.selector, nth }, (l) => `await ${l}.${command}();`) }
-    : { kind: "ref" as const, ref: normalizeRef(options.ref!), argv: [command, normalizeRef(options.ref!)] };
-  const tgt = "target" in locator ? locator.target as Record<string, unknown> : { ref: (locator as { ref: string }).ref };
-  return dispatchLocatorAction({ command, sessionName: options.sessionName, before, locator, resultData: { target: tgt, acted: true, checked: command === "check" } });
+      ? {
+          kind: "selector" as const,
+          target: { selector: options.selector, nth },
+          source: selectorActionSource(
+            command.toUpperCase(),
+            { selector: options.selector, nth },
+            (l) => `await ${l}.${command}();`,
+          ),
+        }
+      : {
+          kind: "ref" as const,
+          ref: normalizeRef(options.ref!),
+          argv: [command, normalizeRef(options.ref!)],
+        };
+  const tgt =
+    "target" in locator
+      ? (locator.target as Record<string, unknown>)
+      : { ref: (locator as { ref: string }).ref };
+  return dispatchLocatorAction({
+    command,
+    sessionName: options.sessionName,
+    before,
+    locator,
+    resultData: { target: tgt, acted: true, checked: command === "check" },
+  });
 }
 
 export async function managedCheck(options: {
@@ -1687,12 +1834,37 @@ export async function managedHover(options: {
   const before = await captureDiagnosticsBaseline(options.sessionName);
   const nth = Math.max(1, Math.floor(Number(options.nth ?? 1)));
   const locator = options.semantic
-    ? (() => { const t = normalizeSemanticTarget(options.semantic!); return { kind: "semantic" as const, target: t, source: semanticHoverSource(t) }; })()
+    ? (() => {
+        const t = normalizeSemanticTarget(options.semantic!);
+        return { kind: "semantic" as const, target: t, source: semanticHoverSource(t) };
+      })()
     : options.selector
-    ? { kind: "selector" as const, target: { selector: options.selector, nth }, source: selectorActionSource("HOVER", { selector: options.selector, nth }, (l) => `await ${l}.hover();`) }
-    : { kind: "ref" as const, ref: normalizeRef(options.ref!), argv: ["hover", normalizeRef(options.ref!)] };
-  const tgt = "target" in locator ? locator.target as Record<string, unknown> : { ref: (locator as { ref: string }).ref };
-  return dispatchLocatorAction({ command: "hover", sessionName: options.sessionName, before, locator, resultData: { ...tgt, acted: true }, allowModal: true });
+      ? {
+          kind: "selector" as const,
+          target: { selector: options.selector, nth },
+          source: selectorActionSource(
+            "HOVER",
+            { selector: options.selector, nth },
+            (l) => `await ${l}.hover();`,
+          ),
+        }
+      : {
+          kind: "ref" as const,
+          ref: normalizeRef(options.ref!),
+          argv: ["hover", normalizeRef(options.ref!)],
+        };
+  const tgt =
+    "target" in locator
+      ? (locator.target as Record<string, unknown>)
+      : { ref: (locator as { ref: string }).ref };
+  return dispatchLocatorAction({
+    command: "hover",
+    sessionName: options.sessionName,
+    before,
+    locator,
+    resultData: { ...tgt, acted: true },
+    allowModal: true,
+  });
 }
 
 // =============================================================================
@@ -1729,7 +1901,8 @@ export async function managedSelect(options: {
           source: selectorActionSource(
             "SELECT",
             { selector: options.selector, nth },
-            (locatorHandle) => `await ${locatorHandle}.selectOption(${JSON.stringify(options.value)});`,
+            (locatorHandle) =>
+              `await ${locatorHandle}.selectOption(${JSON.stringify(options.value)});`,
           ),
         }
       : {
@@ -1772,4 +1945,3 @@ export async function managedSelect(options: {
     runDetails,
   });
 }
-

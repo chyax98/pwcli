@@ -69,13 +69,7 @@ function runPw(args: string[]) {
 
 try {
   // Keep the missing session name within the 16-char contract so status reaches SESSION_NOT_FOUND.
-  const missingSession = await runPw([
-    "session",
-    "status",
-    "missing-xyz",
-    "--output",
-    "json",
-  ]);
+  const missingSession = await runPw(["session", "status", "missing-xyz", "--output", "json"]);
   assert.notEqual(
     missingSession.code,
     0,

@@ -15,9 +15,6 @@ assert.equal(
 
 // cdn.myapp.com vs myapp.com: hostname differs, so implementation returns true
 const cdnResult = isThirdPartyUrl("https://cdn.myapp.com/js/app.js", "https://myapp.com");
-assert.ok(
-  cdnResult === true || cdnResult === false,
-  "cdn subdomain result should be a boolean",
-);
+assert.ok(cdnResult === true || cdnResult === false, "cdn subdomain result should be a boolean");
 
 console.log("diagnostics-signal-scoring tests passed");

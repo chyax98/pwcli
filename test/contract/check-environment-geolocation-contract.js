@@ -1,53 +1,21 @@
-import { spawnSync } from "node:child_process";
+import { assertIncludes, assertOk, parseJson, runPwSync } from "./_helpers.js";
 
-const cli = ["node", "dist/cli.js"];
 const session = "envgeo";
 
-function run(args, options = {}) {
-  const result = spawnSync(cli[0], [...cli.slice(1), ...args], {
-    cwd: process.cwd(),
-    encoding: "utf8",
-    ...options,
-  });
-  return result;
-}
+runPwSync(["session", "close", session]);
 
-function assertOk(result, label) {
-  if (result.status !== 0) {
-    throw new Error(
-      `${label} failed with status ${result.status}\nSTDOUT:\n${result.stdout}\nSTDERR:\n${result.stderr}`,
-    );
-  }
-}
-
-function assertIncludes(text, expected, label) {
-  if (!text.includes(expected)) {
-    throw new Error(`${label} did not include ${expected}\n${text}`);
-  }
-}
-
-function parseJson(stdout, label) {
-  try {
-    return JSON.parse(stdout);
-  } catch (error) {
-    throw new Error(`${label} did not return JSON: ${error.message}\n${stdout}`);
-  }
-}
-
-run(["session", "close", session]);
-
-const help = run(["environment", "geolocation", "set", "--help"]);
+const help = runPwSync(["environment", "geolocation", "set", "--help"]);
 assertOk(help, "environment geolocation set --help");
 assertIncludes(help.stdout, "--lat", "help");
 assertIncludes(help.stdout, "--lng", "help");
 
 try {
   assertOk(
-    run(["session", "create", session, "--no-headed", "--open", "about:blank"]),
+    runPwSync(["session", "create", session, "--no-headed", "--open", "about:blank"]),
     "session create",
   );
 
-  const setResult = run([
+  const setResult = runPwSync([
     "environment",
     "geolocation",
     "set",
@@ -68,7 +36,7 @@ try {
     throw new Error(`unexpected geolocation payload: ${JSON.stringify(payload, null, 2)}`);
   }
 
-  const positionalResult = run([
+  const positionalResult = runPwSync([
     "environment",
     "geolocation",
     "set",
@@ -87,5 +55,5 @@ try {
     "positional rejection",
   );
 } finally {
-  run(["session", "close", session]);
+  runPwSync(["session", "close", session]);
 }

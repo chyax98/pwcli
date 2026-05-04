@@ -15,14 +15,14 @@ Agent Product Regression 用真实 `pw` 命令验证 Agent 高频链路：
 4. 收集 diagnostics / network / console / run evidence
 5. 验证 route / bootstrap / environment / batch 等第二层能力
 
-`pnpm test:regression` 是当前基础回归入口；`pnpm smoke` 保留为兼容 alias，不代表 tiny smoke。深度验证的主入口是 Agent 按 `skills/pwcli/` 执行真实任务并沉淀证据，不是维护一条越来越长的 shell E2E 脚本。
+`pnpm test` 是当前基础回归入口；`pnpm smoke` 是发布前本地主链回归。深度验证的主入口是 Agent 按 `skills/pwcli/` 执行真实任务并沉淀证据，不是维护一条越来越长的 shell E2E 脚本。
 
 ## 2. 执行入口
 
 基础回归入口：
 
 ```bash
-pnpm test:regression
+pnpm test
 pnpm smoke
 ```
 
@@ -30,13 +30,13 @@ pnpm smoke
 
 ```bash
 pnpm build
-bash scripts/e2e/pwcli-dogfood-e2e.sh
+bash test/e2e/pwcli-dogfood-e2e.sh
 ```
 
 主要 fixture：
 
 ```text
-scripts/e2e/
+test/e2e/
   dogfood-server.js
   dogfood-routes.json
   dogfood-routes-patch.json
@@ -97,5 +97,5 @@ pw diagnostics bundle --session <name> --out <dir>
 - dogfood 只覆盖 shipped contract，不写未来计划。
 - 新增场景必须能由 Agent 按 `skills/pwcli/` 用真实 `pw` 命令完成，不能只依赖裸 Playwright 脚本。
 - 基础能力用 Vitest、集成测试、contract check 或小型 fixture 兜底；深度可用性用 Agent dogfood 判断。
-- `pnpm test:dogfood:e2e` 或 `scripts/e2e/pwcli-dogfood-e2e.sh` 若失败，先判定是产品 P0/P1、contract 漂移还是脚本维护问题；不默认把修脚本作为最高优先级。
+- `pnpm test:dogfood:e2e` 或 `test/e2e/pwcli-dogfood-e2e.sh` 若失败，先判定是产品 P0/P1、contract 漂移还是脚本维护问题；不默认把修脚本作为最高优先级。
 - 若 dogfood 暴露产品限制，稳定结论写回 `domain-status.md` 或 `failure-recovery.md`；具体任务放 GitHub issue。

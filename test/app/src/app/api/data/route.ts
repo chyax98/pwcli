@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 
 const ITEMS = Array.from({ length: 10 }, (_, i) => ({
   id: i + 1,

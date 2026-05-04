@@ -1,5 +1,4 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.4.12/schema.json",
   "files": {
     "includes": [
       "**",
@@ -9,7 +8,7 @@
       "!!**/.pwcli",
       "!!**/scripts/manual/bootstrap-verify.js",
       "!!**/scripts/manual/diagnostics-fixture.js",
-      "!!**/scripts/e2e/dogfood-bootstrap.js"
+      "!!**/test/e2e/dogfood-bootstrap.js"
     ]
   },
   "formatter": {
@@ -19,5 +18,26 @@
   },
   "linter": {
     "enabled": true
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["test/app/**"],
+      "linter": {
+        "rules": {
+          "a11y": {
+            "noLabelWithoutControl": "off",
+            "noStaticElementInteractions": "off",
+            "useAriaPropsSupportedByRole": "off",
+            "useButtonType": "off",
+            "useKeyWithClickEvents": "off",
+            "useSemanticElements": "off"
+          },
+          "suspicious": {
+            "noArrayIndexKey": "off",
+            "noUnknownAtRules": "off"
+          }
+        }
+      }
+    }
+  ]
 }

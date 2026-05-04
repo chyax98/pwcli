@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { describe, it, after } from "node:test";
-import { resolve } from "node:path";
 import { existsSync } from "node:fs";
+import { resolve } from "node:path";
+import { after, describe, it } from "node:test";
 
-const repoRoot = resolve(import.meta.dirname, "..", "..", "..");
+const repoRoot = resolve(import.meta.dirname, "..", "..");
 const cliPath = resolve(repoRoot, "dist", "cli.js");
 
 function runPw(args: string[]) {
@@ -75,25 +75,18 @@ describe("page reading", { concurrency: false }, () => {
       "json",
     ]);
 
-    const result = await runPw([
-      "observe",
-      "status",
-      "--session",
-      name,
-      "--output",
-      "json",
-    ]);
+    const result = await runPw(["observe", "status", "--session", name, "--output", "json"]);
     assert.equal(result.code, 0, `observe failed: ${result.stderr}`);
     const json = result.json as {
       ok: boolean;
+      page: { url: string; title: string };
       data: {
-        currentPage: { url: string; title: string };
         summary: { pageCount: number };
       };
     };
     assert.equal(json.ok, true);
-    assert.equal(json.data.currentPage.url, "https://example.com/");
-    assert.equal(json.data.currentPage.title, "Example Domain");
+    assert.equal(json.page.url, "https://example.com/");
+    assert.equal(json.page.title, "Example Domain");
     assert.equal(json.data.summary.pageCount, 1);
   });
 
@@ -112,13 +105,7 @@ describe("page reading", { concurrency: false }, () => {
       "json",
     ]);
 
-    const result = await runPw([
-      "read-text",
-      "--session",
-      name,
-      "--output",
-      "json",
-    ]);
+    const result = await runPw(["read-text", "--session", name, "--output", "json"]);
     assert.equal(result.code, 0, `read-text failed: ${result.stderr}`);
     const json = result.json as {
       ok: boolean;
@@ -145,13 +132,7 @@ describe("page reading", { concurrency: false }, () => {
       "json",
     ]);
 
-    const result = await runPw([
-      "snapshot",
-      "--session",
-      name,
-      "--output",
-      "json",
-    ]);
+    const result = await runPw(["snapshot", "--session", name, "--output", "json"]);
     assert.equal(result.code, 0, `snapshot failed: ${result.stderr}`);
     const json = result.json as {
       ok: boolean;
@@ -187,24 +168,10 @@ describe("page reading", { concurrency: false }, () => {
       "json",
     ]);
 
-    const snapshotResult = await runPw([
-      "snapshot",
-      "-i",
-      "--session",
-      name,
-      "--output",
-      "json",
-    ]);
+    const snapshotResult = await runPw(["snapshot", "-i", "--session", name, "--output", "json"]);
     assert.equal(snapshotResult.code, 0, `snapshot failed: ${snapshotResult.stderr}`);
 
-    const result = await runPw([
-      "snapshot",
-      "status",
-      "--session",
-      name,
-      "--output",
-      "json",
-    ]);
+    const result = await runPw(["snapshot", "status", "--session", name, "--output", "json"]);
     assert.equal(result.code, 0, `snapshot status failed: ${result.stderr}`);
     const json = JSON.parse(result.stdout.trim()) as {
       ok: boolean;
@@ -276,14 +243,7 @@ describe("page reading", { concurrency: false }, () => {
       "json",
     ]);
 
-    const result = await runPw([
-      "page",
-      "current",
-      "--session",
-      name,
-      "--output",
-      "json",
-    ]);
+    const result = await runPw(["page", "current", "--session", name, "--output", "json"]);
     assert.equal(result.code, 0, `page current failed: ${result.stderr}`);
     const json = result.json as {
       ok: boolean;
@@ -315,13 +275,7 @@ describe("page reading", { concurrency: false }, () => {
       "json",
     ]);
 
-    const result = await runPw([
-      "accessibility",
-      "--session",
-      name,
-      "--output",
-      "json",
-    ]);
+    const result = await runPw(["accessibility", "--session", name, "--output", "json"]);
     // NOTE: accessibility currently fails on many sites with:
     // ACCESSIBILITY_FAILED: Cannot read properties of undefined (reading 'snapshot')
     // This is a known limitation; we assert the command completes (code 1) with the expected error code.
@@ -335,13 +289,12 @@ describe("page reading", { concurrency: false }, () => {
     } else {
       const json = result.json as {
         ok: boolean;
-        data: { tree: Array<{ role: string }> };
+        data: { format: string; snapshot: string; empty: boolean };
       };
       assert.equal(json.ok, true);
-      assert.ok(Array.isArray(json.data.tree));
-      if (json.data.tree.length > 0) {
-        assert.ok(json.data.tree[0].role);
-      }
+      assert.equal(json.data.format, "aria-yaml");
+      assert.equal(typeof json.data.snapshot, "string");
+      assert.equal(json.data.empty, json.data.snapshot.length === 0);
     }
   });
 

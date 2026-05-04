@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { describe, it, after } from "node:test";
 import { resolve } from "node:path";
+import { after, describe, it } from "node:test";
 
-const repoRoot = resolve(import.meta.dirname, "..", "..", "..");
+const repoRoot = resolve(import.meta.dirname, "..", "..");
 const cliPath = resolve(repoRoot, "dist", "cli.js");
 
 function runPw(args: string[], input?: string) {
@@ -329,7 +329,10 @@ describe("interaction", { concurrency: false }, () => {
     assert.equal(result.code, 0, `locate failed: ${result.stderr}`);
     const json = result.json as {
       ok: boolean;
-      data: { count: number; candidates: Array<{ tagName: string; visible: boolean; role: string }> };
+      data: {
+        count: number;
+        candidates: Array<{ tagName: string; visible: boolean; role: string }>;
+      };
     };
     assert.equal(json.ok, true);
     assert.equal(json.data.count, 1);
@@ -395,15 +398,7 @@ describe("interaction", { concurrency: false }, () => {
     ]);
 
     const result = await runPw(
-      [
-        "batch",
-        "--session",
-        name,
-        "--stdin-json",
-        "--include-results",
-        "--output",
-        "json",
-      ],
+      ["batch", "--session", name, "--stdin-json", "--include-results", "--output", "json"],
       batchInput,
     );
     assert.equal(result.code, 0, `batch failed: ${result.stderr}`);

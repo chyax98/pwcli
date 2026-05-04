@@ -72,7 +72,9 @@ function commandEnvelope(command: string, result: CommandResult) {
     command,
     ...(result.session ? { session: result.session } : {}),
     ...(result.page ? { page: result.page } : {}),
-    ...(result.diagnostics && result.diagnostics.length > 0 ? { diagnostics: result.diagnostics } : {}),
+    ...(result.diagnostics && result.diagnostics.length > 0
+      ? { diagnostics: result.diagnostics }
+      : {}),
     data,
   };
 }
@@ -172,12 +174,16 @@ function formatDiagnosticsDelta(value: unknown): string[] {
   const consoleDelta = asNumber(delta.consoleDelta) ?? 0;
   const networkDelta = asNumber(delta.networkDelta) ?? 0;
   const pageErrorDelta = asNumber(delta.pageErrorDelta) ?? 0;
-  const lines = [`delta console=${consoleDelta} network=${networkDelta} pageError=${pageErrorDelta}`];
+  const lines = [
+    `delta console=${consoleDelta} network=${networkDelta} pageError=${pageErrorDelta}`,
+  ];
   const lastConsole = asRecord(delta.lastConsole);
   const lastNetwork = asRecord(delta.lastNetwork);
   const lastPageError = asRecord(delta.lastPageError);
   if (Object.keys(lastConsole).length > 0) {
-    lines.push(`last console ${asString(lastConsole.level) ?? ""}: ${asString(lastConsole.text) ?? ""}`.trim());
+    lines.push(
+      `last console ${asString(lastConsole.level) ?? ""}: ${asString(lastConsole.text) ?? ""}`.trim(),
+    );
   }
   if (Object.keys(lastNetwork).length > 0) {
     const method = asString(lastNetwork.method) ?? "";
@@ -230,7 +236,9 @@ function formatScreenshot(result: CommandResult): string {
       const role = asString(annotation.role) ?? "element";
       const name = asString(annotation.name) ?? "";
       const selector = asString(annotation.selector) ?? "";
-      lines.push(`  @${id} ${role}${name ? ` "${name}"` : ""}${selector ? ` [css=${selector}]` : ""}`);
+      lines.push(
+        `  @${id} ${role}${name ? ` "${name}"` : ""}${selector ? ` [css=${selector}]` : ""}`,
+      );
     }
   }
   return lines.join("\n") || stringifyValue(result.data);
@@ -275,7 +283,10 @@ function formatConsole(result: CommandResult): string {
   const errors = asNumber(summary.errors) ?? 0;
   const warnings = asNumber(summary.warnings) ?? 0;
   const sample = asArray(summary.sample);
-  return [`total=${total} errors=${errors} warnings=${warnings}`, ...sample.map(formatConsoleRecord)].join("\n");
+  return [
+    `total=${total} errors=${errors} warnings=${warnings}`,
+    ...sample.map(formatConsoleRecord),
+  ].join("\n");
 }
 
 function formatDiagnosticsDigest(result: CommandResult): string {
@@ -291,7 +302,9 @@ function formatDiagnosticsDigest(result: CommandResult): string {
     lines.push("signals:");
     for (const signal of topSignals) {
       const item = asRecord(signal);
-      lines.push(`${asString(item.timestamp) ?? ""} ${asString(item.kind) ?? "signal"} ${asString(item.summary) ?? ""}`.trim());
+      lines.push(
+        `${asString(item.timestamp) ?? ""} ${asString(item.kind) ?? "signal"} ${asString(item.summary) ?? ""}`.trim(),
+      );
     }
   }
   return lines.join("\n");
@@ -339,7 +352,10 @@ function formatTraceInspect(result: CommandResult): string {
 
 function formatTrace(result: CommandResult): string {
   const action = asString(result.data.action) ?? "trace";
-  const facts = [result.data.started === true ? "started=true" : null, result.data.stopped === true ? "stopped=true" : null].filter(Boolean);
+  const facts = [
+    result.data.started === true ? "started=true" : null,
+    result.data.stopped === true ? "stopped=true" : null,
+  ].filter(Boolean);
   const lines = [`trace ${action}${facts.length > 0 ? ` ${facts.join(" ")}` : ""}`];
   const artifactPath = asString(result.data.traceArtifactPath);
   if (artifactPath) lines.push(`artifact=${artifactPath}`);
@@ -352,7 +368,10 @@ function formatTrace(result: CommandResult): string {
 
 function formatVideo(result: CommandResult): string {
   const command = asString(result.data.command) ?? "video";
-  const facts = [result.data.started === true ? "started=true" : null, result.data.stopped === true ? "stopped=true" : null].filter(Boolean);
+  const facts = [
+    result.data.started === true ? "started=true" : null,
+    result.data.stopped === true ? "stopped=true" : null,
+  ].filter(Boolean);
   const lines = [`video ${command}${facts.length > 0 ? ` ${facts.join(" ")}` : ""}`];
   const videoPath = asString(result.data.videoPath);
   if (videoPath) lines.push(`videoPath=${videoPath}`);
@@ -389,14 +408,32 @@ function formatSession(result: CommandResult): string {
   const page = pageLine(result.page);
   const fields = Object.entries(result.data)
     .filter(([key]) => key !== "workspace" && key !== "pages" && key !== "currentPage")
-    .map(([key, value]) => `${key}=${typeof value === "object" ? JSON.stringify(value) : String(value)}`);
+    .map(
+      ([key, value]) =>
+        `${key}=${typeof value === "object" ? JSON.stringify(value) : String(value)}`,
+    );
   return [page ? `page ${page}` : null, fields.join(" ")].filter(Boolean).join("\n");
 }
 
 function formatAction(command: string, result: CommandResult): string {
   const page = pageLine(result.page);
-  const keys = ["acted", "filled", "typed", "pressed", "matched", "navigated", "uploaded", "downloaded", "checked", "selected", "saved", "modalPending"];
-  const facts = keys.filter((key) => key in result.data).map((key) => `${key}=${String(result.data[key])}`);
+  const keys = [
+    "acted",
+    "filled",
+    "typed",
+    "pressed",
+    "matched",
+    "navigated",
+    "uploaded",
+    "downloaded",
+    "checked",
+    "selected",
+    "saved",
+    "modalPending",
+  ];
+  const facts = keys
+    .filter((key) => key in result.data)
+    .map((key) => `${key}=${String(result.data[key])}`);
   const lines = [`${command}${facts.length > 0 ? ` ${facts.join(" ")}` : " ok"}`];
   if (page) lines.push(`page ${page}`);
   const blockedState = asString(result.data.blockedState);
@@ -429,7 +466,8 @@ function formatStateTarget(value: unknown): string {
     return `role=${target.role}${name}${nthSuffix}`;
   }
   if (typeof target.label === "string") return `label=${JSON.stringify(target.label)}${nthSuffix}`;
-  if (typeof target.placeholder === "string") return `placeholder=${JSON.stringify(target.placeholder)}${nthSuffix}`;
+  if (typeof target.placeholder === "string")
+    return `placeholder=${JSON.stringify(target.placeholder)}${nthSuffix}`;
   if (typeof target.testid === "string") return `testid=${target.testid}${nthSuffix}`;
   return stringifyValue(target);
 }
@@ -454,7 +492,9 @@ function formatStateCheck(command: string, result: CommandResult): string {
       const region = asString(item.region);
       const ancestor = asString(item.ancestor);
       const selectorHint = asString(item.selectorHint);
-      lines.push(`${index}. ${tagName} visible=${visible}${role ? ` role=${JSON.stringify(role)}` : ""}${name ? ` name=${JSON.stringify(name)}` : ""}${href ? ` href=${JSON.stringify(href)}` : ""}${region ? ` region=${JSON.stringify(region)}` : ""}${ancestor ? ` ancestor=${JSON.stringify(ancestor)}` : ""}${selectorHint ? ` selectorHint=${JSON.stringify(selectorHint)}` : ""}${text ? ` text=${JSON.stringify(text)}` : ""}`);
+      lines.push(
+        `${index}. ${tagName} visible=${visible}${role ? ` role=${JSON.stringify(role)}` : ""}${name ? ` name=${JSON.stringify(name)}` : ""}${href ? ` href=${JSON.stringify(href)}` : ""}${region ? ` region=${JSON.stringify(region)}` : ""}${ancestor ? ` ancestor=${JSON.stringify(ancestor)}` : ""}${selectorHint ? ` selectorHint=${JSON.stringify(selectorHint)}` : ""}${text ? ` text=${JSON.stringify(text)}` : ""}`,
+      );
     }
     return lines.join("\n");
   }
@@ -470,7 +510,8 @@ function formatVerify(result: CommandResult): string {
   const passed = Boolean(result.data.passed);
   const target = result.data.target ? ` ${formatStateTarget(result.data.target)}` : "";
   const actual = "actual" in result.data ? ` actual=${stringifyValue(result.data.actual)}` : "";
-  const expected = "expected" in result.data ? ` expected=${stringifyValue(result.data.expected)}` : "";
+  const expected =
+    "expected" in result.data ? ` expected=${stringifyValue(result.data.expected)}` : "";
   const count = asNumber(result.data.count);
   return `verify ${assertion} passed=${passed}${target}${count !== null ? ` count=${count}` : ""}${actual}${expected}`;
 }
@@ -488,7 +529,9 @@ function formatBatch(result: CommandResult): string {
   ];
   const firstFailedStep = asNumber(summary.firstFailedStep);
   if (firstFailedStep !== null) {
-    lines.push(`first failure step=${firstFailedStep} command=${asString(summary.firstFailedCommand) ?? "-"} reason=${asString(summary.firstFailureReasonCode) ?? "-"}`);
+    lines.push(
+      `first failure step=${firstFailedStep} command=${asString(summary.firstFailedCommand) ?? "-"} reason=${asString(summary.firstFailureReasonCode) ?? "-"}`,
+    );
     const message = asString(summary.firstFailureMessage);
     if (message) lines.push(message);
     const suggestions = asArray(summary.firstFailureSuggestions).map(String);
@@ -512,7 +555,9 @@ function formatBatch(result: CommandResult): string {
         const index = asNumber(step.index);
         const command = asString(step.command) ?? asString(step.step) ?? "-";
         const message = asString(error.message);
-        lines.push(`${index !== null ? index + 1 : "?"}. ${ok ? "ok" : "failed"} ${command}${ok || !message ? "" : ` ${message}`}`.trim());
+        lines.push(
+          `${index !== null ? index + 1 : "?"}. ${ok ? "ok" : "failed"} ${command}${ok || !message ? "" : ` ${message}`}`.trim(),
+        );
       }
     }
   }
@@ -522,7 +567,8 @@ function formatBatch(result: CommandResult): string {
 function formatCommandText(command: string, result: CommandResult): string {
   if (command === "batch") return formatBatch(result);
   if (command === "read-text") return formatReadText(result);
-  if (command === "locate" || command === "get" || command === "is") return formatStateCheck(command, result);
+  if (command === "locate" || command === "get" || command === "is")
+    return formatStateCheck(command, result);
   if (command === "verify") return formatVerify(result);
   if (command === "snapshot") return formatSnapshot(result);
   if (command === "screenshot") return formatScreenshot(result);

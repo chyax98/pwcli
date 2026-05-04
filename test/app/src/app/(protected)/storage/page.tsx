@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { HardDrive, Cookie, RefreshCw } from "lucide-react";
+import { Cookie, HardDrive, RefreshCw } from "lucide-react";
+import { useCallback, useState } from "react";
 
 interface StorageEntry {
   key: string;
@@ -108,7 +108,11 @@ function StorageSection({
         <button
           data-testid={setTestId}
           aria-label={`Set ${title} item`}
-          onClick={() => { onSet(key, value); setKey(""); setValue(""); }}
+          onClick={() => {
+            onSet(key, value);
+            setKey("");
+            setValue("");
+          }}
           className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded-lg transition-all duration-150"
         >
           Set
@@ -192,8 +196,12 @@ export default function StoragePage() {
   const [cookieDisplay, setCookieDisplay] = useState<string>("");
   const [cookieStatus, setCookieStatus] = useState<string>("");
 
-  function refreshLS() { setLsEntries(getAllLS()); }
-  function refreshSS() { setSsEntries(getAllSS()); }
+  function refreshLS() {
+    setLsEntries(getAllLS());
+  }
+  function refreshSS() {
+    setSsEntries(getAllSS());
+  }
 
   function lsSet(k: string, v: string) {
     if (!k) return;
@@ -367,10 +375,7 @@ export default function StoragePage() {
             </div>
 
             {cookieStatus && (
-              <div
-                aria-live="polite"
-                className="mb-3 text-xs text-zinc-400 font-mono"
-              >
+              <div aria-live="polite" className="mb-3 text-xs text-zinc-400 font-mono">
                 {cookieStatus}
               </div>
             )}
@@ -382,9 +387,13 @@ export default function StoragePage() {
               className="bg-zinc-900 rounded-lg border border-zinc-700 p-3 min-h-[60px]"
             >
               {cookieDisplay ? (
-                <pre className="text-xs font-mono text-zinc-300 whitespace-pre-wrap">{cookieDisplay}</pre>
+                <pre className="text-xs font-mono text-zinc-300 whitespace-pre-wrap">
+                  {cookieDisplay}
+                </pre>
               ) : (
-                <p className="text-xs text-zinc-600">Click &quot;Read Cookies&quot; to fetch via API.</p>
+                <p className="text-xs text-zinc-600">
+                  Click &quot;Read Cookies&quot; to fetch via API.
+                </p>
               )}
             </div>
           </div>

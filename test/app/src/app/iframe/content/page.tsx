@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export default function IframeContentPage() {
   const [inputValue, setInputValue] = useState("");
@@ -17,7 +17,7 @@ export default function IframeContentPage() {
         if (event.source) {
           (event.source as Window).postMessage(
             { type: "iframe-reply", message: `iframe received: "${msg}"` },
-            event.origin
+            event.origin,
           );
         }
       }
@@ -34,7 +34,7 @@ export default function IframeContentPage() {
     if (window.parent && window.parent !== window) {
       window.parent.postMessage(
         { type: "iframe-reply", message: `Form submitted with: "${submitted}"` },
-        window.location.origin
+        window.location.origin,
       );
     }
   }

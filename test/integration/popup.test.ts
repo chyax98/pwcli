@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { describe, it, after } from "node:test";
 import { resolve } from "node:path";
+import { after, describe, it } from "node:test";
 
-const repoRoot = resolve(import.meta.dirname, "..", "..", "..");
+const repoRoot = resolve(import.meta.dirname, "..", "..");
 const cliPath = resolve(repoRoot, "dist", "cli.js");
 
 function runPw(args: string[]) {
@@ -108,14 +108,7 @@ describe("popup", { concurrency: false }, () => {
     assert.ok(clickJson.data.openedPage.pageId.startsWith("p"));
 
     // Verify page list contains the new page
-    const listResult = await runPw([
-      "page",
-      "list",
-      "--session",
-      name,
-      "--output",
-      "json",
-    ]);
+    const listResult = await runPw(["page", "list", "--session", name, "--output", "json"]);
     assert.equal(listResult.code, 0, `page list failed: ${listResult.stderr}`);
     const listJson = listResult.json as {
       ok: boolean;

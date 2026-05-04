@@ -1,13 +1,18 @@
 import { defineCommand } from "citty";
-import { managedClick } from "#engine/act/element.js";
 import { actionArgs } from "#cli/args.js";
-import { actionTarget, firstPos, print, session, withCliError, type CliArgs } from "./_helpers.js";
+import { managedClick } from "#engine/act/element.js";
+import { actionTarget, type CliArgs, firstPos, print, session, withCliError } from "./_helpers.js";
 
 export default defineCommand({
   meta: { name: "click", description: "Click an element by ref, selector, or semantic locator" },
   args: {
     ...actionArgs,
-    button: { type: "enum", options: ["left", "right", "middle"], description: "Mouse button", default: "left" },
+    button: {
+      type: "enum",
+      options: ["left", "right", "middle"],
+      description: "Mouse button",
+      default: "left",
+    },
   },
   async run({ args }) {
     const a = args as CliArgs;

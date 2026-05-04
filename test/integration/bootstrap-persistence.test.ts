@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { spawn, type ChildProcess } from "node:child_process";
+import { type ChildProcess, spawn } from "node:child_process";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -20,7 +20,13 @@ type FixtureServer = {
 
 const repoRoot = resolve(import.meta.dirname, "..", "..");
 const cliPath = resolve(repoRoot, "dist", "cli.js");
-const fixtureServerPath = resolve(repoRoot, "scripts", "manual", "deterministic-fixture-server.js");
+const fixtureServerPath = resolve(
+  repoRoot,
+  "test",
+  "fixtures",
+  "manual",
+  "deterministic-fixture-server.js",
+);
 const workspaceDir = await mkdtemp(join(tmpdir(), "pwcli-bootstrap-persistence-"));
 const sessionName = `boot${Date.now().toString(36).slice(-5)}`;
 const initScriptPath = resolve(workspaceDir, "pwcli-test-init.js");
@@ -147,9 +153,7 @@ try {
   assert.equal(createEnvelope.ok, true);
   assert.equal(createEnvelope.data.bootstrapApplied, true);
 
-  const persistedConfig = JSON.parse(
-    await readFile(bootstrapConfigPath, "utf8"),
-  ) as {
+  const persistedConfig = JSON.parse(await readFile(bootstrapConfigPath, "utf8")) as {
     initScripts: string[];
   };
   assert.ok(Array.isArray(persistedConfig.initScripts));
@@ -179,9 +183,7 @@ try {
   assert.equal(removeEnvelope.ok, true);
   assert.equal(removeEnvelope.data.removed, true);
 
-  const updatedConfig = JSON.parse(
-    await readFile(bootstrapConfigPath, "utf8"),
-  ) as {
+  const updatedConfig = JSON.parse(await readFile(bootstrapConfigPath, "utf8")) as {
     initScripts: string[];
   };
   assert.deepEqual(updatedConfig.initScripts, []);

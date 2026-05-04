@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { X, AlertTriangle, Info, CheckCircle, XCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle, Info, X, XCircle } from "lucide-react";
+import { useEffect, useState } from "react";
 
 interface Toast {
   id: string;
@@ -25,7 +25,7 @@ export default function ModalsPage() {
     const id = String(++toastIdCounter);
     setToasts((prev) => [...prev, { id, type, message }]);
     setTimeout(() => {
-      setToasts((prev) => prev.map((t) => t.id === id ? { ...t, exiting: true } : t));
+      setToasts((prev) => prev.map((t) => (t.id === id ? { ...t, exiting: true } : t)));
       setTimeout(() => {
         setToasts((prev) => prev.filter((t) => t.id !== id));
       }, 350);
@@ -33,7 +33,7 @@ export default function ModalsPage() {
   }
 
   function dismissToast(id: string) {
-    setToasts((prev) => prev.map((t) => t.id === id ? { ...t, exiting: true } : t));
+    setToasts((prev) => prev.map((t) => (t.id === id ? { ...t, exiting: true } : t)));
     setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 350);
   }
 
@@ -41,8 +41,14 @@ export default function ModalsPage() {
   useEffect(() => {
     function onKey(e: globalThis.KeyboardEvent) {
       if (e.key === "Escape") {
-        if (nestedOpen) { setNestedOpen(false); return; }
-        if (modalOpen) { setModalOpen(false); return; }
+        if (nestedOpen) {
+          setNestedOpen(false);
+          return;
+        }
+        if (modalOpen) {
+          setModalOpen(false);
+          return;
+        }
         if (drawerOpen) setDrawerOpen(false);
       }
     }
@@ -61,7 +67,9 @@ export default function ModalsPage() {
   return (
     <div data-testid="modals-page" aria-label="Modals test page">
       <h1 className="text-2xl font-bold text-zinc-100 mb-1">Modals & Popups</h1>
-      <p className="text-sm text-zinc-500 mb-8">Test browser dialogs, custom modals, drawers, and toasts.</p>
+      <p className="text-sm text-zinc-500 mb-8">
+        Test browser dialogs, custom modals, drawers, and toasts.
+      </p>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Browser dialogs */}
@@ -97,7 +105,11 @@ export default function ModalsPage() {
               Trigger confirm()
             </button>
             {confirmResult && (
-              <div data-testid="confirm-result" aria-live="polite" className="text-xs text-blue-400">
+              <div
+                data-testid="confirm-result"
+                aria-live="polite"
+                className="text-xs text-blue-400"
+              >
                 {confirmResult}
               </div>
             )}
@@ -114,7 +126,11 @@ export default function ModalsPage() {
               Trigger prompt()
             </button>
             {promptResult && (
-              <div data-testid="prompt-result" aria-live="polite" className="text-xs text-violet-400">
+              <div
+                data-testid="prompt-result"
+                aria-live="polite"
+                className="text-xs text-violet-400"
+              >
                 {promptResult}
               </div>
             )}
@@ -155,12 +171,17 @@ export default function ModalsPage() {
                 key={type}
                 data-testid={`toast-${type}`}
                 aria-label={`Show ${type} toast`}
-                onClick={() => addToast(type, `This is a ${type} notification — auto-dismisses in 3s`)}
+                onClick={() =>
+                  addToast(type, `This is a ${type} notification — auto-dismisses in 3s`)
+                }
                 className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-150 capitalize ${
-                  type === "success" ? "bg-green-700 hover:bg-green-600 text-white" :
-                  type === "error" ? "bg-red-700 hover:bg-red-600 text-white" :
-                  type === "warning" ? "bg-amber-700 hover:bg-amber-600 text-white" :
-                  "bg-blue-700 hover:bg-blue-600 text-white"
+                  type === "success"
+                    ? "bg-green-700 hover:bg-green-600 text-white"
+                    : type === "error"
+                      ? "bg-red-700 hover:bg-red-600 text-white"
+                      : type === "warning"
+                        ? "bg-amber-700 hover:bg-amber-600 text-white"
+                        : "bg-blue-700 hover:bg-blue-600 text-white"
                 }`}
               >
                 {type}
@@ -179,7 +200,9 @@ export default function ModalsPage() {
           aria-label="Custom modal dialog"
           aria-labelledby="modal-title"
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in"
-          onClick={(e) => { if (e.target === e.currentTarget) setModalOpen(false); }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setModalOpen(false);
+          }}
         >
           <div
             data-testid="modal-content"
@@ -188,7 +211,9 @@ export default function ModalsPage() {
             <div className="flex items-center justify-between p-5 border-b border-zinc-800">
               <div className="flex items-center gap-2">
                 <Info size={18} className="text-indigo-400" aria-hidden="true" />
-                <h2 id="modal-title" className="text-base font-semibold text-zinc-100">Custom Modal</h2>
+                <h2 id="modal-title" className="text-base font-semibold text-zinc-100">
+                  Custom Modal
+                </h2>
               </div>
               <button
                 data-testid="modal-close"
@@ -201,7 +226,8 @@ export default function ModalsPage() {
             </div>
             <div className="p-5">
               <p className="text-sm text-zinc-400 mb-4">
-                This is a custom modal dialog. It supports animations, nested modals, and keyboard navigation.
+                This is a custom modal dialog. It supports animations, nested modals, and keyboard
+                navigation.
               </p>
               <div className="bg-zinc-800 rounded-lg p-3 text-xs text-zinc-500 font-mono mb-4">
                 data-testid=&quot;modal-content&quot;
@@ -228,7 +254,10 @@ export default function ModalsPage() {
               <button
                 data-testid="modal-confirm"
                 aria-label="Confirm modal action"
-                onClick={() => { setModalOpen(false); addToast("success", "Modal action confirmed!"); }}
+                onClick={() => {
+                  setModalOpen(false);
+                  addToast("success", "Modal action confirmed!");
+                }}
                 className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg transition-all"
               >
                 Confirm
@@ -247,14 +276,18 @@ export default function ModalsPage() {
           aria-label="Nested modal dialog"
           aria-labelledby="nested-modal-title"
           className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in"
-          onClick={(e) => { if (e.target === e.currentTarget) setNestedOpen(false); }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setNestedOpen(false);
+          }}
         >
           <div
             data-testid="nested-modal-content"
             className="bg-zinc-800 border border-zinc-600 rounded-2xl shadow-2xl w-full max-w-sm animate-slide-up"
           >
             <div className="flex items-center justify-between p-4 border-b border-zinc-700">
-              <h2 id="nested-modal-title" className="text-sm font-semibold text-zinc-100">Nested Modal</h2>
+              <h2 id="nested-modal-title" className="text-sm font-semibold text-zinc-100">
+                Nested Modal
+              </h2>
               <button
                 data-testid="nested-modal-close"
                 aria-label="Close nested modal"
@@ -299,7 +332,9 @@ export default function ModalsPage() {
             className="fixed bottom-0 left-0 right-0 z-50 bg-zinc-900 border-t border-zinc-700 rounded-t-2xl shadow-2xl animate-slide-up p-6"
           >
             <div className="flex items-center justify-between mb-4">
-              <h2 id="drawer-title" className="text-base font-semibold text-zinc-100">Bottom Drawer</h2>
+              <h2 id="drawer-title" className="text-base font-semibold text-zinc-100">
+                Bottom Drawer
+              </h2>
               <button
                 data-testid="drawer-close"
                 aria-label="Close drawer"
@@ -318,7 +353,10 @@ export default function ModalsPage() {
                   key={action}
                   data-testid={`drawer-action-${action.toLowerCase().replace(" ", "-")}`}
                   aria-label={action}
-                  onClick={() => { setDrawerOpen(false); addToast("info", `${action} clicked`); }}
+                  onClick={() => {
+                    setDrawerOpen(false);
+                    addToast("info", `${action} clicked`);
+                  }}
                   className="px-3 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-medium rounded-lg transition-all"
                 >
                   {action}

@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
             items: Array.from({ length: 5 }, (_, i) => ({ id: i + 1, value: `item-${i + 1}` })),
           },
           null,
-          2
+          2,
         )
       : `pwcli Test App Download
 Generated: ${new Date().toISOString()}

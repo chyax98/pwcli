@@ -20,7 +20,8 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -43,11 +44,15 @@ body {
 
 /* Glow effect for cards */
 .card-glow {
-  box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.1), 0 4px 24px rgba(0, 0, 0, 0.4);
+  box-shadow:
+    0 0 0 1px rgba(99, 102, 241, 0.1),
+    0 4px 24px rgba(0, 0, 0, 0.4);
 }
 
 .card-glow:hover {
-  box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.2), 0 4px 32px rgba(0, 0, 0, 0.6),
+  box-shadow:
+    0 0 0 1px rgba(99, 102, 241, 0.2),
+    0 4px 32px rgba(0, 0, 0, 0.6),
     0 0 20px rgba(99, 102, 241, 0.05);
 }
 
@@ -87,8 +92,14 @@ input[type="range"]::-webkit-slider-thumb {
 
 /* Animate number counter */
 @keyframes countUp {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 .count-up {
   animation: countUp 0.5s ease-out forwards;
@@ -96,12 +107,24 @@ input[type="range"]::-webkit-slider-thumb {
 
 /* Toast */
 @keyframes toastIn {
-  from { transform: translateX(100%); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }
 @keyframes toastOut {
-  from { transform: translateX(0); opacity: 1; }
-  to { transform: translateX(110%); opacity: 0; }
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(110%);
+    opacity: 0;
+  }
 }
 .toast-enter {
   animation: toastIn 0.3s ease-out forwards;
@@ -113,5 +136,7 @@ input[type="range"]::-webkit-slider-thumb {
 /* Accordion */
 .accordion-content {
   overflow: hidden;
-  transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+  transition:
+    max-height 0.3s ease-out,
+    opacity 0.3s ease-out;
 }

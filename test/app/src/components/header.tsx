@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Sun, Moon, Bell, User } from "lucide-react";
+import { Bell, Moon, Sun, User } from "lucide-react";
+import { useEffect, useState } from "react";
 
 interface UserInfo {
   id: string;
@@ -18,7 +18,9 @@ export default function Header() {
   useEffect(() => {
     fetch("/api/auth/me")
       .then((r) => r.json())
-      .then((data) => { if (data.user) setUser(data.user); })
+      .then((data) => {
+        if (data.user) setUser(data.user);
+      })
       .catch(() => {});
   }, []);
 
@@ -29,9 +31,7 @@ export default function Header() {
       className="fixed top-0 left-56 right-0 h-14 bg-zinc-900/80 backdrop-blur-sm border-b border-zinc-800 flex items-center justify-between px-6 z-30"
     >
       <div className="flex items-center gap-2">
-        <span className="text-xs text-zinc-500 font-mono">
-          pwcli-test-app v0.1.0
-        </span>
+        <span className="text-xs text-zinc-500 font-mono">pwcli-test-app v0.1.0</span>
       </div>
 
       <div className="flex items-center gap-2">
@@ -42,7 +42,10 @@ export default function Header() {
           className="relative w-9 h-9 rounded-lg flex items-center justify-center text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-all duration-150"
         >
           <Bell size={16} />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-indigo-500 rounded-full" aria-hidden="true" />
+          <span
+            className="absolute top-1.5 right-1.5 w-2 h-2 bg-indigo-500 rounded-full"
+            aria-hidden="true"
+          />
         </button>
 
         {/* Theme toggle */}

@@ -38,4 +38,4 @@ tags:
 
 - `package.json`
 - `AGENTS.md`
-- `skills/pwcli/references/command-reference-diagnostics.md`
+- `codestable/architecture/repository-governance.md`
