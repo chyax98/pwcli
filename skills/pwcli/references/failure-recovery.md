@@ -1,14 +1,38 @@
 # Failure Recovery
 
-## Session routing failures
+本文是 Agent 恢复 SOP。正文说明中文优先；命令名、flag、错误码、字段名和固定输出保留英文。
+
+## 0. 恢复总则
+
+1. 先判断失败类型，不要马上 recreate。常见顺序是 `page current` / `status` / `diagnostics digest`，browser dialog 阻塞时先 `doctor`。
+2. 能原地恢复就原地恢复：`dialog accept|dismiss`、补 `wait`、清 baseline、拆小 `pw code`，都优先于重建 session。
+3. blocked 不等于 pass。`MODAL_STATE_BLOCKED`、challenge、two-factor、interstitial、`RUN_CODE_TIMEOUT` 都必须保留证据并明确下一步。
+4. 交接证据用 `diagnostics bundle --out <dir> --task '<task>'`。如果 browser dialog 正在阻塞，先恢复，再 bundle；blocked 当下 bundle 也会返回 `MODAL_STATE_BLOCKED`。
+5. limitation code 不包装成“已支持”。例如 `UNSUPPORTED_HAR_CAPTURE` 表示 HAR 热录制不进入 1.0 支持面；需要网络证据用 `network` / `diagnostics export|bundle` / `trace inspect`，需要 deterministic stubbing 用预录制 HAR replay。
+6. 环境基线是 Node.js `>=24.12.0 <26`、pnpm 10+。Volta/proto/node 版本漂移不通过产品补丁规避。
+
+## 快速分流
+
+| 现象 | 首选命令 | 下一步 |
+|---|---|---|
+| 缺 session 或 session 丢失 | `pw session list --with-page` | 新任务创建新 session；继续任务才复用 |
+| 同名命令卡住 / `SESSION_BUSY` | `pw session status <name>` | 等待后重试；不要并发同 session lifecycle |
+| `RUN_CODE_TIMEOUT` | `pw page current -s <name>` + `pw status -s <name>` | 拆成一等命令 + 显式 `wait` |
+| browser dialog 阻塞 | `pw doctor -s <name>` | `pw dialog accept|dismiss -s <name>`，恢复后 bundle |
+| 页面内 HTML modal | `pw status -s <name>` + `pw snapshot -i -s <name>` | 找页面按钮后 `click` |
+| auth 不确定 / challenge | `pw auth probe -s <name>` | human handoff 或正式 blocker，不自动绕过验证 |
+| verify 失败 | `pw diagnostics bundle -s <name> --out <dir> --task '<task>'` | 用 `diagnostics show|grep --run` 找失败动作 |
+| HAR 热录制 | `pw har start -s <name>` 会失败 | 改用 `network/export/bundle/trace` 或 `har replay` |
+
+## Session 路由失败
 
 ### `SESSION_REQUIRED`
 
-Meaning:
+含义：
 
 - the command needs `--session <name>`
 
-Recovery:
+恢复：
 
 ```bash
 pw session create bug-a --open 'https://example.com'
@@ -17,11 +41,11 @@ pw snapshot --session bug-a
 
 ### `SESSION_NAME_INVALID`
 
-Meaning:
+含义：
 
 - session name contains characters outside `[a-zA-Z0-9_-]`
 
-Recovery:
+恢复：
 
 ```bash
 pw session create valid-name --open 'https://example.com'
@@ -31,11 +55,11 @@ Use only letters, digits, hyphens, and underscores. Max 16 characters.
 
 ### `SESSION_NOT_FOUND`
 
-Meaning:
+含义：
 
 - the named session is missing or dead
 
-Recovery:
+恢复：
 
 ```bash
 pw session list
@@ -44,14 +68,14 @@ pw session create bug-a --open 'https://example.com'
 
 ### `SESSION_BUSY`
 
-Meaning:
+含义：
 
 - another command is still running on the same session
 - pwcli queued for the per-session lock but timed out before dispatching to Playwright
 - lifecycle startup/reset/close for the same session is still in progress
 - another CLI process is already running same-name lifecycle startup/reset and still owns the startup lane for that session
 
-Recovery:
+恢复：
 
 ```bash
 pw session status bug-a
@@ -60,16 +84,16 @@ pw wait --session bug-a --selector '<expected-ready-state>'
 
 Then retry the original command. Keep dependent steps sequential, do not issue concurrent `session create|recreate|close` for the same name, or put stable same-session steps in `pw batch --session <name>`. Concurrent same-name `session create` is expected to fail fast as `SESSION_BUSY`; do not treat that as a raw Playwright startup failure.
 
-If a previous command timed out, the underlying daemon operation may still be winding down and the command lock may be released asynchronously. Wait briefly, then re-check status before retrying.
+如果上一条命令超时，底层 daemon 操作可能仍在收尾，command lock 也可能稍后才释放。先短暂等待，再重新检查 status 后重试。
 
 ### `SESSION_RECREATE_STARTUP_TIMEOUT`
 
-Meaning:
+含义：
 
 - `pw session recreate` stopped the old session, but the replacement browser did not finish startup inside the guarded timeout
 - common causes are profile locks, Chrome recovery prompts, or a browser process that has not fully released the previous user data dir
 
-Recovery:
+恢复：
 
 ```bash
 pw session status bug-a
@@ -86,14 +110,14 @@ pw session create bug-b --headed --open '<url>'
 
 ### `RUN_CODE_TIMEOUT`
 
-Meaning:
+含义：
 
 - a run-code-backed command exceeded pwcli's 25s guard timeout
 - this can happen when Playwright's daemon waits for navigation/network completion after `pw code` or a semantic command
 - the browser operation may have succeeded even though the CLI timed out
 - 25s 是默认保护值：覆盖 Playwright `waitForCompletion` 的 10s load timeout + 500ms 固定等待 + 余量
 
-Recovery:
+恢复：
 
 ```bash
 pw page current --session bug-a
@@ -101,7 +125,7 @@ pw status --session bug-a
 pw diagnostics digest --session bug-a
 ```
 
-Expected contract:
+预期 contract：
 
 - the timed-out CLI command returns a `RUN_CODE_TIMEOUT` envelope and exits promptly
 - the managed session remains inspectable through `page current` / `status` / `diagnostics digest`
@@ -111,31 +135,31 @@ Then split the work into smaller commands. Prefer first-class `pw wait --respons
 
 ### `SESSION_ATTACH_FAILED`
 
-Meaning:
+含义：
 
 - the attach source is missing, invalid, or not connectable
 - or `--attachable-id` does not point to a live browser server in the current workspace
 
-Recovery:
+恢复：
 
 ```bash
 pw session list --attachable
 pw session attach bug-a --attachable-id <id>
 ```
 
-If the attachable entry has no usable endpoint, fall back to an explicit attach source such as `--ws-endpoint`, `--browser-url`, or `--cdp`.
+如果 attachable entry 没有可用 endpoint，改用显式 attach source，例如 `--ws-endpoint`、`--browser-url` 或 `--cdp`。
 
-## Identity-state recovery
+## 身份与状态恢复
 
-### `auth probe` returned `status=uncertain`
+### `auth probe` 返回 `status=uncertain`
 
-Meaning:
+含义：
 
 - the session does not look safely authenticated
 - but pwcli also cannot prove it is fully anonymous
 - common cases are challenge pages, two-factor steps, stale storage, or UI that lacks strong identity markers
 
-Recovery:
+恢复：
 
 ```bash
 pw page current --session bug-a
@@ -145,17 +169,17 @@ pw storage local --session bug-a
 pw cookies list --session bug-a
 ```
 
-If `blockedState=challenge|two_factor|interstitial`, treat the result as a human handoff point instead of forcing another automated login loop.
+如果 `blockedState=challenge|two_factor|interstitial`，这是 human handoff 点，不要强行继续自动登录循环。
 
 ### `STORAGE_ORIGIN_UNAVAILABLE`
 
-Meaning:
+含义：
 
 - a storage or auth-state probe ran on a page without a stable origin
 - common cases are `about:blank`, `data:`, or other `origin === "null"` pages
 - auth probe and state diff operations require a real https/http origin
 
-Recovery:
+恢复：
 
 ```bash
 pw open --session bug-a 'https://example.com/app'
@@ -166,12 +190,12 @@ Navigate to a page with a stable origin before re-running the storage or auth op
 
 ### `INDEXEDDB_ORIGIN_UNAVAILABLE`
 
-Meaning:
+含义：
 
 - `pw storage indexeddb export` was run on a page without a stable origin
 - common cases are `about:blank`, `data:`, or other `origin === "null"` pages
 
-Recovery:
+恢复：
 
 ```bash
 pw open --session bug-a 'https://example.com/app'
@@ -180,12 +204,12 @@ pw storage indexeddb export --session bug-a
 
 ### `INDEXEDDB_UNSUPPORTED`
 
-Meaning:
+含义：
 
 - the current browser/page context does not expose IndexedDB enumeration needed for export
 - or the page environment blocks the required probe
 
-Recovery:
+恢复：
 
 ```bash
 pw page current --session bug-a
@@ -193,15 +217,15 @@ pw storage local --session bug-a
 pw storage indexeddb export --session bug-a --database '<expected-db>'
 ```
 
-If the target site truly stores state outside cookies/localStorage/sessionStorage but IndexedDB export is unavailable, fall back to page/runtime/network evidence instead of treating this as automatic auth failure.
+如果目标站点确实把状态放在 cookies/localStorage/sessionStorage 之外，且 IndexedDB export 不可用，回退到 page/runtime/network 证据，不要自动判定 auth 失败。
 
 ### `STATE_DIFF_BEFORE_REQUIRED`
 
-Meaning:
+含义：
 
 - `pw state diff` was called without a baseline file
 
-Recovery:
+恢复：
 
 ```bash
 pw state diff --session bug-a --before .pwcli/state/bug-a-before.json
@@ -211,11 +235,11 @@ Run it once to capture a baseline, then rerun it after the workflow mutates brow
 
 ### `STATE_DIFF_AFTER_REQUIRED`
 
-Meaning:
+含义：
 
 - `pw state diff` was called without a session and without an `--after` snapshot file
 
-Recovery:
+恢复：
 
 ```bash
 pw state diff --before before.json --after after.json
@@ -225,11 +249,11 @@ Or add `--session <name>` so pwcli can capture the current after snapshot read-o
 
 ### `STATE_DIFF_SNAPSHOT_INVALID`
 
-Meaning:
+含义：
 
 - the baseline or after snapshot file is missing, malformed, or not produced by `pw state diff`
 
-Recovery:
+恢复：
 
 ```bash
 pw state diff --session bug-a --before before.json
@@ -238,33 +262,33 @@ pw state diff --session bug-a --before before.json --after after.json
 
 Recreate the snapshot files with `pw state diff` and compare again. Do not point the command at arbitrary JSON files.
 
-## System Chrome profile failures
+## System Chrome profile 失败
 
 ### `CHROME_PROFILE_NOT_FOUND`
 
-Meaning:
+含义：
 
 - `pw session create --from-system-chrome` could not find the requested Chrome profile directory or display name
 - or no local Chrome user data dir was discovered
 
-Recovery:
+恢复：
 
 ```bash
 pw profile list-chrome
 pw session create bug-a --from-system-chrome --chrome-profile Default --headed --open '<url>'
 ```
 
-If Chrome reports that the profile is already in use, close Chrome fully or choose another profile. This path reuses the user's Chrome profile as session startup state; it is not an auth provider.
+如果 Chrome 报 profile 正在使用，完全关闭 Chrome 或换一个 profile。本路径只是把用户 Chrome profile 作为 session 启动状态来源，不是 auth provider。
 
-## Dashboard launch failures
+## Dashboard 启动失败
 
 ### `DASHBOARD_UNAVAILABLE`
 
-Meaning:
+含义：
 
 - the installed `playwright-core` package does not expose the bundled dashboard entrypoint expected by `pw dashboard open`
 
-Recovery:
+恢复：
 
 ```bash
 pnpm install
@@ -274,12 +298,12 @@ pw session list --with-page
 
 ### `DASHBOARD_LAUNCH_FAILED`
 
-Meaning:
+含义：
 
 - `pw dashboard open` found the bundled Playwright entrypoint, but the dashboard subprocess failed during startup
 - the command has not successfully launched a dashboard process
 
-Recovery:
+恢复：
 
 ```bash
 pw dashboard open --dry-run
@@ -288,16 +312,16 @@ pw session list --with-page
 
 Use `session list --with-page` as the CLI-only fallback. Do not treat `DASHBOARD_LAUNCH_FAILED` as a launched dashboard.
 
-## Modal blockage
+## Modal 阻断
 
 ### `PAGE_ASSESS_FAILED`
 
-Meaning:
+含义：
 
 - `pw page assess` could not produce a stable compact summary
 - common causes are unreadable current page state, transient runtime failure, or heavy page churn between reads
 
-Recovery:
+恢复：
 
 ```bash
 pw page current --session bug-a
@@ -305,18 +329,18 @@ pw read-text --session bug-a
 pw snapshot -i --session bug-a
 ```
 
-If the page is clearly present but the compact assessment is still not useful, treat the situation as a `PERCEPTION_FAILED` benchmark family and continue with narrower read commands instead of retrying `page assess` blindly.
+如果页面明显存在但 compact assessment 仍无帮助，把它归为 `PERCEPTION_FAILED` 类问题，继续用更窄的读取命令，不要盲目重试 `page assess`。
 
 ### `REF_STALE`
 
-Meaning:
+含义：
 
 - the ref came from an older snapshot
 - the page navigated, re-rendered, switched tab, or otherwise changed after the ref was captured
 - the ref was not produced by the latest snapshot epoch recorded for the session/page
 - the current `pageId` or `navigationId` no longer matches the page state that produced the ref
 
-Recovery:
+恢复：
 
 ```bash
 pw snapshot -i --session bug-a
@@ -349,7 +373,7 @@ Try:
 
 On `REF_STALE`, a fresh interactive snapshot is automatically captured. The error includes `recovery.freshSnapshotCaptured`, `previousEpoch`, `currentEpoch`, and `nextSteps`. Use the fresh snapshot to pick a new ref. Do not retry the old ref.
 
-### Action target failures
+### 动作目标失败
 
 Stable codes:
 
@@ -373,9 +397,9 @@ pw diagnostics digest --run '<runId>'
 pw diagnostics show --run '<runId>' --limit 20
 ```
 
-### Dialog-triggering action pending
+### 动作触发 browser dialog 后 pending
 
-Meaning:
+含义：
 
 - a click fired successfully and triggered a browser `alert` / `confirm` / `prompt`
 - the session is now blocked by a modal dialog
@@ -388,7 +412,7 @@ click acted=true modalPending=true
 blockedState=MODAL_STATE_BLOCKED
 ```
 
-Recovery:
+恢复：
 
 ```bash
 pw dialog accept --session bug-a
@@ -410,12 +434,12 @@ pw diagnostics bundle --session bug-a --out .pwcli/bundles/dialog-recovered --li
 
 ### `STATE_TARGET_NOT_FOUND`
 
-Meaning:
+含义：
 
 - `pw get text|value` matched zero elements
 - the command did not choose a fallback target
 
-Recovery:
+恢复：
 
 ```bash
 pw locate --session bug-a --selector '<selector>'
@@ -427,12 +451,12 @@ pw snapshot -i --session bug-a
 
 ### `READ_TEXT_SELECTOR_NOT_FOUND`
 
-Meaning:
+含义：
 
 - `pw read-text --selector '<sel>'` matched zero elements
 - the selector does not exist in the current page DOM
 
-Recovery:
+恢复：
 
 ```bash
 pw locate --session bug-a --selector '<selector>'
@@ -444,7 +468,7 @@ Use `locate` to inspect what the selector matches. Use `snapshot -i` to see avai
 
 ### `VERIFY_FAILED`
 
-Meaning:
+含义：
 
 - `pw verify` ran a read-only assertion and the assertion did not pass
 - the command did not mutate page state
@@ -459,7 +483,7 @@ pw snapshot -i --session bug-a
 pw page current --session bug-a
 ```
 
-If `VERIFY_FAILED` follows an action and the page state is unexpectedly wrong, collect the compact handoff bundle:
+如果动作后出现 `VERIFY_FAILED`，且页面状态不符合预期，收集 compact handoff bundle：
 
 ```bash
 pw diagnostics bundle --session bug-a --out .pwcli/bundles/verify-failure --limit 20
@@ -469,16 +493,16 @@ The bundle should identify the latest failed assertion as `failedCommand=verify`
 
 Do not treat `VERIFY_FAILED` as an action failure. It means the check completed and the observed state did not match the expectation.
 
-## Content and challenge recovery
+## 内容与 challenge 恢复
 
-### Content readable, diagnostics noisy
+### 内容可读但 diagnostics 有噪声
 
-Meaning:
+含义：
 
 - `pw read-text` or `pw locate` confirms the target content/state
 - diagnostics contains unrelated console/network noise
 
-Recovery:
+恢复：
 
 1. Treat the content read as primary evidence.
 2. Keep unrelated diagnostics as background only.
@@ -486,19 +510,19 @@ Recovery:
 
 ### Search challenge / CAPTCHA / bot challenge
 
-Meaning:
+含义：
 
 - the page is a search challenge, CAPTCHA, Cloudflare challenge, or equivalent human verification screen
 - the CLI should not attempt to solve or bypass it automatically
 
-Recovery:
+恢复：
 
 ```bash
 pw open --session bug-a '<direct-url-or-docs-url>'
 pw read-text --session bug-a
 ```
 
-If a human must clear the challenge:
+如果必须由人类清理 challenge：
 
 ```bash
 pw dashboard open
@@ -509,7 +533,7 @@ After human takeover, continue with `read-text`, `locate`, or `snapshot -i`. Do 
 
 ### `MODAL_STATE_BLOCKED`
 
-Meaning:
+含义：
 
 - current managed session is blocked by a modal dialog
 - run-code-backed reads and some actions are unavailable
@@ -556,11 +580,11 @@ pw diagnostics bundle --session bug-a --out .pwcli/bundles/dialog-recovered --li
 
 blocked 当下不要运行 bundle 期待生成完整证据包；这会得到 `MODAL_STATE_BLOCKED`，正确证据是在恢复后由 bundle 读取刚才失败的 run signal。
 
-## Upload verification
+## 上传验证
 
 `pw upload` waits best-effort for the input file list and `change` / `input` signal before returning. Some apps accept files asynchronously through validation, hashing, or upload APIs, so a successful `uploaded=true` only means the browser input was set.
 
-If output includes `Next steps` or JSON `data.nextSteps`, continue with an app-level check:
+如果输出包含 `Next steps` 或 JSON `data.nextSteps`，继续做应用层检查：
 
 ```bash
 pw wait --session bug-a --selector '<uploaded-state-selector>'
@@ -568,9 +592,9 @@ pw verify text --session bug-a --text '上传成功'
 pw get text --session bug-a --selector '<file-name-row>'
 ```
 
-If the check fails, retry `pw upload` after the page reaches the expected ready state.
+如果检查失败，先等页面到预期 ready state，再重试 `pw upload`。
 
-## Content limitations
+## 内容限制
 
 ### Iframe 内容限制
 
@@ -578,7 +602,7 @@ If the check fails, retry `pw upload` after the page reaches the expected ready 
 - `fill`/`click` 可以通过 ref 操作 iframe 内元素（ref 格式为 `f1e4`，其中 `f1` 是 frame index）
 - `--selector` 无法直接定位 iframe 内元素
 
-Recovery:
+恢复：
 
 1. 用 `pw snapshot -i` 获取 iframe 内元素的 ref（格式如 `f1e4`）
 2. 用 ref 执行 `fill`/`click` 操作
@@ -591,12 +615,12 @@ Recovery:
 
 遇到 `read-text` 返回空且页面包含 iframe 时，CLI 会提示 iframe 数量并建议使用 `pw snapshot -i` 或 `pw code` + `frameLocator()`。
 
-### Modal/overlay blocks interactions
+### Modal/overlay 阻断交互
 
 When `status` shows `modalCount > 0` or `snapshot status` shows `blockingModals`, HTML modals are intercepting pointer events.
 `doctor --session <name>` also reports `html-modal` in compact output when visible HTML modals/overlays are present.
 
-Recovery:
+恢复：
 
 1. Check `pw status --session <name>` for modal details.
 2. If doctor reports `html-modal`, use `pw snapshot -i --session <name>` or `pw locate` to find the page-level close/cancel/confirm target.
@@ -606,11 +630,11 @@ Recovery:
 
 Do not use `pw dialog accept|dismiss` for HTML modals. `dialog` only handles browser `alert` / `confirm` / `prompt`.
 
-## Environment limitations
+## Environment 限制
 
 ### `ENVIRONMENT_LIMITATION`
 
-Meaning:
+含义：
 
 - the current managed run-code lane did not complete the mutation in time
 
@@ -618,7 +642,7 @@ Typical case:
 
 - a managed environment mutation timed out on the run-code lane
 
-Recovery:
+恢复：
 
 1. Retry on a fresh session with less page activity
 2. If it fails again, treat that specific mutation as unsupported on the current substrate
@@ -626,27 +650,27 @@ Recovery:
 
 ### `CLOCK_REQUIRES_INSTALL`
 
-Meaning:
+含义：
 
 - `clock set` or `clock resume` ran before `clock install`
 
-Recovery:
+恢复：
 
 ```bash
 pw environment clock install --session env-a
 pw environment clock set --session env-a 2026-01-01T00:00:00Z
 ```
 
-## Bootstrap failures
+## Bootstrap 失败
 
 ### `BOOTSTRAP_REAPPLY_FILE_NOT_FOUND`
 
-Meaning:
+含义：
 
 - `pw session recreate` 自动重新 apply bootstrap 时，持久化配置中的某个 init script 文件路径已不存在
 - 常见原因：init script 被移动、删除，或路径使用了相对路径且 cwd 变化
 
-Recovery:
+恢复：
 
 ```bash
 # 更新为正确路径
@@ -672,12 +696,12 @@ pw bootstrap apply --session <name> --remove-init-script <old-path>
 
 ### `TAB_PAGE_NOT_FOUND`
 
-Meaning:
+含义：
 
 - `pageId` passed to `tab select` or `tab close` does not exist in the live browser context
 - page may have been closed by the site or a previous action
 
-Recovery:
+恢复：
 
 ```bash
 pw page list --session <name>
@@ -687,12 +711,12 @@ Re-fetch the current page list and use a valid `pageId`. Do not guess or cache `
 
 ### `TAB_PAGE_SELECTION_RACE`
 
-Meaning:
+含义：
 
 - `tab select` resolved the target page but the page closed before `bringToFront` completed
 - typically caused by a redirect or page tear-down racing with the select
 
-Recovery:
+恢复：
 
 ```bash
 pw page list --session <name>
@@ -701,7 +725,7 @@ pw status --session <name>
 
 Re-fetch current pages, verify which page is active now, and retry or reopen the target URL if needed.
 
-## Route / mock failures
+## Route / mock 失败
 
 ### `ROUTE_ADD_FAILED`
 
@@ -711,17 +735,17 @@ Common causes:
 - invalid body/headers file
 - unsupported option mix
 
-Recovery:
+恢复：
 
 1. Use `route list` to inspect current state
 2. If a file-based option is involved, validate the referenced JSON/text file contents
 3. Retry with the smallest possible `route add`; current shipped route 子命令只有 `add|remove|list`
 
-## Diagnostics export / run replay failures
+## Diagnostics export / run replay 失败
 
 ### `DIAGNOSTICS_EXPORT_FAILED`
 
-Recovery:
+恢复：
 
 1. Verify the session exists
 2. Re-run `status`
@@ -729,7 +753,7 @@ Recovery:
 
 ### `DIAGNOSTICS_SHOW_FAILED` / `DIAGNOSTICS_GREP_FAILED`
 
-Recovery:
+恢复：
 
 ```bash
 pw diagnostics runs
@@ -739,13 +763,13 @@ Then re-run with a valid `runId`.
 
 ### `DIAGNOSTICS_BUNDLE_FAILED`
 
-Recovery:
+恢复：
 
 1. Verify session exists and is attachable (`pw session status <name>`).
 2. Retry with writable output directory (`pw diagnostics bundle --session <name> --out ./bundle`).
 3. If limit is passed, ensure `--limit` is a positive integer.
 
-If the command returns `MODAL_STATE_BLOCKED`, it is not an output directory failure. Clear the browser dialog first, then rerun bundle:
+如果命令返回 `MODAL_STATE_BLOCKED`，这不是输出目录失败。先清理 browser dialog，再重新运行 bundle：
 
 ```bash
 pw doctor --session <name>
@@ -753,18 +777,18 @@ pw dialog dismiss --session <name>
 pw diagnostics bundle --session <name> --out ./bundle
 ```
 
-## Trace inspect failures
+## Trace inspect 失败
 
 ### `TRACE_FILE_NOT_FOUND`
 
-Recovery:
+恢复：
 
 1. Pass an existing trace zip path.
 2. Check `.pwcli/playwright/` for Playwright substrate artifacts from a new or recreated session.
 
 ### `TRACE_CLI_UNAVAILABLE`
 
-Recovery:
+恢复：
 
 1. Run `pnpm install`.
 2. Verify `node_modules/playwright-core/cli.js` exists.
@@ -772,7 +796,7 @@ Recovery:
 
 ### `TRACE_CLI_FAILED`
 
-Recovery:
+恢复：
 
 1. Verify the file is a Playwright trace zip.
 2. Re-run with a narrower section, for example `--section actions`.
@@ -780,7 +804,7 @@ Recovery:
 
 ### `TRACE_SECTION_REQUIRED` / `TRACE_SECTION_INVALID`
 
-Recovery:
+恢复：
 
 ```bash
 pw trace inspect <trace.zip> --section actions
@@ -791,11 +815,11 @@ pw trace inspect <trace.zip> --section errors
 
 ### `UNSUPPORTED_HAR_CAPTURE`
 
-Meaning:
+含义：
 
 `pw har start|stop` is not a 1.0 recording path. Playwright HAR capture must be configured when the BrowserContext is created; pwcli does not retrofit HAR recording onto an already-open managed session.
 
-Recovery:
+恢复：
 
 1. Use `pw network --session <name>` and `pw diagnostics export|bundle` for network evidence.
 2. Use `pw trace start|stop|inspect` when you need replayable browser evidence.

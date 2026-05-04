@@ -1,6 +1,6 @@
 # Command Reference — 诊断与 Mock
 
-适用：查 bug、抓接口异常、导出证据、route mock、trace/HAR 录制。
+适用：查 bug、抓接口异常、导出证据、route mock、trace 证据、HAR replay 边界。
 进入时机：页面异常、接口失败、需要拦截/替换网络请求。
 
 核心交互命令见 `command-reference.md`；
@@ -158,7 +158,7 @@ state / auth / batch 命令见 `command-reference-advanced.md`。
 - 省略 `pattern` 时清空全部 managed-session routes
 - 2026-05-04 route/mock/bootstrap focused check 已验证指定 pattern 删除单条，以及无 pattern 清空全部 active routes
 
-## Trace / HAR
+## Trace / HAR replay 边界
 
 ### `pw trace start|stop --session <name>`
 

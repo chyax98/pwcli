@@ -237,10 +237,10 @@ items:
   - slug: skill-sop-1-0-audit
     description: 全面重审 skills/pwcli，补齐中文优先 SOP、真实环境、失败恢复、证据交接和反模式
     depends_on: [real-agent-task-matrix, run-code-timeout-recovery-breakthrough, har-trace-1-0-decision]
-    status: planned
+    status: done
     feature: null
     minimal_loop: false
-    notes: skill 是 Agent 操作手册和 SOP，不是命令百科；每个 command 和 workflow 深评结论必须回写
+    notes: 2026-05-04 已完成；核对 53 个 top-level command 与 command matrix 一致，补齐 1.0 workflow 矩阵、diagnostics bundle/handoff SOP、HAR replay 边界和中文优先 recovery 总则；评估见 evaluations/2026-05-04-skill-sop-1-0-audit.md
 
   - slug: codestable-truth-1-0-audit
     description: 全面重审 CodeStable 文档，确保 architecture/roadmap/command docs/issues/acceptance 角色清晰且证据状态准确
