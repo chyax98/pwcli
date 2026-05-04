@@ -181,10 +181,10 @@ items:
   - slug: real-env-access-map
     description: 梳理测试/RND/Forge/DC 可访问入口、账号材料边界、验证 SOP 和安全记录规则
     depends_on: [command-eval-auth-state-storage-profile]
-    status: planned
+    status: done
     feature: null
     minimal_loop: false
-    notes: 不提交 token/cookie/验证码/state；只记录脱敏命令和证据路径
+    notes: 2026-05-04 已完成真实环境入口映射和安全记录 SOP；明确 explicit targetUrl 是 auth-dc-real-env-proof 主路，provider default local-ip 只作 fallback；证据见 drafts/2026-05-04-real-env-access-map.md
 
   - slug: auth-dc-real-env-proof
     description: 在测试/RND 环境真实验证 auth dc，把 documented 推进到 proven 或记录环境 blocker

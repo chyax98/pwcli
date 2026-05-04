@@ -98,6 +98,23 @@ pw auth probe --session dc-main
 - 可见开发者后台 / Forge / 游戏 / 项目内容
 - `auth probe` 不是明确 anonymous；如果是 `uncertain`，结合页面文本和 storage/cookie 判断
 
+## 5.5 真实环境证据规则
+
+真实测试/RND 验证时，优先使用用户给出的明确 `targetUrl`：
+
+```bash
+pw session create dc-proof --headed
+pw auth dc --session dc-proof --arg targetUrl='<forge-url>' --output json
+pw read-text --session dc-proof --max-chars 1200
+pw auth probe --session dc-proof --output json
+pw diagnostics digest --session dc-proof --output json
+pw diagnostics bundle --session dc-proof --out /tmp/pwcli-auth-dc-proof/bundle --limit 20 --output json
+```
+
+记录证据时只写脱敏 URL、`resolvedBy`、错误码、runId、bundle 路径和 pass/fail/blocked 结论。不要提交手机号、验证码、token、cookie、state、真实业务截图或完整内部 URL。
+
+如果缺目标、网络不可达、账号/验证码不可用、challenge/two-factor 或业务登录入口异常，形成 blocker；不要把 documented 状态写成 proven。
+
 ## 6. 降级逻辑
 
 ### 6.1 自动目标打不开 / 落到错误环境
