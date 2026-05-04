@@ -149,10 +149,10 @@ items:
   - slug: workflow-eval-form-file-download
     description: 串联验证填表、上传、拖拽、下载、截图/PDF 证据 workflow
     depends_on: [workflow-eval-browser-automation]
-    status: planned
+    status: done
     feature: null
     minimal_loop: true
-    notes: 验证真实任务 ergonomics，不只看单个 command ok=true
+    notes: 2026-05-04 已完成本地 dogfood fixture 串联；覆盖登录、受保护页面导航、upload 页面侧 verify、drag 页面侧 verify、download 内容校验、screenshot/PDF 非空 artifact、diagnostics digest/bundle；证据见 evaluations/2026-05-04-workflow-eval-form-file-download.md
 
   - slug: workflow-eval-crawler-extraction
     description: 串联验证简单爬取和内容提取 workflow，覆盖多页导航、读取、导出和去噪
