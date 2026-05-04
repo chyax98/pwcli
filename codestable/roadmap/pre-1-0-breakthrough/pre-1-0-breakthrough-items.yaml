@@ -253,10 +253,10 @@ items:
   - slug: pre-1-0-release-gate
     description: 发布 Pre-1.0，允许保留已记录 P2/P3，不允许未解释 P0/P1
     depends_on: [codestable-truth-1-0-audit, har-trace-1-0-decision]
-    status: planned
+    status: done
     feature: null
     minimal_loop: false
-    notes: 需要基础 gate、真实环境 dogfood、每命令深评、workflow 串联、skill SOP audit 和 CodeStable truth audit
+    notes: 2026-05-04 已完成；typecheck/build/smoke/check:skill/check:batch-verify/check:env-geolocation/check:trace-inspect/check:doctor-modal/check:skill-install/check:run-code-timeout/check:har-1-0/git diff --check/npm pack --dry-run 全部通过；期间修复 smoke diagnostics session-signal 旧断言；评估见 evaluations/2026-05-04-pre-1-0-release-gate.md
 
   - slug: rc-blocker-burn-down
     description: 修复 Pre-1.0 暴露的 P0/P1，冻结 1.0 contract

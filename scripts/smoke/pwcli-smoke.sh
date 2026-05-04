@@ -171,8 +171,10 @@ const conclusion = buildDiagnosticsAuditConclusion({
 });
 
 assert.equal(conclusion.status, 'failed_or_risky');
+assert.equal(conclusion.failedCommand, null);
 assert.equal(conclusion.failureKind, 'response');
-assert.ok(conclusion.agentNextSteps.some((step) => step.includes('run-http-1')));
+assert.ok(conclusion.agentNextSteps.some((step) => step.includes('diagnostics timeline') && step.includes('audit-smoke')));
+assert.ok(conclusion.agentNextSteps.every((step) => !step.includes('run-http-1')));
 assert.ok(conclusion.agentNextSteps.every((step) => !step.includes('<latestRunId>')));
 NODE
 
@@ -844,11 +846,11 @@ bundle_dir="${TMP_DIR}/diag-bundle"
 bundle_json="$(run_json diagnostics-bundle diagnostics bundle --session "$SESSION_NAME" --out "$bundle_dir" --limit 20)"
 BUNDLE_RUN_ID="$(json_field "$bundle_json" "data.data.latestRunId")"
 assert_json "$bundle_json" "bundle audit conclusion reports risky signals" \
-  "data.ok === true && data.data.auditConclusion.status === 'failed_or_risky'"
-assert_json "$bundle_json" "bundle audit next steps contain executable run commands" \
-  "data.ok === true && data.data.auditConclusion.agentNextSteps.some(item => item.includes('${BUNDLE_RUN_ID}')) && data.data.auditConclusion.agentNextSteps.every(item => !item.includes('<latestRunId>'))"
-assert_json "${bundle_dir}/manifest.json" "bundle manifest mirrors executable audit next steps" \
-  "data.latestRunId === '${BUNDLE_RUN_ID}' && data.auditConclusion.agentNextSteps.some(item => item.includes('${BUNDLE_RUN_ID}')) && data.auditConclusion.agentNextSteps.every(item => !item.includes('<latestRunId>'))"
+  "data.ok === true && data.data.auditConclusion.status === 'failed_or_risky' && data.data.auditConclusion.failedCommand === null"
+assert_json "$bundle_json" "bundle audit next steps contain executable session commands" \
+  "data.ok === true && data.data.auditConclusion.agentNextSteps.some(item => item.includes('diagnostics timeline') && item.includes('${SESSION_NAME}')) && data.data.auditConclusion.agentNextSteps.every(item => !item.includes('${BUNDLE_RUN_ID}')) && data.data.auditConclusion.agentNextSteps.every(item => !item.includes('<latestRunId>'))"
+assert_json "${bundle_dir}/manifest.json" "bundle manifest mirrors executable session audit next steps" \
+  "data.latestRunId === '${BUNDLE_RUN_ID}' && data.auditConclusion.failedCommand === null && data.auditConclusion.agentNextSteps.some(item => item.includes('diagnostics timeline') && item.includes('${SESSION_NAME}')) && data.auditConclusion.agentNextSteps.every(item => !item.includes('${BUNDLE_RUN_ID}')) && data.auditConclusion.agentNextSteps.every(item => !item.includes('<latestRunId>'))"
 
 log "fire diagnostics"
 diagnostics_restore_json="$(run_json diagnostics-restore code --session "$SESSION_NAME" --file ./scripts/manual/diagnostics-fixture.js)"
