@@ -92,12 +92,12 @@ commands:
     group: page-workspace
     roadmap_item: command-eval-page-tab-workspace
     status: proven
-    notes: 2026-05-04 page-tab focused check 触发 alert 后 click 返回 modalPending=true/MODAL_STATE_BLOCKED，随后 dialog dismiss 返回 handled=true；accept/prompt 留 recovery 专项继续补证
+    notes: 2026-05-04 page-tab focused check 触发 alert 后 click 返回 modalPending=true/MODAL_STATE_BLOCKED，随后 dialog dismiss 返回 handled=true；modal recovery 专项补证 confirm dismiss 和 prompt accept <prompt>
   - command: doctor
     group: diagnostics
     roadmap_item: command-eval-diagnostics-runs
     status: proven
-    notes: 2026-05-04 focused check 覆盖 session probe 和 endpoint probe；同轮修复 Node 24.12 被误判为 fail 的环境基线 bug；modal recovery 继续由 check:doctor-modal 和 recovery 专项覆盖
+    notes: 2026-05-04 focused check 覆盖 session probe 和 endpoint probe；同轮修复 Node 24.12 被误判为 fail 的环境基线 bug；modal recovery 专项补证 browser dialog modal-state 与页面级 html-modal recovery
   - command: download
     group: interaction-input
     roadmap_item: command-eval-interaction-input
@@ -247,7 +247,7 @@ commands:
     group: observation
     roadmap_item: command-eval-observation-reading
     status: proven
-    notes: 2026-05-04 focused check 覆盖 current URL/title、workspace、diagnostics 摘要；observe 只作名称兼容
+    notes: 2026-05-04 focused check 覆盖 current URL/title、workspace、diagnostics 摘要；modal recovery 专项补证 status/doctor 对 HTML modal 的识别链；observe 只作名称兼容
   - command: storage
     group: auth-state
     roadmap_item: command-eval-auth-state-storage-profile

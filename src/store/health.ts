@@ -80,6 +80,12 @@ export function compactDoctorDiagnostic(diagnostic: DoctorDiagnostic): DoctorDia
     }
     case "modal-state":
       return { ...diagnostic, details: { sessionName: stringValue(d.sessionName), code: stringValue(d.code) }};
+    case "html-modal":
+      return { ...diagnostic, details: {
+        sessionName: stringValue(d.sessionName),
+        count: numberValue(d.count) ?? 0,
+        items: Array.isArray(d.items) ? d.items.slice(0, 3) : [],
+      }};
     case "auth-provider-resolution":
       return { ...diagnostic, details: {
         requestedProvider: stringValue(d.requestedProvider),
@@ -145,6 +151,18 @@ export function doctorRecovery(diagnostics: DoctorDiagnostic[]) {
         "Dismiss or accept the browser dialog if one is visible",
         "Retry the read after the dialog is cleared",
         "If still blocked, run `pw session recreate <name>`",
+      ],
+    };
+  }
+  const htmlModal = diagnostics.find((d) => d.kind === "html-modal");
+  if (htmlModal) {
+    return {
+      blocked: true,
+      kind: "html-modal",
+      suggestions: [
+        "Dismiss the visible page modal using its close, cancel, or confirm button",
+        "Use `pw status --session <name>` or `pw snapshot -i --session <name>` to inspect modal targets",
+        "Retry the blocked interaction after the page modal is closed",
       ],
     };
   }

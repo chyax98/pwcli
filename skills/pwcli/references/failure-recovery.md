@@ -588,13 +588,17 @@ Recovery:
 ### Modal/overlay blocks interactions
 
 When `status` shows `modalCount > 0` or `snapshot status` shows `blockingModals`, HTML modals are intercepting pointer events.
+`doctor --session <name>` also reports `html-modal` in compact output when visible HTML modals/overlays are present.
 
 Recovery:
 
 1. Check `pw status --session <name>` for modal details.
-2. Dismiss with `pw click --session <name> --selector '.modal.show .btn-close'` or the modal's dismiss button.
-3. If the modal has an accept/save action, use the appropriate button selector.
-4. Do not use `--text` for dismiss buttons when multiple elements share the same text (e.g., "Close" appears in both modal and sidebar).
+2. If doctor reports `html-modal`, use `pw snapshot -i --session <name>` or `pw locate` to find the page-level close/cancel/confirm target.
+3. Dismiss with `pw click --session <name> --selector '.modal.show .btn-close'` or the modal's dismiss button.
+4. If the modal has an accept/save action, use the appropriate button selector.
+5. Do not use `--text` for dismiss buttons when multiple elements share the same text (e.g., "Close" appears in both modal and sidebar).
+
+Do not use `pw dialog accept|dismiss` for HTML modals. `dialog` only handles browser `alert` / `confirm` / `prompt`.
 
 ## Environment limitations
 

@@ -286,6 +286,8 @@ pw dialog dismiss -s bug-a
 
 如果要形成可交接证据，先用 `pw doctor -s bug-a` 确认 `modal-state`，再 `dialog accept|dismiss`，恢复后执行 `diagnostics bundle`。
 
+页面内 HTML modal/overlay 不是 browser dialog，不能用 `pw dialog` 处理。`doctor -s <name>` 出现 `html-modal` 时，用 `status` / `snapshot -i` 找 close、cancel、confirm 等页面内按钮，再用 `click` 恢复。
+
 仍不可恢复：
 
 ```bash

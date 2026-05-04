@@ -26,7 +26,22 @@ export default defineCommand({
         const sessionName = session(a);
         try {
           const status = await managedObserveStatus({ sessionName });
-          diagnostics.push({ kind: "observe-status", status: "ok", summary: "session probe completed", details: status.data as Record<string, unknown> });
+          const statusData = status.data as Record<string, unknown>;
+          diagnostics.push({ kind: "observe-status", status: "ok", summary: "session probe completed", details: statusData });
+          const modals = statusData.modals && typeof statusData.modals === "object" ? statusData.modals as Record<string, unknown> : null;
+          const modalCount = typeof modals?.count === "number" ? modals.count : 0;
+          if (modalCount > 0) {
+            diagnostics.push({
+              kind: "html-modal",
+              status: "warn",
+              summary: "visible HTML modal or overlay detected",
+              details: {
+                sessionName,
+                count: modalCount,
+                items: Array.isArray(modals?.items) ? modals.items.slice(0, 3) : [],
+              },
+            });
+          }
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
           if (isModalStateBlockedMessage(message)) {

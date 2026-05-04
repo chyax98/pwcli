@@ -229,6 +229,7 @@ Use `locate/get/is/verify` for narrow state checks. Use `snapshot -i` when you n
 
 - `MODAL_STATE_BLOCKED` 后的原地恢复；`prompt` 只在 prompt dialog 需要显式文本时传
 - action 返回 `modalPending=true` 后直接执行 `dialog accept|dismiss`，不要继续堆叠 run-code-backed 读取命令
+- 只处理 browser `alert` / `confirm` / `prompt`；页面内 HTML modal 用 `doctor` / `status` / `snapshot -i` 找页面按钮后 `click`
 
 ## 动作与等待
 

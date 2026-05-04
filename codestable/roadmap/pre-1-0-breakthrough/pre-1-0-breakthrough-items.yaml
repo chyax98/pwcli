@@ -197,10 +197,10 @@ items:
   - slug: modal-doctor-recovery-breakthrough
     description: 修复并验证 modal/dialog/doctor/page read blocked state 的一致恢复链路
     depends_on: [workflow-eval-recovery-handoff]
-    status: planned
+    status: done
     feature: null
     minimal_loop: false
-    notes: 2026-05-04 当前暴露的 doctor 未输出 modal-state recovery 已修复并有 check:doctor-modal；Pre-1.0 仍需继续覆盖页面级 modal 和复杂 blocked state
+    notes: 2026-05-04 已完成；doctor 新增页面级 HTML modal/overlay 的 html-modal recovery，check:doctor-modal 覆盖 browser alert modal-state、confirm dismiss、prompt accept 和 HTML modal close 后恢复；评估见 evaluations/2026-05-04-modal-doctor-recovery-breakthrough.md
 
   - slug: run-code-timeout-recovery-breakthrough
     description: 系统验证 RUN_CODE_TIMEOUT、长导航、长网络等待的恢复路径和 skill SOP

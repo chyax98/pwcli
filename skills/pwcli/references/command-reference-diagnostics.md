@@ -99,6 +99,7 @@ state / auth / batch 命令见 `command-reference-advanced.md`。
 - `--auth-provider <name>`、`--profile <path>`、`--state <file>`、`--endpoint <url>`
 - `--verbose`：完整 probe 细节
 - 诊断 substrate 健康、探测 endpoint reachability、返回恢复建议
+- browser dialog 阻塞时返回 `modal-state` recovery；页面内 HTML modal/overlay 可见时返回 `html-modal` recovery，提示用页面内 close/cancel/confirm target 恢复
 - 环境预检（Node 版本、Playwright 浏览器安装、磁盘空间）：
   - 项目运行基线以 `package.json` 为准：Node.js `>=24.12.0 <26`，pnpm 10+
   - Chromium / Firefox / WebKit 至少一个已安装
