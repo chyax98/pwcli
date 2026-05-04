@@ -1,13 +1,43 @@
 ---
 doc_type: issue-report
 issue: 2026-05-04-auth-dc-real-env-proof-blocked
-status: confirmed
+status: resolved
 severity: P1
-summary: auth dc 真实环境证明未完成，默认入口不可达，明确 targetUrl 尝试触发 RUN_CODE_TIMEOUT 并导致 session probe 失败
+summary: auth dc 真实环境证明已用 live Forge targetUrl 解除；原默认入口不可达和 targetUrl RUN_CODE_TIMEOUT 记录保留为历史现象
 tags: [pre-1-0, auth, dc, real-env, blocker]
 ---
 
 # auth dc 真实环境证明阻塞 Issue Report
+
+## 0. 解除结论
+
+2026-05-04 用户提供 live Forge dev 入口后，重新执行 `auth dc` 真实环境 proof，原 blocker 解除。
+
+验证目标：
+
+- `https://developer-192-168-5-22.tap.dev/forge`
+
+验证命令：
+
+```bash
+pw session create dcproof1 --headed --open 'https://developer-192-168-5-22.tap.dev/forge' --output json
+pw auth dc -s dcproof1 --arg targetUrl='https://developer-192-168-5-22.tap.dev/forge' --output json
+pw read-text -s dcproof1 --max-chars 2000
+pw auth probe -s dcproof1 --output json
+pw verify text -s dcproof1 --text '选择厂商' --output json
+pw diagnostics digest -s dcproof1 --output json
+pw diagnostics bundle -s dcproof1 --out /tmp/pwcli-auth-dc-proof-20260504/bundle --task 'auth dc proof live forge target' --limit 20 --output json
+```
+
+结果：
+
+- `pw auth dc` 返回 `ok=true`，`resolvedBy=targetUrl`，最终页面为 `https://developer-192-168-5-22.tap.dev/forge`，标题为 `TapTap 开发者服务`。
+- `read-text` 可见“选择厂商”、`心动网络`、`心动测试` 等厂商账号内容，说明已进入受保护业务页面，不再停留在登录页、验证码页或 challenge。
+- `verify text --text '选择厂商'` 通过，`count=1`。
+- `auth probe` 返回 `uncertain/medium`，原因是该 generic heuristic 没识别到账户 UI；但它同时给出无 login form、无 challenge/interstitial、当前页非登录入口、存在会话类 cookie 的信号。按 `skills/pwcli/references/forge-dc-auth.md`，Forge/DC 真实 proof 可以结合页面事实和 storage/cookie 判定，不要求 probe 必须返回 `authenticated`。
+- `diagnostics bundle` 已生成到 `/tmp/pwcli-auth-dc-proof-20260504/bundle`。bundle audit 因登录链路中的历史 401/400 console 信号标记为 `fail`，但这些信号发生在登录/授权中间态，最终 provider 和页面断言均通过；该 bundle 不提交到仓库。
+
+结论：`auth dc` 从 blocker 解除，command matrix 状态更新为 `proven`。保留本 issue 作为历史 blocker 和解除证据入口。
 
 ## 1. 问题现象
 

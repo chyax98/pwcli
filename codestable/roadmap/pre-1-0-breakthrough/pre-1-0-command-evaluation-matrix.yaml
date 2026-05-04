@@ -41,8 +41,8 @@ commands:
   - command: auth
     group: auth-state
     roadmap_item: command-eval-auth-state-storage-profile
-    status: blocked
-    notes: 2026-05-04 auth list/info/probe/fixture-auth 本地 focused check 已 proven；auth dc 真实环境 proof 未通过，默认 local-ip 入口返回 DC_AUTH_URL_UNREACHABLE，明确 targetUrl 尝试返回 RUN_CODE_TIMEOUT 并导致 session probe 失败；blocker 见 codestable/issues/2026-05-04-auth-dc-real-env-proof-blocked/auth-dc-real-env-proof-blocked-report.md
+    status: proven
+    notes: 2026-05-04 auth list/info/probe/fixture-auth 本地 focused check 已 proven；同日使用 live Forge targetUrl 重新验证 auth dc 成功，provider 返回 ok、resolvedBy=targetUrl，页面落到 TapTap 开发者服务并可见“选择厂商”和厂商列表；auth probe 为 uncertain/medium 但无 login/challenge、存在会话 cookie，按 Forge/DC SOP 结合页面事实判定通过；原 blocker 已 resolved，详见 codestable/issues/2026-05-04-auth-dc-real-env-proof-blocked/auth-dc-real-env-proof-blocked-report.md 和 evaluations/2026-05-04-auth-dc-real-env-proof-live-target.md
   - command: batch
     group: tooling-boundary
     roadmap_item: command-eval-batch-code-dashboard-skill-sse

@@ -5,7 +5,7 @@ status: completed
 created: 2026-05-04
 related_roadmap: pre-1-0-breakthrough
 roadmap_item: one-dot-zero-acceptance
-result: accepted-with-known-auth-blocker
+result: accepted
 ---
 
 # 1.0 Acceptance
@@ -14,21 +14,22 @@ result: accepted-with-known-auth-blocker
 
 `pwcli` 1.0 上线冲刺目标已完成到可验收状态：Pre-1.0 已通过、RC blocker burn down 已完成、内部未解释 P0/P1 为 0、skills 和 CodeStable truth 已收口、每个 command 与核心 workflow 都有证据。
 
-正式 1.0 发布时必须明确唯一剩余 blocker：
+初版 acceptance 曾保留唯一外部 blocker：
 
 - `auth dc` 真实环境 proof：blocked
 - blocker issue：`codestable/issues/2026-05-04-auth-dc-real-env-proof-blocked/auth-dc-real-env-proof-blocked-report.md`
-- 不能写成 proven，直到有有效测试/RND URL、账号材料和可复验命令证据。
+
+2026-05-04 同日用户提供 live Forge targetUrl 后，该 blocker 已解除：`pw auth dc` 返回 `ok=true`，页面落到 TapTap 开发者服务并可见“选择厂商”厂商列表，`verify text` 通过。正式 1.0 发布口径更新为：53 个 command proven，0 blocked。
 
 ## 目标映射
 
 | 目标 | 状态 | 证据 |
 |---|---|---|
-| 每个 command 深评 | pass-with-blocker | `pre-1-0-command-evaluation-matrix.yaml`：52 proven / 1 blocked |
+| 每个 command 深评 | pass | `pre-1-0-command-evaluation-matrix.yaml`：53 proven / 0 blocked |
 | command 数量一致 | pass | `src/cli/commands/index.ts` 53 个 top-level command；matrix 53 行 |
 | workflow 串联 | pass | browser automation、automated testing、form/file/download、crawler、Deep Bug、recovery/handoff、HAR replay evaluations |
 | 竞品能力吸收 | pass | `sprint-capability-reference-survey`；本地 Agent-first 能力纳入 command/workflow/skill，云端/托管/无边界平台 dropped |
-| 真实环境验证 | pass-with-blocker | real-env access map + `auth-dc-real-env-proof-blocked` issue |
+| 真实环境验证 | pass | real-env access map + live Forge `auth dc` proof；原 blocker issue 已 resolved |
 | recovery breakthrough | pass | modal doctor、run-code-timeout、recovery handoff evaluations + checks |
 | evidence bundle 1.0 | pass | `schemaVersion=1.0`、`handoff.md`、summary status、artifacts、commands、runIds |
 | HAR/trace 1.0 decision | pass | HAR hot capture dropped from supported contract；HAR replay proven；trace inspect proven |
@@ -41,14 +42,18 @@ result: accepted-with-known-auth-blocker
 
 当前 command matrix：
 
-- `proven`: 52
-- `blocked`: 1
+- `proven`: 53
+- `blocked`: 0
 - `documented`: 0
 - `dropped`: 0
 
 Blocked command：
 
-- `auth`：本地 `auth list/info/probe/fixture-auth` 已 proven；`auth dc` 真实环境 proof blocked。由于 top-level command matrix 以 command 为行，`auth` 整体按 blocked 处理，不能在 release note 中写成全量 proven。
+- 无。
+
+Auth command 说明：
+
+- `auth`：本地 `auth list/info/probe/fixture-auth` 已 proven；`auth dc` 已用 live Forge targetUrl 真实验证通过。`auth probe` 对 Forge/DC 当前仍是 generic heuristic，可能返回 `uncertain/medium`，但页面事实、protected content 和会话 cookie 已满足 Forge/DC SOP 成功判据。
 
 ## Release Gate 证据
 
@@ -92,6 +97,6 @@ npm pack --dry-run
 - 更新 `package.json` version。
 - 跑 release gate。
 - 生成 release note。
-- 确认 `auth dc` 写为 blocked 或已解除 blocker 后 proven。
+- 确认 `auth dc` 继续写为 proven；如目标环境失效，必须重新开 issue，而不是回退文档口径或伪装通过。
 
 本 acceptance 不包含版本号 bump。

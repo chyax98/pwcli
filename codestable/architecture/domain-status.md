@@ -160,7 +160,7 @@
 - `auth` 不负责 session shape
 - `--from-system-chrome` 不复制 profile；它用 Chrome user data dir + profile-directory 启动 session，因此同 profile 被 Chrome 占用时会失败
 - `dc` 不接受 `instance` 参数；不暴露环境参数，用户给具体业务 URL 时由 skill 作为 `targetUrl` 传入
-- `auth dc` 真实环境 proof 当前为正式 blocker：默认 local-ip 入口不可达，显式 `targetUrl` 尝试触发 `RUN_CODE_TIMEOUT` 且后续 session probe 不可读；不把它写成 proven
+- `auth dc` 真实环境 proof 已通过 live Forge `targetUrl` 验证：provider 返回 `ok=true` 并落回 TapTap 开发者服务；由于 `auth probe` 是 generic heuristic，Forge/DC 成功判定需要结合页面事实、protected content 和会话 cookie，不要求 probe 必须返回 `authenticated`
 - `profile open` 已移除
 - 当前没有外部 plugin 加载、安装、发现、生命周期机制
 

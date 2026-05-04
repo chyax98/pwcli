@@ -192,7 +192,7 @@ items:
     status: done
     feature: null
     minimal_loop: false
-    notes: 2026-05-04 已执行真实 provider 尝试；默认 local-ip 入口 DC_AUTH_URL_UNREACHABLE，明确 targetUrl 尝试 RUN_CODE_TIMEOUT 且 session probe 失败；auth command matrix 改为 blocked，issue 见 codestable/issues/2026-05-04-auth-dc-real-env-proof-blocked/auth-dc-real-env-proof-blocked-report.md
+    notes: 2026-05-04 初次真实 provider 尝试进入 blocker；同日用户提供 live Forge targetUrl 后复验通过，auth dc 返回 ok、页面进入 TapTap 开发者服务并验证“选择厂商”文本，auth command matrix 改为 proven；解除记录见 codestable/issues/2026-05-04-auth-dc-real-env-proof-blocked/auth-dc-real-env-proof-blocked-report.md 和 evaluations/2026-05-04-auth-dc-real-env-proof-live-target.md
 
   - slug: modal-doctor-recovery-breakthrough
     description: 修复并验证 modal/dialog/doctor/page read blocked state 的一致恢复链路
@@ -264,7 +264,7 @@ items:
     status: done
     feature: null
     minimal_loop: false
-    notes: 2026-05-04 已完成；Pre-1.0 gate 暴露的 smoke diagnostics session-signal P1 已修复并由 pnpm smoke 通过；内部未解释 P0/P1 为 0，唯一剩余 P1 是已记录 auth dc 外部环境 blocker；评估见 evaluations/2026-05-04-rc-blocker-burn-down.md
+    notes: 2026-05-04 已完成；Pre-1.0 gate 暴露的 smoke diagnostics session-signal P1 已修复并由 pnpm smoke 通过；同日 auth dc 外部环境 blocker 已用 live Forge targetUrl 解除，内部未解释 P0/P1 和已知外部 P1 均为 0；评估见 evaluations/2026-05-04-rc-blocker-burn-down.md
 
   - slug: one-dot-zero-acceptance
     description: 生成 1.0 最终验收报告，跑全量 gate，确认 skill 和 CodeStable 文档是最终 truth
@@ -272,4 +272,4 @@ items:
     status: done
     feature: null
     minimal_loop: false
-    notes: 2026-05-04 已完成；1.0 acceptance accepted-with-known-auth-blocker，52 个 command proven、auth/dc 真实环境 blocked，内部未解释 P0/P1 为 0；评估见 evaluations/2026-05-04-one-dot-zero-acceptance.md
+    notes: 2026-05-04 已完成；初版为 accepted-with-known-auth-blocker，同日 auth dc live Forge targetUrl proof 解除 blocker 后更新为 accepted，53 个 command proven、0 blocked，内部未解释 P0/P1 为 0；评估见 evaluations/2026-05-04-one-dot-zero-acceptance.md

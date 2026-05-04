@@ -412,7 +412,7 @@ sprint_model:
 - 2026-05-04：完成 `workflow-eval-deep-bug-reproduction`。串联业务 500 复现、页面事实恢复、console/network/errors/digest/timeline/export/bundle；发现并修复 diagnostics bundle 将 session 级 signal 误归因到最新 screenshot run 的 P1。
 - 2026-05-04：完成 `workflow-eval-recovery-handoff`。验证 browser dialog blocked state 下 action envelope、doctor、dialog dismiss、恢复后 diagnostics bundle 和 run handoff；明确 blocked 当下 bundle 也会返回 `MODAL_STATE_BLOCKED`，不能包装成可绕过 browser dialog。
 - 2026-05-04：完成 `real-env-access-map`。梳理测试/RND/Forge/DC 真实验证入口、敏感信息边界和 `auth dc` proof/blocker 分流；下一轮必须使用明确 `targetUrl` 证明 provider，或建立正式 blocker。
-- 2026-05-04：完成 `auth-dc-real-env-proof` 的 blocker 闭环。真实 provider 尝试未通过：默认 local-ip 入口不可达，明确 `targetUrl` 尝试触发 `RUN_CODE_TIMEOUT` 并导致 session probe 失败；`auth` command matrix 改为 blocked，等待标准 issue 分析或有效环境材料解除。
+- 2026-05-04：完成 `auth-dc-real-env-proof`。初次真实 provider 尝试进入 blocker：默认 local-ip 入口不可达，明确 `targetUrl` 触发 `RUN_CODE_TIMEOUT`；同日用户提供 live Forge targetUrl 后复验通过，`auth dc` 返回 `ok=true`，页面进入 TapTap 开发者服务并验证“选择厂商”文本；`auth` command matrix 改为 proven。
 - 2026-05-04：完成 `modal-doctor-recovery-breakthrough`。`doctor` 新增页面级 `html-modal` recovery，`check:doctor-modal` 覆盖 alert blocked、confirm dismiss、prompt accept 和 HTML modal 恢复，明确 browser dialog 与 HTML modal 的不同恢复路径。
 - 2026-05-04：完成 `run-code-timeout-recovery-breakthrough`。发现并修复 `pw code` 触发 `RUN_CODE_TIMEOUT` 后 CLI 进程不退出的 P1；新增 `check:run-code-timeout` 固化 timeout envelope、session facts 恢复和后续短动作 / 短 code 可继续。
 - 2026-05-04：完成 `evidence-bundle-1-0-contract`。`diagnostics bundle` manifest 升级为 1.0 证据 contract，补齐 `schemaVersion/session/task?/commands/runIds/artifacts/summary`，`--out` 额外生成 `handoff.md`；focused verification 覆盖 VERIFY_FAILED、截图 artifact size、commands/runIds 和交接文本。
@@ -421,5 +421,5 @@ sprint_model:
 - 2026-05-04：完成 `skill-sop-1-0-audit`。核对 53 个 top-level command 与 53 行 command matrix 一致，补齐 1.0 workflow 矩阵、diagnostics bundle/handoff SOP、HAR replay 边界和中文优先 recovery 总则；`auth dc` 仍保持正式 blocker，不写成 proven。
 - 2026-05-04：完成 `codestable-truth-1-0-audit`。删除旧过程性架构方案，修正 HAR start/stop、auth dc blocker、route load、auth provider registry 和 real-env map 漂移；允许进入 Pre-1.0 release gate。
 - 2026-05-04：完成 `pre-1-0-release-gate`。全量 gate 通过；期间修复 smoke diagnostics session-signal 旧断言，保持 1.0 evidence contract 不回退；进入 RC blocker burn down。
-- 2026-05-04：完成 `rc-blocker-burn-down`。内部未解释 P0/P1 为 0；唯一剩余 P1 是已记录 `auth dc` 外部环境 blocker；冻结 1.0 command / skill / release contract。
-- 2026-05-04：完成 `one-dot-zero-acceptance`。1.0 sprint accepted-with-known-auth-blocker；52 个 command proven、`auth dc` blocked，内部未解释 P0/P1 为 0；正式发布版本号 bump 另起 release/version loop。
+- 2026-05-04：完成 `rc-blocker-burn-down`。内部未解释 P0/P1 为 0；同日 `auth dc` 外部环境 blocker 已用 live Forge targetUrl 解除；冻结 1.0 command / skill / release contract。
+- 2026-05-04：完成 `one-dot-zero-acceptance`。1.0 sprint accepted；53 个 command proven、0 blocked，内部未解释 P0/P1 为 0；正式发布版本号 bump 另起 release/version loop。
