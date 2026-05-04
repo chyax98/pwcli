@@ -32,6 +32,7 @@
     "test:contract:all": "pnpm build && node test/contract/run-all.js all",
     "test:smoke": "bash test/smoke/pwcli-smoke.sh",
     "test:e2e": "pnpm build && bash test/e2e/pwcli-dogfood-e2e.sh",
+    "test:e2e:agent": "pnpm build && bash test/e2e/pwcli-agent-task-eval.sh",
     "smoke": "pnpm build && pnpm test:smoke",
     "check": "pnpm typecheck && pnpm lint && pnpm build && pnpm test:unit && node test/integration/run-core.js && node test/contract/run-all.js core",
     "pack:check": "npm pack --dry-run"

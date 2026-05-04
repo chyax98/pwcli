@@ -112,6 +112,7 @@ pnpm test:contract
 pnpm test:contract:all
 pnpm test:smoke
 pnpm test:e2e
+pnpm test:e2e:agent
 ```
 
 发布或总验收：
@@ -124,6 +125,8 @@ pnpm pack:check
 ```
 
 文档清理只跑引用检查和 `git diff --check`。改运行态、session、命令注册、batch、action evidence、diagnostics 或发布准备时，再跑对应真实命令或完整 smoke。
+
+`test:e2e` 是系统级 dogfood 脚本。`test:e2e:agent` 是真实 Agent 任务评测入口，要求外部 runner 通过 `PWCLI_AGENT_EVAL_RUNNER` 注入，并写出结构化 summary。
 
 ## 发布规则
 

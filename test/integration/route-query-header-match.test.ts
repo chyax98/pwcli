@@ -1,48 +1,11 @@
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
-import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { resolve } from "node:path";
+import { createWorkspace, removeWorkspace, runPw, uniqueSessionName } from "./_helpers.ts";
 
-type CliResult = {
-  code: number | null;
-  stdout: string;
-  stderr: string;
-  json: unknown;
-};
-
-const repoRoot = resolve(import.meta.dirname, "..", "..");
-const cliPath = resolve(repoRoot, "dist", "cli.js");
-const workspaceDir = await mkdtemp(join(tmpdir(), "pwcli-route-match-"));
-const sessionName = `route${Date.now().toString(36).slice(-5)}`;
-
-function runPw(args: string[]) {
-  return new Promise<CliResult>((resolveResult, reject) => {
-    const child = spawn(process.execPath, [cliPath, ...args], {
-      cwd: workspaceDir,
-      env: process.env,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-    let stdout = "";
-    let stderr = "";
-    child.stdout.on("data", (chunk) => {
-      stdout += chunk.toString();
-    });
-    child.stderr.on("data", (chunk) => {
-      stderr += chunk.toString();
-    });
-    child.on("error", reject);
-    child.on("close", (code) => {
-      const trimmed = stdout.trim();
-      let json: unknown = null;
-      if (trimmed) {
-        json = JSON.parse(trimmed);
-      }
-      resolveResult({ code, stdout, stderr, json });
-    });
-  });
-}
+const workspaceDir = await createWorkspace("pwcli-route-match-");
+const sessionName = uniqueSessionName("route");
 
 const server = createServer((request, response) => {
   if (request.url === "/page") {
@@ -94,43 +57,42 @@ await writeFile(matchJsonPath, JSON.stringify({ tenant: "alpha" }, null, 2), "ut
 await writeFile(patchTextPath, JSON.stringify({ fallback: "mocked" }, null, 2), "utf8");
 
 try {
-  const createResult = await runPw([
-    "session",
-    "create",
-    sessionName,
-    "--headless",
-    "--open",
-    pageUrl,
-    "--output",
-    "json",
-  ]);
+  const createResult = await runPw(
+    ["session", "create", sessionName, "--headless", "--open", pageUrl, "--output", "json"],
+    { cwd: workspaceDir },
+  );
   assert.equal(createResult.code, 0);
 
-  const routeResult = await runPw([
-    "route",
-    "add",
-    "**/api/items**",
-    "--session",
-    sessionName,
-    "--method",
-    "POST",
-    "--match-query-file",
-    matchQueryPath,
-    "--match-headers-file",
-    matchHeadersPath,
-    "--match-json-file",
-    matchJsonPath,
-    "--patch-status",
-    "201",
-    "--merge-headers-file",
-    mergeHeadersPath,
-    "--patch-text-file",
-    patchTextPath,
-    "--output",
-    "json",
-  ]);
+  const routeResult = await runPw(
+    [
+      "route",
+      "add",
+      "**/api/items**",
+      "--session",
+      sessionName,
+      "--method",
+      "POST",
+      "--match-query-file",
+      matchQueryPath,
+      "--match-headers-file",
+      matchHeadersPath,
+      "--match-json-file",
+      matchJsonPath,
+      "--patch-status",
+      "201",
+      "--merge-headers-file",
+      mergeHeadersPath,
+      "--patch-text-file",
+      patchTextPath,
+      "--output",
+      "json",
+    ],
+    { cwd: workspaceDir },
+  );
   assert.equal(routeResult.code, 0, `route add failed: ${routeResult.stderr}`);
-  const listResult = await runPw(["route", "list", "--session", sessionName, "--output", "json"]);
+  const listResult = await runPw(["route", "list", "--session", sessionName, "--output", "json"], {
+    cwd: workspaceDir,
+  });
   assert.equal(listResult.code, 0);
   const routeList = listResult.json as {
     data: {
@@ -151,36 +113,32 @@ try {
   assert.deepEqual(routeList.data.routes[0]?.mergeHeaders, { "x-from-test": "yes" });
   assert.deepEqual(routeList.data.routes[0]?.patchText, { fallback: "mocked" });
 
-  const clickResult = await runPw([
-    "click",
-    "--session",
-    sessionName,
-    "--selector",
-    "#trigger",
-    "--output",
-    "json",
-  ]);
+  const clickResult = await runPw(
+    ["click", "--session", sessionName, "--selector", "#trigger", "--output", "json"],
+    { cwd: workspaceDir },
+  );
   assert.equal(clickResult.code, 0, `click failed: ${clickResult.stderr}\n${clickResult.stdout}`);
 
-  const waitResult = await runPw([
-    "wait",
-    "--session",
-    sessionName,
-    "--text",
-    "mocked",
-    "--output",
-    "json",
-  ]);
+  const waitResult = await runPw(
+    ["wait", "--session", sessionName, "--text", "mocked", "--output", "json"],
+    {
+      cwd: workspaceDir,
+    },
+  );
   assert.equal(waitResult.code, 0, `wait failed: ${waitResult.stderr}\n${waitResult.stdout}`);
 
-  const statusResult = await runPw(["session", "status", sessionName, "--output", "json"]);
+  const statusResult = await runPw(["session", "status", sessionName, "--output", "json"], {
+    cwd: workspaceDir,
+  });
   assert.equal(statusResult.code, 0);
   assert.equal((statusResult.json as { data: { active: boolean } }).data.active, true);
 
-  const closeResult = await runPw(["session", "close", sessionName, "--output", "json"]);
+  const closeResult = await runPw(["session", "close", sessionName, "--output", "json"], {
+    cwd: workspaceDir,
+  });
   assert.equal(closeResult.code, 0);
 } finally {
   server.closeAllConnections();
   await new Promise<void>((resolveClose) => server.close(() => resolveClose()));
-  await rm(workspaceDir, { recursive: true, force: true });
+  await removeWorkspace(workspaceDir);
 }

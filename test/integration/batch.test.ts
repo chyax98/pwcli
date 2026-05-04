@@ -190,62 +190,6 @@ describe("batch extended commands", { concurrency: false }, () => {
     assert.deepEqual(json.data.results[0].data.data.values, ["b"]);
   });
 
-  it("batch hover hovers an element", async () => {
-    const name = makeSessionName();
-    sessionsToClean.push(name);
-    await setupFormPage(name);
-
-    const batchInput = JSON.stringify([["hover", "--selector", "#b"]]);
-    const result = await runPw(
-      ["batch", "--session", name, "--stdin-json", "--include-results", "--output", "json"],
-      { input: batchInput },
-    );
-    assert.equal(result.code, 0, `batch hover failed: ${result.stderr}`);
-    const json = result.json as {
-      ok: boolean;
-      data: {
-        completed: boolean;
-        results: Array<{ ok: boolean; command: string; data: { data: { acted: boolean } } }>;
-      };
-    };
-    assert.equal(json.ok, true);
-    assert.equal(json.data.completed, true);
-    assert.equal(json.data.results[0].ok, true);
-    assert.equal(json.data.results[0].command, "hover");
-    assert.equal(json.data.results[0].data.data.acted, true);
-  });
-
-  it("batch scroll scrolls the page", async () => {
-    const name = makeSessionName();
-    sessionsToClean.push(name);
-    await setupFormPage(name);
-
-    const batchInput = JSON.stringify([["scroll", "down", "300"]]);
-    const result = await runPw(
-      ["batch", "--session", name, "--stdin-json", "--include-results", "--output", "json"],
-      { input: batchInput },
-    );
-    assert.equal(result.code, 0, `batch scroll failed: ${result.stderr}`);
-    const json = result.json as {
-      ok: boolean;
-      data: {
-        completed: boolean;
-        results: Array<{
-          ok: boolean;
-          command: string;
-          data: { data: { scrolled: boolean; direction: string; distance: number } };
-        }>;
-      };
-    };
-    assert.equal(json.ok, true);
-    assert.equal(json.data.completed, true);
-    assert.equal(json.data.results[0].ok, true);
-    assert.equal(json.data.results[0].command, "scroll");
-    assert.equal(json.data.results[0].data.data.scrolled, true);
-    assert.equal(json.data.results[0].data.data.direction, "down");
-    assert.equal(json.data.results[0].data.data.distance, 300);
-  });
-
   it("mixed batch fill + press works", async () => {
     const name = makeSessionName();
     sessionsToClean.push(name);

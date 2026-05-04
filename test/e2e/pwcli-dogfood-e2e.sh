@@ -21,6 +21,8 @@ DOWNLOAD_DIR="${TMP_DIR}/downloads"
 BATCH_FILE="${TMP_DIR}/steps.json"
 SERVER_LOG="${TMP_DIR}/dogfood-server.log"
 WARNINGS_FILE="${TMP_DIR}/warnings.txt"
+STEP_LOG="${TMP_DIR}/steps.jsonl"
+SUMMARY_JSON="${TMP_DIR}/summary.json"
 SERVER_PID=""
 SESSION_CLOSED="0"
 REUSE_CLOSED="0"
@@ -52,6 +54,11 @@ run_json() {
   local name="$1"
   shift
   local out="${TMP_DIR}/${name}.json"
+  node - "$STEP_LOG" "$name" "$@" <<'NODE'
+const fs = require("node:fs");
+const [file, name, ...command] = process.argv.slice(2);
+fs.appendFileSync(file, JSON.stringify({ name, command }) + "\n");
+NODE
   if ! "${CLI[@]}" "$@" --output json >"$out"; then
     log "command failed: ${CLI[*]} $* --output json"
     cat "$out" >&2 || true
@@ -478,5 +485,13 @@ if [[ -f "$WARNINGS_FILE" ]]; then
   log "warnings"
   cat "$WARNINGS_FILE"
 fi
+
+node test/e2e/render-summary.mjs \
+  "$STEP_LOG" \
+  "$WARNINGS_FILE" \
+  "$SUMMARY_JSON" \
+  "$SESSION_NAME" \
+  "$SESSION_REUSE"
+log "summary written to ${SUMMARY_JSON}"
 
 log "dogfood e2e passed"

@@ -26,11 +26,15 @@ export function runPw(args, options = {}) {
     const child = spawn(process.execPath, [cliPath, ...args], {
       cwd: repoRoot,
       env: process.env,
-      stdio: ["ignore", "pipe", "pipe"],
+      stdio: [options.input ? "pipe" : "ignore", "pipe", "pipe"],
       ...options,
     });
     let stdout = "";
     let stderr = "";
+    if (options.input) {
+      child.stdin.write(options.input);
+      child.stdin.end();
+    }
     child.stdout.on("data", (chunk) => {
       stdout += chunk.toString();
     });

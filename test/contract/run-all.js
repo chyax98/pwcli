@@ -2,6 +2,7 @@
 import { spawnSync } from "node:child_process";
 
 const coreChecks = [
+  "check-batch-allowlist-contract.js",
   "check-help-contract.js",
   "check-recovery-envelope-contract.js",
   "check-skill-contract.js",

@@ -1,0 +1,41 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["status", "task", "skillPath", "stepCount", "steps", "result", "evidence"],
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": ["passed", "failed"]
+    },
+    "task": {
+      "type": "string",
+      "minLength": 1
+    },
+    "skillPath": {
+      "type": "string",
+      "minLength": 1
+    },
+    "stepCount": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    "result": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

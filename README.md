@@ -97,10 +97,14 @@ pnpm test:integration
 pnpm test:contract
 pnpm test:contract:all
 pnpm smoke
+pnpm test:e2e
+pnpm test:e2e:agent
 pnpm check
 ```
 
 日常开发优先跑受影响的最小验证。发布或总验收再跑完整 gate。
+
+`test:e2e` 跑系统级 dogfood。`test:e2e:agent` 预留给真实 Agent 任务评测，要求外部 runner 写出结构化 summary。
 
 ## 产品边界
 
