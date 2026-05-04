@@ -276,6 +276,8 @@ Opens Playwright-core's bundled session dashboard. This is a thin wrapper around
 
 Use for human observation or takeover. Do not use as a required Agent workflow step.
 
+- `--dry-run`：只检查 bundled entrypoint 是否存在，不启动 dashboard
+
 If the bundled entrypoint is missing, the command fails with `DASHBOARD_UNAVAILABLE`.
 If the dashboard subprocess exits during the startup observation window, the command fails with `DASHBOARD_LAUNCH_FAILED` instead of reporting `launched: true`.
 

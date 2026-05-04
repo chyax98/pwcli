@@ -44,8 +44,8 @@ commands:
   - command: batch
     group: tooling-boundary
     roadmap_item: command-eval-batch-code-dashboard-skill-sse
-    status: planned
-    notes: 只验证结构化 string[][] 稳定子集
+    status: proven
+    notes: 2026-05-04 tool focused check 覆盖 string[][] stdin 成功串联、BATCH_INPUT_REQUIRED/BATCH_INPUT_INVALID、verify failure 传播、allowlist/blocklist；只承诺单 session 稳定子集
   - command: bootstrap
     group: route-mock-bootstrap
     roadmap_item: command-eval-route-mock-bootstrap
@@ -79,8 +79,8 @@ commands:
   - command: dashboard
     group: tooling-boundary
     roadmap_item: command-eval-batch-code-dashboard-skill-sse
-    status: planned
-    notes: 只做本地 dashboard，不做云端 viewer
+    status: proven
+    notes: 2026-05-04 tool focused check 覆盖 dashboard open --dry-run bundled entrypoint 检查；只做人类观察/接管面，不做云端 viewer；当前 shipped flags 不包含 --timeout
   - command: diagnostics
     group: diagnostics
     roadmap_item: command-eval-diagnostics-runs
@@ -224,8 +224,8 @@ commands:
   - command: skill
     group: tooling-boundary
     roadmap_item: command-eval-batch-code-dashboard-skill-sse
-    status: planned
-    notes: packaged skill path/install 必须持续验证
+    status: proven
+    notes: 2026-05-04 tool focused check 覆盖 skill path --output json；pnpm check:skill-install 证明 packaged skills/pwcli 可安装到目标 skills dir
   - command: snapshot
     group: observation
     roadmap_item: command-eval-observation-reading

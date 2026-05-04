@@ -125,10 +125,10 @@ items:
   - slug: command-eval-batch-code-dashboard-skill-sse
     description: 深评 batch/code/dashboard/skill/sse 等工具边界命令
     depends_on: [command-eval-auth-state-storage-profile]
-    status: planned
+    status: done
     feature: null
     minimal_loop: true
-    notes: batch 只走结构化 string[][] 稳定子集；skill 命令必须证明 packaged path 可安装可用
+    notes: 2026-05-04 已完成 tool focused check；覆盖 batch string[][] stdin/错误/allowlist、code error envelope、dashboard dry-run、skill path/install、sse EventSource；发现并修正文档漂移：dashboard open 当前 shipped flags 不包含 --timeout
 
   - slug: workflow-eval-browser-automation
     description: 串联验证通用浏览器自动化 workflow，从 session 到观察、动作、等待、验收和证据
