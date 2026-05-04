@@ -39,7 +39,7 @@ Environment/Bootstrap domain 只处理 **已有 browser context 的运行条件*
 | 误用 | 正确做法 |
 |---|---|
 | 用 bootstrap 创建 session | 先 `session create` |
-| 用 environment mock API 响应 | 用 `route add/load` |
+| 用 environment mock API 响应 | 顶层用 `route add`；批量规则走 batch 内部 route load 子集 |
 | clock set 前没 install | 先 `environment clock install` |
 | 权限 flag 写成 `--permission` | 用 `permissions grant geolocation` |
 | 地理位置写成 `--latitude/--longitude` | 用 `--lat` / `--lng` |

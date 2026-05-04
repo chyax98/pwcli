@@ -296,6 +296,7 @@
 ### 当前限制
 
 - 更复杂的 clock advance / pause 语义还没进入命令面
+- `clock set/resume` 未先 install 时，当前顶层 CLI envelope code 是 `ENVIRONMENT_CLOCK_SET_FAILED` / `ENVIRONMENT_CLOCK_RESUME_FAILED`，message 内含 `CLOCK_REQUIRES_INSTALL`
 
 ### 后续扩展
 

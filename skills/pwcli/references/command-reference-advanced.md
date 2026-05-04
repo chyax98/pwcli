@@ -283,19 +283,27 @@ If the dashboard subprocess exits during the startup observation window, the com
 
 ### `pw environment offline on|off --session <name>`
 
+- `offline on` 后当前 context 网络请求失败；`offline off` 恢复。
+- 2026-05-04 environment focused check 已验证 fetch 失败为 `net::ERR_INTERNET_DISCONNECTED`，恢复后同一请求返回 200。
+
 ### `pw environment geolocation set --session <name> --lat <lat> --lng <lng>`
 
 - 可选：`--accuracy <meters>`
+- 页面要读取 `navigator.geolocation` 时，先 `pw environment permissions grant geolocation --session <name>`。
+- 2026-05-04 environment focused check 已验证页面侧 `navigator.geolocation.getCurrentPosition()` 返回设定坐标。
 
 ### `pw environment permissions grant <perm...>|clear --session <name>`
 
 - grant 示例：`geolocation clipboard-read`
+- `clear` 清空当前 context permissions state。
 
 ### `pw environment clock install|set|resume --session <name>`
 
 - `install`：安装 fake timers（`set` / `resume` 前必须先 `install`）
 - `set <iso>`：将 fake time 设到目标时间
 - `resume`：恢复时钟流逝
+- 未先 `install` 直接 `set/resume` 时，当前顶层 envelope code 是 `ENVIRONMENT_CLOCK_SET_FAILED` / `ENVIRONMENT_CLOCK_RESUME_FAILED`，message 内包含 `CLOCK_REQUIRES_INSTALL`。
+- 2026-05-04 environment focused check 已验证 `install -> set` 后页面侧 `new Date().toISOString()` 返回固定时间。
 
 ## Skill
 

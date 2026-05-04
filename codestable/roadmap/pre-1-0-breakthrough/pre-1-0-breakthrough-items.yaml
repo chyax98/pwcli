@@ -109,10 +109,10 @@ items:
   - slug: command-eval-environment-controls
     description: 深评 environment offline/geolocation/permissions/clock 等本地环境控制能力
     depends_on: [command-eval-route-mock-bootstrap]
-    status: planned
+    status: done
     feature: null
     minimal_loop: true
-    notes: 覆盖真实页面和 fixture；不为 Node/Volta/proto 漂移写产品补丁
+    notes: 2026-05-04 已完成 focused check；覆盖 offline on/off 真实 fetch 失败/恢复、permissions grant/clear、geolocation set 页面侧读取、clock install/set/resume、clock set 前未 install 失败 envelope；不为 Node/Volta/proto 漂移写产品补丁
 
   - slug: command-eval-auth-state-storage-profile
     description: 深评 auth/state/storage/cookies/profile 的登录态和浏览器状态复用能力

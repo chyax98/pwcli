@@ -109,8 +109,8 @@ commands:
   - command: environment
     group: environment
     roadmap_item: command-eval-environment-controls
-    status: planned
-    notes: offline/geolocation/permissions/clock 必须覆盖
+    status: proven
+    notes: 2026-05-04 focused check 覆盖 offline on/off、geolocation set、permissions grant/clear、clock install/set/resume；页面侧证明 geolocation 和 fixed Date 生效，offline 通过 network requestfailed/恢复 200 证明
   - command: errors
     group: network-console-errors
     roadmap_item: command-eval-network-console-errors
