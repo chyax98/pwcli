@@ -7,6 +7,7 @@ const coreChecks = [
   "check-recovery-envelope-contract.js",
   "check-skill-contract.js",
   "check-skill-install-contract.js",
+  "check-skill-show-contract.js",
 ];
 
 const allChecks = [

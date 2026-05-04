@@ -54,6 +54,14 @@ pw session create dc-main --headed --open 'about:blank'
 pw auth dc -s dc-main --arg targetUrl='https://developer.example.com/forge'
 ```
 
+读取当前安装版本的 skill：
+
+```bash
+pw skill refs
+pw skill show
+pw skill show --full
+```
+
 ## 读者入口
 
 | 读者 | 入口 | 作用 |
@@ -61,6 +69,7 @@ pw auth dc -s dc-main --arg targetUrl='https://developer.example.com/forge'
 | 使用工具的 Agent | `skills/pwcli/SKILL.md` | 唯一使用 SOP |
 | 维护仓库的 Code Agent | `AGENTS.md` / `CLAUDE.md` | 代码、测试、文档、发版规则 |
 | Claude Code | `.claude/rules/` | 本地细分护栏 |
+| 当前版本 skill 导出 | `pw skill show` / `pw skill show --full` | 从 CLI 读取当前安装版本 skill |
 | 命令参数核对 | `pw --help` / `pw <command> --help` | 当前版本命令细节 |
 
 ## 仓库结构

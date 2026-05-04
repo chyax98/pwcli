@@ -1,4 +1,4 @@
-import { cpSync, existsSync, mkdirSync, rmSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -16,6 +16,60 @@ export function getPackagedSkillInfo() {
     referencesDir: resolve(root, "references"),
     exists: existsSync(root),
   };
+}
+
+export function listPackagedSkillReferences() {
+  const root = resolvePackagedSkillRoot();
+  return [
+    {
+      key: "main",
+      path: resolve(root, "SKILL.md"),
+      kind: "entry",
+    },
+    {
+      key: "workflows",
+      path: resolve(root, "references", "workflows.md"),
+      kind: "reference",
+    },
+    {
+      key: "failure-recovery",
+      path: resolve(root, "references", "failure-recovery.md"),
+      kind: "reference",
+    },
+    {
+      key: "forge-dc-auth",
+      path: resolve(root, "references", "forge-dc-auth.md"),
+      kind: "reference",
+    },
+  ].map((item) => ({ ...item, exists: existsSync(item.path) }));
+}
+
+export function readPackagedSkillSection(section?: string) {
+  const refs = listPackagedSkillReferences();
+  const key = section?.trim() || "main";
+  const match = refs.find((item) => item.key === key);
+  if (!match) {
+    throw new Error(`unknown skill section: ${key}`);
+  }
+  if (!match.exists) {
+    throw new Error(`missing packaged skill file: ${match.path}`);
+  }
+  return {
+    key: match.key,
+    kind: match.kind,
+    path: match.path,
+    content: readFileSync(match.path, "utf8"),
+  };
+}
+
+export function readPackagedSkillBundle() {
+  const refs = listPackagedSkillReferences().filter((item) => item.exists);
+  return refs.map((item) => ({
+    key: item.key,
+    kind: item.kind,
+    path: item.path,
+    content: readFileSync(item.path, "utf8"),
+  }));
 }
 
 export function installPackagedSkill(targetParentDir: string) {

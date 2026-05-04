@@ -13,6 +13,8 @@ description: "Use pwcli for browser automation, page exploration, diagnostics, s
 pw --help
 pw <command> --help
 pw <group> <subcommand> --help
+pw skill show
+pw skill show --full
 ```
 
 ## 硬规则
@@ -51,7 +53,7 @@ pw <group> <subcommand> --help
 | 环境控制 | `environment` / `bootstrap` | `pw environment --help` |
 | 批量串行 | `batch` | `pw batch --help` |
 | 逃生口 | `code` | `pw code --help` |
-| skill 安装 | `skill` | `pw skill --help` |
+| skill 安装和导出 | `skill` | `pw skill --help` |
 | 人类观察面 | `dashboard` | `pw dashboard --help` |
 
 ## 标准工作流
@@ -176,3 +178,4 @@ pw <command> --help
 - 工作流和边界看 skill。
 - 参数、flag、输出、错误码看当前 `pw --help`。
 - command 行为和 help 冲突时，以实际 CLI 输出为准，并反馈维护。
+- 需要直接读取当前安装版本 skill 时，用 `pw skill refs`、`pw skill show`、`pw skill show --full`。
