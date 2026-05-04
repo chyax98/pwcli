@@ -2,7 +2,6 @@
 paths:
   - "src/auth/**/*.ts"
   - "src/cli/commands/auth.ts"
-  - "skills/pwcli/references/command-reference-advanced.md"
   - "skills/pwcli/references/forge-dc-auth.md"
   - "codestable/architecture/domain-status.md"
 ---
@@ -11,7 +10,7 @@ paths:
 
 `pwcli` 没有外部 plugin 系统。登录扩展只允许走内置 auth provider。
 
-这份文档面向维护者。Agent 使用 auth 的说明在 `skills/pwcli/references/command-reference-advanced.md`；新增 provider 后必须同步那里。
+这份文档面向维护者。Agent 使用 auth 的主入口是 `skills/pwcli/SKILL.md`，命令参数以 `pw auth <provider> --help` 和 `pw auth info <provider>` 为准。
 
 ## 1. 当前机制
 
@@ -88,7 +87,7 @@ pw auth <provider> --session <name> --arg key=value
 5. 给成功路径写 `examples` 和 `notes`。
 6. 给失败路径抛稳定错误码，例如 `DC_AUTH_URL_REQUIRED`。
 7. 同步文档：
-   - 通用 auth 命令变化：`skills/pwcli/references/command-reference-advanced.md`
+   - 通用 auth 命令变化：CLI `auth` / provider `--help`
    - 特定业务 provider 行为：新增或更新对应 `skills/pwcli/references/*.md`
    - 架构边界变化：`codestable/architecture/domain-status.md`
    - 命令能力面变化：`codestable/architecture/command-surface.md`

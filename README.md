@@ -53,9 +53,10 @@ pw auth dc -s dc-main --arg targetUrl='https://developer.example.com/forge'
 | 读者 | 入口 | 作用 |
 |---|---|---|
 | Agent / 使用者 | [skills/pwcli/SKILL.md](skills/pwcli/SKILL.md) | 唯一使用教程真相 |
-| 参数核对 | [skills/pwcli/references/command-reference.md](skills/pwcli/references/command-reference.md) | 核心命令 reference |
-| 诊断链路 | [skills/pwcli/references/command-reference-diagnostics.md](skills/pwcli/references/command-reference-diagnostics.md) | diagnostics / route / trace |
-| 状态与自动化 | [skills/pwcli/references/command-reference-advanced.md](skills/pwcli/references/command-reference-advanced.md) | auth / state / batch / environment |
+| 参数核对 | `pw --help` / `pw <command> --help` | 当前版本命令细节 |
+| 工作流 | [skills/pwcli/references/workflows.md](skills/pwcli/references/workflows.md) | 跨命令任务链路 |
+| 恢复与交接 | [skills/pwcli/references/failure-recovery.md](skills/pwcli/references/failure-recovery.md) | 失败恢复和 evidence bundle |
+| Forge/DC | [skills/pwcli/references/forge-dc-auth.md](skills/pwcli/references/forge-dc-auth.md) | DC provider 使用规则 |
 | 维护者 | [codestable/architecture/ARCHITECTURE.md](codestable/architecture/ARCHITECTURE.md) | 架构和维护文档入口 |
 | 命令面审计 | [codestable/architecture/command-surface.md](codestable/architecture/command-surface.md) | 从源码和 CLI help 对齐的命令能力地图 |
 | 命令设计覆盖 | [codestable/architecture/commands/coverage.md](codestable/architecture/commands/coverage.md) | 顶层 command 到命令族 ADR 的覆盖矩阵 |

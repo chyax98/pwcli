@@ -5,7 +5,7 @@ paths:
   - "src/engine/act/**/*.ts"
   - "src/cli/commands/**/*.ts"
   - "skills/pwcli/references/failure-recovery.md"
-  - "skills/pwcli/workflows/**/*.md"
+  - "skills/pwcli/references/workflows.md"
   - "codestable/architecture/domain-status.md"
 ---
 

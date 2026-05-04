@@ -20,12 +20,12 @@ paths:
 
 | 变更 | 必改 |
 |---|---|
-| 新命令 / 删除命令 / 命令语义变化 | `skills/pwcli/SKILL.md`、对应 `skills/pwcli/references/command-reference*.md` |
-| flag、参数、默认值变化 | 对应 command reference；主链变化再改 `SKILL.md` |
+| 新命令 / 删除命令 / 命令语义变化 | CLI `--help`、`skills/pwcli/SKILL.md` 路由表 |
+| flag、参数、默认值变化 | CLI `--help`；主链变化再改 `SKILL.md` |
 | error code、blocked state、recoverability 变化 | `skills/pwcli/references/failure-recovery.md` |
-| 高频使用路径变化 | `skills/pwcli/references/workflows.md`，必要时同步 `skills/pwcli/workflows/*.md` |
+| 高频使用路径变化 | `skills/pwcli/references/workflows.md` |
 | Forge/DC auth 变化 | `skills/pwcli/references/forge-dc-auth.md` |
-| 新增 / 修改 auth provider | `.claude/rules/07-auth-provider-authoring.md`、`skills/pwcli/references/command-reference-advanced.md` |
+| 新增 / 修改 auth provider | CLI `auth <provider> --help`、`.claude/rules/07-auth-provider-authoring.md`、必要时 `skills/pwcli/references/forge-dc-auth.md` |
 | 架构边界、限制、扩展口变化 | `codestable/architecture/domain-status.md` 或 ADR |
 | 命令注册面、命令家族、源码入口变化 | `codestable/architecture/command-surface.md` |
 | 文档边界变化 | `codestable/architecture/documentation-governance.md` |
@@ -42,11 +42,11 @@ paths:
 ## 写法
 
 - 主入口 `SKILL.md` 只放最高频路径和硬规则。
-- command reference 放完整参数口径。
+- 命令参数、flag、输出、错误码放 CLI help。
 - workflow 放任务链路，不重复完整命令百科。
-- failure recovery 放错误码、阻断状态、恢复升级路径。
+- failure recovery 放阻断状态和恢复升级路径，不做错误码全集。
 - docs 不重复 skill 教程。
-- skill 不放项目历史、迁移过程、内部环境、业务域名、测试账号等项目内容。
+- skill 不放项目历史、迁移过程、内部环境、业务域名、测试账号、时间线、验证历史或项目状态。
 
 ## 必须验证的事实
 

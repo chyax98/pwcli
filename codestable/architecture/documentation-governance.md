@@ -58,18 +58,16 @@
 
 - `SKILL.md` 是外部讲解指令和路由引导，覆盖约 80% 高频命令使用。
 - `SKILL.md` 不讲内部实现、源码结构、历史过程或调研结论；实现边界进 `codestable/architecture/`。
-- 精确参数、专项诊断、auth/state/batch/environment、failure recovery、workflow 等深细节下沉到 `references/`、`workflows/`、`domains/`。
+- 精确参数、flag、输出字段和错误码以当前 CLI `--help` 为准；skill 只维护任务路由、工作流和恢复 SOP。
 
 这里维护：
 
 - 主入口 `SKILL.md`
-- `references/command-reference*.md`
 - `references/workflows.md`
 - `references/failure-recovery.md`
-- `workflows/*.md`
-- `domains/*.md`
+- `references/forge-dc-auth.md`
 
-所有命令、flag、错误码、输出 envelope、恢复路径变化，先同步这里。
+命令、flag、错误码、输出 envelope 变化先同步 CLI help；高频工作流、恢复路径或 Forge/DC 使用规则变化再同步这里。
 
 ### `codestable/architecture/`
 

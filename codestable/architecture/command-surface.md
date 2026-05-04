@@ -26,19 +26,19 @@ node dist/cli.js --help
 
 | 家族 | Commands | 主要源码 | Agent 价值 | 使用真相 |
 |---|---|---|---|---|
-| Lifecycle | `session create|attach|recreate|list|status|close` | `src/cli/commands/session.ts` | 创建、接管、恢复、关闭 named session | `command-reference.md` |
-| Navigation | `open` | `src/cli/commands/open.ts` | 只在已有 session 中导航 | `SKILL.md`、`command-reference.md` |
-| Human observation | `dashboard open` | `src/cli/commands/dashboard.ts` | 打开 Playwright dashboard 供人观察或接管 | `command-reference-advanced.md` |
-| Workspace view | `status`（`observe` 兼容别名）、`page current|list|frames|dialogs`、`tab select|close` | `status.ts`、`page.ts`、`tab.ts` | 读取当前页面、tabs、frames、dialog projection，并用 stable `pageId` 切换页面 | `command-reference.md` |
-| Page read | `read-text`（`text` 短别名）、`snapshot`、`screenshot`、`pdf`、`accessibility` | `read-text.ts`、`snapshot.ts`、`screenshot.ts`、`pdf.ts`、`accessibility.ts` | 低噪声文本、结构树、图片和 PDF 证据 | `SKILL.md`、`command-reference.md` |
-| State checks | `locate`、`get`、`is`、`verify` | `locate.ts`、`get.ts`、`is.ts`、`verify.ts` | read-only 定位、事实读取、布尔检查、断言闭环 | `command-reference.md` |
-| Actions | `click`、`fill`、`type`、`press`、`hover`、`scroll`、`check`、`uncheck`、`select`、`drag`、`upload`、`download`、`resize`、`dialog`、`wait`、`mouse` | 对应 `src/cli/commands/*.ts` | 执行动作、处理弹窗、等待状态、产出 run evidence | `command-reference.md` |
-| Diagnostics | `diagnostics digest|export|bundle|runs|show|grep|timeline`、`console`、`network`、`sse`、`errors`、`doctor`、`video` | `diagnostics.ts`、`console.ts`、`network.ts`、`sse.ts`、`errors.ts`、`doctor.ts`、`video.ts` | 从 live session 和 run artifacts 归因、定位、导出证据 | `command-reference-diagnostics.md` |
-| Trace / HAR | `trace start|stop|inspect`、`har start|stop|replay|replay-stop` | `trace.ts`、`har.ts` | trace zip 离线查询；HAR start/stop 明确返回 `UNSUPPORTED_HAR_CAPTURE`，预录制 HAR replay 是 deterministic network stubbing 能力 | `command-reference-diagnostics.md` |
-| Mock / bootstrap | `route list|add|remove`、`bootstrap apply` | `route.ts`、`bootstrap.ts` | 请求拦截、fulfill、abort、matcher、JSON/text patch、headers/init script 注入 | `command-reference-diagnostics.md`、`command-reference-advanced.md` |
-| Identity state | `auth`、`state`、`cookies`、`storage`、`profile` | `auth.ts`、`state.ts`、`cookies.ts`、`storage.ts`、`profile.ts` | 登录态获取、存储导入导出、当前 origin 状态读写、本机 Chrome profile discovery | `command-reference-advanced.md` |
-| Environment | `environment offline|geolocation|permissions|clock` | `environment.ts` | 受控网络、位置、权限、时间 | `command-reference-advanced.md` |
-| Automation | `batch`、`code`、`skill` | `batch.ts`、`code.ts`、`skill.ts` | 结构化串行编排、Playwright escape hatch、分发 skill | `command-reference-advanced.md` |
+| Lifecycle | `session create|attach|recreate|list|status|close` | `src/cli/commands/session.ts` | 创建、接管、恢复、关闭 named session | `pw session --help`、`SKILL.md` |
+| Navigation | `open` | `src/cli/commands/open.ts` | 只在已有 session 中导航 | `pw open --help`、`SKILL.md` |
+| Human observation | `dashboard open` | `src/cli/commands/dashboard.ts` | 打开 Playwright dashboard 供人观察或接管 | `pw dashboard --help`、`SKILL.md` |
+| Workspace view | `status`（`observe` 兼容别名）、`page current|list|frames|dialogs`、`tab select|close` | `status.ts`、`page.ts`、`tab.ts` | 读取当前页面、tabs、frames、dialog projection，并用 stable `pageId` 切换页面 | `pw status --help`、`pw page --help`、`SKILL.md` |
+| Page read | `read-text`（`text` 短别名）、`snapshot`、`screenshot`、`pdf`、`accessibility` | `read-text.ts`、`snapshot.ts`、`screenshot.ts`、`pdf.ts`、`accessibility.ts` | 低噪声文本、结构树、图片和 PDF 证据 | CLI `--help`、`SKILL.md` |
+| State checks | `locate`、`get`、`is`、`verify` | `locate.ts`、`get.ts`、`is.ts`、`verify.ts` | read-only 定位、事实读取、布尔检查、断言闭环 | CLI `--help`、`SKILL.md` |
+| Actions | `click`、`fill`、`type`、`press`、`hover`、`scroll`、`check`、`uncheck`、`select`、`drag`、`upload`、`download`、`resize`、`dialog`、`wait`、`mouse` | 对应 `src/cli/commands/*.ts` | 执行动作、处理弹窗、等待状态、产出 run evidence | CLI `--help`、`SKILL.md` |
+| Diagnostics | `diagnostics digest|export|bundle|runs|show|grep|timeline`、`console`、`network`、`sse`、`errors`、`doctor`、`video` | `diagnostics.ts`、`console.ts`、`network.ts`、`sse.ts`、`errors.ts`、`doctor.ts`、`video.ts` | 从 live session 和 run artifacts 归因、定位、导出证据 | CLI `--help`、`SKILL.md`、`failure-recovery.md` |
+| Trace / HAR | `trace start|stop|inspect`、`har start|stop|replay|replay-stop` | `trace.ts`、`har.ts` | trace zip 离线查询；HAR start/stop 明确返回 `UNSUPPORTED_HAR_CAPTURE`，预录制 HAR replay 是 deterministic network stubbing 能力 | CLI `--help`、`SKILL.md` |
+| Mock / bootstrap | `route list|add|remove`、`bootstrap apply` | `route.ts`、`bootstrap.ts` | 请求拦截、fulfill、abort、matcher、JSON/text patch、headers/init script 注入 | CLI `--help`、`workflows.md` |
+| Identity state | `auth`、`state`、`cookies`、`storage`、`profile` | `auth.ts`、`state.ts`、`cookies.ts`、`storage.ts`、`profile.ts` | 登录态获取、存储导入导出、当前 origin 状态读写、本机 Chrome profile discovery | CLI `--help`、`SKILL.md`、`forge-dc-auth.md` |
+| Environment | `environment offline|geolocation|permissions|clock` | `environment.ts` | 受控网络、位置、权限、时间 | CLI `--help`、`workflows.md` |
+| Automation | `batch`、`code`、`skill` | `batch.ts`、`code.ts`、`skill.ts` | 结构化串行编排、Playwright escape hatch、分发 skill | CLI `--help`、`SKILL.md` |
 
 ## 3. 顶层命令清单
 

@@ -2,8 +2,12 @@
 /**
  * check-skill-contract.js
  *
- * Checks that `pw <command>` references in skills/pwcli/**\/*.md match
- * the top-level commands reported by `node dist/cli.js --help`.
+ * Checks that executable `pw <command>` references in skills/pwcli/**\/*.md
+ * match the top-level commands reported by `node dist/cli.js --help`.
+ *
+ * Coverage also counts backtick-wrapped top-level command names in the skill
+ * route table. The skill is intentionally a router rather than an exhaustive
+ * command reference with runnable examples for every command.
  *
  * Usage:
  *   node scripts/check-skill-contract.js
@@ -116,11 +120,11 @@ const KNOWN_NOT_COMMANDS = new Set([
   'version',  // flag alias, not a standalone command
 ]);
 
-function extractCommandRefs(filePath) {
+function extractCommandRefs(filePath, cliCommands) {
   const src = readFileSync(filePath, 'utf8');
   const lines = src.split('\n');
 
-  /** @type {Array<{cmd: string, line: number}>} */
+  /** @type {Array<{cmd: string, line: number, executable: boolean}>} */
   const refs = [];
 
   let inFencedBlock = false;
@@ -139,7 +143,7 @@ function extractCommandRefs(filePath) {
       // Inside a fenced block: match lines that start with `pw <word>`
       const m = line.match(/^pw\s+([a-z][-a-z]+)/);
       if (m) {
-        refs.push({ cmd: m[1], line: lineNo });
+        refs.push({ cmd: m[1], line: lineNo, executable: true });
       }
     } else {
       // Outside fenced blocks: match backtick-wrapped `pw <word>` or `pw <word> ...`
@@ -147,7 +151,18 @@ function extractCommandRefs(filePath) {
       let m;
       // biome-ignore lint/suspicious/noAssignInExpressions: standard regex loop
       while ((m = backtickRe.exec(line)) !== null) {
-        refs.push({ cmd: m[1], line: lineNo });
+        refs.push({ cmd: m[1], line: lineNo, executable: true });
+      }
+
+      // Coverage-only: route tables list commands as backtick-wrapped names
+      // (`click` / `fill`) without spelling every one as `pw click`.
+      // Count current top-level command tokens as covered, but do not use them
+      // for stale-reference failures.
+      const tokenRe = /`([a-z][-a-z]+)`/g;
+      while ((m = tokenRe.exec(line)) !== null) {
+        if (cliCommands.has(m[1])) {
+          refs.push({ cmd: m[1], line: lineNo, executable: false });
+        }
       }
     }
   }
@@ -174,15 +189,15 @@ const staleRefs = new Map();
 const coveredCmds = new Set();
 
 for (const filePath of mdFiles) {
-  const refs = extractCommandRefs(filePath);
+  const refs = extractCommandRefs(filePath, cliCommands);
   const relPath = relative(ROOT, filePath);
 
-  for (const { cmd, line } of refs) {
+  for (const { cmd, line, executable } of refs) {
     if (KNOWN_NOT_COMMANDS.has(cmd)) continue;
 
     if (cliCommands.has(cmd)) {
       coveredCmds.add(cmd);
-    } else {
+    } else if (executable) {
       // Not in CLI — stale reference
       if (!staleRefs.has(cmd)) {
         staleRefs.set(cmd, []);

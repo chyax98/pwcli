@@ -100,7 +100,7 @@ pageId -> old snapshot index -> close/select live tab by index
 |---|---|
 | 命令、flag、错误码、输出变化 | `skills/pwcli/` |
 | 新 limitation / recoverability | `skills/pwcli/references/failure-recovery.md` |
-| 新工作流 | `skills/pwcli/references/workflows.md` 或 `skills/pwcli/workflows/*.md` |
+| 新工作流 | `skills/pwcli/references/workflows.md` |
 | 领域边界变化 | `codestable/architecture/` |
 | review / skill 维护规则变化 | `.claude/` 和 `AGENTS.md` |
 

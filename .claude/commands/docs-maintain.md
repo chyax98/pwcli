@@ -18,9 +18,10 @@ Use this command to maintain `skills/pwcli/` and `codestable/architecture/` with
    - docs cleanup
 4. Apply the routing rules:
    - `SKILL.md`: external Agent instruction + 80% high-frequency routing only
-   - `references/`: precise command parameters, diagnostics, advanced details
-   - `workflows/`: executable task chains and success criteria
-   - `domains/`: boundaries, misuse, decision rules
+   - CLI `--help`: precise command parameters, flags, outputs, errors
+   - `references/workflows.md`: executable task chains and success criteria
+   - `references/failure-recovery.md`: blocked state, recovery, evidence handoff
+   - `references/forge-dc-auth.md`: DC provider usage rules
    - `codestable/architecture/`: architecture facts, contracts, ADRs, stable conclusions
 5. Remove or rewrite:
    - process plans
