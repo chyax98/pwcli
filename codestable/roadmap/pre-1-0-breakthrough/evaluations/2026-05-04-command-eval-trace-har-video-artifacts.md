@@ -30,7 +30,7 @@ roadmap_item: command-eval-trace-har-video-artifacts
 - PDF 产出非空文件。
 - trace start/stop 产出 trace artifact，inspect 可查看 actions/console/requests。
 - video start/stop 产出 WebM artifact。
-- HAR start/stop 不伪装为支持；当前必须返回 `supported=false` 和 limitation。
+- HAR start/stop 不伪装为支持；本评测阶段确认其不是 artifact 主路。最终 1.0 取舍见 `2026-05-04-har-trace-1-0-decision.md`。
 
 不扩大范围：
 
@@ -49,8 +49,8 @@ roadmap_item: command-eval-trace-har-video-artifacts
 | `trace inspect` | proven | actions、console error、requests failed filter 均可执行 |
 | `video start` | proven | 返回 `started=true` |
 | `video stop` | proven | 返回 `videoPath`，WebM 文件非空 |
-| `har start` | documented limitation | 返回 `supported=false` 和明确 limitation，不是 1.0 proven evidence path |
-| `har stop` | documented limitation | 返回 `supported=false` 和明确 limitation，不是 1.0 proven evidence path |
+| `har start` | superseded by decision | 初评为 documented limitation；后续已收敛为 `UNSUPPORTED_HAR_CAPTURE` 失败 guard |
+| `har stop` | superseded by decision | 初评为 documented limitation；后续已收敛为 `UNSUPPORTED_HAR_CAPTURE` 失败 guard |
 
 ## focused check
 
@@ -117,10 +117,10 @@ videoPath: .pwcli/playwright/video-2026-05-03T23-39-00-696Z.webm
 - `screenshot <ref>` 依赖 fresh snapshot ref；stale ref 恢复已在 page/workspace 评测覆盖。
 - `trace stop` 的 `traceArtifactPath` 是后续 `trace inspect` 的唯一输入；`.pwcli/runs` 不是 trace replay 证据。
 - `trace inspect --failed` 只对 `--section requests` 生效；其他 section 会返回 limitation。
-- `har start|stop` 当前不是稳定录制能力。它明确写入 state.har 并返回 `supported=false`，不能在 skill 或 release note 中写成 1.0 已支持。
+- `har start|stop` 当前不是稳定录制能力；后续 `har-trace-1-0-decision` 已将其收敛为 `UNSUPPORTED_HAR_CAPTURE`，不能在 skill 或 release note 中写成 1.0 已支持。
 - HAR 热录制必须在后续 `har-trace-1-0-decision` 中二选一：实现并验证，或从 1.0 supported contract 明确移除/降级。
 
 ## 后续
 
-- `har-trace-1-0-decision` 必须处理 HAR 热录制，不能把 `supported=false` 长期留在 1.0 supported surface。
+- `har-trace-1-0-decision` 已完成：热录制移出 1.0 supported contract，预录制 HAR replay 保留。
 - `evidence-bundle-1-0-contract` 需要决定 screenshot/pdf/trace/video 在 bundle manifest 中的字段、命名和引用方式。

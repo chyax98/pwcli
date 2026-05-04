@@ -788,3 +788,16 @@ pw trace inspect <trace.zip> --section requests --failed
 pw trace inspect <trace.zip> --section console --level error
 pw trace inspect <trace.zip> --section errors
 ```
+
+### `UNSUPPORTED_HAR_CAPTURE`
+
+Meaning:
+
+`pw har start|stop` is not a 1.0 recording path. Playwright HAR capture must be configured when the BrowserContext is created; pwcli does not retrofit HAR recording onto an already-open managed session.
+
+Recovery:
+
+1. Use `pw network --session <name>` and `pw diagnostics export|bundle` for network evidence.
+2. Use `pw trace start|stop|inspect` when you need replayable browser evidence.
+3. Use `pw har replay <file> --session <name>` with a pre-recorded HAR for deterministic network stubbing.
+4. Stop replay with `pw har replay-stop --session <name>`.

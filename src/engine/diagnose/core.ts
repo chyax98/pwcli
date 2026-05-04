@@ -1,6 +1,5 @@
-import { runManagedSessionCommand, parsePageSummary } from "../session.js";
-import { managedRunCode, maybeRawOutput, stateAccessPrelude } from "../shared.js";
 import { managedEnsureDiagnosticsHooks } from "../session.js";
+import { managedRunCode, maybeRawOutput, stateAccessPrelude } from "../shared.js";
 import { managedWorkspaceProjection } from "../workspace.js";
 
 export type SignalRecord = {
@@ -732,7 +731,8 @@ export async function managedObserveStatus(options?: { sessionName?: string }) {
       const har = state.har || {
         supported: false,
         active: false,
-        limitation: 'Current managed sessions do not expose HAR start/stop on an existing BrowserContext.',
+        errorCode: 'UNSUPPORTED_HAR_CAPTURE',
+        limitation: 'HAR start/stop is not a 1.0 recording path on an already-open managed BrowserContext. Use network/diagnostics/trace for evidence or har replay with a pre-recorded HAR.',
       };
       const bootstrap = state.bootstrap || {
         applied: false,

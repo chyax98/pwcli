@@ -184,7 +184,7 @@
 - `alias=path` field projection on `diagnostics export|show|grep`
 - `--session|--since` filters on `diagnostics runs`
 - `trace inspect <trace.zip> --section actions|requests|console|errors`
-- `har replay <file>` / `har replay stop`：HAR 网络流量回放
+- `har replay <file>` / `har replay-stop`：预录制 HAR 网络流量回放
 - `doctor` 默认 compact，`--verbose` 返回完整 probe；新增环境预检（Node 版本、浏览器安装、磁盘空间）
 - action 结果里的 `diagnosticsDelta`
 - `.pwcli/runs/<runId>/events.jsonl`
@@ -196,7 +196,7 @@
 
 - 没有 event stream
 - 不是持久化诊断数据库
-- `har start|stop` 只暴露 substrate 边界；`har replay` 是新增回放面
+- `har start|stop` 明确返回 `UNSUPPORTED_HAR_CAPTURE`，不进入 1.0 热录制 contract；`har replay` / `har replay-stop` 是稳定回放面
 - 已存在的老 session 仍按启动时 substrate 配置写目录；新建或 recreate 后才使用当前 artifact 根目录
 - `trace inspect --level` 受 Playwright trace CLI console 过滤能力限制，当前只稳定映射 `error` / `warning`
 

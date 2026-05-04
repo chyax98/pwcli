@@ -247,6 +247,7 @@ pnpm check:env-geolocation
 pnpm check:trace-inspect
 pnpm check:skill-install
 pnpm check:run-code-timeout
+pnpm check:har-1-0
 npm pack --dry-run
 ```
 
@@ -381,7 +382,7 @@ sprint_model:
 
 - 当前辅助 E2E 曾暴露：`doctor --session` 没有按脚本预期输出 `modal-state` recovery；2026-05-04 已修复并用 `check:doctor-modal` 固化。Pre-1.0 仍需继续覆盖页面级 modal 和复杂 blocked state。
 - `auth dc` 过去未验证的理由是缺真实外部业务环境证据；用户已明确可以进测试/RND 环境，因此下一轮不能再把它停留在 documented。
-- HAR 热录制是否进入 1.0 必须做明确决定；不能长期停在“代码有命令但 supported=false”的模糊状态。
+- HAR 热录制已明确不进入 1.0 supported contract；`har start|stop` 只作为 `UNSUPPORTED_HAR_CAPTURE` 防误用 guard，预录制 HAR 回放走 `har replay|replay-stop`。
 - `scripts/eval/`、`scripts/benchmark/results/` 和旧 E2E 资产需要清理审计：有入口、有复用价值才保留；否则移除或迁入 CodeStable 稳定结论。
 - `cla` 指向的具体工具名后续需要按用户语境校准；本轮先按“Claude Code / 本地 Agent CLI 这一类工具体验”纳入能力参考，不把未确认外部产品写成 shipped contract。
 - 当前 34 个循环已经超过用户要求的 20+ 循环下限；后续新增能力可以加 item，但不能用新增愿景稀释 Pre-1.0 / RC / 1.0 的出口证据。
@@ -398,7 +399,7 @@ sprint_model:
 - 2026-05-04：完成 `command-eval-page-tab-workspace`。覆盖 page/tab/dialog/snapshot/ref workspace identity，修复 `snapshot status --output json` 双 envelope 问题，并明确 `page dialogs` 不是 pending browser dialog live list。
 - 2026-05-04：完成 `command-eval-diagnostics-runs`。覆盖 diagnostics digest/export/bundle/runs/show/grep/timeline、doctor 和 errors，并修复 doctor Node 24 环境基线误判与 diagnostics show/grep help 漂移。
 - 2026-05-04：完成 `command-eval-network-console-errors`。覆盖 console、network、errors、sse 的过滤、current navigation、body snippet/full body 和 requestfailed 观测。
-- 2026-05-04：完成 `command-eval-trace-har-video-artifacts`。覆盖 screenshot、pdf、trace、video 的 artifact 证据产出；HAR start/stop 明确为 `supported=false` documented limitation，后续由 `har-trace-1-0-decision` 决定实现、降级或移出 1.0 contract。
+- 2026-05-04：完成 `command-eval-trace-har-video-artifacts`。覆盖 screenshot、pdf、trace、video 的 artifact 证据产出；HAR start/stop 初评为 documented limitation，后续已由 `har-trace-1-0-decision` 收敛为 `UNSUPPORTED_HAR_CAPTURE` 失败 guard。
 - 2026-05-04：完成 `command-eval-route-mock-bootstrap`。覆盖 route/mock、bootstrap 和 `pw code` 受控测试 substrate；修复 `route add --match-query-file` 命中后因 `URL` 全局缺失导致 session closed 的 P1。
 - 2026-05-04：完成 `command-eval-environment-controls`。覆盖 offline、geolocation、permissions、clock 的单命令深评，并明确 clock 未 install 时当前顶层错误码为 `ENVIRONMENT_CLOCK_SET_FAILED`、message 含 `CLOCK_REQUIRES_INSTALL`。
 - 2026-05-04：完成 `command-eval-auth-state-storage-profile`。覆盖 auth list/info/probe/fixture-auth、cookies、storage local/session/indexeddb、state save/load/diff、profile list-chrome；修复 `state diff --include-values` value-only storage 变化漏进 `summary.changedBuckets` 的 P1；`auth dc` 仍保持 documented，等待真实测试/RND 环境证明。
@@ -415,3 +416,4 @@ sprint_model:
 - 2026-05-04：完成 `modal-doctor-recovery-breakthrough`。`doctor` 新增页面级 `html-modal` recovery，`check:doctor-modal` 覆盖 alert blocked、confirm dismiss、prompt accept 和 HTML modal 恢复，明确 browser dialog 与 HTML modal 的不同恢复路径。
 - 2026-05-04：完成 `run-code-timeout-recovery-breakthrough`。发现并修复 `pw code` 触发 `RUN_CODE_TIMEOUT` 后 CLI 进程不退出的 P1；新增 `check:run-code-timeout` 固化 timeout envelope、session facts 恢复和后续短动作 / 短 code 可继续。
 - 2026-05-04：完成 `evidence-bundle-1-0-contract`。`diagnostics bundle` manifest 升级为 1.0 证据 contract，补齐 `schemaVersion/session/task?/commands/runIds/artifacts/summary`，`--out` 额外生成 `handoff.md`；focused verification 覆盖 VERIFY_FAILED、截图 artifact size、commands/runIds 和交接文本。
+- 2026-05-04：完成 `har-trace-1-0-decision`。HAR 热录制明确移出 1.0 supported contract，`har start|stop` 改为 `UNSUPPORTED_HAR_CAPTURE` 失败 guard；`har replay|replay-stop` 保留为预录制 HAR deterministic stubbing，并新增 `check:har-1-0`。

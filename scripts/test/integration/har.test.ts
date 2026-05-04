@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { describe, it, after } from "node:test";
-import { resolve } from "node:path";
-import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
+import { resolve } from "node:path";
+import { after, describe, it } from "node:test";
 
 const repoRoot = resolve(import.meta.dirname, "..", "..", "..");
 const cliPath = resolve(repoRoot, "dist", "cli.js");
@@ -61,7 +61,7 @@ describe("har", { concurrency: false }, () => {
     }
   });
 
-  it("har start and stop return state", async () => {
+  it("har start and stop fail with explicit unsupported capture", async () => {
     const name = makeSessionName();
     sessionsToClean.push(name);
 
@@ -77,26 +77,30 @@ describe("har", { concurrency: false }, () => {
     ]);
 
     const startResult = await runPw(["har", "start", "--session", name, "--output", "json"]);
-    assert.equal(startResult.code, 0, `har start failed: ${startResult.stderr}`);
+    assert.notEqual(startResult.code, 0, "har start should be an explicit unsupported capture");
     const startJson = startResult.json as {
       ok: boolean;
-      data: { action: string; supported: boolean; limitation?: string };
+      error?: { code?: string; details?: { reason?: string } };
     };
-    assert.equal(startJson.ok, true);
-    assert.equal(startJson.data.action, "start");
-    assert.equal(startJson.data.supported, false);
-    assert.ok(startJson.data.limitation, "should expose limitation");
+    assert.equal(startJson.ok, false);
+    assert.equal(startJson.error?.code, "UNSUPPORTED_HAR_CAPTURE");
+    assert.equal(
+      startJson.error?.details?.reason,
+      "PLAYWRIGHT_RECORD_HAR_REQUIRES_CONTEXT_CREATION",
+    );
 
     const stopResult = await runPw(["har", "stop", "--session", name, "--output", "json"]);
-    assert.equal(stopResult.code, 0, `har stop failed: ${stopResult.stderr}`);
+    assert.notEqual(stopResult.code, 0, "har stop should be an explicit unsupported capture");
     const stopJson = stopResult.json as {
       ok: boolean;
-      data: { action: string; supported: boolean; limitation?: string };
+      error?: { code?: string; details?: { reason?: string } };
     };
-    assert.equal(stopJson.ok, true);
-    assert.equal(stopJson.data.action, "stop");
-    assert.equal(stopJson.data.supported, false);
-    assert.ok(stopJson.data.limitation, "should expose limitation");
+    assert.equal(stopJson.ok, false);
+    assert.equal(stopJson.error?.code, "UNSUPPORTED_HAR_CAPTURE");
+    assert.equal(
+      stopJson.error?.details?.reason,
+      "PLAYWRIGHT_RECORD_HAR_REQUIRES_CONTEXT_CREATION",
+    );
   });
 
   it("har replay starts and stops routing", async () => {
@@ -149,8 +153,7 @@ describe("har", { concurrency: false }, () => {
 
         const stopResult = await runPw([
           "har",
-          "replay",
-          "stop",
+          "replay-stop",
           "--session",
           name,
           "--output",

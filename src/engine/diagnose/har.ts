@@ -1,48 +1,32 @@
 import { resolve } from "node:path";
 import { managedRunCode, stateAccessPrelude } from "../shared.js";
 
+export class HarCaptureUnsupportedError extends Error {
+  readonly code = "UNSUPPORTED_HAR_CAPTURE";
+  readonly details: Record<string, unknown>;
+
+  constructor(action: "start" | "stop", requestedPath?: string) {
+    super(
+      "HAR recording is not supported on an already-open managed BrowserContext. Use network/diagnostics/trace for 1.0 evidence, or use har replay with a pre-recorded HAR for deterministic network stubbing.",
+    );
+    this.name = "HarCaptureUnsupportedError";
+    this.details = {
+      action,
+      supported: false,
+      reason: "PLAYWRIGHT_RECORD_HAR_REQUIRES_CONTEXT_CREATION",
+      ...(requestedPath ? { requestedPath: resolve(requestedPath) } : {}),
+    };
+  }
+}
+
 export async function managedHar(
   action: "start" | "stop",
   options?: { path?: string; sessionName?: string },
-) {
-  const limitation =
-    "Current managed sessions do not expose HAR start/stop on an existing BrowserContext. Recreate the session with HAR recording once the substrate exists.";
-  const result = await managedRunCode({
-    sessionName: options?.sessionName,
-    source: `async page => {
-      ${stateAccessPrelude()}
-      state.har = {
-        supported: false,
-        active: false,
-        lastAction: ${JSON.stringify(action)},
-        limitation: ${JSON.stringify(limitation)},
-        updatedAt: new Date().toISOString(),
-      };
-      if (${JSON.stringify(options?.path ?? null)})
-        state.har.requestedPath = ${JSON.stringify(options?.path ?? null)};
-      return JSON.stringify(state.har);
-    }`,
-  });
-  const parsed =
-    typeof result.data.result === "object" && result.data.result ? result.data.result : {};
-
-  return {
-    session: result.session,
-    page: result.page,
-    data: {
-      action,
-      supported: false,
-      limitation,
-      ...(options?.path ? { requestedPath: resolve(options.path) } : {}),
-      har: parsed,
-    },
-  };
+): Promise<never> {
+  throw new HarCaptureUnsupportedError(action, options?.path);
 }
 
-export async function managedHarReplay(options: {
-  filePath: string;
-  sessionName?: string;
-}) {
+export async function managedHarReplay(options: { filePath: string; sessionName?: string }) {
   const resolvedPath = resolve(options.filePath);
   const result = await managedRunCode({
     sessionName: options.sessionName,
@@ -76,9 +60,7 @@ export async function managedHarReplay(options: {
   };
 }
 
-export async function managedHarReplayStop(options: {
-  sessionName?: string;
-}) {
+export async function managedHarReplayStop(options: { sessionName?: string }) {
   const result = await managedRunCode({
     sessionName: options.sessionName,
     source: `async page => {
@@ -121,4 +103,3 @@ export async function managedHarReplayStop(options: {
     },
   };
 }
-

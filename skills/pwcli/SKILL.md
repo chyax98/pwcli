@@ -266,7 +266,7 @@ pw trace inspect <traceArtifactPath> --section requests --failed
 pw trace inspect <traceArtifactPath> --section console --level error
 ```
 
-HAR start/stop 当前不是稳定证据录制路径；稳定诊断优先 `network`、`diagnostics export`、`diagnostics bundle`、trace inspect。
+HAR start/stop 不是 1.0 稳定证据录制路径，当前会明确返回 `UNSUPPORTED_HAR_CAPTURE`；稳定诊断优先 `network`、`diagnostics export`、`diagnostics bundle`、trace inspect。需要 deterministic network stubbing 时使用预录制文件走 `pw har replay <file>` / `pw har replay-stop`。
 
 ## 7. Dialog、modal 和卡死恢复
 

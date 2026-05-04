@@ -57,7 +57,7 @@ favicon 404、第三方 warning、浏览器扩展噪声通常只作为背景。
 | 失败后只看 screenshot | 先 `diagnostics digest` |
 | 把 digest 当完整报告 | digest 是入口；需要导出用 export/bundle |
 | 忽略 run evidence | `diagnostics runs/show/grep` 查具体动作 |
-| 把 HAR 当稳定录制 | 用 network/export/bundle/trace |
+| 把 HAR start/stop 当稳定录制 | 它们会返回 `UNSUPPORTED_HAR_CAPTURE`；用 network/export/bundle/trace，或用预录制 HAR 做 replay |
 | 不清 baseline 就复现 | 先 `errors clear` |
 
 ## 恢复路径

@@ -131,8 +131,8 @@ commands:
   - command: har
     group: artifacts
     roadmap_item: command-eval-trace-har-video-artifacts
-    status: documented
-    notes: 2026-05-04 focused check 覆盖 har start/stop 当前返回 supported=false；这不是 1.0 proven evidence path，必须在 har-trace-1-0-decision 中实现验证、降级或移除稳定 contract
+    status: proven
+    notes: 2026-05-04 har-trace-1-0-decision 已明确降级：har start/stop 不进入 1.0 热录制 contract，返回 UNSUPPORTED_HAR_CAPTURE；check:har-1-0 验证预录制 HAR replay/replay-stop 可执行并能拦截页面请求
   - command: hover
     group: interaction-input
     roadmap_item: command-eval-interaction-input

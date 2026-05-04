@@ -192,15 +192,17 @@ state / auth / batch 命令见 `command-reference-advanced.md`。
 
 ### `pw har start [path]|stop --session <name>`
 
-- 当前只暴露 HAR substrate 边界，热录制未形成稳定 contract；2026-05-04 artifact focused check 证明 start/stop 返回 `supported=false`
-- 稳定诊断优先用 `network` 和 `diagnostics export`
-- 不要把 `har start|stop` 写成 1.0 已支持录制能力；最终实现、降级或移出稳定 contract 由 `har-trace-1-0-decision` 决定
+- 1.0 明确不支持 HAR 热录制；Playwright `recordHar` 必须在 BrowserContext 创建时配置，当前 managed session 已打开后不能稳定 start/stop
+- 当前返回失败 envelope：`UNSUPPORTED_HAR_CAPTURE`，不是 `ok=true supported=false`
+- 稳定诊断优先用 `network`、`diagnostics export`、`diagnostics bundle` 和 `trace inspect`
+- 不要把 `har start|stop` 写成 1.0 已支持录制能力；它们只是明确失败的防误用 guard
 
 ### `pw har replay <file> --session <name>`
 
 - 从 HAR 文件回放网络流量
-- `--update`：允许将新请求更新写入 HAR 文件
+- 当前稳定用途是使用预录制 HAR 做 deterministic network stubbing
+- 2026-05-04 `check:har-1-0` 已验证：预录制 HAR 可通过 `routeFromHAR` 回放并被页面读取到
 
-### `pw har replay stop --session <name>`
+### `pw har replay-stop --session <name>`
 
 - 停止 HAR 回放路由
