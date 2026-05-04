@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   buildDiagnosticsAuditConclusion,
-  managedDiagnosticsDigest,
+  buildRunDigest,
 } from "../../src/engine/diagnose/core.js";
 
 const cwd = process.cwd();
@@ -49,11 +49,45 @@ try {
     "utf8",
   );
 
-  const digest = await managedDiagnosticsDigest({ runId, limit: 10 });
-  assert.equal(digest.data.summary.failureCount, 1);
-  assert.equal(digest.data.summary.dialogPendingCount, 1);
+  const digest = buildRunDigest(
+    runId,
+    [
+      {
+        ts: "2026-04-30T00:00:00.000Z",
+        command: "wait",
+        sessionName: "bug-a",
+        failed: true,
+        status: "failed",
+        condition: { kind: "selector", selector: ".missing" },
+        diagnosticsDelta: { unavailable: true, reason: "MODAL_STATE_BLOCKED" },
+        failure: {
+          code: "WAIT_FAILED",
+          message: "Timeout 30000ms exceeded",
+          retryable: null,
+          suggestions: [],
+          details: null,
+        },
+      },
+      {
+        ts: "2026-04-30T00:00:01.000Z",
+        command: "click",
+        sessionName: "bug-a",
+        status: "dialog-pending",
+        acted: true,
+        modalPending: true,
+        diagnosticsDelta: { unavailable: true, reason: "MODAL_STATE_BLOCKED" },
+        failureSignal: {
+          code: "MODAL_STATE_BLOCKED",
+          message: "action fired and a browser dialog is pending",
+        },
+      },
+    ],
+    10,
+  );
+  assert.equal(digest.summary.failureCount, 1);
+  assert.equal(digest.summary.dialogPendingCount, 1);
   assert.ok(
-    digest.data.topSignals.some(
+    digest.topSignals.some(
       (signal: { kind: string }) => signal.kind === "failure:MODAL_STATE_BLOCKED",
     ),
   );

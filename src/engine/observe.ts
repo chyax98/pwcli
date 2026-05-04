@@ -1,6 +1,7 @@
 import { runManagedSessionCommand, parsePageSummary, parseSnapshotYaml } from "./session.js";
 import { managedRunCode, maybeRawOutput } from "./shared.js";
 import { pageIdRuntimePrelude, managedAccessibilitySnapshot } from "./workspace.js";
+import { recordActionRun } from "./act/element.js";
 
 export { managedAccessibilitySnapshot } from "./workspace.js";
 
@@ -650,6 +651,33 @@ function parseVerifyPayload(value: unknown): {
   };
 }
 
+async function recordVerifyFailure(
+  options: VerifyOptions,
+  page: Record<string, unknown> | undefined,
+  data: Record<string, unknown>,
+) {
+  if (data.passed !== false) {
+    return;
+  }
+  const assertion = options.assertion;
+  const message = `verify ${assertion} failed`;
+  await recordActionRun("verify", options.sessionName, page, {
+    status: "failed",
+    failed: true,
+    assertion,
+    target: options.target ?? null,
+    url: options.url ?? null,
+    count: options.count ?? null,
+    failure: {
+      code: "VERIFY_FAILED",
+      message,
+      retryable: true,
+      suggestions: Array.isArray(data.suggestions) ? data.suggestions : [],
+      details: data,
+    },
+  });
+}
+
 export async function managedVerify(options: VerifyOptions) {
   const suggestions = verifySuggestions(options.assertion);
   if (options.assertion === "url") {
@@ -674,17 +702,19 @@ export async function managedVerify(options: VerifyOptions) {
       }`,
     });
     const parsed = parseVerifyPayload(result.data.result);
+    const data = {
+      assertion: options.assertion,
+      passed: parsed.passed,
+      expected: parsed.expected,
+      actual: parsed.actual,
+      retryable: !parsed.passed,
+      suggestions: parsed.passed ? [] : suggestions,
+    };
+    await recordVerifyFailure(options, result.page, data);
     return {
       session: result.session,
       page: result.page,
-      data: {
-        assertion: options.assertion,
-        passed: parsed.passed,
-        expected: parsed.expected,
-        actual: parsed.actual,
-        retryable: !parsed.passed,
-        suggestions: parsed.passed ? [] : suggestions,
-      },
+      data,
     };
   }
 
@@ -732,19 +762,21 @@ export async function managedVerify(options: VerifyOptions) {
     }`,
   });
   const parsed = parseVerifyPayload(result.data.result);
+  const data = {
+    assertion: options.assertion,
+    passed: parsed.passed,
+    target: options.target,
+    expected: parsed.expected,
+    actual: parsed.actual,
+    ...(typeof parsed.count === "number" ? { count: parsed.count } : {}),
+    retryable: !parsed.passed,
+    suggestions: parsed.passed ? [] : suggestions,
+  };
+  await recordVerifyFailure(options, result.page, data);
   return {
     session: result.session,
     page: result.page,
-    data: {
-      assertion: options.assertion,
-      passed: parsed.passed,
-      target: options.target,
-      expected: parsed.expected,
-      actual: parsed.actual,
-      ...(typeof parsed.count === "number" ? { count: parsed.count } : {}),
-      retryable: !parsed.passed,
-      suggestions: parsed.passed ? [] : suggestions,
-    },
+    data,
   };
 }
 

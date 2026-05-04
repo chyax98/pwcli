@@ -449,6 +449,8 @@ If `VERIFY_FAILED` follows an action and the page state is unexpectedly wrong, c
 pw diagnostics bundle --session bug-a --out .pwcli/bundles/verify-failure --limit 20
 ```
 
+The bundle should identify the latest failed assertion as `failedCommand=verify` and `failureKind=VERIFY_FAILED`; if it does not, treat that as an evidence-chain bug, not as a successful handoff.
+
 Do not treat `VERIFY_FAILED` as an action failure. It means the check completed and the observed state did not match the expectation.
 
 ## Content and challenge recovery

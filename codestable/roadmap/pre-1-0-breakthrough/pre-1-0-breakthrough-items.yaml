@@ -141,10 +141,10 @@ items:
   - slug: workflow-eval-automated-testing
     description: 串联验证自动化测试 workflow，覆盖 fixture、route/mock、环境控制、断言和失败报告
     depends_on: [workflow-eval-browser-automation]
-    status: planned
+    status: done
     feature: null
     minimal_loop: true
-    notes: 对标 Playwright CLI 的本地测试执行体验，但保持 pwcli Agent-first 命令层定位
+    notes: 2026-05-04 已完成本地 HTTP fixture 自动化测试 workflow；覆盖 route mock、geolocation、正向 verify、故意 VERIFY_FAILED、diagnostics bundle 失败归因；发现并修复 verify failure 未进入 run artifact 的 P1
 
   - slug: workflow-eval-form-file-download
     description: 串联验证填表、上传、拖拽、下载、截图/PDF 证据 workflow

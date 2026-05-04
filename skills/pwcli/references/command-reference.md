@@ -169,7 +169,7 @@ state / auth / batch / environment 命令见 `command-reference-advanced.md`。
 
 ### `pw verify <assertion> --session <name>`
 
-Read-only assertion command for agent loops after actions and waits. Success returns `{ assertion, passed: true, actual, expected, target?, count?, retryable: false, suggestions: [] }`. Failure exits non-zero with `VERIFY_FAILED` and the same assertion result under `error.details`.
+Read-only assertion command for agent loops after actions and waits. Success returns `{ assertion, passed: true, actual, expected, target?, count?, retryable: false, suggestions: [] }`. Failure exits non-zero with `VERIFY_FAILED` and the same assertion result under `error.details`; failed assertions are recorded in run artifacts so `diagnostics bundle` can identify `failureKind=VERIFY_FAILED`.
 
 `text` / `text-absent` 使用 substring 匹配。`verify text --text 'Saved'` 匹配 "Saved successfully"。
 
