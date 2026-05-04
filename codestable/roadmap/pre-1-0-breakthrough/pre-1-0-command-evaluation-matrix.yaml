@@ -26,6 +26,8 @@ protocol:
   rules:
     - 每个 command 至少需要 focused check 或真实 Agent dogfood 证据
     - 高风险 command 必须同时有单命令深评和 workflow 串联证据
+    - roadmap item 只是执行批次，不能替代逐 command 行证据；每个 shipped top-level command 都必须独立判定状态
+    - 名称兼容只能记录为 alias 映射，内部实现必须收敛到唯一 command contract
     - documented 不能伪装成 proven
     - blocked 必须有 issue 或 real-env blocker
     - dropped 必须同步 skill 和 command docs，不能留下半支持状态

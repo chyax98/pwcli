@@ -31,9 +31,11 @@ related_decisions:
 ### 本轮覆盖
 
 - 对每个 command 做深度评估、评测和证据归档；`proven` 不能只靠 help、类型检查或单条脚本绿灯。
+- 深评粒度是 shipped top-level command：当前以 `pre-1-0-command-evaluation-matrix.yaml` 的 53 个 command 行为准；roadmap item 只是执行批次，不是抽样理由。
 - 对核心 workflow 做串联验证：浏览器自动化、自动化测试、填表/文件、简单爬取、Deep Bug 复现、失败恢复和证据交接。
-- 按传统团队一个月冲刺拆成 4 周目标，并拆成至少 20 个可独立执行的循环。
+- 按传统团队一个月冲刺拆成 4 周目标，并拆成至少 20 个可独立执行的循环；当前拆分为 34 个循环，低于这个粒度不得收口。
 - 参考 Playwright CLI、Agent Browser / Stagehand、browser-use、cla / Claude Code 类本地 CLI 的能力，把适合本地 Agent-first 浏览器工具的能力吸收到 1.0 规划。
+- 竞品能力不能只停在调研表：每个“需要吸收”的能力必须落到 command contract、workflow、skill SOP、roadmap item 或明确 dropped 结论。
 - 将 `auth dc` / Forge / DC 真实环境链路从 documented 推进到 proven。
 - 在测试环境、RND 环境跑真实 Agent dogfood，不再把“本地没有账号 / 环境”作为不可验证结论。
 - 修复或明确降级 recoverability 缺口：modal / dialog / doctor / session blocked / run-code timeout / stale ref。
@@ -82,6 +84,12 @@ pre-1-0-breakthrough
 - `blocked`：有明确 blocker issue。
 - `dropped`：明确不进入 1.0 contract。
 
+执行纪律：
+
+- 一个 shipped top-level command 必须对应矩阵中一行；别名也要说明映射到哪个唯一内部实现。
+- 分组评测只用于减少上下文切换，不能把“某一组通过”替代“组内每个 command 已评估”。
+- 高风险 command 需要双证据：focused check 证明 contract，workflow 串联证明 Agent 能完成真实任务。
+
 ### Workflow Integration
 
 职责：把命令从“可调用”提升成“Agent 能完成任务”。每条 workflow 必须由 Agent 按 `skills/pwcli/` 执行，并记录关键命令、结果、失败恢复和证据路径。
@@ -89,6 +97,13 @@ pre-1-0-breakthrough
 ### Capability Intake
 
 职责：参考同类工具，但只吸收本地 Agent-first 浏览器任务需要的能力。参考对象和边界记录在 `drafts/2026-05-04-capability-reference-survey.md`。
+
+每个候选能力必须给出四类结论之一：
+
+- `implemented/proven`：已由现有 command 或 workflow 证明。
+- `planned`：进入本 roadmap 某个 item，并有验收方式。
+- `blocked`：有环境、账号、产品边界或技术 blocker。
+- `dropped`：不服务本地 Agent-first 目标，或违反本地边界 / 单一实现 / 不写逻辑兼容铁律。
 
 ### Recovery Breakthrough
 
@@ -318,9 +333,35 @@ skill_updates: string[]
 4. 能写进中文优先 `skills/pwcli/`。
 5. 不引入逻辑向后兼容、不恢复兼容命令、不制造第二套内部实现。
 
+### 4.9 一个月冲刺执行协议
+
+本 roadmap 映射传统软件团队一个月工作量，但允许由 AI Agent 压缩执行时间。压缩只允许发生在执行速度上，不允许发生在验证深度上。
+
+当前执行单元：
+
+```yaml
+sprint_model:
+  traditional_duration: 1 month
+  weeks: 4
+  roadmap_loops: 34
+  command_matrix_rows: 53
+  minimum_loops_required: 20
+  validation_style:
+    command_contract: focused check / focused test / artifact evidence
+    product_usability: Agent 按 skills/pwcli/ 做真实 workflow dogfood
+    external_environment: test/RND 真实证据或正式 blocker
+```
+
+完成口径：
+
+- 34 个 roadmap loops 全部 `done` / `dropped-with-reason` 前，不允许宣布 1.0 目标完成。
+- 53 个 command 行全部 `proven` / `documented-with-blocker` / `dropped` 前，不允许进入 1.0 acceptance。
+- 核心 workflow 全部有串联证据前，不允许只用单命令证据替代产品验收。
+- 竞品参考能力必须在 survey、roadmap item、workflow evidence 或 dropped 结论中闭环。
+
 ## 5. 子 feature 清单
 
-完整子 feature 清单以 `pre-1-0-breakthrough-items.yaml` 为机器 truth。本轮已扩展为 30+ 个循环，覆盖 repo cleanup、E2E helper 审计、竞品能力参考、每类 command 深评、核心 workflow 串联、真实环境验证、recovery、evidence、skill SOP、CodeStable truth、Pre-1.0、RC 和 1.0 acceptance。
+完整子 feature 清单以 `pre-1-0-breakthrough-items.yaml` 为机器 truth。本轮已扩展为 34 个循环，覆盖 repo cleanup、E2E helper 审计、竞品能力参考、每个 command 深评矩阵、核心 workflow 串联、真实环境验证、recovery、evidence、skill SOP、CodeStable truth、Pre-1.0、RC 和 1.0 acceptance。
 
 ## 6. 排期思路
 
@@ -329,8 +370,8 @@ skill_updates: string[]
 | 周 | 目标 | 主要循环 |
 |---|---|---|
 | Week 1 | 基线、竞品参考、评估协议、基础命令深评 | repo cleanup、E2E helper、capability survey、command evaluation contract、lifecycle、observe/read、interaction |
-| Week 2 | 命令全覆盖深评 | wait/assert、workspace identity、diagnostics、network/console/errors、trace/HAR/video、route/mock/bootstrap、environment、auth/state/storage、batch/code/tooling |
-| Week 3 | workflow 串联和真实环境验证 | 浏览器自动化、自动化测试、填表文件、简单爬取、Deep Bug、恢复交接、real-env access、auth dc |
+| Week 2 | 命令全覆盖深评 | wait/assert、workspace identity、diagnostics、network/console/errors、trace/HAR/video、route/mock/bootstrap、environment、auth/state/storage、batch/code/tooling；逐项回写 53 行 command matrix |
+| Week 3 | workflow 串联和真实环境验证 | 浏览器自动化、自动化测试、填表文件、简单爬取、Deep Bug、恢复交接、real-env access、auth dc；每条 workflow 必须由 Agent 按 skill 执行 |
 | Week 4 | 1.0 攻关收口 | recovery breakthrough、evidence bundle、HAR/trace 决策、真实 Agent 矩阵、skill SOP audit、CodeStable truth audit、Pre-1.0 gate、RC blocker、1.0 acceptance |
 
 这不是固定日程，而是工作量映射。AI Agent 可以压缩执行时间，但不能压缩验收深度；每个循环必须有证据。
@@ -342,6 +383,7 @@ skill_updates: string[]
 - HAR 热录制是否进入 1.0 必须做明确决定；不能长期停在“代码有命令但 supported=false”的模糊状态。
 - `scripts/eval/`、`scripts/benchmark/results/` 和旧 E2E 资产需要清理审计：有入口、有复用价值才保留；否则移除或迁入 CodeStable 稳定结论。
 - `cla` 指向的具体工具名后续需要按用户语境校准；本轮先按“Claude Code / 本地 Agent CLI 这一类工具体验”纳入能力参考，不把未确认外部产品写成 shipped contract。
+- 当前 34 个循环已经超过用户要求的 20+ 循环下限；后续新增能力可以加 item，但不能用新增愿景稀释 Pre-1.0 / RC / 1.0 的出口证据。
 
 ## 8. 变更日志
 
@@ -362,3 +404,4 @@ skill_updates: string[]
 - 2026-05-04：完成 `command-eval-batch-code-dashboard-skill-sse`。覆盖 batch、code、dashboard open、skill path/install、sse 的工具边界；明确 batch 只承诺 single-session `string[][]` 稳定子集，dashboard 只做人类观察/接管面；修正 `dashboard open --timeout` 文档漂移。
 - 2026-05-04：完成 `workflow-eval-browser-automation`。按 `skills/pwcli/` 标准闭环串联 session、观察、定位、动作、等待、断言、截图和 diagnostics bundle；最终证据 `wfauto2` 干净通过，bundle audit 为 `no_strong_failure_signal`。
 - 2026-05-04：完成 `workflow-eval-automated-testing`。串联本地 HTTP fixture、route mock、environment geolocation、正向断言和失败报告；修复 `VERIFY_FAILED` 未写入 run artifact 导致 diagnostics bundle 无法归因的 P1。
+- 2026-05-04：按用户要求收紧执行口径：34 个 roadmap 循环映射传统一个月冲刺，53 个 command matrix 行作为逐 command 深评粒度；竞品能力必须落到 command / workflow / skill / roadmap item / dropped 结论。
