@@ -129,10 +129,11 @@ pw trace inspect .pwcli/playwright/traces/trace.zip --section errors
 
 ```bash
 pw doctor --session <name>
-pw page dialogs --session <name>
 pw dialog accept --session <name>
 pw dialog dismiss --session <name>
 ```
+
+如果 action 返回 `modalPending=true` / `MODAL_STATE_BLOCKED`，不要继续堆叠 `page dialogs`、`status` 或 `diagnostics bundle`。交接证据的顺序是：保留 action envelope → `doctor` 确认 `modal-state` → `dialog accept|dismiss` → 恢复后 `diagnostics bundle`。
 
 恢复失败再考虑：
 

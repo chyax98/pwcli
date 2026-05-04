@@ -244,6 +244,8 @@ pw diagnostics export -s bug-a --section network --text '<request-id-or-text>' -
 pw diagnostics bundle -s bug-a --out ./bundle-bug-a --limit 20
 ```
 
+如果 session 已被 browser dialog 阻塞，`diagnostics bundle` 也会返回 `MODAL_STATE_BLOCKED`，不能绕过 dialog 生成完整 bundle。先按第 7 节恢复，恢复后再 bundle。
+
 Run evidence：
 
 ```bash
@@ -281,6 +283,8 @@ pw page dialogs -s bug-a
 pw dialog accept -s bug-a
 pw dialog dismiss -s bug-a
 ```
+
+如果要形成可交接证据，先用 `pw doctor -s bug-a` 确认 `modal-state`，再 `dialog accept|dismiss`，恢复后执行 `diagnostics bundle`。
 
 仍不可恢复：
 

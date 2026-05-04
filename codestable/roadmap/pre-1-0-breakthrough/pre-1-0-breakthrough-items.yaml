@@ -173,10 +173,10 @@ items:
   - slug: workflow-eval-recovery-handoff
     description: 串联验证失败恢复和证据交接 workflow，覆盖 blocked state、doctor、bundle、handoff report
     depends_on: [workflow-eval-deep-bug-reproduction]
-    status: planned
+    status: done
     feature: null
     minimal_loop: true
-    notes: Agent 必须能按 skill 从失败态恢复或形成可交接 blocker
+    notes: 2026-05-04 已完成 browser dialog blocked state 恢复/交接 workflow；blocked 当下 diagnostics bundle 返回 MODAL_STATE_BLOCKED，正确交接顺序是 action envelope -> doctor 确认 -> dialog accept|dismiss -> 恢复后 bundle；评估见 evaluations/2026-05-04-workflow-eval-recovery-handoff.md
 
   - slug: real-env-access-map
     description: 梳理测试/RND/Forge/DC 可访问入口、账号材料边界、验证 SOP 和安全记录规则

@@ -408,3 +408,4 @@ sprint_model:
 - 2026-05-04：完成 `workflow-eval-form-file-download`。串联登录、受保护页面导航、上传、拖拽、下载、截图、PDF 和 diagnostics bundle；文件下载内容、截图和 PDF artifact 均有本地证据。
 - 2026-05-04：完成 `workflow-eval-crawler-extraction`。串联多页导航、低噪声读取、列表计数、小范围 DOM/iframe 结构化提取、API 证据导出、截图和 diagnostics bundle；明确不恢复旧 `extract` recipe 平台。
 - 2026-05-04：完成 `workflow-eval-deep-bug-reproduction`。串联业务 500 复现、页面事实恢复、console/network/errors/digest/timeline/export/bundle；发现并修复 diagnostics bundle 将 session 级 signal 误归因到最新 screenshot run 的 P1。
+- 2026-05-04：完成 `workflow-eval-recovery-handoff`。验证 browser dialog blocked state 下 action envelope、doctor、dialog dismiss、恢复后 diagnostics bundle 和 run handoff；明确 blocked 当下 bundle 也会返回 `MODAL_STATE_BLOCKED`，不能包装成可绕过 browser dialog。

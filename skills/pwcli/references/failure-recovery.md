@@ -392,6 +392,16 @@ pw dialog dismiss --session bug-a
 
 Then continue with the next assertion or wait. Do not retry the original click unless the dialog was dismissed and the business flow explicitly requires another click.
 
+For evidence handoff, confirm the blocked state before recovery and bundle only after recovery:
+
+```bash
+pw doctor --session bug-a
+pw dialog dismiss --session bug-a
+pw diagnostics bundle --session bug-a --out .pwcli/bundles/dialog-recovered --limit 20
+```
+
+`diagnostics bundle` cannot bypass a pending browser dialog. If run while blocked, it returns `MODAL_STATE_BLOCKED`.
+
 ### `STATE_TARGET_NOT_FOUND`
 
 Meaning:
@@ -498,6 +508,7 @@ Meaning:
 - current managed session is blocked by a modal dialog
 - run-code-backed reads and some actions are unavailable
 - affected reads include `page assess`, `status`, and `pw code`
+- `diagnostics bundle` is also unavailable while the browser dialog is still pending
 
 Recovery order（dialog accept/dismiss 置顶）：
 
@@ -527,6 +538,17 @@ pw open --session bug-a 'https://example.com/deep/path'
 ```
 
 Do not keep stacking commands on a blocked session. `dialog accept|dismiss` 是最高优先级恢复路径，不要跳过 dialog 处理直接 recreate。
+
+如果本次任务需要交接证据，使用这个顺序：
+
+```bash
+pw doctor --session bug-a
+pw dialog dismiss --session bug-a
+pw page current --session bug-a
+pw diagnostics bundle --session bug-a --out .pwcli/bundles/dialog-recovered --limit 20
+```
+
+blocked 当下不要运行 bundle 期待生成完整证据包；这会得到 `MODAL_STATE_BLOCKED`，正确证据是在恢复后由 bundle 读取刚才失败的 run signal。
 
 ## Upload verification
 
@@ -712,6 +734,14 @@ Recovery:
 1. Verify session exists and is attachable (`pw session status <name>`).
 2. Retry with writable output directory (`pw diagnostics bundle --session <name> --out ./bundle`).
 3. If limit is passed, ensure `--limit` is a positive integer.
+
+If the command returns `MODAL_STATE_BLOCKED`, it is not an output directory failure. Clear the browser dialog first, then rerun bundle:
+
+```bash
+pw doctor --session <name>
+pw dialog dismiss --session <name>
+pw diagnostics bundle --session <name> --out ./bundle
+```
 
 ## Trace inspect failures
 
