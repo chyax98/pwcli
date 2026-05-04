@@ -261,10 +261,10 @@ items:
   - slug: rc-blocker-burn-down
     description: 修复 Pre-1.0 暴露的 P0/P1，冻结 1.0 contract
     depends_on: [pre-1-0-release-gate]
-    status: planned
+    status: done
     feature: null
     minimal_loop: false
-    notes: 新问题按 issue report/analysis/fix-note 闭环
+    notes: 2026-05-04 已完成；Pre-1.0 gate 暴露的 smoke diagnostics session-signal P1 已修复并由 pnpm smoke 通过；内部未解释 P0/P1 为 0，唯一剩余 P1 是已记录 auth dc 外部环境 blocker；评估见 evaluations/2026-05-04-rc-blocker-burn-down.md
 
   - slug: one-dot-zero-acceptance
     description: 生成 1.0 最终验收报告，跑全量 gate，确认 skill 和 CodeStable 文档是最终 truth

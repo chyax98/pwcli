@@ -421,3 +421,4 @@ sprint_model:
 - 2026-05-04：完成 `skill-sop-1-0-audit`。核对 53 个 top-level command 与 53 行 command matrix 一致，补齐 1.0 workflow 矩阵、diagnostics bundle/handoff SOP、HAR replay 边界和中文优先 recovery 总则；`auth dc` 仍保持正式 blocker，不写成 proven。
 - 2026-05-04：完成 `codestable-truth-1-0-audit`。删除旧过程性架构方案，修正 HAR start/stop、auth dc blocker、route load、auth provider registry 和 real-env map 漂移；允许进入 Pre-1.0 release gate。
 - 2026-05-04：完成 `pre-1-0-release-gate`。全量 gate 通过；期间修复 smoke diagnostics session-signal 旧断言，保持 1.0 evidence contract 不回退；进入 RC blocker burn down。
+- 2026-05-04：完成 `rc-blocker-burn-down`。内部未解释 P0/P1 为 0；唯一剩余 P1 是已记录 `auth dc` 外部环境 blocker；冻结 1.0 command / skill / release contract。
