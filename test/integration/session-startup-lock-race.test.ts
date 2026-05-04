@@ -1,61 +1,8 @@
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { createWorkspace, removeWorkspace, runPw, uniqueSessionName } from "./_helpers.ts";
 
-type CliResult = {
-  code: number | null;
-  stdout: string;
-  stderr: string;
-  json: unknown;
-};
-
-const repoRoot = resolve(import.meta.dirname, "..", "..");
-const cliPath = resolve(repoRoot, "dist", "cli.js");
-const workspaceDir = await mkdtemp(join(tmpdir(), "pwcli-session-startup-race-"));
-const sessionName = `r${Date.now().toString(36).slice(-5)}`;
-
-function runPw(args: string[], extraEnv?: Record<string, string>) {
-  return new Promise<CliResult>((resolveResult, reject) => {
-    const child = spawn(process.execPath, [cliPath, ...args], {
-      cwd: workspaceDir,
-      env: {
-        ...process.env,
-        ...extraEnv,
-      },
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-    let stdout = "";
-    let stderr = "";
-    child.stdout.on("data", (chunk) => {
-      stdout += chunk.toString();
-    });
-    child.stderr.on("data", (chunk) => {
-      stderr += chunk.toString();
-    });
-    child.on("error", reject);
-    child.on("close", (code) => {
-      const trimmed = stdout.trim();
-      let json: unknown = null;
-      if (trimmed) {
-        try {
-          json = JSON.parse(trimmed);
-        } catch (error) {
-          reject(
-            new Error(
-              `Failed to parse JSON output for ${args.join(" ")}: ${
-                error instanceof Error ? error.message : String(error)
-              }\nstdout=${stdout}\nstderr=${stderr}`,
-            ),
-          );
-          return;
-        }
-      }
-      resolveResult({ code, stdout, stderr, json });
-    });
-  });
-}
+const workspaceDir = await createWorkspace("pwcli-session-startup-race-");
+const sessionName = uniqueSessionName("r");
 
 try {
   const env = {
@@ -65,11 +12,23 @@ try {
   const [first, second] = await Promise.all([
     runPw(
       ["session", "create", sessionName, "--headless", "--open", "about:blank", "--output", "json"],
-      env,
+      {
+        cwd: workspaceDir,
+        env: {
+          ...process.env,
+          ...env,
+        },
+      },
     ),
     runPw(
       ["session", "create", sessionName, "--headless", "--open", "about:blank", "--output", "json"],
-      env,
+      {
+        cwd: workspaceDir,
+        env: {
+          ...process.env,
+          ...env,
+        },
+      },
     ),
   ]);
 
@@ -101,8 +60,10 @@ try {
     `raw EADDRINUSE leaked:\nstdout=${failures[0].stdout}\nstderr=${failures[0].stderr}`,
   );
 
-  const closeResult = await runPw(["session", "close", sessionName, "--output", "json"]);
+  const closeResult = await runPw(["session", "close", sessionName, "--output", "json"], {
+    cwd: workspaceDir,
+  });
   assert.equal(closeResult.code, 0, `session close failed: ${JSON.stringify(closeResult)}`);
 } finally {
-  await rm(workspaceDir, { recursive: true, force: true });
+  await removeWorkspace(workspaceDir);
 }

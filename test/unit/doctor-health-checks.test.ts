@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { inspectEnvironment } from "../../dist/store/health.js";
+import { inspectEnvironment } from "../../src/store/health.js";
 
 const diagnostic = await inspectEnvironment();
 const nodeVersion = diagnostic.details?.nodeVersion as

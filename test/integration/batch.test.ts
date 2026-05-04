@@ -1,54 +1,8 @@
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
-import { resolve } from "node:path";
 import { after, describe, it } from "node:test";
+import { runPw, uniqueSessionName } from "./_helpers.ts";
 
-const repoRoot = resolve(import.meta.dirname, "..", "..");
-const cliPath = resolve(repoRoot, "dist", "cli.js");
-
-function runPw(args: string[], input?: string) {
-  return new Promise<{
-    code: number | null;
-    stdout: string;
-    stderr: string;
-    json: unknown;
-  }>((resolveResult, reject) => {
-    const child = spawn(process.execPath, [cliPath, ...args], {
-      cwd: repoRoot,
-      env: process.env,
-      stdio: [input ? "pipe" : "ignore", "pipe", "pipe"],
-    });
-    let stdout = "";
-    let stderr = "";
-    if (input) {
-      child.stdin.write(input);
-      child.stdin.end();
-    }
-    child.stdout.on("data", (chunk) => {
-      stdout += chunk.toString();
-    });
-    child.stderr.on("data", (chunk) => {
-      stderr += chunk.toString();
-    });
-    child.on("error", reject);
-    child.on("close", (code) => {
-      const trimmed = stdout.trim();
-      let json: unknown = null;
-      if (trimmed) {
-        try {
-          json = JSON.parse(trimmed);
-        } catch {
-          json = null;
-        }
-      }
-      resolveResult({ code, stdout, stderr, json });
-    });
-  });
-}
-
-function makeSessionName() {
-  return `it-batch-${Date.now().toString().slice(-6)}`;
-}
+const makeSessionName = () => uniqueSessionName("it-batch-");
 
 describe("batch extended commands", { concurrency: false }, () => {
   const sessionsToClean: string[] = [];
@@ -93,7 +47,7 @@ describe("batch extended commands", { concurrency: false }, () => {
     const batchInput = JSON.stringify([["fill", "--selector", "#i", "hello"]]);
     const result = await runPw(
       ["batch", "--session", name, "--stdin-json", "--include-results", "--output", "json"],
-      batchInput,
+      { input: batchInput },
     );
     assert.equal(result.code, 0, `batch fill failed: ${result.stderr}`);
     const json = result.json as {
@@ -124,7 +78,7 @@ describe("batch extended commands", { concurrency: false }, () => {
     const batchInput = JSON.stringify([["type", "--selector", "#i", " world"]]);
     const result = await runPw(
       ["batch", "--session", name, "--stdin-json", "--include-results", "--output", "json"],
-      batchInput,
+      { input: batchInput },
     );
     assert.equal(result.code, 0, `batch type failed: ${result.stderr}`);
     const json = result.json as {
@@ -154,7 +108,7 @@ describe("batch extended commands", { concurrency: false }, () => {
     const batchInput = JSON.stringify([["press", "Enter"]]);
     const result = await runPw(
       ["batch", "--session", name, "--stdin-json", "--include-results", "--output", "json"],
-      batchInput,
+      { input: batchInput },
     );
     assert.equal(result.code, 0, `batch press failed: ${result.stderr}`);
     const json = result.json as {
@@ -184,7 +138,7 @@ describe("batch extended commands", { concurrency: false }, () => {
     const batchInput = JSON.stringify([["check", "--selector", "#c"]]);
     const result = await runPw(
       ["batch", "--session", name, "--stdin-json", "--include-results", "--output", "json"],
-      batchInput,
+      { input: batchInput },
     );
     assert.equal(result.code, 0, `batch check failed: ${result.stderr}`);
     const json = result.json as {
@@ -214,7 +168,7 @@ describe("batch extended commands", { concurrency: false }, () => {
     const batchInput = JSON.stringify([["select", "--selector", "#s", "b"]]);
     const result = await runPw(
       ["batch", "--session", name, "--stdin-json", "--include-results", "--output", "json"],
-      batchInput,
+      { input: batchInput },
     );
     assert.equal(result.code, 0, `batch select failed: ${result.stderr}`);
     const json = result.json as {
@@ -244,7 +198,7 @@ describe("batch extended commands", { concurrency: false }, () => {
     const batchInput = JSON.stringify([["hover", "--selector", "#b"]]);
     const result = await runPw(
       ["batch", "--session", name, "--stdin-json", "--include-results", "--output", "json"],
-      batchInput,
+      { input: batchInput },
     );
     assert.equal(result.code, 0, `batch hover failed: ${result.stderr}`);
     const json = result.json as {
@@ -269,7 +223,7 @@ describe("batch extended commands", { concurrency: false }, () => {
     const batchInput = JSON.stringify([["scroll", "down", "300"]]);
     const result = await runPw(
       ["batch", "--session", name, "--stdin-json", "--include-results", "--output", "json"],
-      batchInput,
+      { input: batchInput },
     );
     assert.equal(result.code, 0, `batch scroll failed: ${result.stderr}`);
     const json = result.json as {
@@ -303,7 +257,7 @@ describe("batch extended commands", { concurrency: false }, () => {
     ]);
     const result = await runPw(
       ["batch", "--session", name, "--stdin-json", "--include-results", "--output", "json"],
-      batchInput,
+      { input: batchInput },
     );
     assert.equal(result.code, 0, `mixed batch failed: ${result.stderr}`);
     const json = result.json as {
@@ -346,7 +300,7 @@ describe("batch extended commands", { concurrency: false }, () => {
     const batchInput = JSON.stringify([["session", "create", "foo"]]);
     const result = await runPw(
       ["batch", "--session", name, "--stdin-json", "--include-results", "--output", "json"],
-      batchInput,
+      { input: batchInput },
     );
     assert.notEqual(result.code, 0, "expected illegal command to fail");
     const json = result.json as {

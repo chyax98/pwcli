@@ -1,50 +1,10 @@
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { mkdir, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+import { createWorkspace, removeWorkspace, runPw } from "./_helpers.ts";
 
-type CliResult = {
-  code: number | null;
-  stdout: string;
-  stderr: string;
-  json: unknown;
-};
-
-const repoRoot = resolve(import.meta.dirname, "..", "..");
-const cliPath = resolve(repoRoot, "dist", "cli.js");
-const workspaceDir = await mkdtemp(join(tmpdir(), "pwcli-profile-capability-"));
+const workspaceDir = await createWorkspace("pwcli-profile-capability-");
 const chromeUserDataDir = join(workspaceDir, "chrome-user-data");
-
-function runPw(args: string[], envOverrides?: Record<string, string>) {
-  return new Promise<CliResult>((resolveResult, reject) => {
-    const child = spawn(process.execPath, [cliPath, ...args], {
-      cwd: workspaceDir,
-      env: {
-        ...process.env,
-        ...envOverrides,
-      },
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-    let stdout = "";
-    let stderr = "";
-    child.stdout.on("data", (chunk) => {
-      stdout += chunk.toString();
-    });
-    child.stderr.on("data", (chunk) => {
-      stderr += chunk.toString();
-    });
-    child.on("error", reject);
-    child.on("close", (code) => {
-      const trimmed = stdout.trim();
-      let json: unknown = null;
-      if (trimmed) {
-        json = JSON.parse(trimmed);
-      }
-      resolveResult({ code, stdout, stderr, json });
-    });
-  });
-}
 
 try {
   await mkdir(join(chromeUserDataDir, "Default"), { recursive: true });
@@ -67,7 +27,11 @@ try {
   );
 
   const listResult = await runPw(["profile", "list-chrome", "--output", "json"], {
-    PWCLI_CHROME_USER_DATA_DIR: chromeUserDataDir,
+    cwd: workspaceDir,
+    env: {
+      ...process.env,
+      PWCLI_CHROME_USER_DATA_DIR: chromeUserDataDir,
+    },
   });
   assert.equal(listResult.code, 0, `profile list-chrome failed: ${JSON.stringify(listResult)}`);
   const listEnvelope = listResult.json as {
@@ -84,5 +48,5 @@ try {
     ["Default", "Profile 1"],
   );
 } finally {
-  await rm(workspaceDir, { recursive: true, force: true });
+  await removeWorkspace(workspaceDir);
 }

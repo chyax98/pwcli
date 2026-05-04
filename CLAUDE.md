@@ -73,15 +73,19 @@ src/auth/    内置 auth provider registry 和实现
 
 ```text
 test/
-  unit/         纯函数和轻量 contract
-  integration/ 真实 CLI 集成测试
+  unit/         纯函数和轻量内部 contract
+  integration/ 真实 CLI 集成测试；core runner 放默认 gate
   contract/    command/help/skill/专项能力契约
-  smoke/       发布前本地主链回归
-  e2e/         Agent dogfood 辅助脚本和 fixture
-  fixtures/    共享测试夹具
+  smoke/       发布前本地主链回归入口脚本
+  e2e/         Agent dogfood 入口脚本
+  fixtures/
+    code/      供 pw code / bootstrap 执行的代码片段
+    data/      route、batch、dogfood 数据文件
+    servers/   本地测试服务
+    targets/   attach/connect 目标进程
 ```
 
-`test/` 只保留后续会维护、能证明产品 contract 的资产。一次性 probe、旧产品面测试、未接入脚本的测试应用、平台化 benchmark 资产不进仓库。
+`test/` 只保留后续会维护、能证明产品 contract 的资产。一次性 probe、旧产品面测试、未接入脚本的测试应用、平台化 benchmark 资产不进仓库。`smoke/` 和 `e2e/` 只放 runner，夹具统一放 `fixtures/`。
 
 ## 验证策略
 
@@ -96,6 +100,18 @@ pw <affected-command> ...
 
 ```bash
 pnpm check
+```
+
+测试脚本分层：
+
+```bash
+pnpm test:unit
+pnpm test:integration:core
+pnpm test:integration
+pnpm test:contract
+pnpm test:contract:all
+pnpm test:smoke
+pnpm test:e2e
 ```
 
 发布或总验收：

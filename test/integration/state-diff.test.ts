@@ -1,63 +1,15 @@
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
-import { mkdtemp, readFile, rm, stat } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import { createServer } from "node:http";
-import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { resolve } from "node:path";
+import { createWorkspace, removeWorkspace, runPw, uniqueSessionName } from "./_helpers.ts";
 
-type CliResult = {
-  code: number | null;
-  stdout: string;
-  stderr: string;
-  json: unknown;
-};
-
-const repoRoot = resolve(import.meta.dirname, "..", "..");
-const cliPath = resolve(repoRoot, "dist", "cli.js");
-const workspaceDir = await mkdtemp(join(tmpdir(), "pwcli-state-diff-"));
-const sessionName = `diff${Date.now().toString(36).slice(-5)}`;
+const workspaceDir = await createWorkspace("pwcli-state-diff-");
+const sessionName = uniqueSessionName("diff");
 const beforePath = resolve(workspaceDir, "before.json");
 const afterPath = resolve(workspaceDir, "after.json");
 const valueBeforePath = resolve(workspaceDir, "value-before.json");
 const valueChangedPath = resolve(workspaceDir, "value-changed.json");
-
-function runPw(args: string[]) {
-  return new Promise<CliResult>((resolveResult, reject) => {
-    const child = spawn(process.execPath, [cliPath, ...args], {
-      cwd: workspaceDir,
-      env: process.env,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-    let stdout = "";
-    let stderr = "";
-    child.stdout.on("data", (chunk) => {
-      stdout += chunk.toString();
-    });
-    child.stderr.on("data", (chunk) => {
-      stderr += chunk.toString();
-    });
-    child.on("error", reject);
-    child.on("close", (code) => {
-      const trimmed = stdout.trim();
-      let json: unknown = null;
-      if (trimmed) {
-        try {
-          json = JSON.parse(trimmed);
-        } catch (error) {
-          reject(
-            new Error(
-              `Failed to parse JSON output for ${args.join(" ")}: ${
-                error instanceof Error ? error.message : String(error)
-              }\nstdout=${stdout}\nstderr=${stderr}`,
-            ),
-          );
-          return;
-        }
-      }
-      resolveResult({ code, stdout, stderr, json });
-    });
-  });
-}
 
 const server = createServer((_request, response) => {
   response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
@@ -75,28 +27,16 @@ if (!address || typeof address === "string") {
 const startUrl = `http://127.0.0.1:${address.port}/`;
 
 try {
-  const createResult = await runPw([
-    "session",
-    "create",
-    sessionName,
-    "--headless",
-    "--open",
-    startUrl,
-    "--output",
-    "json",
-  ]);
+  const createResult = await runPw(
+    ["session", "create", sessionName, "--headless", "--open", startUrl, "--output", "json"],
+    { cwd: workspaceDir },
+  );
   assert.equal(createResult.code, 0, `session create failed: ${JSON.stringify(createResult)}`);
 
-  const baselineResult = await runPw([
-    "state",
-    "diff",
-    "--session",
-    sessionName,
-    "--before",
-    beforePath,
-    "--output",
-    "json",
-  ]);
+  const baselineResult = await runPw(
+    ["state", "diff", "--session", sessionName, "--before", beforePath, "--output", "json"],
+    { cwd: workspaceDir },
+  );
   assert.equal(baselineResult.code, 0, `baseline diff failed: ${JSON.stringify(baselineResult)}`);
   const baselineEnvelope = baselineResult.json as {
     ok: boolean;
@@ -106,11 +46,12 @@ try {
   assert.equal(baselineEnvelope.data.baselineCreated, true);
   await stat(beforePath);
 
-  const mutateResult = await runPw([
-    "code",
-    "--session",
-    sessionName,
-    `async page => {
+  const mutateResult = await runPw(
+    [
+      "code",
+      "--session",
+      sessionName,
+      `async page => {
       await page.evaluate(() => {
         document.cookie = 'session_id=next; path=/';
         localStorage.setItem('featureFlag', 'enabled');
@@ -139,23 +80,28 @@ try {
       });
       return { mutated: true };
     }`,
-    "--output",
-    "json",
-  ]);
+      "--output",
+      "json",
+    ],
+    { cwd: workspaceDir },
+  );
   assert.equal(mutateResult.code, 0, `mutation failed: ${JSON.stringify(mutateResult)}`);
 
-  const diffResult = await runPw([
-    "state",
-    "diff",
-    "--session",
-    sessionName,
-    "--before",
-    beforePath,
-    "--after",
-    afterPath,
-    "--output",
-    "json",
-  ]);
+  const diffResult = await runPw(
+    [
+      "state",
+      "diff",
+      "--session",
+      sessionName,
+      "--before",
+      beforePath,
+      "--after",
+      afterPath,
+      "--output",
+      "json",
+    ],
+    { cwd: workspaceDir },
+  );
   assert.equal(diffResult.code, 0, `state diff failed: ${JSON.stringify(diffResult)}`);
 
   const diffEnvelope = diffResult.json as {
@@ -195,16 +141,10 @@ try {
   );
   await stat(afterPath);
 
-  const compareSavedResult = await runPw([
-    "state",
-    "diff",
-    "--before",
-    beforePath,
-    "--after",
-    afterPath,
-    "--output",
-    "json",
-  ]);
+  const compareSavedResult = await runPw(
+    ["state", "diff", "--before", beforePath, "--after", afterPath, "--output", "json"],
+    { cwd: workspaceDir },
+  );
   assert.equal(
     compareSavedResult.code,
     0,
@@ -218,17 +158,20 @@ try {
   assert.equal(compareEnvelope.data.summary.changed, true);
   assert.ok(compareEnvelope.data.summary.changedBuckets.includes("indexeddb"));
 
-  const valueBaselineResult = await runPw([
-    "state",
-    "diff",
-    "--session",
-    sessionName,
-    "--before",
-    valueBeforePath,
-    "--include-values",
-    "--output",
-    "json",
-  ]);
+  const valueBaselineResult = await runPw(
+    [
+      "state",
+      "diff",
+      "--session",
+      sessionName,
+      "--before",
+      valueBeforePath,
+      "--include-values",
+      "--output",
+      "json",
+    ],
+    { cwd: workspaceDir },
+  );
   assert.equal(
     valueBaselineResult.code,
     0,
@@ -242,11 +185,12 @@ try {
   assert.equal(valueBaselineEnvelope.data.baselineCreated, true);
   await stat(valueBeforePath);
 
-  const mutateValuesResult = await runPw([
-    "code",
-    "--session",
-    sessionName,
-    `async page => {
+  const mutateValuesResult = await runPw(
+    [
+      "code",
+      "--session",
+      sessionName,
+      `async page => {
       await page.evaluate(() => {
         document.cookie = 'session_id=changed; path=/';
         localStorage.setItem('featureFlag', 'disabled');
@@ -254,28 +198,33 @@ try {
       });
       return { valuesChanged: true };
     }`,
-    "--output",
-    "json",
-  ]);
+      "--output",
+      "json",
+    ],
+    { cwd: workspaceDir },
+  );
   assert.equal(
     mutateValuesResult.code,
     0,
     `value mutation failed: ${JSON.stringify(mutateValuesResult)}`,
   );
 
-  const valueDiffResult = await runPw([
-    "state",
-    "diff",
-    "--session",
-    sessionName,
-    "--before",
-    valueBeforePath,
-    "--after",
-    valueChangedPath,
-    "--include-values",
-    "--output",
-    "json",
-  ]);
+  const valueDiffResult = await runPw(
+    [
+      "state",
+      "diff",
+      "--session",
+      sessionName,
+      "--before",
+      valueBeforePath,
+      "--after",
+      valueChangedPath,
+      "--include-values",
+      "--output",
+      "json",
+    ],
+    { cwd: workspaceDir },
+  );
   assert.equal(valueDiffResult.code, 0, `value diff failed: ${JSON.stringify(valueDiffResult)}`);
   const valueDiffEnvelope = valueDiffResult.json as {
     ok: boolean;
@@ -310,7 +259,9 @@ try {
   );
   await stat(valueChangedPath);
 
-  const closeResult = await runPw(["session", "close", sessionName, "--output", "json"]);
+  const closeResult = await runPw(["session", "close", sessionName, "--output", "json"], {
+    cwd: workspaceDir,
+  });
   assert.equal(closeResult.code, 0, `session close failed: ${JSON.stringify(closeResult)}`);
 
   const savedBaseline = JSON.parse(await readFile(beforePath, "utf8")) as { version: number };
@@ -328,5 +279,5 @@ try {
       resolveClose();
     });
   });
-  await rm(workspaceDir, { recursive: true, force: true });
+  await removeWorkspace(workspaceDir);
 }

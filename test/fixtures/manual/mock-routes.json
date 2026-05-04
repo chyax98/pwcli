@@ -1,9 +1,0 @@
-[
-  {
-    "pattern": "**/__pwcli__/diagnostics/route-hit**",
-    "method": "GET",
-    "status": 209,
-    "contentType": "text/plain",
-    "body": "loaded-from-route-file"
-  }
-]

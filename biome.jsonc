@@ -5,7 +5,7 @@
       "!!**/dist",
       "!!**/node_modules",
       "!!**/.pwcli",
-      "!!**/test/e2e/dogfood-bootstrap.js"
+      "!!**/test/fixtures/code/dogfood-bootstrap.js"
     ]
   },
   "formatter": {

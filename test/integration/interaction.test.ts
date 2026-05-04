@@ -1,54 +1,8 @@
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
-import { resolve } from "node:path";
 import { after, describe, it } from "node:test";
+import { runPw, uniqueSessionName } from "./_helpers.ts";
 
-const repoRoot = resolve(import.meta.dirname, "..", "..");
-const cliPath = resolve(repoRoot, "dist", "cli.js");
-
-function runPw(args: string[], input?: string) {
-  return new Promise<{
-    code: number | null;
-    stdout: string;
-    stderr: string;
-    json: unknown;
-  }>((resolveResult, reject) => {
-    const child = spawn(process.execPath, [cliPath, ...args], {
-      cwd: repoRoot,
-      env: process.env,
-      stdio: [input ? "pipe" : "ignore", "pipe", "pipe"],
-    });
-    let stdout = "";
-    let stderr = "";
-    if (input) {
-      child.stdin.write(input);
-      child.stdin.end();
-    }
-    child.stdout.on("data", (chunk) => {
-      stdout += chunk.toString();
-    });
-    child.stderr.on("data", (chunk) => {
-      stderr += chunk.toString();
-    });
-    child.on("error", reject);
-    child.on("close", (code) => {
-      const trimmed = stdout.trim();
-      let json: unknown = null;
-      if (trimmed) {
-        try {
-          json = JSON.parse(trimmed);
-        } catch {
-          json = null;
-        }
-      }
-      resolveResult({ code, stdout, stderr, json });
-    });
-  });
-}
-
-function makeSessionName() {
-  return `it${Date.now().toString().slice(-6)}`;
-}
+const makeSessionName = () => uniqueSessionName("it");
 
 describe("interaction", { concurrency: false }, () => {
   const sessionsToClean: string[] = [];
@@ -399,7 +353,7 @@ describe("interaction", { concurrency: false }, () => {
 
     const result = await runPw(
       ["batch", "--session", name, "--stdin-json", "--include-results", "--output", "json"],
-      batchInput,
+      { input: batchInput },
     );
     assert.equal(result.code, 0, `batch failed: ${result.stderr}`);
     const json = result.json as {

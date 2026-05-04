@@ -80,6 +80,10 @@ test/
   smoke/
   e2e/
   fixtures/
+    code/
+    data/
+    servers/
+    targets/
 .claude/
   rules/      # Claude Code 本地细分规则
 ```
@@ -88,8 +92,10 @@ test/
 
 ```bash
 pnpm test:unit
+pnpm test:integration:core
 pnpm test:integration
 pnpm test:contract
+pnpm test:contract:all
 pnpm smoke
 pnpm check
 ```

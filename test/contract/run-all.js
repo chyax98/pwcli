@@ -3,6 +3,7 @@ import { spawnSync } from "node:child_process";
 
 const coreChecks = [
   "check-help-contract.js",
+  "check-recovery-envelope-contract.js",
   "check-skill-contract.js",
   "check-skill-install-contract.js",
 ];
@@ -13,7 +14,7 @@ const allChecks = [
   "check-trace-inspect-contract.js",
   "check-doctor-modal-contract.js",
   "check-run-code-timeout-recovery.js",
-  "check-har-1-0-decision.js",
+  "check-har-contract.js",
   "check-environment-geolocation-contract.js",
 ];
 

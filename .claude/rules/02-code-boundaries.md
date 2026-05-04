@@ -38,3 +38,4 @@ src/auth/    内置 auth provider registry 和实现
 - 可复用产品测试放 `test/`。
 - 一次性 probe、旧产品面测试、平台化 benchmark 资产不进仓库。
 - `test/contract/` 只放 command/help/skill/专项能力契约检查。
+- `test/smoke/` 和 `test/e2e/` 只放 runner；服务、数据和 `pw code` 片段放 `test/fixtures/`。

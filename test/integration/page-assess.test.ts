@@ -1,59 +1,10 @@
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
-import { mkdtemp, rm } from "node:fs/promises";
+import { rm } from "node:fs/promises";
 import { createServer } from "node:http";
-import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { createWorkspace, removeWorkspace, runPw, uniqueSessionName } from "./_helpers.ts";
 
-type CliResult = {
-  code: number | null;
-  stdout: string;
-  stderr: string;
-  json: unknown;
-};
-
-const repoRoot = resolve(import.meta.dirname, "..", "..");
-const cliPath = resolve(repoRoot, "dist", "cli.js");
-const workspaceDir = await mkdtemp(join(tmpdir(), "pwcli-page-assess-"));
-const sessionName = `assess${Date.now().toString(36).slice(-5)}`;
-
-function runPw(args: string[]) {
-  return new Promise<CliResult>((resolveResult, reject) => {
-    const child = spawn(process.execPath, [cliPath, ...args], {
-      cwd: workspaceDir,
-      env: process.env,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-    let stdout = "";
-    let stderr = "";
-    child.stdout.on("data", (chunk) => {
-      stdout += chunk.toString();
-    });
-    child.stderr.on("data", (chunk) => {
-      stderr += chunk.toString();
-    });
-    child.on("error", reject);
-    child.on("close", (code) => {
-      const trimmed = stdout.trim();
-      let json: unknown = null;
-      if (trimmed) {
-        try {
-          json = JSON.parse(trimmed);
-        } catch (error) {
-          reject(
-            new Error(
-              `Failed to parse JSON output for ${args.join(" ")}: ${
-                error instanceof Error ? error.message : String(error)
-              }\nstdout=${stdout}\nstderr=${stderr}`,
-            ),
-          );
-          return;
-        }
-      }
-      resolveResult({ code, stdout, stderr, json });
-    });
-  });
-}
+const workspaceDir = await createWorkspace("pwcli-page-assess-");
+const sessionName = uniqueSessionName("assess");
 
 const server = createServer((request, response) => {
   if (request.url === "/article") {
@@ -91,26 +42,18 @@ if (!address || typeof address === "string") {
 const startUrl = `http://127.0.0.1:${address.port}/article`;
 
 try {
-  const createResult = await runPw([
-    "session",
-    "create",
-    sessionName,
-    "--headless",
-    "--open",
-    startUrl,
-    "--output",
-    "json",
-  ]);
+  const createResult = await runPw(
+    ["session", "create", sessionName, "--headless", "--open", startUrl, "--output", "json"],
+    { cwd: workspaceDir },
+  );
   assert.equal(createResult.code, 0, `session create failed: ${JSON.stringify(createResult)}`);
 
-  const assessResult = await runPw([
-    "page",
-    "assess",
-    "--session",
-    sessionName,
-    "--output",
-    "json",
-  ]);
+  const assessResult = await runPw(
+    ["page", "assess", "--session", sessionName, "--output", "json"],
+    {
+      cwd: workspaceDir,
+    },
+  );
   assert.equal(assessResult.code, 0, `page assess failed: ${JSON.stringify(assessResult)}`);
 
   const envelope = assessResult.json as {
@@ -175,7 +118,9 @@ try {
     "frame/dialog projection",
   ]);
 
-  const closeResult = await runPw(["session", "close", sessionName, "--output", "json"]);
+  const closeResult = await runPw(["session", "close", sessionName, "--output", "json"], {
+    cwd: workspaceDir,
+  });
   assert.equal(closeResult.code, 0, `session close failed: ${JSON.stringify(closeResult)}`);
 } finally {
   server.closeAllConnections();
@@ -188,5 +133,5 @@ try {
       resolve();
     });
   });
-  await rm(workspaceDir, { recursive: true, force: true });
+  await removeWorkspace(workspaceDir);
 }

@@ -158,7 +158,7 @@ export function stopFixtureServer() {
   });
 }
 
-// Allow running directly: node test/fixtures/realistic-app.mjs
+// Allow running directly: node test/fixtures/servers/realistic-app.mjs
 if (import.meta.url === `file://${process.argv[1]}`) {
   startFixtureServer();
 }

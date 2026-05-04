@@ -295,7 +295,7 @@ async function resolveBrowserWsEndpoint(browserURL: string) {
   const wsEndpoint = registryMatch?.wsEndpoint?.trim();
   if (!wsEndpoint) {
     throw new Error(
-      `ATTACH_SUBSTRATE_UNAVAILABLE: ${normalizedBrowserURL} exposes CDP metadata but no Playwright ws bridge. Start a cooperating target such as \`node test/fixtures/manual/attach-target.js\`, or attach with \`--ws-endpoint\`.`,
+      `ATTACH_SUBSTRATE_UNAVAILABLE: ${normalizedBrowserURL} exposes CDP metadata but no Playwright ws bridge. Start a cooperating target such as \`node test/fixtures/targets/attach-target.js\`, or attach with \`--ws-endpoint\`.`,
     );
   }
   return wsEndpoint;

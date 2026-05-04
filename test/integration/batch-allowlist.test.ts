@@ -1,59 +1,7 @@
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { createWorkspace, removeWorkspace, runPw } from "./_helpers.ts";
 
-const repoRoot = resolve(import.meta.dirname, "..", "..");
-const cliPath = resolve(repoRoot, "dist", "cli.js");
-const workspaceDir = await mkdtemp(join(tmpdir(), "pwcli-batch-allowlist-"));
-
-function runBatchJson(stdinData: string) {
-  return new Promise<{
-    code: number | null;
-    stdout: string;
-    stderr: string;
-    json: unknown;
-  }>((resolveResult, reject) => {
-    const child = spawn(
-      process.execPath,
-      [cliPath, "batch", "--session", "ghost", "--stdin-json", "--output", "json"],
-      {
-        cwd: workspaceDir,
-        env: process.env,
-        stdio: ["pipe", "pipe", "pipe"],
-      },
-    );
-    let stdout = "";
-    let stderr = "";
-    child.stdout.on("data", (chunk) => {
-      stdout += chunk.toString();
-    });
-    child.stderr.on("data", (chunk) => {
-      stderr += chunk.toString();
-    });
-    child.on("error", reject);
-    child.on("close", (code) => {
-      const trimmed = stdout.trim();
-      let json: unknown = null;
-      if (trimmed) {
-        try {
-          json = JSON.parse(trimmed);
-        } catch (error) {
-          reject(
-            new Error(
-              `Failed to parse JSON output: ${error instanceof Error ? error.message : String(error)}\nstdout=${stdout}\nstderr=${stderr}`,
-            ),
-          );
-          return;
-        }
-      }
-      resolveResult({ code, stdout, stderr, json });
-    });
-    child.stdin.write(stdinData);
-    child.stdin.end();
-  });
-}
+const workspaceDir = await createWorkspace("pwcli-batch-allowlist-");
 
 try {
   const allowedCases: Array<{ label: string; stdin: string; expectedReasonCode: string }> = [
@@ -91,7 +39,10 @@ try {
   ];
 
   for (const { label, stdin, expectedReasonCode } of allowedCases) {
-    const result = await runBatchJson(stdin);
+    const result = await runPw(
+      ["batch", "--session", "ghost", "--stdin-json", "--output", "json"],
+      { cwd: workspaceDir, input: stdin },
+    );
     assert.notEqual(result.code, 0, `${label}: expected non-zero exit`);
     const envelope = result.json as {
       ok: false;
@@ -133,7 +84,10 @@ try {
   ];
 
   for (const { label, stdin, expectedMessage } of blockedCases) {
-    const result = await runBatchJson(stdin);
+    const result = await runPw(
+      ["batch", "--session", "ghost", "--stdin-json", "--output", "json"],
+      { cwd: workspaceDir, input: stdin },
+    );
     assert.notEqual(result.code, 0, `${label}: expected non-zero exit`);
     const envelope = result.json as {
       ok: false;
@@ -147,5 +101,5 @@ try {
     );
   }
 } finally {
-  await rm(workspaceDir, { recursive: true, force: true });
+  await removeWorkspace(workspaceDir);
 }

@@ -1,100 +1,44 @@
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
+import { createWorkspace, removeWorkspace, runPw, uniqueSessionName } from "./_helpers.ts";
 
-type CliResult = {
-  code: number | null;
-  stdout: string;
-  stderr: string;
-  json: unknown;
-};
-
-const repoRoot = resolve(import.meta.dirname, "..", "..");
-const cliPath = resolve(repoRoot, "dist", "cli.js");
-const workspaceDir = await mkdtemp(join(tmpdir(), "pwcli-verify-failure-run-"));
-const sessionName = `vf${Date.now().toString(36).slice(-5)}`;
+const workspaceDir = await createWorkspace("pwcli-verify-failure-run-");
+const sessionName = uniqueSessionName("vf");
 const bundleDir = resolve(workspaceDir, "bundle");
 const screenshotPath = resolve(workspaceDir, "before-verify.png");
-
-function runPw(args: string[]) {
-  return new Promise<CliResult>((resolveResult, reject) => {
-    const child = spawn(process.execPath, [cliPath, ...args], {
-      cwd: workspaceDir,
-      env: process.env,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-    let stdout = "";
-    let stderr = "";
-    child.stdout.on("data", (chunk) => {
-      stdout += chunk.toString();
-    });
-    child.stderr.on("data", (chunk) => {
-      stderr += chunk.toString();
-    });
-    child.on("error", reject);
-    child.on("close", (code) => {
-      const trimmed = stdout.trim();
-      let json: unknown = null;
-      if (trimmed) {
-        try {
-          json = JSON.parse(trimmed);
-        } catch (error) {
-          reject(
-            new Error(
-              `Failed to parse JSON output for ${args.join(" ")}: ${
-                error instanceof Error ? error.message : String(error)
-              }\nstdout=${stdout}\nstderr=${stderr}`,
-            ),
-          );
-          return;
-        }
-      }
-      resolveResult({ code, stdout, stderr, json });
-    });
-  });
-}
 
 try {
   const html = encodeURIComponent(
     "<!doctype html><title>Verify Failure</title><main>present</main>",
   );
-  const create = await runPw([
-    "session",
-    "create",
-    sessionName,
-    "--no-headed",
-    "--open",
-    `data:text/html,${html}`,
-    "--output",
-    "json",
-  ]);
+  const create = await runPw(
+    [
+      "session",
+      "create",
+      sessionName,
+      "--no-headed",
+      "--open",
+      `data:text/html,${html}`,
+      "--output",
+      "json",
+    ],
+    { cwd: workspaceDir },
+  );
   assert.equal(create.code, 0, `session create failed: ${JSON.stringify(create)}`);
 
-  const screenshot = await runPw([
-    "screenshot",
-    "--session",
-    sessionName,
-    "--path",
-    screenshotPath,
-    "--output",
-    "json",
-  ]);
+  const screenshot = await runPw(
+    ["screenshot", "--session", sessionName, "--path", screenshotPath, "--output", "json"],
+    { cwd: workspaceDir },
+  );
   assert.equal(screenshot.code, 0, `screenshot failed: ${JSON.stringify(screenshot)}`);
   assert.equal(existsSync(screenshotPath), true);
 
-  const verify = await runPw([
-    "verify",
-    "text",
-    "--session",
-    sessionName,
-    "--text",
-    "missing-marker",
-    "--output",
-    "json",
-  ]);
+  const verify = await runPw(
+    ["verify", "text", "--session", sessionName, "--text", "missing-marker", "--output", "json"],
+    { cwd: workspaceDir },
+  );
   assert.notEqual(verify.code, 0, "verify should fail for missing text");
   const verifyEnvelope = verify.json as {
     ok: boolean;
@@ -103,18 +47,21 @@ try {
   assert.equal(verifyEnvelope.ok, false);
   assert.equal(verifyEnvelope.error?.code, "VERIFY_FAILED");
 
-  const bundle = await runPw([
-    "diagnostics",
-    "bundle",
-    "--session",
-    sessionName,
-    "--out",
-    bundleDir,
-    "--task",
-    "verify failure handoff",
-    "--output",
-    "json",
-  ]);
+  const bundle = await runPw(
+    [
+      "diagnostics",
+      "bundle",
+      "--session",
+      sessionName,
+      "--out",
+      bundleDir,
+      "--task",
+      "verify failure handoff",
+      "--output",
+      "json",
+    ],
+    { cwd: workspaceDir },
+  );
   assert.equal(bundle.code, 0, `diagnostics bundle failed: ${JSON.stringify(bundle)}`);
   assert.equal(existsSync(resolve(bundleDir, "manifest.json")), true);
   assert.equal(existsSync(resolve(bundleDir, "handoff.md")), true);
@@ -170,9 +117,13 @@ try {
   assert.ok(handoff.includes("verify failure handoff"));
   assert.ok(handoff.includes("verify text failed"));
 
-  const close = await runPw(["session", "close", sessionName, "--output", "json"]);
+  const close = await runPw(["session", "close", sessionName, "--output", "json"], {
+    cwd: workspaceDir,
+  });
   assert.equal(close.code, 0, `session close failed: ${JSON.stringify(close)}`);
 } finally {
-  await runPw(["session", "close", sessionName, "--output", "json"]).catch(() => undefined);
-  await rm(workspaceDir, { recursive: true, force: true });
+  await runPw(["session", "close", sessionName, "--output", "json"], {
+    cwd: workspaceDir,
+  }).catch(() => undefined);
+  await removeWorkspace(workspaceDir);
 }

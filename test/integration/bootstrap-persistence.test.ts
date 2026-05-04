@@ -24,8 +24,8 @@ const fixtureServerPath = resolve(
   repoRoot,
   "test",
   "fixtures",
-  "manual",
-  "deterministic-fixture-server.js",
+  "servers",
+  "deterministic-server.js",
 );
 const workspaceDir = await mkdtemp(join(tmpdir(), "pwcli-bootstrap-persistence-"));
 const sessionName = `boot${Date.now().toString(36).slice(-5)}`;

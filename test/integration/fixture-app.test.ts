@@ -3,7 +3,7 @@ import { after, before, describe, it } from "node:test";
 import { SUPPORTED_BATCH_TOP_LEVEL } from "../../src/cli/batch/plan.js";
 import { isThirdPartyUrl } from "../../src/engine/diagnose/core.js";
 import { inspectEnvironment } from "../../src/store/health.js";
-import { startFixtureServer, stopFixtureServer } from "../fixtures/realistic-app.mjs";
+import { startFixtureServer, stopFixtureServer } from "../fixtures/servers/realistic-app.mjs";
 
 describe("fixture server", async () => {
   before(async () => {
