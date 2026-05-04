@@ -17,10 +17,10 @@ date: 2026-05-04
 
 | 要求 | 验收结论 | 证据 |
 |---|---|---|
-| 完成已承诺 feature | 通过 | `codestable/audits/2026-05-04-committed-feature-closure-audit/index.md` 未发现新的实现缺口 |
+| 完成已承诺 feature | 通过 | command docs、domain-status、release contract 和本验收报告已映射当前承诺产品面，未发现新的实现缺口 |
 | 修完 P0/P1 bug | 通过 | 已关闭 geolocation、batch verify、trace inspect、skill packaged path 四个 P1；release blocker audit 未发现新增 P0/P1 |
 | 每个 command 有 CodeStable 文档 | 通过 | `codestable/architecture/commands/coverage.md` 覆盖 53/53 顶层 command |
-| 所有能力深度验证 | 通过 | `drafts/2026-05-04-agent-dogfood-browser-automation.md` 覆盖 Agent 场景矩阵；聚焦 contract checks 固化 P1 回归 |
+| 所有能力深度验证 | 通过 | Pre-1.0 workflow evaluations 覆盖 Agent 场景矩阵；聚焦 contract checks 固化 P1 回归 |
 | 中文优先 | 通过 | `skills/pwcli/`、roadmap、decision、audit 均中文优先；命令、flag、错误码、路径保留英文 |
 | 不写逻辑向后兼容 | 通过 | `codestable/compound/2026-05-04-decision-no-logical-backward-compatibility.md`；geolocation 旧 positional 形态明确拒绝 |
 | Node 24 + pnpm 10+ 基线 | 通过 | `package.json` engines/packageManager 与 decision 记录；未为 Volta/proto 漂移写产品补丁 |
@@ -34,11 +34,11 @@ date: 2026-05-04
 |---|---|---|
 | `regression-smoke-green` | done | `pnpm smoke` 输出 `[smoke] smoke passed` |
 | `p0-p1-bug-backlog-closure` | done | `codestable/issues/2026-05-04-*` report/fix-note；release blocker audit |
-| `committed-feature-closure` | done | committed feature closure audit |
+| `committed-feature-closure` | done | command docs、domain-status 和 release contract 已收敛 |
 | `truth-sync-cleanup` | done | README / skill / architecture / command docs 已同步 |
 | `command-docs-complete` | done | command coverage 53/53 |
 | `agent-scenario-deep-validation` | done | Agent dogfood evidence status `passed` |
-| `compounding-assets-archive` | done | issue/fix-note、decision、audit、roadmap evidence、command docs |
+| `compounding-assets-archive` | done | issue/fix-note、decision、roadmap evidence、command docs |
 | `release-gate-green` | done | typecheck/build/smoke/checks/diff/pack 全部通过 |
 | `high-risk-dogfood-green` | done | 高风险能力已有 Agent dogfood 与 contract checks；本轮最终改动只涉及文档和发布契约 |
 | `completion-acceptance-report` | done | 本文件 |

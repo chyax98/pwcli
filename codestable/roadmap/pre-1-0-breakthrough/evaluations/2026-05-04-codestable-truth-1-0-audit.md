@@ -28,7 +28,7 @@ CodeStable truth 已对齐当前 Pre-1.0 状态，可以进入 `pre-1-0-release-
 | auth dc evidence status | pass-with-blocker | `commands/session-advanced.md` 从 documented 改为 blocked；`domain-status.md` 增加真实环境 blocker |
 | route load boundary | pass | `adr-002` 明确顶层 `pw route load` 不是 shipped command，只有 batch 内部 route load 子集 |
 | diagnostics bundle 1.0 | pass | `commands/diagnostics.md` 已记录 `manifest.json`、`handoff.md`、`summary.status`、blocked bundle 边界 |
-| real-env map | pass | `drafts/2026-05-04-real-env-access-map.md` 回写 auth proof 实际 blocked 结果 |
+| real-env map | pass | 真实环境规则已回写到 `skills/pwcli/references/forge-dc-auth.md`、`commands/session-advanced.md` 和 auth blocker issue |
 
 ## 删除说明
 

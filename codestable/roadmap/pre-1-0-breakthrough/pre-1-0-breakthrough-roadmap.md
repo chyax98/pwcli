@@ -96,7 +96,7 @@ pre-1-0-breakthrough
 
 ### Capability Intake
 
-职责：参考同类工具，但只吸收本地 Agent-first 浏览器任务需要的能力。参考对象和边界记录在 `drafts/2026-05-04-capability-reference-survey.md`。
+职责：参考同类工具，但只吸收本地 Agent-first 浏览器任务需要的能力。稳定边界进入本 roadmap、command docs、skill 和 dropped 结论；过程 survey 不长期保留。
 
 每个候选能力必须给出四类结论之一：
 
@@ -137,11 +137,7 @@ pre-1-0-breakthrough
 
 ### 4.1 真实环境验证证据协议
 
-**形式：**
-
-```text
-codestable/roadmap/pre-1-0-breakthrough/drafts/YYYY-MM-DD-real-env-{scenario}.md
-```
+**形式：**真实环境证据进入对应 evaluation、issue/fix-note、command docs 或 acceptance；不再在 roadmap 下保留 drafts。
 
 **每份证据必须包含：**
 
@@ -383,14 +379,14 @@ sprint_model:
 - 当前辅助 E2E 曾暴露：`doctor --session` 没有按脚本预期输出 `modal-state` recovery；2026-05-04 已修复并用 `check:doctor-modal` 固化。Pre-1.0 仍需继续覆盖页面级 modal 和复杂 blocked state。
 - `auth dc` 过去未验证的理由是缺真实外部业务环境证据；用户已明确可以进测试/RND 环境，因此下一轮不能再把它停留在 documented。
 - HAR 热录制已明确不进入 1.0 supported contract；`har start|stop` 只作为 `UNSUPPORTED_HAR_CAPTURE` 防误用 guard，预录制 HAR 回放走 `har replay|replay-stop`。
-- `scripts/eval/`、`scripts/benchmark/results/` 和旧 E2E 资产需要清理审计：有入口、有复用价值才保留；否则移除或迁入 CodeStable 稳定结论。
+- 旧 `scripts/eval/` 和 `scripts/benchmark/` 已移除；稳定评测面收敛到 `benchmark/`、`scripts/test/`、`scripts/e2e/` 和 package check scripts。
 - `cla` 指向的具体工具名后续需要按用户语境校准；本轮先按“Claude Code / 本地 Agent CLI 这一类工具体验”纳入能力参考，不把未确认外部产品写成 shipped contract。
 - 当前 34 个循环已经超过用户要求的 20+ 循环下限；后续新增能力可以加 item，但不能用新增愿景稀释 Pre-1.0 / RC / 1.0 的出口证据。
 
 ## 8. 变更日志
 
 - 2026-05-04：创建 Pre-1.0 系统攻关 roadmap，作为下一轮 goal-driven 工作入口。
-- 2026-05-04：完成 `repo-cleanup-baseline`。删除 tracked 生成物/过程文件 309 个，补充 `.gitignore` 防回归，清理审计写入 `codestable/audits/2026-05-04-repo-cleanup-baseline/index.md`。
+- 2026-05-04：完成 `repo-cleanup-baseline`。删除 tracked 生成物/过程文件，补充 `.gitignore` 防回归；后续再次清理移除旧 eval/benchmark 过程面、audits 和 drafts。
 - 2026-05-04：按用户新增要求扩展为一个月级 1.0 冲刺：每个 command 深评、核心 workflow 串联、参考同类本地 Agent/browser CLI 能力，并拆成 30+ 个可执行循环。
 - 2026-05-04：完成 `sprint-capability-reference-survey` 官方来源核对，明确只吸收本地 Agent-first 浏览器能力，不吸收 browser-use cloud/tunnel/API、远程控制、托管 profile 或 Stagehand 式无边界 LLM action/extract 平台。
 - 2026-05-04：完成 `command-eval-observation-reading`。覆盖 Agent 首读和页面事实读取主链，并修复 `locate --return-ref` 在 checked checkbox 场景不返回 ref 的缺陷。

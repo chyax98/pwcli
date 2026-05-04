@@ -8,7 +8,7 @@ items:
     status: done
     feature: null
     minimal_loop: true
-    notes: 2026-05-04 已完成 baseline 清理；删除 tracked 生成物/过程文件 309 个（约 82.5MiB），补 .gitignore，审计见 codestable/audits/2026-05-04-repo-cleanup-baseline/index.md；scripts/e2e/eval/benchmark 保留到后续专项审计
+    notes: 2026-05-04 已完成 baseline 清理；后续清理将旧 scripts/eval、scripts/benchmark、codestable/audits 和 roadmap drafts 移出仓库；保留 scripts/e2e 作为辅助回归和 fixture 入口
 
   - slug: e2e-helper-contract-alignment
     description: 决定 scripts/e2e/pwcli-dogfood-e2e.sh 是保留、拆分还是移除；若保留，修到与当前唯一 contract 一致
@@ -16,7 +16,7 @@ items:
     status: done
     feature: null
     minimal_loop: false
-    notes: 2026-05-04 审计结论为保留作辅助回归和 fixture 复用；pnpm test:dogfood:e2e 通过，耗时 420.6s；审计见 codestable/audits/2026-05-04-e2e-helper-contract-alignment/index.md
+    notes: 2026-05-04 结论为保留作辅助回归和 fixture 复用；pnpm test:dogfood:e2e 通过，耗时 420.6s
 
   - slug: sprint-capability-reference-survey
     description: 对 Playwright CLI、Agent Browser、browser-use、cla/同类本地 Agent CLI 做能力盘点，抽出 pwcli 1.0 必须吸收的本地能力
@@ -184,7 +184,7 @@ items:
     status: done
     feature: null
     minimal_loop: false
-    notes: 2026-05-04 已完成真实环境入口映射和安全记录 SOP；明确 explicit targetUrl 是 auth-dc-real-env-proof 主路，provider default local-ip 只作 fallback；证据见 drafts/2026-05-04-real-env-access-map.md
+    notes: 2026-05-04 已完成真实环境入口映射和安全记录 SOP；明确 explicit targetUrl 是 auth-dc-real-env-proof 主路，provider default local-ip 只作 fallback；稳定规则已吸收进 skills/pwcli/references/forge-dc-auth.md 和 auth command docs
 
   - slug: auth-dc-real-env-proof
     description: 在测试/RND 环境真实验证 auth dc，把 documented 推进到 proven 或记录环境 blocker

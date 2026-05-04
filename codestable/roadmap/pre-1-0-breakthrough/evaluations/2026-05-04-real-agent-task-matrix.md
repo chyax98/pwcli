@@ -48,7 +48,7 @@ result: pass-with-blocker
 
 ## 真实环境状态
 
-已完成真实环境入口映射：`drafts/2026-05-04-real-env-access-map.md`。
+已完成真实环境入口映射；稳定规则已进入 `skills/pwcli/references/forge-dc-auth.md`、`commands/session-advanced.md` 和 auth blocker issue。
 
 `auth dc` proof 执行后形成 blocker：
 

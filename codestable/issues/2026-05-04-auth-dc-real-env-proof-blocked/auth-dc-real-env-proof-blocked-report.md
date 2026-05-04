@@ -106,7 +106,7 @@ pw diagnostics bundle -s dcproof1 --out /tmp/pwcli-auth-dc-proof-20260504/bundle
 - 涉及模块 / 功能：`auth dc` provider、real-env proof、session recovery
 - 相关文件 / 函数：`src/auth/dc.ts`、`src/cli/commands/auth.ts`
 - 运行环境：local → 测试/RND 入口尝试
-- 其他上下文：Node 24 + pnpm 10+ 基线；不为 Volta/proto/node 漂移写产品补丁；证据命令来自 `codestable/roadmap/pre-1-0-breakthrough/drafts/2026-05-04-real-env-access-map.md`
+- 其他上下文：Node 24 + pnpm 10+ 基线；不为 Volta/proto/node 漂移写产品补丁；证据命令来自 `skills/pwcli/references/forge-dc-auth.md` 和 `codestable/architecture/commands/session-advanced.md`
 
 ## 5. 严重程度
 

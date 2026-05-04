@@ -73,6 +73,4 @@ Details:
 
 ## 备注
 
-本问题由 Agent dogfood 浏览器自动化/诊断场景发现，记录于：
-
-- `codestable/roadmap/project-completion/drafts/2026-05-04-agent-dogfood-browser-automation.md`
+本问题由 Agent dogfood 浏览器自动化/诊断场景发现；稳定结论已进入 fix-note、command docs 和 Pre-1.0 workflow evaluations。

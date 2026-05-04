@@ -14,7 +14,7 @@
 3. 每个领域已经做到什么程度
 4. 有哪些明确限制、折衷、扩展口
 
-过程草案、迁移记录、评审笔记、survey 细稿不进入最终文档面。
+过程草案、迁移记录、评审笔记、audit 中间报告、survey 细稿不进入最终文档面。
 
 ## 2. 真相优先级
 
@@ -118,6 +118,7 @@
 - `AGENTS.md`
 - `.claude/CLAUDE.md`
 - `.claude/rules/**`
+- `.claude/commands/**`
 - `docs/README.md`（重定向入口）
 - `skills/pwcli/**`
 - `codestable/architecture/ARCHITECTURE.md`
@@ -156,10 +157,12 @@
 
 - `.claude/` 只承载 Claude Code 项目指令和 rules；可以进入 git
 - `.claude/settings.local.json`、`.claude/local/`、`.claude/tmp/`、`.claude/cache/` 不进入 git
+- `.claude/skills/` 不进入 git；项目内 CodeStable skill 源只保留在 `.agents/skills/`
 - `.claude/` 不能作为项目规划、过程归档、迁移记录或 backlog 区
 - backlog、推进记录、临时结论放 GitHub issues / PR
 - 一旦决策稳定，必须吸收进 skill / ADR / `domain-status.md`
 - 过程稿如果没有转化为正式结论，就直接删除，不做仓内长期保存
+- roadmap drafts、`codestable/audits/`、旧 eval/benchmark 结果面不作为长期 truth；稳定结论必须进入 roadmap/evaluation/issue/ADR/command docs
 
 ## 6. 不允许的重复
 

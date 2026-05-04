@@ -3,7 +3,7 @@ created: 2026-05-03
 
 items:
   - slug: regression-smoke-green
-    description: 接续 handoff_smoke.md 修复当前 regression，直到 pnpm smoke 输出 all tests passed
+    description: 修复当前 regression，直到 pnpm smoke 通过
     depends_on: []
     status: done
     feature: null

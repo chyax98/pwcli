@@ -9,6 +9,8 @@ scripts/test-app/node_modules/
 scripts/tmp/
 scripts/eval/*.log
 scripts/eval/raw_results.tsv
+scripts/eval/
+scripts/benchmark/
 benchmark/artifacts/closure/
 benchmark/reports/closure/
 benchmark/tasks/generated/
@@ -17,4 +19,7 @@ benchmark/tasks/generated/
 .claude/local/
 .claude/tmp/
 .claude/cache/
+.claude/skills/
 docs/superpowers/
+codestable/audits/
+codestable/roadmap/*/drafts/

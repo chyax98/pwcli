@@ -61,7 +61,7 @@ project-completion
 
 ### Regression Gate
 
-- **职责**：接续 `handoff_smoke.md`，用最小修复让当前 `pnpm smoke` 通过。
+- **职责**：用最小修复让当前 `pnpm smoke` 通过；历史 handoff 内容已吸收进 issue/fix-note 和 release gate 记录。
 - **承载的子 feature**：`regression-smoke-green`
 - **触碰的现有代码 / 模块**：`scripts/smoke/`、`src/cli/`、`src/engine/`、必要的 skill / command architecture 文档。
 
@@ -99,7 +99,7 @@ project-completion
 
 - **职责**：把验证、失败、修复和设计结论沉淀成 CodeStable 可检索资产，避免只留下临时日志。
 - **承载的子 feature**：`compounding-assets-archive`
-- **触碰的现有代码 / 模块**：`codestable/issues/`、`codestable/features/`、`codestable/compound/`、`scripts/benchmark/results/`。
+- **触碰的现有代码 / 模块**：`codestable/issues/`、`codestable/compound/`、`codestable/architecture/commands/`。
 
 ### Release Gate
 
@@ -252,7 +252,7 @@ reproducible-handoff      -> runs/events.jsonl/manifest.json/artifacts/fix-note
 
 ## 5. 子 feature 清单
 
-1. **regression-smoke-green** — 接续 `handoff_smoke.md`，修到 `pnpm smoke` 输出 `[smoke] all tests passed`。
+1. **regression-smoke-green** — 修到 `pnpm smoke` 输出通过。
    - 所属模块：Regression Gate
    - 依赖：无
    - 状态：done
@@ -326,14 +326,14 @@ reproducible-handoff      -> runs/events.jsonl/manifest.json/artifacts/fix-note
 
 ## 6. 排期思路
 
-先做 `regression-smoke-green`，因为当前项目已有明确失败点和交接文档，做完后能恢复最小端到端验证能力。之后先清 P0/P1 bug，再收敛已承诺 feature；随后做 truth sync、command docs coverage 和 Agent 场景深测；最后归档复利资产并跑 release gate。
+先做 `regression-smoke-green`，因为当前项目已有明确失败点，做完后能恢复最小端到端验证能力。之后先清 P0/P1 bug，再收敛已承诺 feature；随后做 truth sync、command docs coverage 和 Agent 场景深测；最后归档复利资产并跑 release gate。
 
 技术依赖之外的产品优先级不在本 roadmap 里替用户决定；新 feature 是否进入范围，必须由用户或后续 roadmap update 明确。
 
 ## 7. 观察项
 
 - README、skill route mock 文档和 Claude 本地命令旧路径已在 truth sync 阶段修正。
-- `handoff_smoke.md` 是过程交接文档，长期不应作为 active truth；完成 smoke 后应转成 issue/fix-note 或删除。
+- 历史 handoff 文档不作为 active truth；完成 smoke 后只保留 issue/fix-note、release gate 和命令 docs 中的稳定结论。
 - command architecture 文档已提交为命令族 ADR，并补 `coverage.md` 覆盖矩阵。
 - `route load` 不是当前 source/help 注册命令；已在 `tools.md` 和 `coverage.md` 标为旧文档残留风险，不写成 shipped 能力。
 - `doctor` 在当前 Node 24 / pnpm 10+ 环境下仍会报告环境 diagnostic；smoke 只验证 endpoint 和 recovery，不用产品补丁绕过版本管理差异。

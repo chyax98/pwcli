@@ -14,9 +14,9 @@
     "sourceMap": true,
     "paths": {
       "#engine/*": ["./src/engine/*"],
-      "#cli/*":    ["./src/cli/*"],
-      "#store/*":  ["./src/store/*"],
-      "#auth/*":   ["./src/auth/*"]
+      "#cli/*": ["./src/cli/*"],
+      "#store/*": ["./src/store/*"],
+      "#auth/*": ["./src/auth/*"]
     }
   },
   "include": ["src/**/*.ts"]
