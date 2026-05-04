@@ -4,7 +4,11 @@ import { sharedArgs } from "#cli/args.js";
 import { bool, firstPos, print, session, str, withCliError, type CliArgs } from "./_helpers.js";
 
 export default defineCommand({
-  meta: { name: "wait", description: "Wait for page, network, or element state" },
+  meta: {
+    name: "wait",
+    description:
+      "Purpose: wait for page delay, text, selector, network-idle, request, response or element state before the next step.\nOptions: use positional network-idle or --network-idle; use --selector/--text for DOM waits; use --request/--response with method/status filters for network waits.\nExamples:\n  pw wait -s task-a network-idle\n  pw wait -s task-a --selector '#done' --state visible\n  pw wait -s task-a --response '/api/save' --status 200\nNotes: wait only proves a condition became reachable; use verify/read commands for assertions and page facts.",
+  },
   args: {
     ...sharedArgs,
     text: { type: "string", description: "Wait for text", valueHint: "text" },

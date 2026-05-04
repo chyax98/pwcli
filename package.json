@@ -35,6 +35,7 @@
     "check:doctor-modal": "node scripts/check-doctor-modal-contract.js",
     "check:run-code-timeout": "node scripts/check-run-code-timeout-recovery.js",
     "check:har-1-0": "node scripts/check-har-1-0-decision.js",
+    "check:help": "node scripts/check-help-contract.js",
     "check:skill-install": "node scripts/check-skill-install-contract.js"
   },
   "imports": {

@@ -11,8 +11,12 @@ async function readStdin() {
 }
 
 export default defineCommand({
-  meta: { name: "batch", description: "Run a structured serial command batch" },
-  args: { ...sharedArgs, "stdin-json": { type: "boolean", description: "Read JSON argv arrays from stdin" }, file: { type: "string", description: "JSON file with argv arrays", valueHint: "path" }, "continue-on-error": { type: "boolean", description: "Continue after failed step" }, "include-results": { type: "boolean", description: "Include full step results" }, "summary-only": { type: "boolean", description: "Omit step results" } },
+  meta: {
+    name: "batch",
+    description:
+      "Purpose: run a single-session serial batch from JSON string[][].\nOptions: input must come from --stdin-json or --file.\nExamples:\n  printf '[[\"read-text\",\"--max-chars\",\"1000\"],[\"verify\",\"text\",\"--text\",\"Done\"]]' | pw batch -s task-a --stdin-json\n  pw batch -s task-a --file ./steps.json --continue-on-error\nNotes: batch supports a stable command subset only; keep lifecycle, auth, diagnostics queries and recovery outside batch.",
+  },
+  args: { ...sharedArgs, "stdin-json": { type: "boolean", description: "Read JSON string[][] argv arrays from stdin" }, file: { type: "string", description: "JSON file containing string[][] argv arrays", valueHint: "path" }, "continue-on-error": { type: "boolean", description: "Continue after failed step" }, "include-results": { type: "boolean", description: "Include full step results" }, "summary-only": { type: "boolean", description: "Omit step results" } },
   async run({ args }) {
     const a = args as CliArgs;
     try {

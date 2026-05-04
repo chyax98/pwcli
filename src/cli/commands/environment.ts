@@ -5,7 +5,11 @@ import { firstPos, num, positionals, print, session, str, withCliError, type Cli
 
 const offline = defineCommand({ meta: { name: "offline", description: "Set network offline mode" }, args: sharedArgs, async run({ args }) { const a = args as CliArgs; try { print("environment offline", await managedEnvironmentOffline(firstPos(a) as "on" | "off", { sessionName: session(a) }), a); } catch (e) { withCliError("environment offline", a, e); } } });
 const geoSet = defineCommand({
-  meta: { name: "set", description: "Set geolocation" },
+  meta: {
+    name: "set",
+    description:
+      "Purpose: set browser geolocation for the target session.\nOptions: --lat and --lng are required; --accuracy is optional.\nExamples:\n  pw environment permissions grant -s geo-a geolocation\n  pw environment geolocation set -s geo-a --lat 31.2304 --lng 121.4737 --accuracy 20\nNotes: grant geolocation permissions before testing sites that call navigator.geolocation.",
+  },
   args: {
     ...sharedArgs,
     lat: { type: "string", description: "Latitude", valueHint: "lat" },

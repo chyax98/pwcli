@@ -289,8 +289,7 @@ const dcProviderSource = String(async (page: DcAuthPage, args: Record<string, st
 export const dcAuthProvider: AuthProviderSpec = {
   name: "dc",
   summary: "TapTap/Forge DC 登录 provider",
-  description:
-    "在现有 session 内执行 DC 登录链。传了 targetUrl 就使用指定业务 URL；否则优先使用当前 Forge 页面，最后回退默认本地 Forge。",
+  description: "在现有 session 内执行 DC 登录链。provider 参数统一使用 --arg key=value。",
   source: dcProviderSource,
   args: [
     {
@@ -314,14 +313,13 @@ export const dcAuthProvider: AuthProviderSpec = {
   ],
   examples: [
     "pw auth dc --session dc2",
-    "pw auth dc --session dc2 --arg targetUrl='https://developer-172-26-201-86.tap.dev/forge'",
+    "pw auth dc --session dc2 --arg targetUrl='<forge-url>'",
     "pw auth dc --session dc2 --arg phone=19545672859",
   ],
   notes: [
-    "传了 `targetUrl` 就用 `targetUrl`。",
-    "未传 URL 时，先尝试使用当前 session 的 Forge 页面 URL。",
-    "当前页不是 Forge 时，回退到默认本地 Forge URL。",
-    "默认登录失败时，传 `--arg targetUrl=<forge-url>`。",
+    "`targetUrl` 是业务目标 URL；传入后 provider 会推导 `baseURL`。",
+    "`phone`、`smsCode`、`baseURL` 都是普通 provider 参数。",
+    "`auth dc` 只在现有 session 内执行登录，不创建 session。",
   ],
   resolveArgs: resolveDcArgs,
 };

@@ -35,8 +35,12 @@ function handleHarError(command: string, args: CliArgs, error: unknown) {
 }
 
 const start = defineCommand({
-  meta: { name: "start", description: "Start HAR recording" },
-  args: { ...sharedArgs, path: { type: "string", description: "HAR path", valueHint: "path" } },
+  meta: {
+    name: "start",
+    description:
+      "Purpose: return the explicit unsupported guard for hot HAR recording.\nOptions: --path accepts the intended HAR path for the failure envelope.\nExamples:\n  pw har start -s task-a --path ./record.har\nNotes: hot HAR recording is unsupported for managed sessions; use har replay with a pre-recorded HAR, or network/diagnostics/trace for evidence.",
+  },
+  args: { ...sharedArgs, path: { type: "string", description: "HAR path for unsupported capture request", valueHint: "path" } },
   async run({ args }) {
     const a = args as CliArgs;
     try {
@@ -51,7 +55,11 @@ const start = defineCommand({
   },
 });
 const stop = defineCommand({
-  meta: { name: "stop", description: "Stop HAR recording" },
+  meta: {
+    name: "stop",
+    description:
+      "Purpose: return the explicit unsupported guard for hot HAR recording stop.\nOptions: only the target session is required.\nExamples:\n  pw har stop -s task-a\nNotes: hot HAR recording is unsupported; use har replay/replay-stop for deterministic stubbing, or network/diagnostics/trace for evidence.",
+  },
   args: sharedArgs,
   async run({ args }) {
     const a = args as CliArgs;
@@ -63,7 +71,11 @@ const stop = defineCommand({
   },
 });
 const replay = defineCommand({
-  meta: { name: "replay", description: "Replay from HAR" },
+  meta: {
+    name: "replay",
+    description:
+      "Purpose: replay requests from a pre-recorded HAR file.\nOptions: pass the HAR file as the positional argument.\nExamples:\n  pw har replay ./fixture.har -s task-a\nNotes: replay is the supported HAR path; start/stop hot recording intentionally return unsupported.",
+  },
   args: sharedArgs,
   async run({ args }) {
     const a = args as CliArgs;

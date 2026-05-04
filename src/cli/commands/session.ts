@@ -49,8 +49,12 @@ const list = defineCommand({
 });
 
 const create = defineCommand({
-  meta: { name: "create", description: "Create a named managed session" },
-  args: { output: sharedArgs.output, open: { type: "string", description: "Open URL", valueHint: "url" }, profile: { type: "string", description: "Persistent profile path", valueHint: "path" }, "from-system-chrome": { type: "boolean", description: "Use local Chrome profile" }, "chrome-profile": { type: "string", description: "Chrome profile", valueHint: "name" }, persistent: { type: "boolean", description: "Use persistent profile" }, state: { type: "string", description: "Load storage state", valueHint: "path" }, headed: { type: "boolean", description: "Open headed browser", default: false }, trace: { type: "boolean", description: "Enable trace recording", default: true }, "init-script": { type: "string", description: "Init script file", valueHint: "path" } },
+  meta: {
+    name: "create",
+    description:
+      "Purpose: create a named session, optionally opening a URL and loading state/bootstrap.\nOptions: the session name is positional; --open navigates after create; --state loads storage; --headed controls visibility.\nExamples:\n  pw session create task-a --headed --open 'https://example.com'\n  pw session create task-a --state ./auth.json --open 'https://example.com'\nNotes: create/recreate/attach are the lifecycle path; open only navigates an existing named session.",
+  },
+  args: { output: sharedArgs.output, open: { type: "string", description: "Open URL after creating the named session", valueHint: "url" }, profile: { type: "string", description: "Persistent profile path", valueHint: "path" }, "from-system-chrome": { type: "boolean", description: "Use local Chrome profile" }, "chrome-profile": { type: "string", description: "Chrome profile", valueHint: "name" }, persistent: { type: "boolean", description: "Use persistent profile" }, state: { type: "string", description: "Load storage state", valueHint: "path" }, headed: { type: "boolean", description: "Open headed browser", default: false }, trace: { type: "boolean", description: "Enable trace recording", default: true }, "init-script": { type: "string", description: "Init script file", valueHint: "path" } },
   async run({ args }) {
     const a = args as CliArgs;
     try {

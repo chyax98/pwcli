@@ -55,7 +55,11 @@ const exportCmd = defineCommand({
   },
 });
 const bundle = defineCommand({
-  meta: { name: "bundle", description: "Build diagnostics bundle" },
+  meta: {
+    name: "bundle",
+    description:
+      "Purpose: build a handoff evidence bundle for one session.\nOptions: --out writes manifest.json and handoff.md; --task labels the manifest; --limit bounds included evidence.\nExamples:\n  pw diagnostics bundle -s bug-a --out .pwcli/bundles/bug-a --task 'login failure'\nNotes: bundle records facts for handoff; it does not bypass blocked sessions or replace dialog/modal recovery.",
+  },
   args: {
     ...sharedArgs,
     out: { type: "string", description: "Output bundle directory", valueHint: "dir" },
