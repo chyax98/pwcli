@@ -360,3 +360,4 @@ skill_updates: string[]
 - 2026-05-04：完成 `command-eval-environment-controls`。覆盖 offline、geolocation、permissions、clock 的单命令深评，并明确 clock 未 install 时当前顶层错误码为 `ENVIRONMENT_CLOCK_SET_FAILED`、message 含 `CLOCK_REQUIRES_INSTALL`。
 - 2026-05-04：完成 `command-eval-auth-state-storage-profile`。覆盖 auth list/info/probe/fixture-auth、cookies、storage local/session/indexeddb、state save/load/diff、profile list-chrome；修复 `state diff --include-values` value-only storage 变化漏进 `summary.changedBuckets` 的 P1；`auth dc` 仍保持 documented，等待真实测试/RND 环境证明。
 - 2026-05-04：完成 `command-eval-batch-code-dashboard-skill-sse`。覆盖 batch、code、dashboard open、skill path/install、sse 的工具边界；明确 batch 只承诺 single-session `string[][]` 稳定子集，dashboard 只做人类观察/接管面；修正 `dashboard open --timeout` 文档漂移。
+- 2026-05-04：完成 `workflow-eval-browser-automation`。按 `skills/pwcli/` 标准闭环串联 session、观察、定位、动作、等待、断言、截图和 diagnostics bundle；最终证据 `wfauto2` 干净通过，bundle audit 为 `no_strong_failure_signal`。

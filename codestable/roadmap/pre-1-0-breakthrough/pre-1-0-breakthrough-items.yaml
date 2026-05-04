@@ -133,10 +133,10 @@ items:
   - slug: workflow-eval-browser-automation
     description: 串联验证通用浏览器自动化 workflow，从 session 到观察、动作、等待、验收和证据
     depends_on: [command-eval-batch-code-dashboard-skill-sse]
-    status: planned
+    status: done
     feature: null
     minimal_loop: true
-    notes: 由 Agent 按 skills/pwcli 执行，不只复用 shell 脚本
+    notes: 2026-05-04 已按 skills/pwcli 标准闭环完成真实 Agent workflow；覆盖 session create/status/page/read-text/locate/snapshot/fill/click/wait/verify/get/screenshot/diagnostics bundle/session close；证据见 evaluations/2026-05-04-workflow-eval-browser-automation.md
 
   - slug: workflow-eval-automated-testing
     description: 串联验证自动化测试 workflow，覆盖 fixture、route/mock、环境控制、断言和失败报告
