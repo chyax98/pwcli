@@ -417,3 +417,4 @@ sprint_model:
 - 2026-05-04：完成 `run-code-timeout-recovery-breakthrough`。发现并修复 `pw code` 触发 `RUN_CODE_TIMEOUT` 后 CLI 进程不退出的 P1；新增 `check:run-code-timeout` 固化 timeout envelope、session facts 恢复和后续短动作 / 短 code 可继续。
 - 2026-05-04：完成 `evidence-bundle-1-0-contract`。`diagnostics bundle` manifest 升级为 1.0 证据 contract，补齐 `schemaVersion/session/task?/commands/runIds/artifacts/summary`，`--out` 额外生成 `handoff.md`；focused verification 覆盖 VERIFY_FAILED、截图 artifact size、commands/runIds 和交接文本。
 - 2026-05-04：完成 `har-trace-1-0-decision`。HAR 热录制明确移出 1.0 supported contract，`har start|stop` 改为 `UNSUPPORTED_HAR_CAPTURE` 失败 guard；`har replay|replay-stop` 保留为预录制 HAR deterministic stubbing，并新增 `check:har-1-0`。
+- 2026-05-04：完成 `real-agent-task-matrix`。本地 Agent workflow 矩阵覆盖浏览器自动化、自动化测试、填表/文件、简单爬取、Deep Bug、恢复交接、evidence bundle 和 HAR replay；真实测试/RND 的 `auth dc` 仍按 P1 blocker 记录，不伪装 proven。

@@ -229,14 +229,14 @@ items:
   - slug: real-agent-task-matrix
     description: 在本地和测试/RND 环境跑真实 Agent 场景矩阵，覆盖自动化、测试、填表、爬取、Deep Bug 和复现分析
     depends_on: [auth-dc-real-env-proof, workflow-eval-recovery-handoff, evidence-bundle-1-0-contract, har-trace-1-0-decision]
-    status: planned
+    status: done
     feature: null
     minimal_loop: false
-    notes: 以 Agent 按 skills/pwcli/ 执行为主，脚本只作辅助
+    notes: 2026-05-04 已完成 pass-with-blocker 矩阵；本地 Agent workflow 覆盖自动化、测试、填表文件、爬取、Deep Bug、恢复、证据交接和 HAR replay；测试/RND auth dc 仍为正式 P1 blocker，不能伪装 proven
 
   - slug: skill-sop-1-0-audit
     description: 全面重审 skills/pwcli，补齐中文优先 SOP、真实环境、失败恢复、证据交接和反模式
-    depends_on: [real-agent-task-matrix, run-code-timeout-recovery-breakthrough]
+    depends_on: [real-agent-task-matrix, run-code-timeout-recovery-breakthrough, har-trace-1-0-decision]
     status: planned
     feature: null
     minimal_loop: false
