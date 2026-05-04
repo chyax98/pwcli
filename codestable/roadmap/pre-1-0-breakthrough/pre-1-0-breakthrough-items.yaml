@@ -157,10 +157,10 @@ items:
   - slug: workflow-eval-crawler-extraction
     description: 串联验证简单爬取和内容提取 workflow，覆盖多页导航、读取、导出和去噪
     depends_on: [workflow-eval-browser-automation]
-    status: planned
+    status: done
     feature: null
     minimal_loop: true
-    notes: 不恢复 extract recipe 平台；只做 Agent 可执行的本地浏览器事实提取
+    notes: 2026-05-04 已完成本地 dogfood fixture 串联；覆盖 Projects/Incidents/Detail/Reproduce 多页导航、read-text/page assess 首读、get count、pw code 小范围结构化提取、iframe frameLocator、diagnostics export、screenshot 和 bundle；不恢复旧 extract recipe 平台；评估见 evaluations/2026-05-04-workflow-eval-crawler-extraction.md
 
   - slug: workflow-eval-deep-bug-reproduction
     description: 串联验证 Deep Bug 复现与分析 workflow，覆盖 console/network/errors/diagnostics/bundle

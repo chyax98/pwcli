@@ -406,3 +406,4 @@ sprint_model:
 - 2026-05-04：完成 `workflow-eval-automated-testing`。串联本地 HTTP fixture、route mock、environment geolocation、正向断言和失败报告；修复 `VERIFY_FAILED` 未写入 run artifact 导致 diagnostics bundle 无法归因的 P1。
 - 2026-05-04：按用户要求收紧执行口径：34 个 roadmap 循环映射传统一个月冲刺，53 个 command matrix 行作为逐 command 深评粒度；竞品能力必须落到 command / workflow / skill / roadmap item / dropped 结论。
 - 2026-05-04：完成 `workflow-eval-form-file-download`。串联登录、受保护页面导航、上传、拖拽、下载、截图、PDF 和 diagnostics bundle；文件下载内容、截图和 PDF artifact 均有本地证据。
+- 2026-05-04：完成 `workflow-eval-crawler-extraction`。串联多页导航、低噪声读取、列表计数、小范围 DOM/iframe 结构化提取、API 证据导出、截图和 diagnostics bundle；明确不恢复旧 `extract` recipe 平台。
