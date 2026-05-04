@@ -21,10 +21,10 @@ items:
   - slug: sprint-capability-reference-survey
     description: 对 Playwright CLI、Agent Browser、browser-use、cla/同类本地 Agent CLI 做能力盘点，抽出 pwcli 1.0 必须吸收的本地能力
     depends_on: [repo-cleanup-baseline]
-    status: in-progress
+    status: done
     feature: null
     minimal_loop: false
-    notes: 初版参考池已写入 drafts/2026-05-04-capability-reference-survey.md；只吸收本地工具能力，云端部署、托管执行、账号托管和无边界平台化不进入 1.0
+    notes: 2026-05-04 已完成官方来源核对；参考 Playwright Agent CLI capability groups、browser-use CLI 本地/云端边界、Stagehand observe/act/extract、Claude Code CLI 本地 Agent 体验；只吸收本地工具能力，云端部署、托管执行、账号托管和无边界平台化不进入 1.0
 
   - slug: command-evaluation-contract
     description: 建立每个 command 的深度评估协议：目的、输入、输出、错误、恢复、证据、workflow 关联和 proven 判定
