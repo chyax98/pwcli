@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { existsSync, mkdirSync, rmSync, symlinkSync } from "node:fs";
+import { rmSync } from "node:fs";
 import { mkdir, readdir, readFile, rm, rmdir, stat, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { dirname, join, resolve } from "node:path";
@@ -14,6 +14,10 @@ import { pageIdRuntimePrelude } from "./workspace.js";
 
 const require = createRequire(import.meta.url);
 const playwrightCoreRoot = dirname(require.resolve("playwright-core/package.json"));
+const pwcliRuntimeDir = resolve(".pwcli");
+
+process.env.PLAYWRIGHT_DAEMON_SESSION_DIR ??= join(pwcliRuntimeDir, "playwright-daemon");
+process.env.PLAYWRIGHT_SERVER_REGISTRY ??= join(pwcliRuntimeDir, "playwright-registry");
 
 const sessionModule = require(join(playwrightCoreRoot, "lib/tools/cli-client/session.js"));
 const registryModule = require(join(playwrightCoreRoot, "lib/tools/cli-client/registry.js"));
@@ -179,34 +183,7 @@ async function withPwcliPlaywrightOutput<T>(outputDir: string, fn: () => Promise
   }
 }
 
-/**
- * Playwright-core's `findWorkspaceDir()` looks for a `.playwright` directory to
- * identify the project root.  pwcli uses `.pwcli` instead, so we create a
- * `.playwright` symlink pointing to `.pwcli` when needed.  This keeps all
- * actual content in `.pwcli` while satisfying Playwright's workspace detection.
- */
-function ensureWorkspaceMarker() {
-  const workspaceRoot = process.cwd();
-  const marker = join(workspaceRoot, ".playwright");
-  const target = join(workspaceRoot, ".pwcli");
-
-  if (existsSync(marker)) {
-    return;
-  }
-
-  try {
-    // Ensure .pwcli exists so the symlink target is valid.
-    if (!existsSync(target)) {
-      mkdirSync(target, { recursive: true });
-    }
-    symlinkSync(target, marker, "dir");
-  } catch {
-    // Another process may have created it concurrently — safe to ignore.
-  }
-}
-
 async function getSessionEntry(sessionName?: string) {
-  ensureWorkspaceMarker();
   const clientInfo = createClientInfo();
   const registry = await loadRegistry();
   const resolvedSessionName = validateSessionName(sessionName);
@@ -424,7 +401,6 @@ export async function getManagedSessionEntry(sessionName?: string) {
 }
 
 export async function listManagedSessions() {
-  ensureWorkspaceMarker();
   const clientInfo = createClientInfo();
   const registry = await loadRegistry();
   const entries = registry.entries(clientInfo);
@@ -443,7 +419,6 @@ export async function listManagedSessions() {
 }
 
 export async function listAttachableBrowserServers(): Promise<AttachableBrowserServerList> {
-  ensureWorkspaceMarker();
   if (!serverRegistry || typeof serverRegistry.list !== "function") {
     return {
       supported: false,

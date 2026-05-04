@@ -1,55 +1,51 @@
-# Verification And Review Rules
+# 验证和 Review
 
-## Daily Verification
+## 验证
 
-Use the smallest verification that covers the changed risk.
+使用能覆盖风险的最小验证。
 
-Common commands:
+日常：
 
 ```bash
 pnpm build
-pnpm typecheck
-pw <affected-command> --help
+node dist/cli.js --help
 pw <affected-command> ...
 ```
 
-Do not default to full smoke for every small change. Run full smoke when:
+默认 gate：
 
-- release/merge readiness is being claimed
-- lifecycle/session wiring changed
-- batch or command registration changed broadly
-- the user explicitly asks
-- a focused check cannot cover the risk
+```bash
+pnpm check
+```
 
-## Review Priority
+发布 / 总验收：
 
-Only escalate verifiable P0/P1 findings.
+```bash
+pnpm check
+pnpm smoke
+git diff --check
+pnpm pack:check
+```
 
-Always check:
+改到 lifecycle/session wiring、命令注册、batch、action evidence、diagnostics 或发布准备时，跑完整 smoke。
 
-1. workspace mutation contract
-2. session lifecycle/open/auth/batch boundaries
-3. command, flag, output, and error-code drift
-4. skill and architecture sync
-5. recoverability and limitation honesty
-6. verification coverage for changed behavior
+## Review 立场
 
-Do not report style-only or wording-only issues as blockers unless they change
-active contract or mislead future agents.
+只报告可验证的 P0/P1 问题。
 
-## Documentation Review
+优先检查：
 
-Docs are blocking only when they:
+1. workspace mutation stable identity
+2. session/open/auth/batch 边界漂移
+3. command/flag/output/error 漂移
+4. skill、README、AGENTS、CLAUDE 同步
+5. recoverability 和 limitation 是否诚实
+6. 验证覆盖是否足够
 
-- mention a command or flag that no longer exists
-- describe future work as shipped behavior
-- hide a limitation
-- create a second usage tutorial outside `skills/pwcli/`
-- contradict source behavior
+纯风格问题不报，除非它改变 active contract 或误导后续 Agent。
 
-## Git Hygiene
+## Git 规则
 
-The worktree may contain user changes. Never revert unrelated files. Before
-editing a file with existing changes, read the diff and work with it.
-
-Do not use destructive git commands unless the user explicitly asks.
+- 接住已有用户改动。
+- 不回滚无关文件。
+- 除非用户明确要求，不用破坏性 git 命令。

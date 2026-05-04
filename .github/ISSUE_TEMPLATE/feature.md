@@ -98,14 +98,14 @@ pw ...
 
 | 文件路径 | 改动类型 | 改动摘要 | 预计行数 |
 |---|---|---|---|
-| `src/app/commands/xxx.ts` | 新增 / 修改 | `____` | ~N 行 |
+| `src/cli/commands/xxx.ts` | 新增 / 修改 | `____` | ~N 行 |
 | `src/infra/playwright/runtime/xxx.ts` | 新增 / 修改 | `____` | ~N 行 |
 | `src/domain/xxx/xxx.ts` | 新增 / 修改 | `____` | ~N 行 |
 | `skills/pwcli/references/xxx.md` | 必须同步 | `____` | — |
 
 **涉及的层**（app / domain / infra，跨层改动需要额外说明）：`____`
 
-**是否需要修改 `src/app/commands/index.ts`（命令注册）**：是 / 否
+**是否需要修改 `src/cli/commands/index.ts`（命令注册）**：是 / 否
 
 ---
 
@@ -174,8 +174,8 @@ pw ...
 
 ### 文档同步验收
 - [ ] `skills/pwcli/` 已更新（哪个文件：`____`）
-- [ ] `docs/architecture/domain-status.md` 已更新（如果域边界变化）
-- [ ] `docs/architecture/command-surface.md` 已更新（如果新增命令）
+- [ ] `AGENTS.md` 和 `CLAUDE.md` 已同步更新（如果产品边界、开发、测试或发布规则变化）
+- [ ] `.claude/rules/` 已更新（如果 Claude Code 细分规则变化）
 - [ ] `skills/pwcli/references/failure-recovery.md` 已更新（如果新增错误码）
 
 ---
@@ -192,7 +192,7 @@ pw ...
 
 ## 📊 优先级自评（必填）
 
-> 根据 `rules/11-agent-usability-prioritization.md` 的标准自评。
+> 根据 Agent 主链价值自评。
 
 | 维度 | 评分（高/中/低） | 说明 |
 |---|---|---|
@@ -204,7 +204,7 @@ pw ...
 
 **自评优先级**：P1 / P2 / P3
 
-**P1 判断依据**（如果自评 P1，必须满足 rules/11 里的至少两条）：
+**P1 判断依据**（如果自评 P1，必须满足至少两条）：
 - [ ] 有 dogfood / issue / regression 证据证明它阻断 Agent 主链
 - [ ] 影响高频 Agent 任务
 - [ ] 能显著降低恢复成本

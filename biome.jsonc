@@ -4,10 +4,7 @@
       "**",
       "!!**/dist",
       "!!**/node_modules",
-      "!!**/.playwright-cli",
       "!!**/.pwcli",
-      "!!**/scripts/manual/bootstrap-verify.js",
-      "!!**/scripts/manual/diagnostics-fixture.js",
       "!!**/test/e2e/dogfood-bootstrap.js"
     ]
   },
@@ -18,26 +15,5 @@
   },
   "linter": {
     "enabled": true
-  },
-  "overrides": [
-    {
-      "includes": ["test/app/**"],
-      "linter": {
-        "rules": {
-          "a11y": {
-            "noLabelWithoutControl": "off",
-            "noStaticElementInteractions": "off",
-            "useAriaPropsSupportedByRole": "off",
-            "useButtonType": "off",
-            "useKeyWithClickEvents": "off",
-            "useSemanticElements": "off"
-          },
-          "suspicious": {
-            "noArrayIndexKey": "off",
-            "noUnknownAtRules": "off"
-          }
-        }
-      }
-    }
-  ]
+  }
 }

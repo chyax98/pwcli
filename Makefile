@@ -16,7 +16,7 @@ smoke:
 	pnpm smoke
 
 e2e:
-	pnpm test:dogfood:e2e
+	pnpm test:e2e
 
 check:
 	pnpm check

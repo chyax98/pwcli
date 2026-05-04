@@ -1,70 +1,34 @@
-# Product Boundaries
+# 产品边界
 
-## Core Positioning
+`pwcli` 是 Agent-first Playwright CLI：本地薄命令层，向 Agent 暴露浏览器事实、动作、等待/验证、诊断、证据和恢复提示。
 
-`pwcli` is a thin, reliable command layer over Playwright-core for agents. Its
-job is to expose browser facts, browser actions, and failure evidence in a
-stable CLI shape.
-
-The tool should help an agent answer:
-
-- What is on the current page?
-- What can I safely interact with?
-- Did my action work?
-- If it failed, what evidence explains the failure?
-- When the page is complex, how do I run a Playwright script directly?
-
-## Mainline Capability
-
-Build around this loop:
+## 主链
 
 ```text
 session create|attach|recreate
-  -> observe/page/read-text/snapshot
-  -> action/wait/verify
+  -> status/read-text/snapshot/page/tab
+  -> action
+  -> wait/verify/get/is/locate
   -> diagnostics/trace/artifacts
-  -> agent replans or uses pw code
+  -> Agent 重新规划或使用 pw code
 ```
 
-## Explicit Non-Goals
+## 不做
 
-Do not rebuild these unless the user explicitly reopens the decision with fresh
-real-world evidence:
+除非用户明确改变产品边界，否则不做：
 
-- MCP product surface
-- extraction recipe system
-- site template pack
-- userscript manager
-- persistent script marketplace
-- benchmark platform
-- generic mocking/scenario engine
-- LLM selector healing
-- agent planner inside `pwcli`
+- MCP 产品面
+- 云端浏览器平台
+- extraction recipe 系统
+- userscript 市场
+- 内置 Agent planner
+- 通用 benchmark 平台
+- route/mock DSL 平台
+- 外部 auth plugin lifecycle
 
-## Extraction Decision
+## 产品纪律
 
-Do not reintroduce `extract run`, recipes, or templates as a product surface.
-For page content acquisition, prefer:
-
-- `pw read-text`
-- `pw snapshot`
-- `pw screenshot`
-- `pw page current|frames|dialogs|assess`
-- `pw network|console|errors`
-- `pw code` with direct Playwright APIs for complex pages
-
-If the page requires infinite scroll, folded regions, media collection, or
-site-specific traversal, write a `pw code` script for that page and document the
-workflow in skills only if it is generally useful.
-
-## Route/Mock Decision
-
-Route/mock can grow only when a real controlled-testing, diagnostics, or browser
-workflow reproduction is blocked. It must remain a thin request-control layer.
-
-Reject changes justified only by:
-
-- abstract completeness
-- "this would make mocking more powerful"
-- a new DSL without a concrete failing scenario
-- platformizing scenario definitions
+- 优先使用 Playwright-core primitive，只为 Agent 可读 contract、错误、证据和恢复做薄封装。
+- 新能力必须对应真实 Agent 阻塞任务。
+- `route` / `environment` / `bootstrap` 是受控测试工具，不是场景平台。
+- `code` 是逃生口，不是长流程 runner。
