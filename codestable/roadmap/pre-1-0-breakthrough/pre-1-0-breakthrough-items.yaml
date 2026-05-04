@@ -165,10 +165,10 @@ items:
   - slug: workflow-eval-deep-bug-reproduction
     description: 串联验证 Deep Bug 复现与分析 workflow，覆盖 console/network/errors/diagnostics/bundle
     depends_on: [command-eval-diagnostics-runs, workflow-eval-automated-testing]
-    status: planned
+    status: done
     feature: null
     minimal_loop: true
-    notes: 每个 P0/P1 发现必须走 issue report/analysis/fix-note 闭环
+    notes: 2026-05-04 已完成本地 dogfood fixture 串联；覆盖业务 500 复现、RUN_CODE_TIMEOUT 后页面事实恢复、console/network/errors/digest/timeline/export/bundle；发现并修复 diagnostics bundle 将 session 级 signal 误归因到最新 screenshot run 的 P1；评估见 evaluations/2026-05-04-workflow-eval-deep-bug-reproduction.md
 
   - slug: workflow-eval-recovery-handoff
     description: 串联验证失败恢复和证据交接 workflow，覆盖 blocked state、doctor、bundle、handoff report

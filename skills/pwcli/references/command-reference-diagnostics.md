@@ -61,6 +61,7 @@ state / auth / batch 命令见 `command-reference-advanced.md`。
 - 导出失败现场最小证据包（`manifest.json`）
 - 默认包含：session digest、filtered diagnostics、latest run events（如果存在）
 - 包含 `auditConclusion`（`status/failedAt/failedCommand/failureKind/failureSummary/agentNextSteps`），供 Agent 自主闭环：先做归因，再定位，再修复，再复验
+- run 自身失败时，`failedCommand` 指向失败命令，next steps 使用 `diagnostics show/grep --run`；session 级 console/network/page error 时，`failedCommand=null`，next steps 使用 `diagnostics timeline/digest/export --session`
 - 包含 `timeline`（filtered）：只保留 `action:*`、`failure:*`、`console:error`、`pageerror`、`requestfailed`，按时间排序，快速看因果链
 - 包含 `highSignalTimeline`：高信号时间线，从完整 timeline 中进一步提炼高价值条目，方便 Agent 快速归因
 - `--limit <n>`：每类记录的保留上限（默认 `20`）

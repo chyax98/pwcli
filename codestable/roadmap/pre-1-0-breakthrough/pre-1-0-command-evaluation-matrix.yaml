@@ -87,7 +87,7 @@ commands:
     group: diagnostics
     roadmap_item: command-eval-diagnostics-runs
     status: proven
-    notes: 2026-05-04 focused check 覆盖 digest/export/bundle/runs/show/grep/timeline；show/grep 正式声明 --run；bundle 生成 manifest 并包含 auditConclusion
+    notes: 2026-05-04 focused check 覆盖 digest/export/bundle/runs/show/grep/timeline；show/grep 正式声明 --run；bundle 生成 manifest 并包含 auditConclusion；deep bug workflow 修复 session 级 console/network signal 不再误归因到最新成功 run
   - command: dialog
     group: page-workspace
     roadmap_item: command-eval-page-tab-workspace

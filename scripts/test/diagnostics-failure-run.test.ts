@@ -113,6 +113,47 @@ try {
   });
   assert.equal(audit.status, "failed_or_risky");
   assert.equal(audit.failureKind, "MODAL_STATE_BLOCKED");
+
+  const sessionSignalAudit = buildDiagnosticsAuditConclusion({
+    sessionName: "bug-a",
+    latestRunId: "2026-04-30T00-00-02-000Z-bug-a",
+    limit: 10,
+    digestData: {
+      summary: { consoleErrorCount: 1 },
+      topSignals: [
+        {
+          kind: "console:error",
+          timestamp: "2026-04-30T00:00:01.500Z",
+          summary: "checkout-timeout CHECKOUT_TIMEOUT",
+        },
+      ],
+    },
+    latestRunEvents: {
+      runId: "2026-04-30T00-00-02-000Z-bug-a",
+      events: [
+        {
+          ts: "2026-04-30T00:00:02.000Z",
+          command: "screenshot",
+          path: "/tmp/screenshot.png",
+        },
+      ],
+    },
+  });
+  assert.equal(sessionSignalAudit.status, "failed_or_risky");
+  assert.equal(sessionSignalAudit.failedAt, "2026-04-30T00:00:01.500Z");
+  assert.equal(sessionSignalAudit.failedCommand, null);
+  assert.equal(sessionSignalAudit.failureKind, "console:error");
+  assert.equal(sessionSignalAudit.failureSummary, "checkout-timeout CHECKOUT_TIMEOUT");
+  assert.ok(
+    sessionSignalAudit.agentNextSteps.some((step: string) =>
+      step.includes("diagnostics timeline --session"),
+    ),
+  );
+  assert.ok(
+    !sessionSignalAudit.agentNextSteps.some((step: string) =>
+      step.includes("2026-04-30T00-00-02-000Z-bug-a"),
+    ),
+  );
 } finally {
   process.chdir(cwd);
   await rm(tempDir, { recursive: true, force: true });

@@ -407,3 +407,4 @@ sprint_model:
 - 2026-05-04：按用户要求收紧执行口径：34 个 roadmap 循环映射传统一个月冲刺，53 个 command matrix 行作为逐 command 深评粒度；竞品能力必须落到 command / workflow / skill / roadmap item / dropped 结论。
 - 2026-05-04：完成 `workflow-eval-form-file-download`。串联登录、受保护页面导航、上传、拖拽、下载、截图、PDF 和 diagnostics bundle；文件下载内容、截图和 PDF artifact 均有本地证据。
 - 2026-05-04：完成 `workflow-eval-crawler-extraction`。串联多页导航、低噪声读取、列表计数、小范围 DOM/iframe 结构化提取、API 证据导出、截图和 diagnostics bundle；明确不恢复旧 `extract` recipe 平台。
+- 2026-05-04：完成 `workflow-eval-deep-bug-reproduction`。串联业务 500 复现、页面事实恢复、console/network/errors/digest/timeline/export/bundle；发现并修复 diagnostics bundle 将 session 级 signal 误归因到最新 screenshot run 的 P1。

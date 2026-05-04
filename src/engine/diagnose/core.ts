@@ -541,10 +541,6 @@ export function buildDiagnosticsAuditConclusion(input: {
   const latestRunEvents = asObject(input.latestRunEvents ?? {});
   const events = asArray(latestRunEvents.events);
   const lastEvent = asObject(events.at(-1) ?? {});
-  const lastCommand = asString(lastEvent.command);
-  const lastTs = asString(lastEvent.ts) ?? asString(lastEvent.timestamp);
-  const lastFailure = asObject(lastEvent.failure);
-  const lastFailureSignal = asObject(lastEvent.failureSignal);
   const pageErrorCount = asNumber(summary.pageErrorCount) ?? 0;
   const failedRequestCount =
     asNumber(summary.firstPartyFailedRequestCount) ?? asNumber(summary.failedRequestCount) ?? 0;
@@ -557,6 +553,19 @@ export function buildDiagnosticsAuditConclusion(input: {
   const latestRunHasFailureSignal = events.some(
     (event) => Object.keys(asObject(event.failureSignal)).length > 0,
   );
+  const latestRunFailureEvent =
+    [...events].reverse().find((event) => {
+      const candidate = asObject(event);
+      return (
+        Boolean(candidate.failed) ||
+        Object.keys(asObject(candidate.failure)).length > 0 ||
+        Object.keys(asObject(candidate.failureSignal)).length > 0
+      );
+    }) ?? null;
+  const selectedRunEvent =
+    latestRunHasFailure || latestRunHasFailureSignal ? asObject(latestRunFailureEvent ?? lastEvent) : null;
+  const selectedFailure = asObject(selectedRunEvent?.failure);
+  const selectedFailureSignal = asObject(selectedRunEvent?.failureSignal);
   const failureLikely =
     pageErrorCount > 0 ||
     failedRequestCount > 0 ||
@@ -571,32 +580,42 @@ export function buildDiagnosticsAuditConclusion(input: {
   });
   const representativeSignal = asObject(errorSignals[0] ?? topSignals[0] ?? {});
   const failureKind =
-    asString(lastFailure.code) ??
-    asString(lastFailureSignal.code) ??
+    asString(selectedFailure.code) ??
+    asString(selectedFailureSignal.code) ??
     asString(representativeSignal.kind) ??
     null;
   const failureSummary =
-    asString(lastFailure.message) ??
-    asString(lastFailureSignal.message) ??
+    asString(selectedFailure.message) ??
+    asString(selectedFailureSignal.message) ??
     asString(representativeSignal.summary) ??
     null;
   const latestRunId = input.latestRunId ?? asString(latestRunEvents.runId);
   const limit = Math.max(1, input.limit);
   const grepText = failureSummary ?? failureKind ?? "error";
-  const failureNextSteps = latestRunId
+  const runFailureNextSteps = selectedRunEvent && latestRunId
     ? [
         `run: pw diagnostics show --run ${shellArg(latestRunId)} --limit ${limit}`,
         `run: pw diagnostics grep --run ${shellArg(latestRunId)} --text ${shellArg(grepText)} --limit ${limit}`,
       ]
-    : [
-        `run: pw diagnostics digest --session ${shellArg(input.sessionName)} --limit ${Math.min(limit, 10)}`,
-        `run: pw diagnostics export --session ${shellArg(input.sessionName)} --out ./diag.json --limit ${limit}`,
-      ];
+    : null;
+  const sessionFailureNextSteps = [
+    `run: pw diagnostics timeline --session ${shellArg(input.sessionName)} --limit ${limit}`,
+    `run: pw diagnostics digest --session ${shellArg(input.sessionName)} --limit ${Math.min(limit, 10)}`,
+    `run: pw diagnostics export --session ${shellArg(input.sessionName)} --out ./diag.json --limit ${limit}`,
+  ];
+  const failureNextSteps = runFailureNextSteps ?? sessionFailureNextSteps;
+  const failedAt = failureLikely
+    ? (asString(selectedRunEvent?.ts) ??
+      asString(selectedRunEvent?.timestamp) ??
+      asString(representativeSignal.timestamp) ??
+      null)
+    : null;
+  const failedCommand = failureLikely ? (asString(selectedRunEvent?.command) ?? null) : null;
 
   return {
     status: failureLikely ? "failed_or_risky" : "no_strong_failure_signal",
-    failedAt: lastTs,
-    failedCommand: lastCommand,
+    failedAt,
+    failedCommand,
     failureKind,
     failureSummary,
     agentAction: failureLikely
