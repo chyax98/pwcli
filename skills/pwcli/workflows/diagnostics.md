@@ -85,6 +85,20 @@ pw errors recent --session <name> --limit 20
 pw diagnostics export --session <name> --section network --text '<substring>' --fields at=timestamp,method,url,status,snippet=responseBodySnippet --out ./diag.json
 ```
 
+需要交接给下一个 Agent 或写 bug 复现时，用 1.0 证据包：
+
+```bash
+pw diagnostics bundle --session <name> --out .pwcli/bundles/<task-slug> --task '<task name>' --limit 20
+```
+
+成功判断：
+
+- `.pwcli/bundles/<task-slug>/manifest.json` 存在，`schemaVersion` 为 `1.0`
+- `summary.status` 是 `pass | fail | blocked` 之一，不把 blocked 包装成 pass
+- `commands` 和 `runIds` 能定位到本次动作链
+- `artifacts` 记录截图、PDF、trace、video 或其他关键路径；存在的文件应带 `sizeBytes`
+- `.pwcli/bundles/<task-slug>/handoff.md` 能让下一个 Agent 直接知道关键发现和 next steps
+
 ## 6. 回放动作 run
 
 ```bash

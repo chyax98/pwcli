@@ -1,14 +1,231 @@
 import { defineCommand } from "citty";
-import { applyDiagnosticsExportFilter, buildSessionDigest, buildSessionTimeline, listDiagnosticsRuns, managedDiagnosticsBundle, managedDiagnosticsExport, readDiagnosticsRunDigest, readDiagnosticsRunView, writeDiagnosticsExportFile } from "#engine/diagnose/export.js";
 import { sharedArgs } from "#cli/args.js";
-import { firstPos, num, print, session, str, withCliError, type CliArgs } from "./_helpers.js";
+import {
+  applyDiagnosticsExportFilter,
+  buildSessionDigest,
+  buildSessionTimeline,
+  listDiagnosticsRuns,
+  managedDiagnosticsBundle,
+  managedDiagnosticsExport,
+  readDiagnosticsRunDigest,
+  readDiagnosticsRunView,
+  writeDiagnosticsExportFile,
+} from "#engine/diagnose/export.js";
+import { type CliArgs, firstPos, num, print, session, str, withCliError } from "./_helpers.js";
 
-const exportCmd = defineCommand({ meta: { name: "export", description: "Export diagnostics records" }, args: { ...sharedArgs, out: { type: "string", description: "Output JSON file", valueHint: "path" }, section: { type: "string", description: "Section", valueHint: "section" }, limit: { type: "string", description: "Limit", valueHint: "n" }, since: { type: "string", description: "Since ISO", valueHint: "iso" }, text: { type: "string", description: "Text filter", valueHint: "text" }, fields: { type: "string", description: "Fields projection", valueHint: "fields" } }, async run({ args }) { const a = args as CliArgs; try { const sn = session(a); const filtered = applyDiagnosticsExportFilter(await managedDiagnosticsExport({ sessionName: sn }), { section: str(a.section) as never, limit: num(a.limit), since: str(a.since), text: str(a.text), fields: str(a.fields) }); const out = str(a.out); if (out) await writeDiagnosticsExportFile(out, filtered.data); print("diagnostics export", { session: filtered.session as Record<string, unknown>, page: filtered.page as Record<string, unknown>, data: { ...filtered.data, exported: Boolean(out), ...(out ? { out } : {}) } }, a); } catch (e) { withCliError("diagnostics export", a, e); } } });
-const bundle = defineCommand({ meta: { name: "bundle", description: "Build diagnostics bundle" }, args: { ...sharedArgs, out: { type: "string", description: "Output bundle directory", valueHint: "dir" }, limit: { type: "string", description: "Limit", default: "20", valueHint: "n" } }, async run({ args }) { const a = args as CliArgs; try { const sn = session(a); const outDir = str(a.out); const exported = await managedDiagnosticsExport({ sessionName: sn }); const result = await managedDiagnosticsBundle({ sessionName: sn, limit: num(a.limit), exported, outDir }); print("diagnostics bundle", { ...result, data: { ...result.data, ...(outDir ? { out: outDir, manifest: `${outDir}/manifest.json` } : {}) } } as Parameters<typeof print>[1], a); } catch (e) { withCliError("diagnostics bundle", a, e); } } });
-const runs = defineCommand({ meta: { name: "runs", description: "List recorded runs" }, args: { ...sharedArgs, limit: { type: "string", description: "Limit", valueHint: "n" }, since: { type: "string", description: "Since ISO", valueHint: "iso" } }, async run({ args }) { const a = args as CliArgs; try { const sn = str(a.session); const items = await listDiagnosticsRuns({ sessionName: sn, limit: num(a.limit), since: str(a.since) }); print("diagnostics runs", { data: { count: items.length, runs: items } }, a); } catch (e) { withCliError("diagnostics runs", a, e); } } });
-const digest = defineCommand({ meta: { name: "digest", description: "Summarize diagnostics" }, args: { ...sharedArgs, run: { type: "string", description: "Run id", valueHint: "id" }, limit: { type: "string", description: "Limit", default: "5", valueHint: "n" } }, async run({ args }) { const a = args as CliArgs; try { if (str(a.run)) { print("diagnostics digest", { data: { source: "run", ...await readDiagnosticsRunDigest({ runId: str(a.run) as string, limit: num(a.limit, 5) }) } }, a); return; } const sn = session(a); print("diagnostics digest", buildSessionDigest(await managedDiagnosticsExport({ sessionName: sn }), num(a.limit, 5) as number) as Parameters<typeof print>[1], a); } catch (e) { withCliError("diagnostics digest", a, e); } } });
-const show = defineCommand({ meta: { name: "show", description: "Show run events" }, args: { ...sharedArgs, run: { type: "string", description: "Run id", valueHint: "id" }, command: { type: "string", description: "Command filter", valueHint: "name" }, text: { type: "string", description: "Text filter", valueHint: "text" }, limit: { type: "string", description: "Limit", valueHint: "n" }, since: { type: "string", description: "Since ISO", valueHint: "iso" }, fields: { type: "string", description: "Fields", valueHint: "fields" } }, async run({ args }) { const a = args as CliArgs; try { print("diagnostics show", { data: await readDiagnosticsRunView({ runId: (str(a.run) ?? firstPos(a)) as string, command: str(a.command), text: str(a.text), limit: num(a.limit), since: str(a.since), fields: str(a.fields) }) }, a); } catch (e) { withCliError("diagnostics show", a, e); } } });
+const exportCmd = defineCommand({
+  meta: { name: "export", description: "Export diagnostics records" },
+  args: {
+    ...sharedArgs,
+    out: { type: "string", description: "Output JSON file", valueHint: "path" },
+    section: { type: "string", description: "Section", valueHint: "section" },
+    limit: { type: "string", description: "Limit", valueHint: "n" },
+    since: { type: "string", description: "Since ISO", valueHint: "iso" },
+    text: { type: "string", description: "Text filter", valueHint: "text" },
+    fields: { type: "string", description: "Fields projection", valueHint: "fields" },
+  },
+  async run({ args }) {
+    const a = args as CliArgs;
+    try {
+      const sn = session(a);
+      const filtered = applyDiagnosticsExportFilter(
+        await managedDiagnosticsExport({ sessionName: sn }),
+        {
+          section: str(a.section) as never,
+          limit: num(a.limit),
+          since: str(a.since),
+          text: str(a.text),
+          fields: str(a.fields),
+        },
+      );
+      const out = str(a.out);
+      if (out) await writeDiagnosticsExportFile(out, filtered.data);
+      print(
+        "diagnostics export",
+        {
+          session: filtered.session as Record<string, unknown>,
+          page: filtered.page as Record<string, unknown>,
+          data: { ...filtered.data, exported: Boolean(out), ...(out ? { out } : {}) },
+        },
+        a,
+      );
+    } catch (e) {
+      withCliError("diagnostics export", a, e);
+    }
+  },
+});
+const bundle = defineCommand({
+  meta: { name: "bundle", description: "Build diagnostics bundle" },
+  args: {
+    ...sharedArgs,
+    out: { type: "string", description: "Output bundle directory", valueHint: "dir" },
+    task: { type: "string", description: "Task label for handoff manifest", valueHint: "text" },
+    limit: { type: "string", description: "Limit", default: "20", valueHint: "n" },
+  },
+  async run({ args }) {
+    const a = args as CliArgs;
+    try {
+      const sn = session(a);
+      const outDir = str(a.out);
+      const exported = await managedDiagnosticsExport({ sessionName: sn });
+      const result = await managedDiagnosticsBundle({
+        sessionName: sn,
+        limit: num(a.limit),
+        exported,
+        outDir,
+        task: str(a.task),
+      });
+      print(
+        "diagnostics bundle",
+        {
+          ...result,
+          data: {
+            ...result.data,
+            ...(outDir
+              ? {
+                  out: outDir,
+                  manifest: `${outDir}/manifest.json`,
+                  handoff: `${outDir}/handoff.md`,
+                }
+              : {}),
+          },
+        } as Parameters<typeof print>[1],
+        a,
+      );
+    } catch (e) {
+      withCliError("diagnostics bundle", a, e);
+    }
+  },
+});
+const runs = defineCommand({
+  meta: { name: "runs", description: "List recorded runs" },
+  args: {
+    ...sharedArgs,
+    limit: { type: "string", description: "Limit", valueHint: "n" },
+    since: { type: "string", description: "Since ISO", valueHint: "iso" },
+  },
+  async run({ args }) {
+    const a = args as CliArgs;
+    try {
+      const sn = str(a.session);
+      const items = await listDiagnosticsRuns({
+        sessionName: sn,
+        limit: num(a.limit),
+        since: str(a.since),
+      });
+      print("diagnostics runs", { data: { count: items.length, runs: items } }, a);
+    } catch (e) {
+      withCliError("diagnostics runs", a, e);
+    }
+  },
+});
+const digest = defineCommand({
+  meta: { name: "digest", description: "Summarize diagnostics" },
+  args: {
+    ...sharedArgs,
+    run: { type: "string", description: "Run id", valueHint: "id" },
+    limit: { type: "string", description: "Limit", default: "5", valueHint: "n" },
+  },
+  async run({ args }) {
+    const a = args as CliArgs;
+    try {
+      if (str(a.run)) {
+        print(
+          "diagnostics digest",
+          {
+            data: {
+              source: "run",
+              ...(await readDiagnosticsRunDigest({
+                runId: str(a.run) as string,
+                limit: num(a.limit, 5),
+              })),
+            },
+          },
+          a,
+        );
+        return;
+      }
+      const sn = session(a);
+      print(
+        "diagnostics digest",
+        buildSessionDigest(
+          await managedDiagnosticsExport({ sessionName: sn }),
+          num(a.limit, 5) as number,
+        ) as Parameters<typeof print>[1],
+        a,
+      );
+    } catch (e) {
+      withCliError("diagnostics digest", a, e);
+    }
+  },
+});
+const show = defineCommand({
+  meta: { name: "show", description: "Show run events" },
+  args: {
+    ...sharedArgs,
+    run: { type: "string", description: "Run id", valueHint: "id" },
+    command: { type: "string", description: "Command filter", valueHint: "name" },
+    text: { type: "string", description: "Text filter", valueHint: "text" },
+    limit: { type: "string", description: "Limit", valueHint: "n" },
+    since: { type: "string", description: "Since ISO", valueHint: "iso" },
+    fields: { type: "string", description: "Fields", valueHint: "fields" },
+  },
+  async run({ args }) {
+    const a = args as CliArgs;
+    try {
+      print(
+        "diagnostics show",
+        {
+          data: await readDiagnosticsRunView({
+            runId: (str(a.run) ?? firstPos(a)) as string,
+            command: str(a.command),
+            text: str(a.text),
+            limit: num(a.limit),
+            since: str(a.since),
+            fields: str(a.fields),
+          }),
+        },
+        a,
+      );
+    } catch (e) {
+      withCliError("diagnostics show", a, e);
+    }
+  },
+});
 const grep = defineCommand({ ...show, meta: { name: "grep", description: "Search run events" } });
-const timeline = defineCommand({ meta: { name: "timeline", description: "Build session timeline" }, args: { ...sharedArgs, limit: { type: "string", description: "Limit", default: "50", valueHint: "n" }, since: { type: "string", description: "Since ISO", valueHint: "iso" } }, async run({ args }) { const a = args as CliArgs; try { const sn = session(a); const exported = await managedDiagnosticsExport({ sessionName: sn }); print("diagnostics timeline", { session: exported.session as Record<string, unknown>, page: exported.page as Record<string, unknown>, data: await buildSessionTimeline({ sessionName: sn, limit: num(a.limit), since: str(a.since), exported }) }, a); } catch (e) { withCliError("diagnostics timeline", a, e); } } });
+const timeline = defineCommand({
+  meta: { name: "timeline", description: "Build session timeline" },
+  args: {
+    ...sharedArgs,
+    limit: { type: "string", description: "Limit", default: "50", valueHint: "n" },
+    since: { type: "string", description: "Since ISO", valueHint: "iso" },
+  },
+  async run({ args }) {
+    const a = args as CliArgs;
+    try {
+      const sn = session(a);
+      const exported = await managedDiagnosticsExport({ sessionName: sn });
+      print(
+        "diagnostics timeline",
+        {
+          session: exported.session as Record<string, unknown>,
+          page: exported.page as Record<string, unknown>,
+          data: await buildSessionTimeline({
+            sessionName: sn,
+            limit: num(a.limit),
+            since: str(a.since),
+            exported,
+          }),
+        },
+        a,
+      );
+    } catch (e) {
+      withCliError("diagnostics timeline", a, e);
+    }
+  },
+});
 
-export default defineCommand({ meta: { name: "diagnostics", description: "Diagnostics export, runs, digest and bundle" }, subCommands: { export: exportCmd, bundle, runs, digest, show, grep, timeline } });
+export default defineCommand({
+  meta: { name: "diagnostics", description: "Diagnostics export, runs, digest and bundle" },
+  subCommands: { export: exportCmd, bundle, runs, digest, show, grep, timeline },
+});

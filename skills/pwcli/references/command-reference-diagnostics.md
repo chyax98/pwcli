@@ -58,8 +58,18 @@ state / auth / batch 命令见 `command-reference-advanced.md`。
 
 ### `pw diagnostics bundle --session <name> --out <dir>`
 
-- 导出失败现场最小证据包（`manifest.json`）
+- 导出失败现场最小证据包：`manifest.json` + `handoff.md`
+- `--task <text>`：写入本次任务标签，方便 Agent 交接时知道证据包对应哪个目标
 - 默认包含：session digest、filtered diagnostics、latest run events（如果存在）
+- `manifest.json` 是 1.0 稳定 contract，包含：
+  - `schemaVersion: "1.0"`
+  - `session` / `createdAt` / 可选 `task`
+  - `commands`：本 bundle 范围内 run events 涉及的 command 列表
+  - `runIds`：本 bundle 范围内的 run id
+  - `artifacts`：截图、PDF、trace、video、network、console、state 或 custom artifact 路径；可读取时带 `sizeBytes`
+  - `summary.status`：`pass | fail | blocked`
+  - `summary.highSignalFindings`：失败摘要、top signals 和高信号 timeline 去重后的结论
+- `handoff.md` 是给下一个 Agent 读的短交接报告，包含状态、关键发现、commands、runIds、artifacts 和 next steps
 - 包含 `auditConclusion`（`status/failedAt/failedCommand/failureKind/failureSummary/agentNextSteps`），供 Agent 自主闭环：先做归因，再定位，再修复，再复验
 - run 自身失败时，`failedCommand` 指向失败命令，next steps 使用 `diagnostics show/grep --run`；session 级 console/network/page error 时，`failedCommand=null`，next steps 使用 `diagnostics timeline/digest/export --session`
 - 包含 `timeline`（filtered）：只保留 `action:*`、`failure:*`、`console:error`、`pageerror`、`requestfailed`，按时间排序，快速看因果链

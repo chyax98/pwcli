@@ -213,10 +213,10 @@ items:
   - slug: evidence-bundle-1-0-contract
     description: 定义并实现 1.0 证据包 manifest、run timeline 和 handoff 报告稳定 contract
     depends_on: [command-eval-diagnostics-runs, workflow-eval-recovery-handoff]
-    status: planned
+    status: done
     feature: null
     minimal_loop: false
-    notes: 证据包必须适合 Agent 交接和 bug 复现
+    notes: 2026-05-04 已完成；diagnostics bundle manifest 稳定为 schemaVersion 1.0，补齐 session/task/commands/runIds/artifacts/summary，并在 --out 时生成 handoff.md；verify failure focused test 覆盖失败 summary、截图 artifact size、commands/runIds 和 handoff 文本
 
   - slug: har-trace-1-0-decision
     description: 决定 HAR 热录制是否进入 1.0；能稳定就实现验证，不能就从 1.0 contract 明确移除

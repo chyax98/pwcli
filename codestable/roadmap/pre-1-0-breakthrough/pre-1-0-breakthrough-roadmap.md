@@ -414,3 +414,4 @@ sprint_model:
 - 2026-05-04：完成 `auth-dc-real-env-proof` 的 blocker 闭环。真实 provider 尝试未通过：默认 local-ip 入口不可达，明确 `targetUrl` 尝试触发 `RUN_CODE_TIMEOUT` 并导致 session probe 失败；`auth` command matrix 改为 blocked，等待标准 issue 分析或有效环境材料解除。
 - 2026-05-04：完成 `modal-doctor-recovery-breakthrough`。`doctor` 新增页面级 `html-modal` recovery，`check:doctor-modal` 覆盖 alert blocked、confirm dismiss、prompt accept 和 HTML modal 恢复，明确 browser dialog 与 HTML modal 的不同恢复路径。
 - 2026-05-04：完成 `run-code-timeout-recovery-breakthrough`。发现并修复 `pw code` 触发 `RUN_CODE_TIMEOUT` 后 CLI 进程不退出的 P1；新增 `check:run-code-timeout` 固化 timeout envelope、session facts 恢复和后续短动作 / 短 code 可继续。
+- 2026-05-04：完成 `evidence-bundle-1-0-contract`。`diagnostics bundle` manifest 升级为 1.0 证据 contract，补齐 `schemaVersion/session/task?/commands/runIds/artifacts/summary`，`--out` 额外生成 `handoff.md`；focused verification 覆盖 VERIFY_FAILED、截图 artifact size、commands/runIds 和交接文本。

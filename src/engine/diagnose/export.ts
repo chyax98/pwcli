@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, stat, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { listRunDirs, readRunEvents } from "#store/artifacts.js";
 import { managedRunCode, stateAccessPrelude } from "../shared.js";
@@ -12,13 +12,13 @@ import {
   type DiagnosticsExportSection,
   isThirdPartyUrl,
   limitTail,
+  managedObserveStatus,
   normalizeFieldList,
   normalizeSince,
   pickFieldPath,
   projectRecord,
   recordContainsText,
   timestampAtOrAfter,
-  managedObserveStatus,
 } from "./core.js";
 
 export async function managedDiagnosticsExport(options?: { sessionName?: string }) {
@@ -235,10 +235,7 @@ export async function readDiagnosticsRunView(options: {
   };
 }
 
-export async function readDiagnosticsRunDigest(options: {
-  runId: string;
-  limit?: number;
-}) {
+export async function readDiagnosticsRunDigest(options: { runId: string; limit?: number }) {
   return buildRunDigest(options.runId, await readRunEvents(options.runId), options.limit ?? 5);
 }
 
@@ -248,6 +245,171 @@ type TimelineEntry = {
   summary: string;
   details?: Record<string, unknown>;
 };
+
+type EvidenceArtifactType =
+  | "screenshot"
+  | "pdf"
+  | "trace"
+  | "video"
+  | "network"
+  | "console"
+  | "state"
+  | "custom";
+
+type EvidenceArtifact = {
+  type: EvidenceArtifactType;
+  path: string;
+  sizeBytes?: number;
+};
+
+type EvidenceSummary = {
+  status: "pass" | "fail" | "blocked";
+  highSignalFindings: string[];
+};
+
+function uniqueStrings(values: Array<string | null | undefined>) {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const value of values) {
+    const trimmed = value?.trim();
+    if (!trimmed || seen.has(trimmed)) continue;
+    seen.add(trimmed);
+    result.push(trimmed);
+  }
+  return result;
+}
+
+function inferArtifactType(path: string, hint?: string | null): EvidenceArtifactType {
+  const value = path.toLowerCase();
+  const command = hint?.toLowerCase() ?? "";
+  if (
+    command.includes("screenshot") ||
+    value.endsWith(".png") ||
+    value.endsWith(".jpg") ||
+    value.endsWith(".jpeg")
+  )
+    return "screenshot";
+  if (command.includes("pdf") || value.endsWith(".pdf")) return "pdf";
+  if (command.includes("trace") || value.endsWith(".zip")) return "trace";
+  if (command.includes("video") || value.endsWith(".webm") || value.endsWith(".mp4"))
+    return "video";
+  if (command.includes("network") || value.endsWith(".har")) return "network";
+  if (command.includes("console")) return "console";
+  if (command.includes("state") || value.endsWith("state.json")) return "state";
+  return "custom";
+}
+
+async function artifactWithSize(
+  type: EvidenceArtifactType,
+  path: string,
+): Promise<EvidenceArtifact> {
+  const size = await stat(path)
+    .then((info) => info.size)
+    .catch(() => undefined);
+  return {
+    type,
+    path,
+    ...(typeof size === "number" ? { sizeBytes: size } : {}),
+  };
+}
+
+async function collectEvidenceArtifacts(events: Record<string, unknown>[]) {
+  const candidates: Array<{ type: EvidenceArtifactType; path: string }> = [];
+  const push = (type: EvidenceArtifactType, path: string | null) => {
+    if (path) candidates.push({ type, path });
+  };
+  for (const event of events) {
+    const command = asString(event.command);
+    push(inferArtifactType(asString(event.path) ?? "", command), asString(event.path));
+    push("screenshot", asString(event.failureScreenshotPath));
+    push("trace", asString(event.traceArtifactPath));
+    push("video", asString(event.videoPath));
+    push("custom", asString(event.savedAs));
+    push("custom", asString(event.artifactPath));
+    push("custom", asString(event.outputPath));
+  }
+  const unique = new Map<string, EvidenceArtifactType>();
+  for (const candidate of candidates) {
+    if (!unique.has(candidate.path)) unique.set(candidate.path, candidate.type);
+  }
+  return Promise.all([...unique.entries()].map(([path, type]) => artifactWithSize(type, path)));
+}
+
+function evidenceSummaryFromBundle(input: {
+  auditConclusion: Record<string, unknown>;
+  digestData: Record<string, unknown>;
+  highSignalTimeline: TimelineEntry[];
+  limit: number;
+}): EvidenceSummary {
+  const failureKind = asString(input.auditConclusion.failureKind);
+  const status =
+    failureKind === "MODAL_STATE_BLOCKED" ||
+    input.highSignalTimeline.some((entry) => entry.kind === "failure:MODAL_STATE_BLOCKED")
+      ? "blocked"
+      : asString(input.auditConclusion.status) === "failed_or_risky"
+        ? "fail"
+        : "pass";
+  const topSignals = asArray(input.digestData.topSignals);
+  const findings = uniqueStrings([
+    asString(input.auditConclusion.failureSummary),
+    ...topSignals.map((signal) => asString(signal.summary)),
+    ...input.highSignalTimeline.map((entry) => entry.summary),
+  ]).slice(0, Math.max(1, input.limit));
+  return {
+    status,
+    highSignalFindings: findings,
+  };
+}
+
+function renderHandoffReport(input: {
+  createdAt: string;
+  sessionName: string;
+  task?: string;
+  commands: string[];
+  runIds: string[];
+  artifacts: EvidenceArtifact[];
+  summary: EvidenceSummary;
+  auditConclusion: Record<string, unknown>;
+}) {
+  const nextSteps = Array.isArray(input.auditConclusion.agentNextSteps)
+    ? input.auditConclusion.agentNextSteps.map((step) => String(step)).filter(Boolean)
+    : [];
+  const lines = [
+    "# pwcli Evidence Handoff",
+    "",
+    `- schemaVersion: 1.0`,
+    `- createdAt: ${input.createdAt}`,
+    `- session: ${input.sessionName}`,
+    ...(input.task ? [`- task: ${input.task}`] : []),
+    `- status: ${input.summary.status}`,
+    "",
+    "## High Signal Findings",
+    ...(input.summary.highSignalFindings.length > 0
+      ? input.summary.highSignalFindings.map((finding) => `- ${finding}`)
+      : ["- 无强失败信号"]),
+    "",
+    "## Commands",
+    ...(input.commands.length > 0
+      ? input.commands.map((command) => `- ${command}`)
+      : ["- 无 run command"]),
+    "",
+    "## Run IDs",
+    ...(input.runIds.length > 0 ? input.runIds.map((runId) => `- ${runId}`) : ["- 无 run id"]),
+    "",
+    "## Artifacts",
+    ...(input.artifacts.length > 0
+      ? input.artifacts.map(
+          (artifact) =>
+            `- ${artifact.type}: ${artifact.path}${artifact.sizeBytes !== undefined ? ` (${artifact.sizeBytes} bytes)` : ""}`,
+        )
+      : ["- 无 artifact"]),
+    "",
+    "## Next Steps",
+    ...(nextSteps.length > 0 ? nextSteps.map((step) => `- ${step}`) : ["- 无建议步骤"]),
+    "",
+  ];
+  return `${lines.join("\n")}\n`;
+}
 
 function scoreTimelineEntry(entry: TimelineEntry, pageOrigin?: string): number {
   if (entry.kind.startsWith("failure:")) return 10;
@@ -410,14 +572,15 @@ export async function managedDiagnosticsBundle(options: {
   limit?: number;
   exported: DiagnosticsExport;
   outDir?: string;
+  task?: string;
 }) {
   const limit = Math.max(1, options.limit ?? 20);
   const digest = buildSessionDigest(options.exported, Math.min(limit, 10));
-  const runs = await listDiagnosticsRuns({
+  const bundleRuns = await listDiagnosticsRuns({
     sessionName: options.sessionName,
-    limit: 1,
+    limit: Math.max(limit, 10),
   });
-  const latestRun = runs[0] ?? null;
+  const latestRun = bundleRuns[0] ?? null;
   const latestRunView = latestRun
     ? await readDiagnosticsRunView({
         runId: latestRun.runId,
@@ -455,12 +618,32 @@ export async function managedDiagnosticsBundle(options: {
   const highSignalTimeline = fullTimeline.entries
     .filter((e) => scoreTimelineEntry(e, pageUrl) >= 5)
     .slice(-limit);
+  const scopedRunEvents = (
+    await Promise.all(bundleRuns.map((run) => readRunEvents(run.runId).catch(() => [])))
+  ).flat();
+  const runIds = bundleRuns.map((run) => run.runId);
+  const commands = uniqueStrings(scopedRunEvents.map((event) => asString(event.command)));
+  const artifacts = await collectEvidenceArtifacts(scopedRunEvents);
+  const summary = evidenceSummaryFromBundle({
+    auditConclusion,
+    digestData,
+    highSignalTimeline,
+    limit,
+  });
+  const createdAt = new Date().toISOString();
 
   const result = {
     session: options.exported.session,
     page: options.exported.page,
     data: {
-      createdAt: new Date().toISOString(),
+      schemaVersion: "1.0",
+      session: options.sessionName,
+      createdAt,
+      ...(options.task?.trim() ? { task: options.task.trim() } : {}),
+      commands,
+      runIds,
+      artifacts,
+      summary,
       sessionName: options.sessionName,
       limit,
       latestRunId: latestRun?.runId ?? null,
@@ -486,6 +669,20 @@ export async function managedDiagnosticsBundle(options: {
     await writeFile(
       join(options.outDir, "manifest.json"),
       `${JSON.stringify(result.data, null, 2)}\n`,
+      "utf8",
+    );
+    await writeFile(
+      join(options.outDir, "handoff.md"),
+      renderHandoffReport({
+        createdAt,
+        sessionName: options.sessionName,
+        task: options.task,
+        commands,
+        runIds,
+        artifacts,
+        summary,
+        auditConclusion,
+      }),
       "utf8",
     );
   }
