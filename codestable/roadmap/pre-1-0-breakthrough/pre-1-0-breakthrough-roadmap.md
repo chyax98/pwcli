@@ -1,7 +1,7 @@
 ---
 doc_type: roadmap
 slug: pre-1-0-breakthrough
-status: active
+status: completed
 created: 2026-05-04
 last_reviewed: 2026-05-04
 tags: [pre-1-0, release, breakthrough, rnd-validation, skill-sop, codestable]
@@ -422,3 +422,4 @@ sprint_model:
 - 2026-05-04：完成 `codestable-truth-1-0-audit`。删除旧过程性架构方案，修正 HAR start/stop、auth dc blocker、route load、auth provider registry 和 real-env map 漂移；允许进入 Pre-1.0 release gate。
 - 2026-05-04：完成 `pre-1-0-release-gate`。全量 gate 通过；期间修复 smoke diagnostics session-signal 旧断言，保持 1.0 evidence contract 不回退；进入 RC blocker burn down。
 - 2026-05-04：完成 `rc-blocker-burn-down`。内部未解释 P0/P1 为 0；唯一剩余 P1 是已记录 `auth dc` 外部环境 blocker；冻结 1.0 command / skill / release contract。
+- 2026-05-04：完成 `one-dot-zero-acceptance`。1.0 sprint accepted-with-known-auth-blocker；52 个 command proven、`auth dc` blocked，内部未解释 P0/P1 为 0；正式发布版本号 bump 另起 release/version loop。
