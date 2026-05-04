@@ -62,7 +62,7 @@
 - raw CDP named-session substrate
 - external auth plugin lifecycle
 - event stream / persistent diagnostics database
-- HAR 热录制稳定 contract
+- HAR 热录制；`har start|stop` 只保留为 `UNSUPPORTED_HAR_CAPTURE` 失败 guard
 - batch 全命令 parity
 - route/mock 通用 DSL 或 GraphQL planner
 - clock fastForward/runFor/复杂时间编排

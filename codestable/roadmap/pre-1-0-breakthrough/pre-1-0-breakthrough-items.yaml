@@ -245,10 +245,10 @@ items:
   - slug: codestable-truth-1-0-audit
     description: 全面重审 CodeStable 文档，确保 architecture/roadmap/command docs/issues/acceptance 角色清晰且证据状态准确
     depends_on: [skill-sop-1-0-audit]
-    status: planned
+    status: done
     feature: null
     minimal_loop: false
-    notes: architecture 只记现状，roadmap 只记规划，limitation 不多处漂移
+    notes: 2026-05-04 已完成；删除旧过程性架构方案，修正 HAR start/stop、auth dc blocker、route load、auth provider registry 和 real-env map 漂移；评估见 evaluations/2026-05-04-codestable-truth-1-0-audit.md
 
   - slug: pre-1-0-release-gate
     description: 发布 Pre-1.0，允许保留已记录 P2/P3，不允许未解释 P0/P1

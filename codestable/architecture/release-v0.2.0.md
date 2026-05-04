@@ -19,7 +19,7 @@
 
 - 外部 auth plugin lifecycle
 - raw CDP named-session substrate
-- HAR 热录制稳定 contract
+- HAR 热录制；`har start|stop` 只保留为 `UNSUPPORTED_HAR_CAPTURE` 失败 guard
 - Playwright Test UI / HTML report 集成
 - `batch` 全命令 parity
 

@@ -147,6 +147,8 @@ pw auth dc --session dc-proof --save-state /tmp/pwcli-real-env/dc-proof/state.js
 
 `auth-dc-real-env-proof` 必须产出二选一结果。
 
+2026-05-04 实际执行结果已经走 blocked 分支：默认 local-ip 入口 `DC_AUTH_URL_UNREACHABLE`，显式 `targetUrl` 尝试触发 `RUN_CODE_TIMEOUT` 且后续 session probe 不可读。command matrix 当前为 `blocked`，blocker issue 见 `codestable/issues/2026-05-04-auth-dc-real-env-proof-blocked/auth-dc-real-env-proof-blocked-report.md`。
+
 ### pass
 
 - 有真实测试/RND 或用户明确目标 URL 的 `auth dc` 命令证据。
@@ -161,7 +163,7 @@ pw auth dc --session dc-proof --save-state /tmp/pwcli-real-env/dc-proof/state.js
 - 在 `codestable/issues/YYYY-MM-DD-auth-dc-real-env-blocker/` 建 report。
 - 说明 blocker 类型：无目标 URL、网络不可达、账号/验证码不可用、challenge/two-factor、provider contract 不匹配、业务登录入口异常。
 - 给出下一次解除 blocker 后的最短验证命令。
-- command matrix 保持 `documented` 或改为 `blocked`，不能伪装成 `proven`。
+- command matrix 保持 `blocked`，不能伪装成 `proven`。
 
 ## 本轮验证
 

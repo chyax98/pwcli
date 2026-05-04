@@ -419,3 +419,4 @@ sprint_model:
 - 2026-05-04：完成 `har-trace-1-0-decision`。HAR 热录制明确移出 1.0 supported contract，`har start|stop` 改为 `UNSUPPORTED_HAR_CAPTURE` 失败 guard；`har replay|replay-stop` 保留为预录制 HAR deterministic stubbing，并新增 `check:har-1-0`。
 - 2026-05-04：完成 `real-agent-task-matrix`。本地 Agent workflow 矩阵覆盖浏览器自动化、自动化测试、填表/文件、简单爬取、Deep Bug、恢复交接、evidence bundle 和 HAR replay；真实测试/RND 的 `auth dc` 仍按 P1 blocker 记录，不伪装 proven。
 - 2026-05-04：完成 `skill-sop-1-0-audit`。核对 53 个 top-level command 与 53 行 command matrix 一致，补齐 1.0 workflow 矩阵、diagnostics bundle/handoff SOP、HAR replay 边界和中文优先 recovery 总则；`auth dc` 仍保持正式 blocker，不写成 proven。
+- 2026-05-04：完成 `codestable-truth-1-0-audit`。删除旧过程性架构方案，修正 HAR start/stop、auth dc blocker、route load、auth provider registry 和 real-env map 漂移；允许进入 Pre-1.0 release gate。

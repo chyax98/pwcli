@@ -1,7 +1,7 @@
 # ADR-002 Diagnostics, Mock, And Environment
 
 状态：accepted  
-更新时间：2026-04-26
+更新时间：2026-05-04
 
 ## 决策
 
@@ -43,19 +43,23 @@
 - `errors recent|clear`
 - `diagnostics digest`
 - `diagnostics export`
+- `diagnostics bundle`
 - `diagnostics runs|show|grep`
+- `diagnostics timeline`
+- `sse`
 - action 结果里的 `diagnosticsDelta`
 
 ### mock
 
 - `route list`
 - `route add`
-- `route load`
 - `route remove`
+- `batch` 内部 route load 子集；顶层 `pw route load` 不是 shipped command
 - 第二层当前已覆盖：
   - body substring matching
+  - query / header / JSON body matcher
   - request header inject + continue
-  - upstream JSON response patch + status override
+  - upstream JSON/text response patch、status override、response header merge
 
 ### environment
 
@@ -77,7 +81,7 @@
 - 没有事件流
 - 没有通用 raw CDP 接管
 - 没有稳定 HAR 热录制
-- 没有更复杂的 inject / response patch 平台
+- 不把 route/mock 扩成通用 DSL 或第二套 runner
 
 ## 扩展方向
 
