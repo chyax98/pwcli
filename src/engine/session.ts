@@ -14,10 +14,12 @@ const playwrightCoreRoot = dirname(require.resolve("playwright-core/package.json
 const sessionModule = require(join(playwrightCoreRoot, "lib/tools/cli-client/session.js"));
 const registryModule = require(join(playwrightCoreRoot, "lib/tools/cli-client/registry.js"));
 const serverRegistryModule = require(join(playwrightCoreRoot, "lib/serverRegistry.js"));
+const socketConnectionModule = require(join(playwrightCoreRoot, "lib/tools/utils/socketConnection.js"));
 
 const { Session } = sessionModule;
 const { Registry, createClientInfo, resolveSessionName } = registryModule;
 const { serverRegistry } = serverRegistryModule;
+const { SocketConnection } = socketConnectionModule;
 
 export const DEFAULT_SESSION_NAME = "default";
 export const MAX_SESSION_NAME_LENGTH = 16;
@@ -337,7 +339,7 @@ async function acquireSessionLock(options: {
 async function withSessionCommandLock<T>(
   workspaceDir: string | undefined,
   sessionName: string,
-  fn: (lock: { releaseAfter(operation: Promise<unknown>): void }) => Promise<T>,
+  fn: () => Promise<T>,
 ) {
   const { lockDir, token } = await acquireSessionLock({
     workspaceDir,
@@ -346,22 +348,10 @@ async function withSessionCommandLock<T>(
     timeoutMs: SESSION_LOCK_TIMEOUT_MS,
     staleMs: SESSION_LOCK_STALE_MS,
   });
-  let deferredRelease: Promise<unknown> | undefined;
-
   try {
-    return await fn({
-      releaseAfter(operation) {
-        deferredRelease = operation;
-      },
-    });
+    return await fn();
   } finally {
-    if (deferredRelease) {
-      void deferredRelease
-        .catch(() => {})
-        .finally(() => releaseSessionCommandLock(lockDir, token).catch(() => {}));
-    } else {
-      await releaseSessionCommandLock(lockDir, token);
-    }
+    await releaseSessionCommandLock(lockDir, token);
   }
 }
 
@@ -574,20 +564,16 @@ export async function runManagedSessionCommand(
     sessionName,
     Boolean(options?.reset || options?.createIfMissing),
     async () =>
-      await withSessionCommandLock(clientInfo.workspaceDir, sessionName, async (lock) => {
+      await withSessionCommandLock(clientInfo.workspaceDir, sessionName, async () => {
         const ensured = await ensureManagedSessionUnlocked(options);
         const { clientInfo: ensuredClientInfo, sessionName: ensuredSessionName, session } = ensured;
-        const run = session.run(ensuredClientInfo, {
-          ...args,
-        });
         const text = options?.timeoutMs
-          ? await withManagedSessionTimeout(run, {
+          ? await runSessionCommandWithTimeout(session, ensuredClientInfo, { ...args }, {
               timeoutMs: options.timeoutMs,
               timeoutMessage: options.timeoutMessage,
               timeoutCode: options.timeoutCode,
-              onTimeout: () => lock.releaseAfter(run),
             })
-          : await run;
+          : await session.run(ensuredClientInfo, { ...args });
         return {
           sessionName: ensuredSessionName,
           text: text.text,
@@ -596,32 +582,78 @@ export async function runManagedSessionCommand(
   );
 }
 
-async function withManagedSessionTimeout<T>(
-  operation: Promise<T>,
+async function runSessionCommandWithTimeout(
+  session: typeof Session,
+  clientInfo: ReturnType<typeof createClientInfo>,
+  args: Record<string, unknown>,
   options: {
     timeoutMs: number;
     timeoutMessage?: string;
     timeoutCode?: string;
-    onTimeout?: () => void;
   },
 ) {
+  if (!session.isCompatible(clientInfo)) {
+    throw new Error(`Client is v${clientInfo.version}, session '${session.name}' is v${session.config.version}. Run
+
+  playwright-cli${session.name !== "default" ? ` -s=${session.name}` : ""} open
+
+to restart the browser session.`);
+  }
+
+  const { socket } = await session._connect();
+  if (!socket) {
+    throw new Error(`Browser '${session.name}' is not open. Run
+
+  playwright-cli${session.name !== "default" ? ` -s=${session.name}` : ""} open
+
+to start the browser session.`);
+  }
+
+  const connection = new SocketConnection(socket);
+  let settled = false;
   let timer: NodeJS.Timeout | undefined;
+
   try {
-    return await Promise.race([
-      operation,
-      new Promise<never>((_, reject) => {
-        timer = setTimeout(() => {
-          const code = options.timeoutCode ?? "MANAGED_COMMAND_TIMEOUT";
-          const message = options.timeoutMessage ?? "managed session command timed out";
-          options.onTimeout?.();
-          reject(new Error(`${code}:${message}`));
-        }, options.timeoutMs);
-      }),
-    ]);
+    const responsePromise = new Promise<unknown>((resolve, reject) => {
+      connection.onmessage = (message: { id?: number; error?: string; result?: unknown }) => {
+        if (!message.id) {
+          return;
+        }
+        settled = true;
+        if (message.error) {
+          reject(new Error(message.error));
+        } else {
+          resolve(message.result);
+        }
+      };
+      connection.onclose = () => {
+        if (!settled) {
+          reject(new Error("Session closed"));
+        }
+      };
+      timer = setTimeout(() => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        const code = options.timeoutCode ?? "MANAGED_COMMAND_TIMEOUT";
+        const message = options.timeoutMessage ?? "managed session command timed out";
+        connection.close();
+        reject(new Error(`${code}:${message}`));
+      }, options.timeoutMs);
+    });
+    const message = {
+      id: 1,
+      method: "run",
+      params: { args, cwd: process.cwd() },
+    };
+    await connection.send(message);
+    return await responsePromise as { text: string };
   } finally {
     if (timer) {
       clearTimeout(timer);
     }
+    connection.close();
   }
 }
 

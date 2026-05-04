@@ -67,7 +67,7 @@ commands:
     group: tooling-boundary
     roadmap_item: command-eval-batch-code-dashboard-skill-sse
     status: proven
-    notes: 2026-05-04 route/mock/bootstrap focused check 覆盖 inline source、--file 和 --retry；仍是 escape hatch，不扩大为长流程 runner，timeout 恢复归 run-code-timeout-recovery-breakthrough
+    notes: 2026-05-04 route/mock/bootstrap focused check 覆盖 inline source、--file 和 --retry；run-code-timeout recovery 专项修复 timeout 后 CLI 不退出的 P1，并用 check:run-code-timeout 固化恢复链路；仍是 escape hatch，不扩大为长流程 runner
   - command: console
     group: network-console-errors
     roadmap_item: command-eval-network-console-errors

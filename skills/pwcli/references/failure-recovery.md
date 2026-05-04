@@ -101,6 +101,12 @@ pw status --session bug-a
 pw diagnostics digest --session bug-a
 ```
 
+Expected contract:
+
+- the timed-out CLI command returns a `RUN_CODE_TIMEOUT` envelope and exits promptly
+- the managed session remains inspectable through `page current` / `status` / `diagnostics digest`
+- short follow-up actions or short `pw code` snippets can continue after recovery checks
+
 Then split the work into smaller commands. Prefer first-class `pw wait --response|--selector|network-idle` after actions instead of embedding long navigation or network waits inside `pw code`. 长流程拆成多个一等命令 + 显式 wait，避免单条 `pw code` 触发 guard timeout。If the session reports `SESSION_BUSY`, wait briefly and retry status before recreating.
 
 ### `SESSION_ATTACH_FAILED`

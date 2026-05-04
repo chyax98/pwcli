@@ -205,10 +205,10 @@ items:
   - slug: run-code-timeout-recovery-breakthrough
     description: 系统验证 RUN_CODE_TIMEOUT、长导航、长网络等待的恢复路径和 skill SOP
     depends_on: [modal-doctor-recovery-breakthrough]
-    status: planned
+    status: done
     feature: null
     minimal_loop: false
-    notes: 不扩大 pw code 为长流程 runner，优先一等命令和显式 wait
+    notes: 2026-05-04 已完成；发现并修复 pw code 触发 RUN_CODE_TIMEOUT 后 CLI 进程不及时退出的 P1，新增 check:run-code-timeout 固化 timeout envelope、page/status/digest 恢复和后续短动作/短 code 可继续；评估见 evaluations/2026-05-04-run-code-timeout-recovery-breakthrough.md
 
   - slug: evidence-bundle-1-0-contract
     description: 定义并实现 1.0 证据包 manifest、run timeline 和 handoff 报告稳定 contract

@@ -45,5 +45,6 @@
 ## 恢复路径
 
 - `RUN_CODE_TIMEOUT`：查 `page current` / `status` / `diagnostics digest`，拆小步骤。
+- 如果 timeout 后 CLI 进程没有及时退出，这是产品 bug；当前 contract 由 `pnpm check:run-code-timeout` 固化。
 - modal 阻断：`status` → `dialog accept|dismiss`。
 - selector 失败：回到 `locate` / `snapshot -i` 找目标。

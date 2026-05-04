@@ -213,7 +213,8 @@
 - `--retry <count>`
 - 失败保留 Playwright 原始错误，常见 locator 问题后追加 `PWCLI_HINT`
 - modal 阻塞时可能返回 `MODAL_STATE_BLOCKED`，先恢复 dialog
-- 2026-05-04 route/mock/bootstrap focused check 已覆盖 inline、`--file`、`--retry`；长流程仍拆成一等命令 + 显式 wait，不把 `pw code` 当 workflow runner
+- `RUN_CODE_TIMEOUT` 后 CLI 必须及时退出；先 `page current` / `status` / `diagnostics digest` 确认 session，再拆成一等命令 + 显式 wait
+- 2026-05-04 route/mock/bootstrap focused check 已覆盖 inline、`--file`、`--retry`；`check:run-code-timeout` 固化 timeout 后 CLI 退出和恢复链路；长流程仍不把 `pw code` 当 workflow runner
 
 ## Batch
 

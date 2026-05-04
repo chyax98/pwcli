@@ -109,7 +109,7 @@
 - dialog 恢复当前只覆盖 browser dialog handle，不覆盖更复杂的页面级阻断控件
 - `locate|get|is|verify` 只做 read-only state check；不返回 ref、不规划动作
 - `get value` 依赖 Playwright `inputValue()`，只适合 input/textarea/select 等表单控件
-- `pw code` 和 run-code-backed semantic/read paths 受 Playwright daemon completion 等待影响；pwcli 以 `RUN_CODE_TIMEOUT` 防止无限卡住，长流程应拆成一等命令 + 显式 wait
+- `pw code` 和 run-code-backed semantic/read paths 受 Playwright daemon completion 等待影响；pwcli 以 `RUN_CODE_TIMEOUT` 防止无限卡住，timeout 后 CLI 必须及时退出且 session 应可继续 `page current` / `status` / `diagnostics digest`，长流程应拆成一等命令 + 显式 wait
 
 ### 后续扩展
 
@@ -351,7 +351,7 @@ batch 稳定子集覆盖：
 
 - pwcli managed session 复用 Playwright-core CLI daemon / `Session` / registry substrate。
 - `run-code` 路径由 Playwright daemon 执行，适合 `pw code` 和需要现场 Playwright 能力的一等命令实现。
-- `managedRunCode` 有默认 25s 超时保护：超过 guard timeout 返回 `RUN_CODE_TIMEOUT`，避免 daemon completion wait 无限卡住。
+- `managedRunCode` 有默认 25s 超时保护：超过 guard timeout 返回 `RUN_CODE_TIMEOUT`，并主动关闭本次 command socket，避免 CLI 进程被 daemon completion wait 拖住。
 - `session recreate` 在 stop 后等待短暂释放期，并对 replacement browser startup 施加 30s `SESSION_RECREATE_STARTUP_TIMEOUT`。
 
 ### 当前限制
