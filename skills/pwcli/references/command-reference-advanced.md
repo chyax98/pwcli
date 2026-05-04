@@ -203,6 +203,7 @@
 - init script 配置自动持久化到 workspace，`session recreate` 后自动重新 apply
 - 输出包含 `bootstrapApplied`（session create）或 `bootstrapReapplied`（session recreate）字段
 - `pw doctor --session <name>` 报告 bootstrap 配置状态（`initScriptCount`、`appliedAt`）
+- 2026-05-04 route/mock/bootstrap focused check 已验证 init script、headers、remove-init-script 和 `session recreate` 重放；移除后的 init script 不再重放，headers 仍可重放
 
 ## pw code
 
@@ -212,6 +213,7 @@
 - `--retry <count>`
 - 失败保留 Playwright 原始错误，常见 locator 问题后追加 `PWCLI_HINT`
 - modal 阻塞时可能返回 `MODAL_STATE_BLOCKED`，先恢复 dialog
+- 2026-05-04 route/mock/bootstrap focused check 已覆盖 inline、`--file`、`--retry`；长流程仍拆成一等命令 + 显式 wait，不把 `pw code` 当 workflow runner
 
 ## Batch
 

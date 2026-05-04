@@ -34,8 +34,8 @@ node dist/cli.js --help
 | State checks | `locate`、`get`、`is`、`verify` | `locate.ts`、`get.ts`、`is.ts`、`verify.ts` | read-only 定位、事实读取、布尔检查、断言闭环 | `command-reference.md` |
 | Actions | `click`、`fill`、`type`、`press`、`hover`、`scroll`、`check`、`uncheck`、`select`、`drag`、`upload`、`download`、`resize`、`dialog`、`wait`、`mouse` | 对应 `src/cli/commands/*.ts` | 执行动作、处理弹窗、等待状态、产出 run evidence | `command-reference.md` |
 | Diagnostics | `diagnostics digest|export|bundle|runs|show|grep|timeline`、`console`、`network`、`sse`、`errors`、`doctor`、`video` | `diagnostics.ts`、`console.ts`、`network.ts`、`sse.ts`、`errors.ts`、`doctor.ts`、`video.ts` | 从 live session 和 run artifacts 归因、定位、导出证据 | `command-reference-diagnostics.md` |
-| Trace / HAR | `trace start|stop|inspect`、`har start|stop|replay|replay stop` | `trace.ts`、`har.ts` | trace zip 离线查询、HAR 录制与回放 | `command-reference-diagnostics.md` |
-| Mock / bootstrap | `route list|add|load|remove`、`bootstrap apply` | `route.ts`、`bootstrap.ts` | 请求拦截、fulfill、abort、JSON patch、headers/init script 注入 | `command-reference-diagnostics.md`、`command-reference-advanced.md` |
+| Trace / HAR | `trace start|stop|inspect`、`har start|stop|replay|replay stop` | `trace.ts`、`har.ts` | trace zip 离线查询；HAR start/stop 当前为 documented limitation，replay 是边界能力 | `command-reference-diagnostics.md` |
+| Mock / bootstrap | `route list|add|remove`、`bootstrap apply` | `route.ts`、`bootstrap.ts` | 请求拦截、fulfill、abort、matcher、JSON/text patch、headers/init script 注入 | `command-reference-diagnostics.md`、`command-reference-advanced.md` |
 | Identity state | `auth`、`state`、`cookies`、`storage`、`profile` | `auth.ts`、`state.ts`、`cookies.ts`、`storage.ts`、`profile.ts` | 登录态获取、存储导入导出、当前 origin 状态读写、本机 Chrome profile discovery | `command-reference-advanced.md` |
 | Environment | `environment offline|geolocation|permissions|clock` | `environment.ts` | 受控网络、位置、权限、时间 | `command-reference-advanced.md` |
 | Automation | `batch`、`code`、`skill` | `batch.ts`、`code.ts`、`skill.ts` | 结构化串行编排、Playwright escape hatch、分发 skill | `command-reference-advanced.md` |

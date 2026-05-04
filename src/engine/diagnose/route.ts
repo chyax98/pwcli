@@ -101,6 +101,31 @@ export async function managedRoute(
           return false;
         return Object.entries(subset).every(([key, value]) => containsSubset(target[key], value));
       };
+      const decodeQueryPart = value => {
+        const normalized = String(value || '').replace(/\\+/g, ' ');
+        try {
+          return decodeURIComponent(normalized);
+        } catch {
+          return normalized;
+        }
+      };
+      const parseQuery = rawUrl => {
+        const queryStart = String(rawUrl || '').indexOf('?');
+        if (queryStart === -1)
+          return {};
+        const hashStart = String(rawUrl).indexOf('#', queryStart);
+        const query = String(rawUrl).slice(queryStart + 1, hashStart === -1 ? undefined : hashStart);
+        const parsed = {};
+        for (const part of query.split('&')) {
+          if (!part)
+            continue;
+          const eq = part.indexOf('=');
+          const key = decodeQueryPart(eq === -1 ? part : part.slice(0, eq));
+          const value = decodeQueryPart(eq === -1 ? '' : part.slice(eq + 1));
+          parsed[key] = value;
+        }
+        return parsed;
+      };
       await context.route(pattern, async route => {
         const request = route.request();
         if (config.method && request.method().toUpperCase() !== config.method) {
@@ -115,8 +140,8 @@ export async function managedRoute(
           }
         }
         if (config.matchQuery) {
-          const url = new URL(request.url());
-          const queryMatched = Object.entries(config.matchQuery).every(([key, value]) => url.searchParams.get(key) === value);
+          const query = parseQuery(request.url());
+          const queryMatched = Object.entries(config.matchQuery).every(([key, value]) => query[key] === String(value));
           if (!queryMatched) {
             await route.fallback();
             return;
@@ -312,4 +337,3 @@ export async function managedRoute(
     },
   };
 }
-

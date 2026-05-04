@@ -124,9 +124,11 @@ state / auth / batch 命令见 `command-reference-advanced.md`。
 - `--match-headers-file <path>`：要求请求 header 命中 JSON 文件中的 key/value
 - `--match-json-file <path>`：要求请求 JSON body 至少包含给定 subset
 - fulfill：`--body <text>` / `--body-file <path>`、`--status <code>`、`--content-type <type>`、`--headers-file <path>`
-- patch：`--patch-json <json>` / `--patch-json-file <path>`、`--patch-text-file <path>`、`--patch-status <code>`、`--merge-headers-file <path>`、`--inject-headers-file <path>`
+- inject：`--inject-headers-file <path>`，命中后继续 upstream request
+- patch：`--patch-json <json>` / `--patch-json-file <path>`、`--patch-text-file <path>`、`--patch-status <code>`、`--merge-headers-file <path>`
 - patch 模式先拿 upstream response 再做 JSON merge patch，只适用于 upstream `application/json`
 - patch 模式与 `--abort` / fulfill 选项 / inject 选项互斥
+- 2026-05-04 route/mock/bootstrap focused check 已覆盖 fulfill、method、query/header/body/json matcher、inject headers、JSON/text patch 和 abort；同轮修复 `--match-query-file` 命中后 session closed 的 P1
 
 当前顶层 `pw route` 子命令只有 `add|remove|list`。多条 route 用多次 `route add`，或用 `batch` 串行编排；不要把旧文档里的 `pw route load` 当作顶层命令。Batch 内部 route 子集见 `command-reference-advanced.md`。
 
@@ -142,6 +144,7 @@ state / auth / batch 命令见 `command-reference-advanced.md`。
 ### `pw route remove [pattern] --session <name>`
 
 - 省略 `pattern` 时清空全部 managed-session routes
+- 2026-05-04 route/mock/bootstrap focused check 已验证指定 pattern 删除单条，以及无 pattern 清空全部 active routes
 
 ## Trace / HAR
 

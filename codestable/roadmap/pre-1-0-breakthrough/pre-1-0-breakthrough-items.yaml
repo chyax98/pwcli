@@ -101,10 +101,10 @@ items:
   - slug: command-eval-route-mock-bootstrap
     description: 深评 route/mock/bootstrap/code 作为本地受控测试 substrate 的能力
     depends_on: [command-eval-network-console-errors]
-    status: planned
+    status: done
     feature: null
     minimal_loop: true
-    notes: 只为确定性测试和复现服务，不做无边界脚本平台；pw code 是 escape hatch，不是长流程 runner
+    notes: 2026-05-04 已完成 focused check；覆盖 route fulfill/method/query/header/body/json matcher/inject/patch/abort/list/remove、bootstrap init script/headers/remove/recreate reapply、pw code inline/file/retry；发现并修复 route matchQuery 依赖缺失 URL 全局导致 Session closed 的 P1
 
   - slug: command-eval-environment-controls
     description: 深评 environment offline/geolocation/permissions/clock 等本地环境控制能力

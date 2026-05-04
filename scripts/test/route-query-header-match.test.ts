@@ -51,6 +51,19 @@ const server = createServer((request, response) => {
       <html><head><title>Route Match Fixture</title></head>
       <body>
         <main><div id="status">idle</div><button id="trigger">Start fetch</button></main>
+        <script>
+          document.querySelector('#trigger').addEventListener('click', async () => {
+            const response = await fetch('/api/items?tenant=alpha', {
+              method: 'POST',
+              headers: {
+                'content-type': 'application/json',
+                'x-tenant': 'alpha',
+              },
+              body: JSON.stringify({ tenant: 'alpha' }),
+            });
+            document.querySelector('#status').textContent = await response.text();
+          });
+        </script>
       </body></html>`);
     return;
   }
@@ -69,8 +82,16 @@ if (!address || typeof address === "string") {
 }
 const pageUrl = `http://127.0.0.1:${address.port}/page`;
 const mergeHeadersPath = resolve(workspaceDir, "merge-headers.json");
+const matchQueryPath = resolve(workspaceDir, "match-query.json");
+const matchHeadersPath = resolve(workspaceDir, "match-headers.json");
+const matchJsonPath = resolve(workspaceDir, "match-json.json");
+const patchTextPath = resolve(workspaceDir, "patch-text.json");
 
 await writeFile(mergeHeadersPath, JSON.stringify({ "x-from-test": "yes" }, null, 2), "utf8");
+await writeFile(matchQueryPath, JSON.stringify({ tenant: "alpha" }, null, 2), "utf8");
+await writeFile(matchHeadersPath, JSON.stringify({ "x-tenant": "alpha" }, null, 2), "utf8");
+await writeFile(matchJsonPath, JSON.stringify({ tenant: "alpha" }, null, 2), "utf8");
+await writeFile(patchTextPath, JSON.stringify({ fallback: "mocked" }, null, 2), "utf8");
 
 try {
   const createResult = await runPw([
@@ -91,18 +112,20 @@ try {
     "**/api/items**",
     "--session",
     sessionName,
-    "--match-query",
-    "tenant=alpha",
-    "--match-header",
-    "x-tenant=alpha",
-    "--match-json",
-    '{"tenant":"alpha"}',
+    "--method",
+    "POST",
+    "--match-query-file",
+    matchQueryPath,
+    "--match-headers-file",
+    matchHeadersPath,
+    "--match-json-file",
+    matchJsonPath,
     "--patch-status",
     "201",
     "--merge-headers-file",
     mergeHeadersPath,
-    "--patch-text",
-    "fallback=mocked",
+    "--patch-text-file",
+    patchTextPath,
     "--output",
     "json",
   ]);
@@ -127,6 +150,32 @@ try {
   assert.deepEqual(routeList.data.routes[0]?.matchJson, { tenant: "alpha" });
   assert.deepEqual(routeList.data.routes[0]?.mergeHeaders, { "x-from-test": "yes" });
   assert.deepEqual(routeList.data.routes[0]?.patchText, { fallback: "mocked" });
+
+  const clickResult = await runPw([
+    "click",
+    "--session",
+    sessionName,
+    "--selector",
+    "#trigger",
+    "--output",
+    "json",
+  ]);
+  assert.equal(clickResult.code, 0, `click failed: ${clickResult.stderr}\n${clickResult.stdout}`);
+
+  const waitResult = await runPw([
+    "wait",
+    "--session",
+    sessionName,
+    "--text",
+    "mocked",
+    "--output",
+    "json",
+  ]);
+  assert.equal(waitResult.code, 0, `wait failed: ${waitResult.stderr}\n${waitResult.stdout}`);
+
+  const statusResult = await runPw(["session", "status", sessionName, "--output", "json"]);
+  assert.equal(statusResult.code, 0);
+  assert.equal((statusResult.json as { data: { active: boolean } }).data.active, true);
 
   const closeResult = await runPw(["session", "close", sessionName, "--output", "json"]);
   assert.equal(closeResult.code, 0);

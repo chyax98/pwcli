@@ -49,8 +49,8 @@ commands:
   - command: bootstrap
     group: route-mock-bootstrap
     roadmap_item: command-eval-route-mock-bootstrap
-    status: planned
-    notes: 验证 init script 和 headers 对受控测试是否稳定
+    status: proven
+    notes: 2026-05-04 route/mock/bootstrap focused check 覆盖 init script、headers、remove-init-script 和 session recreate reapply；recreate 后已移除 init script 不重放，headers 保持生效
   - command: check
     group: interaction-input
     roadmap_item: command-eval-interaction-input
@@ -64,8 +64,8 @@ commands:
   - command: code
     group: tooling-boundary
     roadmap_item: command-eval-batch-code-dashboard-skill-sse
-    status: planned
-    notes: escape hatch，不扩大为长流程 runner
+    status: proven
+    notes: 2026-05-04 route/mock/bootstrap focused check 覆盖 inline source、--file 和 --retry；仍是 escape hatch，不扩大为长流程 runner，timeout 恢复归 run-code-timeout-recovery-breakthrough
   - command: console
     group: network-console-errors
     roadmap_item: command-eval-network-console-errors
@@ -199,8 +199,8 @@ commands:
   - command: route
     group: route-mock-bootstrap
     roadmap_item: command-eval-route-mock-bootstrap
-    status: planned
-    notes: add/remove/list/load/match/patch 必须覆盖
+    status: proven
+    notes: 2026-05-04 focused check 覆盖 add/list/remove、fulfill、method、match-query/header/body/json、inject headers、JSON/text patch、abort；发现并修复 matchQuery 命中后 Session closed 的 P1；顶层 route load 不是 shipped command
   - command: screenshot
     group: artifacts
     roadmap_item: command-eval-trace-har-video-artifacts
