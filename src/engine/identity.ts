@@ -1173,20 +1173,23 @@ function buildStateDiffResult(
       };
   const cookies = diffCookies(beforeSnapshot.cookies, afterSnapshot.cookies, includeValues);
   const indexeddb = diffIndexedDb(beforeSnapshot.indexeddb, afterSnapshot.indexeddb);
+  const storageBucketChanged = (storage: {
+    added: unknown[];
+    removed: unknown[];
+    changed?: unknown[];
+    beforeAccessible: boolean;
+    afterAccessible: boolean;
+  }) =>
+    storage.added.length > 0 ||
+    storage.removed.length > 0 ||
+    (storage.changed?.length ?? 0) > 0 ||
+    storage.beforeAccessible !== storage.afterAccessible;
   const changedBuckets = [
     cookies.added.length > 0 || cookies.removed.length > 0 || cookies.changed.length > 0
       ? "cookies"
       : null,
-    localStorage.added.length > 0 ||
-    localStorage.removed.length > 0 ||
-    localStorage.beforeAccessible !== localStorage.afterAccessible
-      ? "localStorage"
-      : null,
-    sessionStorage.added.length > 0 ||
-    sessionStorage.removed.length > 0 ||
-    sessionStorage.beforeAccessible !== sessionStorage.afterAccessible
-      ? "sessionStorage"
-      : null,
+    storageBucketChanged(localStorage) ? "localStorage" : null,
+    storageBucketChanged(sessionStorage) ? "sessionStorage" : null,
     indexeddb.statusBefore !== indexeddb.statusAfter ||
     indexeddb.databasesAdded.length > 0 ||
     indexeddb.databasesRemoved.length > 0 ||

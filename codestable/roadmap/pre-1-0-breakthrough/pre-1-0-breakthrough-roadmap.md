@@ -357,3 +357,4 @@ skill_updates: string[]
 - 2026-05-04：完成 `command-eval-trace-har-video-artifacts`。覆盖 screenshot、pdf、trace、video 的 artifact 证据产出；HAR start/stop 明确为 `supported=false` documented limitation，后续由 `har-trace-1-0-decision` 决定实现、降级或移出 1.0 contract。
 - 2026-05-04：完成 `command-eval-route-mock-bootstrap`。覆盖 route/mock、bootstrap 和 `pw code` 受控测试 substrate；修复 `route add --match-query-file` 命中后因 `URL` 全局缺失导致 session closed 的 P1。
 - 2026-05-04：完成 `command-eval-environment-controls`。覆盖 offline、geolocation、permissions、clock 的单命令深评，并明确 clock 未 install 时当前顶层错误码为 `ENVIRONMENT_CLOCK_SET_FAILED`、message 含 `CLOCK_REQUIRES_INSTALL`。
+- 2026-05-04：完成 `command-eval-auth-state-storage-profile`。覆盖 auth list/info/probe/fixture-auth、cookies、storage local/session/indexeddb、state save/load/diff、profile list-chrome；修复 `state diff --include-values` value-only storage 变化漏进 `summary.changedBuckets` 的 P1；`auth dc` 仍保持 documented，等待真实测试/RND 环境证明。

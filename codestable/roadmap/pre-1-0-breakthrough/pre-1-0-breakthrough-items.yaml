@@ -117,10 +117,10 @@ items:
   - slug: command-eval-auth-state-storage-profile
     description: 深评 auth/state/storage/cookies/profile 的登录态和浏览器状态复用能力
     depends_on: [command-eval-environment-controls]
-    status: planned
+    status: done
     feature: null
     minimal_loop: true
-    notes: 本地 fixture 证明 state/storage；Forge/DC auth 必须进入真实测试/RND 环境证明或 blocker
+    notes: 2026-05-04 已完成本地 fixture focused check；覆盖 auth list/info/probe/fixture-auth、cookies、storage local/session/indexeddb、state save/load/diff、profile list-chrome；发现并修复 state diff value-only storage changedBuckets 漏报 P1；auth dc 仅 provider contract documented，真实链路留给 real-env-access-map + auth-dc-real-env-proof
 
   - slug: command-eval-batch-code-dashboard-skill-sse
     description: 深评 batch/code/dashboard/skill/sse 等工具边界命令

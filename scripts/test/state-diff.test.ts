@@ -18,6 +18,8 @@ const workspaceDir = await mkdtemp(join(tmpdir(), "pwcli-state-diff-"));
 const sessionName = `diff${Date.now().toString(36).slice(-5)}`;
 const beforePath = resolve(workspaceDir, "before.json");
 const afterPath = resolve(workspaceDir, "after.json");
+const valueBeforePath = resolve(workspaceDir, "value-before.json");
+const valueChangedPath = resolve(workspaceDir, "value-changed.json");
 
 function runPw(args: string[]) {
   return new Promise<CliResult>((resolveResult, reject) => {
@@ -215,6 +217,102 @@ try {
   assert.equal(compareEnvelope.ok, true);
   assert.equal(compareEnvelope.data.summary.changed, true);
   assert.ok(compareEnvelope.data.summary.changedBuckets.includes("indexeddb"));
+
+  const valueBaselineResult = await runPw([
+    "state",
+    "diff",
+    "--session",
+    sessionName,
+    "--before",
+    valueBeforePath,
+    "--include-values",
+    "--output",
+    "json",
+  ]);
+  assert.equal(
+    valueBaselineResult.code,
+    0,
+    `value baseline failed: ${JSON.stringify(valueBaselineResult)}`,
+  );
+  const valueBaselineEnvelope = valueBaselineResult.json as {
+    ok: boolean;
+    data: { baselineCreated: boolean };
+  };
+  assert.equal(valueBaselineEnvelope.ok, true);
+  assert.equal(valueBaselineEnvelope.data.baselineCreated, true);
+  await stat(valueBeforePath);
+
+  const mutateValuesResult = await runPw([
+    "code",
+    "--session",
+    sessionName,
+    `async page => {
+      await page.evaluate(() => {
+        document.cookie = 'session_id=changed; path=/';
+        localStorage.setItem('featureFlag', 'disabled');
+        sessionStorage.setItem('workspaceId', 'wk_456');
+      });
+      return { valuesChanged: true };
+    }`,
+    "--output",
+    "json",
+  ]);
+  assert.equal(
+    mutateValuesResult.code,
+    0,
+    `value mutation failed: ${JSON.stringify(mutateValuesResult)}`,
+  );
+
+  const valueDiffResult = await runPw([
+    "state",
+    "diff",
+    "--session",
+    sessionName,
+    "--before",
+    valueBeforePath,
+    "--after",
+    valueChangedPath,
+    "--include-values",
+    "--output",
+    "json",
+  ]);
+  assert.equal(valueDiffResult.code, 0, `value diff failed: ${JSON.stringify(valueDiffResult)}`);
+  const valueDiffEnvelope = valueDiffResult.json as {
+    ok: boolean;
+    data: {
+      summary: { changed: boolean; changedBuckets: string[] };
+      cookies: { changed: Array<{ name: string; changedFields: string[] }> };
+      localStorage: { changed: Array<{ key: string; before?: string; after?: string }> };
+      sessionStorage: { changed: Array<{ key: string; before?: string; after?: string }> };
+    };
+  };
+  assert.equal(valueDiffEnvelope.ok, true);
+  assert.equal(valueDiffEnvelope.data.summary.changed, true);
+  assert.ok(valueDiffEnvelope.data.summary.changedBuckets.includes("cookies"));
+  assert.ok(valueDiffEnvelope.data.summary.changedBuckets.includes("localStorage"));
+  assert.ok(valueDiffEnvelope.data.summary.changedBuckets.includes("sessionStorage"));
+  assert.ok(
+    valueDiffEnvelope.data.cookies.changed.some(
+      (entry) => entry.name === "session_id" && entry.changedFields.includes("value"),
+    ),
+  );
+  assert.ok(
+    valueDiffEnvelope.data.localStorage.changed.some(
+      (entry) =>
+        entry.key === "featureFlag" &&
+        entry.before === "enabled" &&
+        entry.after === "disabled",
+    ),
+  );
+  assert.ok(
+    valueDiffEnvelope.data.sessionStorage.changed.some(
+      (entry) =>
+        entry.key === "workspaceId" &&
+        entry.before === "wk_123" &&
+        entry.after === "wk_456",
+    ),
+  );
+  await stat(valueChangedPath);
 
   const closeResult = await runPw(["session", "close", sessionName, "--output", "json"]);
   assert.equal(closeResult.code, 0, `session close failed: ${JSON.stringify(closeResult)}`);

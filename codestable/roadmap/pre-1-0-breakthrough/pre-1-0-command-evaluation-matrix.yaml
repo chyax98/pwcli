@@ -39,8 +39,8 @@ commands:
   - command: auth
     group: auth-state
     roadmap_item: command-eval-auth-state-storage-profile
-    status: planned
-    notes: auth dc 必须进入真实测试/RND 环境证明或 blocker
+    status: documented
+    notes: 2026-05-04 auth list/info/probe/fixture-auth 本地 focused check 已 proven；auth dc 仅 provider contract documented，真实 Forge/DC 登录链路必须进入 auth-dc-real-env-proof 或 blocker
   - command: batch
     group: tooling-boundary
     roadmap_item: command-eval-batch-code-dashboard-skill-sse
@@ -74,8 +74,8 @@ commands:
   - command: cookies
     group: auth-state
     roadmap_item: command-eval-auth-state-storage-profile
-    status: planned
-    notes: 验证 list/set 和 state 复用边界
+    status: proven
+    notes: 2026-05-04 auth/state focused check 覆盖 cookies list/set、domain filter，并通过 state load 新 session 证明 auth cookie 可复用
   - command: dashboard
     group: tooling-boundary
     roadmap_item: command-eval-batch-code-dashboard-skill-sse
@@ -239,8 +239,8 @@ commands:
   - command: state
     group: auth-state
     roadmap_item: command-eval-auth-state-storage-profile
-    status: planned
-    notes: save/load/diff 是登录态复用主路
+    status: proven
+    notes: 2026-05-04 auth/state focused check 覆盖 save/load/diff、baseline/after、--include-values；同轮修复 value-only local/session storage changedBuckets 漏报并用 scripts/test/state-diff.test.ts 固化
   - command: status
     group: observation
     roadmap_item: command-eval-observation-reading
@@ -249,8 +249,8 @@ commands:
   - command: storage
     group: auth-state
     roadmap_item: command-eval-auth-state-storage-profile
-    status: planned
-    notes: local/session/indexeddb 读写边界必须清晰
+    status: proven
+    notes: 2026-05-04 auth/state focused check 覆盖 local get/set/delete/clear、session get/set/delete/clear、indexeddb export database/store/include-records；storage mutation 仍只作用 current origin
   - command: tab
     group: page-workspace
     roadmap_item: command-eval-page-tab-workspace

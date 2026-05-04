@@ -38,13 +38,13 @@
 返回：
 
 - `summary.changed`
-- `summary.changedBuckets`
+- `summary.changedBuckets`：包含发生变化的 bucket；`--include-values` 下 value-only 的 `localStorage.changed` / `sessionStorage.changed` 也会计入
 - `cookies.added/removed/changed`
 - `localStorage.added/removed/changed`
 - `sessionStorage.added/removed/changed`
 - `indexeddb.databasesAdded/databasesRemoved/storesChanged`
 
-`--include-values` 时，value 级 diff 输出格式为 `before` / `after` 字符串对。
+`--include-values` 时，value 级 diff 输出格式为 `before` / `after` 字符串对；只改 value、不改 key 时，对应 bucket 仍会出现在 `summary.changedBuckets`。
 
 限制：
 
