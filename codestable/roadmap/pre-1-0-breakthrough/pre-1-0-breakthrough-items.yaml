@@ -189,10 +189,10 @@ items:
   - slug: auth-dc-real-env-proof
     description: 在测试/RND 环境真实验证 auth dc，把 documented 推进到 proven 或记录环境 blocker
     depends_on: [real-env-access-map]
-    status: planned
+    status: done
     feature: null
     minimal_loop: false
-    notes: 用户已确认可以进入测试/RND 环境，不能继续以本地缺环境为理由跳过
+    notes: 2026-05-04 已执行真实 provider 尝试；默认 local-ip 入口 DC_AUTH_URL_UNREACHABLE，明确 targetUrl 尝试 RUN_CODE_TIMEOUT 且 session probe 失败；auth command matrix 改为 blocked，issue 见 codestable/issues/2026-05-04-auth-dc-real-env-proof-blocked/auth-dc-real-env-proof-blocked-report.md
 
   - slug: modal-doctor-recovery-breakthrough
     description: 修复并验证 modal/dialog/doctor/page read blocked state 的一致恢复链路
