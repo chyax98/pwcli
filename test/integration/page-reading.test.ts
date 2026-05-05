@@ -228,32 +228,32 @@ describe("page reading", { concurrency: false }, () => {
       name,
       "--headless",
       "--open",
-      "https://playwright.dev",
+      "about:blank",
+      "--output",
+      "json",
+    ]);
+
+    await runPw([
+      "code",
+      "--session",
+      name,
+      'async page => { await page.setContent(`<main><h1>Accessible Demo</h1><button>Submit Order</button><a href="/help">Help</a></main>`); }',
       "--output",
       "json",
     ]);
 
     const result = await runPw(["accessibility", "--session", name, "--output", "json"]);
-    // NOTE: accessibility currently fails on many sites with:
-    // ACCESSIBILITY_FAILED: Cannot read properties of undefined (reading 'snapshot')
-    // This is a known limitation; we assert the command completes (code 1) with the expected error code.
-    if (result.code !== 0) {
-      const json = result.json as {
-        ok: boolean;
-        error?: { code: string };
-      };
-      assert.equal(json.ok, false);
-      assert.equal(json.error?.code, "ACCESSIBILITY_FAILED");
-    } else {
-      const json = result.json as {
-        ok: boolean;
-        data: { format: string; snapshot: string; empty: boolean };
-      };
-      assert.equal(json.ok, true);
-      assert.equal(json.data.format, "aria-yaml");
-      assert.equal(typeof json.data.snapshot, "string");
-      assert.equal(json.data.empty, json.data.snapshot.length === 0);
-    }
+    assert.equal(result.code, 0, `accessibility failed: ${result.stderr}`);
+    const json = result.json as {
+      ok: boolean;
+      data: { format: string; snapshot: string; empty: boolean };
+    };
+    assert.equal(json.ok, true);
+    assert.equal(json.data.format, "aria-yaml");
+    assert.equal(json.data.empty, false);
+    assert.match(json.data.snapshot, /heading "Accessible Demo"/);
+    assert.match(json.data.snapshot, /button "Submit Order"/);
+    assert.match(json.data.snapshot, /link "Help"/);
   });
 
   it("screenshot generates file", async () => {
