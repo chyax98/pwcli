@@ -88,7 +88,7 @@ pw takeover -s bug-a --actor tester --reason 'manual inspection'
 pw release-control -s bug-a
 ```
 
-`takeover` 不再只是标记状态。当前版本会阻止常见写操作继续执行，包括导航、元素交互、`code`、auth helper、cookie/storage/state 写入，直到显式 `release-control`。
+`takeover` 不再只是标记状态。当前版本会阻止常见写操作继续执行，包括导航、元素交互、坐标鼠标、resize、route/mock、bootstrap、`code`、auth helper、cookie/storage/state 写入，直到显式 `release-control`。
 
 ## 读者入口
 
