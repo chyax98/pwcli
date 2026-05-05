@@ -1,3 +1,5 @@
+import { randomBytes } from "node:crypto";
+
 type CommandResult = {
   session?: Record<string, unknown>;
   page?: Record<string, unknown>;
@@ -26,6 +28,7 @@ type CommandError = {
 type OutputMode = "text" | "json";
 
 let cachedOutputMode: OutputMode | undefined;
+let boundaryNonce: string | undefined;
 
 function outputMode(explicit?: unknown): OutputMode {
   if (explicit === "json" || explicit === "text") return explicit;
@@ -58,6 +61,44 @@ function printText(value: string): void {
   process.stdout.write(value.endsWith("\n") ? value : `${value}\n`);
 }
 
+function contentBoundariesEnabled() {
+  if (process.env.PWCLI_CONTENT_BOUNDARIES === "1") return true;
+  return (
+    process.argv.includes("--content-boundaries") ||
+    process.argv.includes("--content-boundaries=true")
+  );
+}
+
+function pageContentCommand(command: string) {
+  return ["read-text", "snapshot", "accessibility", "get", "extract", "console"].includes(command);
+}
+
+function originFromResult(result: CommandResult) {
+  const raw = asString(result.page?.url);
+  if (!raw) return null;
+  try {
+    return new URL(raw).origin;
+  } catch {
+    return raw;
+  }
+}
+
+function currentBoundaryNonce() {
+  boundaryNonce ??= randomBytes(8).toString("hex");
+  return boundaryNonce;
+}
+
+function withTextBoundary(command: string, result: CommandResult, value: string) {
+  if (!contentBoundariesEnabled() || !pageContentCommand(command)) return value;
+  const nonce = currentBoundaryNonce();
+  const origin = originFromResult(result) ?? "unknown";
+  return [
+    `--- PWCLI_PAGE_CONTENT nonce=${nonce} origin=${origin} ---`,
+    value,
+    `--- END_PWCLI_PAGE_CONTENT nonce=${nonce} ---`,
+  ].join("\n");
+}
+
 function commandEnvelope(command: string, result: CommandResult) {
   const data =
     result.session &&
@@ -67,7 +108,7 @@ function commandEnvelope(command: string, result: CommandResult) {
     !("resolvedSession" in result.data)
       ? { ...result.data, resolvedSession: result.session.name }
       : result.data;
-  return {
+  const envelope = {
     ok: true,
     command,
     ...(result.session ? { session: result.session } : {}),
@@ -77,6 +118,16 @@ function commandEnvelope(command: string, result: CommandResult) {
       : {}),
     data,
   };
+  if (contentBoundariesEnabled() && pageContentCommand(command)) {
+    return {
+      ...envelope,
+      _boundary: {
+        nonce: currentBoundaryNonce(),
+        origin: originFromResult(result) ?? "unknown",
+      },
+    };
+  }
+  return envelope;
 }
 
 function errorEnvelope(command: string, error: CommandError) {
@@ -707,7 +758,7 @@ export function printCommandResult(command: string, result: CommandResult, outpu
     printJson(commandEnvelope(command, result));
     return;
   }
-  printText(formatCommandText(command, result));
+  printText(withTextBoundary(command, result, formatCommandText(command, result)));
 }
 
 export function printCommandError(command: string, error: CommandError, output?: unknown) {

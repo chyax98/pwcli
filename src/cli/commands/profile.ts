@@ -1,6 +1,7 @@
 import { defineCommand } from "citty";
 import { listChromeProfiles } from "#engine/environment.js";
 import { type CliArgs, print, withCliError } from "./_helpers.js";
+import authCommands from "./profile-auth.js";
 import stateCommands from "./profile-state.js";
 
 const listChrome = defineCommand({
@@ -23,5 +24,5 @@ const listChrome = defineCommand({
 });
 export default defineCommand({
   meta: { name: "profile", description: "Browser profile helpers" },
-  subCommands: { "list-chrome": listChrome, ...stateCommands },
+  subCommands: { "list-chrome": listChrome, ...stateCommands, ...authCommands },
 });

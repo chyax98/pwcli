@@ -9,6 +9,7 @@ import {
 import { sharedArgs } from "#cli/args.js";
 import { managedAuthProbe, managedStateSave } from "#engine/identity.js";
 import { managedRunCode } from "#engine/shared.js";
+import { assertSessionAutomationControl } from "#store/control-state.js";
 import {
   bool,
   type CliArgs,
@@ -140,6 +141,7 @@ function providerCommand(name: string) {
         if (!provider) throw new Error(`AUTH_PROVIDER_NOT_FOUND:${name}`);
         const rawArgs = parseKeyValueArgs(stringArray(a.arg));
         const resolvedArgs = provider.resolveArgs ? await provider.resolveArgs(rawArgs) : rawArgs;
+        await assertSessionAutomationControl(session(a), `auth ${name}`);
         const result = await managedRunCode({
           sessionName: session(a),
           source: buildProviderInvocationSource(loadAuthProviderSource(provider), resolvedArgs),

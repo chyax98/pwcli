@@ -109,6 +109,34 @@ await expectHelp(
 );
 
 await expectHelp(
+  ["profile", "save-auth"],
+  ["Save an encrypted named auth profile", "--url", "--values", "--file"],
+);
+
+await expectHelp(
+  ["profile", "login-auth"],
+  ["Load a saved auth profile", "submit_form", "session"],
+);
+
+await expectHelp(
+  ["profile", "list-auth"],
+  ["List encrypted named auth profiles", "Output format: text|json"],
+);
+
+await expectHelp(["stream"], ["start", "status", "stop", "preview stream server"]);
+
+await expectHelp(["view"], ["open", "status", "close", "preview workbench"]);
+
+await expectHelp(
+  ["control-state"],
+  ["Show whether a session is under CLI or human control", "--session"],
+);
+
+await expectHelp(["takeover"], ["Mark a session as human-controlled", "--actor", "--reason"]);
+
+await expectHelp(["release-control"], ["Return a session to CLI control", "--session"]);
+
+await expectHelp(
   ["wait"],
   ["Purpose:", "Examples:", "network-idle", "selector", "request", "response"],
 );

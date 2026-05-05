@@ -4,6 +4,8 @@ import { mkdir, readdir, readFile, rm, rmdir, stat, writeFile } from "node:fs/pr
 import { createRequire } from "node:module";
 import { dirname, join, resolve } from "node:path";
 import { writeBootstrapConfig } from "#store/config.js";
+import { assertSessionAutomationControl } from "#store/control-state.js";
+import { buildAllowedDomainState, isUrlAllowed, normalizeAllowedDomains } from "./domain-guard.js";
 import {
   DIAGNOSTICS_STATE_KEY,
   isModalStateBlockedMessage,
@@ -839,6 +841,23 @@ export async function managedOpen(
     timeoutCode?: string;
   },
 ) {
+  if (options?.sessionName) {
+    await assertSessionAutomationControl(options.sessionName, "open");
+    const allowlist = await managedRunCode({
+      sessionName: options.sessionName,
+      source: `async page => {
+        const context = page.context();
+        const state = context[${JSON.stringify(DIAGNOSTICS_STATE_KEY)}] || {};
+        return state.environment?.allowedDomains || null;
+      }`,
+    }).catch(() => null);
+    const domains = Array.isArray(allowlist?.data?.result?.allowedDomains)
+      ? normalizeAllowedDomains(allowlist.data.result.allowedDomains as string[])
+      : [];
+    if (domains.length > 0 && !isUrlAllowed(url, domains)) {
+      throw new Error(`DOMAIN_NOT_ALLOWED:open:${url}`);
+    }
+  }
   const result = await runManagedSessionCommand(
     {
       _: ["goto", url],
@@ -982,6 +1001,66 @@ export async function managedBootstrapApply(options: {
       ...(headers ? { headersApplied: true } : {}),
       ...parsed,
     },
+  };
+}
+
+export async function managedAllowedDomainsSet(options: {
+  sessionName?: string;
+  domains: string[];
+}) {
+  const allowedDomains = normalizeAllowedDomains(options.domains);
+  const result = await managedRunCode({
+    sessionName: options.sessionName,
+    source: `async page => {
+      const context = page.context();
+      const state = context[${JSON.stringify(DIAGNOSTICS_STATE_KEY)}] ||= {};
+      state.environment = state.environment || {};
+      state.environment.allowedDomains = ${JSON.stringify(buildAllowedDomainState(allowedDomains))};
+      return state.environment.allowedDomains;
+    }`,
+  });
+  return {
+    session: result.session,
+    page: result.page,
+    data: {
+      allowedDomains,
+      updated: true,
+      ...(result.data.result as Record<string, unknown>),
+    },
+  };
+}
+
+export async function managedAllowedDomainsStatus(options?: { sessionName?: string }) {
+  const result = await managedRunCode({
+    sessionName: options?.sessionName,
+    source: `async page => {
+      const context = page.context();
+      const state = context[${JSON.stringify(DIAGNOSTICS_STATE_KEY)}] || {};
+      return state.environment?.allowedDomains || { allowedDomains: [], updatedAt: null };
+    }`,
+  });
+  return {
+    session: result.session,
+    page: result.page,
+    data: result.data.result as Record<string, unknown>,
+  };
+}
+
+export async function managedAllowedDomainsClear(options?: { sessionName?: string }) {
+  const result = await managedRunCode({
+    sessionName: options?.sessionName,
+    source: `async page => {
+      const context = page.context();
+      const state = context[${JSON.stringify(DIAGNOSTICS_STATE_KEY)}] ||= {};
+      state.environment = state.environment || {};
+      delete state.environment.allowedDomains;
+      return { allowedDomains: [], cleared: true, updatedAt: new Date().toISOString() };
+    }`,
+  });
+  return {
+    session: result.session,
+    page: result.page,
+    data: result.data.result as Record<string, unknown>,
   };
 }
 

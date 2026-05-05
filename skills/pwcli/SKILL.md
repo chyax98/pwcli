@@ -54,6 +54,8 @@ pw skill show --full
 | 表单分析和批量填充 | `analyze-form` / `fill-form` | `pw analyze-form --help` |
 | 结构化提取 | `extract` | `pw extract --help` |
 | 安全扫描 | `check-injection` | `pw check-injection --help` |
+| 本地预览 | `stream` / `view` | `pw stream --help` |
+| 控制状态 | `control-state` / `takeover` / `release-control` | `pw control-state --help` |
 | 环境控制 | `environment` / `bootstrap` | `pw environment --help` |
 | 批量串行 | `batch` | `pw batch --help` |
 | 逃生口 | `code` | `pw code --help` |
@@ -155,6 +157,21 @@ pw profile load-state main-auth -s reuse-a
 pw profile remove-state main-auth
 ```
 
+加密登录 profile：
+
+```bash
+PWCLI_VAULT_KEY=local-secret pw profile save-auth main-login --url 'http://localhost:7778/login' --file ./values.json
+PWCLI_VAULT_KEY=local-secret pw profile list-auth
+PWCLI_VAULT_KEY=local-secret pw profile login-auth main-login -s reuse-a
+PWCLI_VAULT_KEY=local-secret pw profile remove-auth main-login
+```
+
+规则：
+
+- `PWCLI_VAULT_KEY` 是必须的，没有就不能保存或读取加密 auth profile。
+- 当前版本不会替你创建 session；先 `session create`，再 `profile login-auth`。
+- `login-auth` 内部会打开配置里的 URL，执行 `fill-form`，再执行 `act submit_form`。
+
 ### 表单分析和批量填充
 
 先看表单骨架，再批量填：
@@ -192,6 +209,39 @@ pw check-injection -s auth-a --include-hidden
 
 - 这是启发式扫描，不是安全证明。
 - 发现高风险模式时，先做人类复核，再决定是否继续让 Agent 执行页面任务。
+
+### 本地预览
+
+当前版本支持本地只读 preview/workbench：
+
+```bash
+pw stream start -s bug-a
+pw stream status -s bug-a
+pw view open -s bug-a
+pw view close -s bug-a
+```
+
+规则：
+
+- `stream` / `view` 当前是只读预览，不提供 takeover。
+- 适合人类旁观当前 session，而不是替代 CLI 主链。
+- 需要人类接管编辑页面时，暂时仍然用已有浏览器或 Playwright 面板。
+
+### 控制状态
+
+当前版本支持显式声明“人类正在接管这个 session”：
+
+```bash
+pw control-state -s bug-a
+pw takeover -s bug-a --actor tester --reason 'manual inspection'
+pw release-control -s bug-a
+```
+
+规则：
+
+- `takeover` 会阻止常见写操作继续执行，包括导航、元素交互、`code`、auth helper、cookie/storage/state 写入。
+- 需要继续自动化时，先确认人类已经退出，再执行 `pw release-control -s <session>`。
+- 这仍然不是完整的人类输入注入；它只是明确的控制闸门。
 
 ### Forge / DC
 

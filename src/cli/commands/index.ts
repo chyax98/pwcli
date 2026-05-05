@@ -52,6 +52,10 @@ export default {
   har: () => import("./har.js").then((m) => m.default),
   route: () => import("./route.js").then((m) => m.default),
   sse: () => import("./sse.js").then((m) => m.default),
+  stream: () => import("./stream.js").then((m) => m.default),
+  "control-state": () => import("./control-state.js").then((m) => m.default["control-state"]),
+  takeover: () => import("./control-state.js").then((m) => m.default.takeover),
+  "release-control": () => import("./control-state.js").then((m) => m.default["release-control"]),
 
   auth: () => import("./auth.js").then((m) => m.default),
   state: () => import("./state.js").then((m) => m.default),
@@ -69,4 +73,5 @@ export default {
   video: () => import("./video.js").then((m) => m.default),
   skill: () => import("./skill.js").then((m) => m.default),
   dashboard: () => import("./dashboard.js").then((m) => m.default),
+  view: () => import("./view.js").then((m) => m.default),
 } as const;

@@ -1,4 +1,5 @@
 import { appendRunEvent, ensureRunDir } from "#store/artifacts.js";
+import { assertSessionAutomationControl } from "#store/control-state.js";
 import { buildDiagnosticsDelta, captureDiagnosticsBaseline } from "../diagnose/core.js";
 import {
   parseErrorText,
@@ -1530,6 +1531,7 @@ export async function managedClick(options: {
   if (!options.ref && !options.selector && !options.semantic) {
     throw new Error("click requires a ref, selector, or semantic locator");
   }
+  await assertSessionAutomationControl(options.sessionName, "click");
   const before = await captureDiagnosticsBaseline(options.sessionName);
   const nth = Math.max(1, Math.floor(Number(options.nth ?? 1)));
   const clickOpts = options.button ? JSON.stringify({ button: options.button }) : "undefined";
@@ -1587,6 +1589,7 @@ export async function managedFill(options: {
   if (!options.ref && !options.selector && !options.semantic) {
     throw new Error("fill requires a ref, selector, or semantic locator");
   }
+  await assertSessionAutomationControl(options.sessionName, "fill");
   const before = await captureDiagnosticsBaseline(options.sessionName);
   const nth = Math.max(1, Math.floor(Number(options.nth ?? 1)));
   const locator = options.semantic
@@ -1638,6 +1641,7 @@ export async function managedType(options: {
   value: string;
   sessionName?: string;
 }) {
+  await assertSessionAutomationControl(options.sessionName, "type");
   const before = await captureDiagnosticsBaseline(options.sessionName);
 
   if (options.semantic) {
@@ -1721,6 +1725,7 @@ export async function managedType(options: {
 // =============================================================================
 
 export async function managedPress(key: string, options?: { sessionName?: string }) {
+  await assertSessionAutomationControl(options?.sessionName, "press");
   const before = await captureDiagnosticsBaseline(options?.sessionName);
   const { sessionName, text, page } = await executeCommandAction({
     command: "press",
@@ -1758,6 +1763,7 @@ async function managedBooleanControlAction(
   if (!options.ref && !options.selector && !options.semantic) {
     throw new Error(`${command} requires a ref, selector, or semantic locator`);
   }
+  await assertSessionAutomationControl(options.sessionName, command);
   const before = await captureDiagnosticsBaseline(options.sessionName);
   const nth = Math.max(1, Math.floor(Number(options.nth ?? 1)));
   const locator = options.semantic
@@ -1831,6 +1837,7 @@ export async function managedHover(options: {
   if (!options.ref && !options.selector && !options.semantic) {
     throw new Error("hover requires a ref, selector, or semantic locator");
   }
+  await assertSessionAutomationControl(options.sessionName, "hover");
   const before = await captureDiagnosticsBaseline(options.sessionName);
   const nth = Math.max(1, Math.floor(Number(options.nth ?? 1)));
   const locator = options.semantic
@@ -1882,6 +1889,7 @@ export async function managedSelect(options: {
   if (!options.ref && !options.selector && !options.semantic) {
     throw new Error("select requires a ref, selector, or semantic locator");
   }
+  await assertSessionAutomationControl(options.sessionName, "select");
 
   const before = await captureDiagnosticsBaseline(options.sessionName);
   const nth = Math.max(1, Math.floor(Number(options.nth ?? 1)));

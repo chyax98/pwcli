@@ -1,6 +1,7 @@
 import { copyFile, mkdir } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { appendRunEvent, ensureRunDir } from "#store/artifacts.js";
+import { assertSessionAutomationControl } from "#store/control-state.js";
 import { captureDiagnosticsBaseline } from "../diagnose/core.js";
 import {
   parseDownloadEvent,
@@ -26,6 +27,7 @@ export async function managedDialog(
   action: "accept" | "dismiss",
   options?: { prompt?: string; sessionName?: string },
 ) {
+  await assertSessionAutomationControl(options?.sessionName, "dialog");
   const command = action === "accept" ? "dialog-accept" : "dialog-dismiss";
   const argv = action === "accept" && options?.prompt ? [command, options.prompt] : [command];
   const result = await runManagedSessionCommand({ _: argv }, { sessionName: options?.sessionName });
@@ -56,6 +58,7 @@ export async function managedScroll(options: {
   distance?: number;
   sessionName?: string;
 }) {
+  await assertSessionAutomationControl(options.sessionName, "scroll");
   const distance = options.distance ?? 500;
   const delta = {
     up: [0, -distance],
@@ -222,6 +225,7 @@ export async function managedUpload(options: {
   if (!options.ref && !options.selector) {
     throw new Error("upload requires a ref or selector");
   }
+  await assertSessionAutomationControl(options.sessionName, "upload");
   if (options.ref) {
     await assertFreshRefEpoch({ sessionName: options.sessionName, ref: normalizeRef(options.ref) });
   }
@@ -340,6 +344,7 @@ export async function managedDrag(options: {
   if ((!options.fromRef && !options.fromSelector) || (!options.toRef && !options.toSelector)) {
     throw new Error("drag requires source and target");
   }
+  await assertSessionAutomationControl(options.sessionName, "drag");
   if (options.fromRef) {
     await assertFreshRefEpoch({
       sessionName: options.sessionName,
@@ -409,6 +414,7 @@ export async function managedDownload(options: {
   if (!options.ref && !options.selector) {
     throw new Error("download requires a ref or selector");
   }
+  await assertSessionAutomationControl(options.sessionName, "download");
   if (options.ref) {
     await assertFreshRefEpoch({ sessionName: options.sessionName, ref: normalizeRef(options.ref) });
   }

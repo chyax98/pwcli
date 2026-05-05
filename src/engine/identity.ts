@@ -1,3 +1,5 @@
+import { assertActionAllowed } from "#store/action-policy.js";
+import { assertSessionAutomationControl } from "#store/control-state.js";
 import { managedRunCode, maybeRawOutput } from "./shared.js";
 export type AuthProbeStatus = "authenticated" | "anonymous" | "uncertain";
 export type AuthProbeConfidence = "high" | "medium" | "low";
@@ -1332,6 +1334,8 @@ export async function managedStateSave(file?: string, options?: { sessionName?: 
 }
 
 export async function managedStateLoad(file: string, options?: { sessionName?: string }) {
+  await assertActionAllowed("state", "state load");
+  await assertSessionAutomationControl(options?.sessionName, "state load");
   const path = resolve(file);
   const state = JSON.parse(await readFile(path, "utf8")) as unknown;
   const result = await managedRunCode({
@@ -1401,6 +1405,7 @@ export async function managedCookiesSet(options: {
   domain: string;
   path?: string;
 }) {
+  await assertSessionAutomationControl(options.sessionName, "cookies set");
   const result = await managedRunCode({
     sessionName: options.sessionName,
     source: `async page => {
@@ -1674,6 +1679,7 @@ export async function managedStorageMutation(
   if (operation === "set" && options?.value === undefined) {
     throw new Error("storage set requires a value");
   }
+  await assertSessionAutomationControl(options?.sessionName, `storage ${operation}`);
 
   const result = await managedRunCode({
     sessionName: options?.sessionName,

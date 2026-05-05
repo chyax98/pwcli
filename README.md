@@ -48,6 +48,8 @@ pw profile list-chrome
 pw session create dc-main --from-system-chrome --chrome-profile Default --headed --open 'https://example.com'
 pw profile save-state main-auth -s dc-main
 pw profile load-state main-auth -s reuse-a
+PWCLI_VAULT_KEY=local-secret pw profile save-auth main-login --url 'http://localhost:7778/login' --file ./values.json
+PWCLI_VAULT_KEY=local-secret pw profile login-auth main-login -s reuse-a
 ```
 
 运行内置 auth provider：
@@ -73,6 +75,20 @@ pw skill refs
 pw skill show
 pw skill show --full
 ```
+
+本地预览当前 session：
+
+```bash
+pw stream start -s bug-a
+pw stream status -s bug-a
+pw view open -s bug-a
+pw view close -s bug-a
+pw control-state -s bug-a
+pw takeover -s bug-a --actor tester --reason 'manual inspection'
+pw release-control -s bug-a
+```
+
+`takeover` 不再只是标记状态。当前版本会阻止常见写操作继续执行，包括导航、元素交互、`code`、auth helper、cookie/storage/state 写入，直到显式 `release-control`。
 
 ## 读者入口
 

@@ -44,6 +44,51 @@ function domainError(rawMessage: string) {
       recovery: { kind: "inspect" as const, commands: ["pw snapshot -i --session <name>"] },
     };
   }
+  if (message.startsWith("ACTION_POLICY_DENY:")) {
+    const [, category = "action", deniedCommand = "command", policyPath = ""] = message.split(":");
+    return {
+      code: "ACTION_POLICY_DENY",
+      message: `Action policy denied ${deniedCommand} in category '${category}'.`,
+      retryable: false,
+      suggestions: policyPath
+        ? [`Review action policy: ${policyPath}`]
+        : ["Review PWCLI_ACTION_POLICY or unset it to remove the restriction"],
+      details: {
+        category,
+        command: deniedCommand,
+        ...(policyPath ? { policyPath } : {}),
+      },
+    };
+  }
+  if (message.startsWith("SESSION_HUMAN_CONTROLLED:")) {
+    const [, sessionName = "", actorEncoded = "", reasonEncoded = "", commandEncoded = ""] =
+      message.split(":");
+    const actor = decodeURIComponent(actorEncoded);
+    const reason = decodeURIComponent(reasonEncoded);
+    const blockedCommand = decodeURIComponent(commandEncoded);
+    return {
+      code: "SESSION_HUMAN_CONTROLLED",
+      message: `Session '${sessionName}' is under human control${actor ? ` by '${actor}'` : ""}.`,
+      retryable: false,
+      suggestions: [
+        `Run \`pw control-state --session ${sessionName}\` to inspect the current takeover record`,
+        `Wait until the human finishes, then run \`pw release-control --session ${sessionName}\``,
+      ],
+      recovery: {
+        kind: "human-handoff" as const,
+        commands: [
+          `pw control-state --session ${sessionName}`,
+          `pw release-control --session ${sessionName}`,
+        ],
+      },
+      details: {
+        sessionName,
+        command: blockedCommand,
+        actor: actor || null,
+        reason: reason || null,
+      },
+    };
+  }
   return null;
 }
 

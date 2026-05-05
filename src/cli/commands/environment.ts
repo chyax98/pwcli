@@ -10,6 +10,12 @@ import {
   managedEnvironmentPermissionsGrant,
 } from "#engine/environment.js";
 import {
+  managedAllowedDomainsClear,
+  managedAllowedDomainsSet,
+  managedAllowedDomainsStatus,
+} from "#engine/session.js";
+import { assertSessionAutomationControl } from "#store/control-state.js";
+import {
   type CliArgs,
   firstPos,
   num,
@@ -26,6 +32,7 @@ const offline = defineCommand({
   async run({ args }) {
     const a = args as CliArgs;
     try {
+      await assertSessionAutomationControl(session(a), "environment offline");
       print(
         "environment offline",
         await managedEnvironmentOffline(firstPos(a) as "on" | "off", { sessionName: session(a) }),
@@ -51,6 +58,7 @@ const geoSet = defineCommand({
   async run({ args }) {
     const a = args as CliArgs;
     try {
+      await assertSessionAutomationControl(session(a), "environment geolocation set");
       const latitude = num(str(a.lat));
       const longitude = num(str(a.lng));
       if (latitude === undefined || longitude === undefined) {
@@ -77,6 +85,7 @@ const permGrant = defineCommand({
   async run({ args }) {
     const a = args as CliArgs;
     try {
+      await assertSessionAutomationControl(session(a), "environment permissions grant");
       print(
         "environment permissions grant",
         await managedEnvironmentPermissionsGrant({
@@ -96,6 +105,7 @@ const permClear = defineCommand({
   async run({ args }) {
     const a = args as CliArgs;
     try {
+      await assertSessionAutomationControl(session(a), "environment permissions clear");
       print(
         "environment permissions clear",
         await managedEnvironmentPermissionsClear({ sessionName: session(a) }),
@@ -112,6 +122,7 @@ const clockInstall = defineCommand({
   async run({ args }) {
     const a = args as CliArgs;
     try {
+      await assertSessionAutomationControl(session(a), "environment clock install");
       print(
         "environment clock install",
         await managedEnvironmentClockInstall({ sessionName: session(a) }),
@@ -128,6 +139,7 @@ const clockSet = defineCommand({
   async run({ args }) {
     const a = args as CliArgs;
     try {
+      await assertSessionAutomationControl(session(a), "environment clock set");
       print(
         "environment clock set",
         await managedEnvironmentClockSet(new Date(firstPos(a) as string).toISOString(), {
@@ -146,6 +158,7 @@ const clockResume = defineCommand({
   async run({ args }) {
     const a = args as CliArgs;
     try {
+      await assertSessionAutomationControl(session(a), "environment clock resume");
       print(
         "environment clock resume",
         await managedEnvironmentClockResume({ sessionName: session(a) }),
@@ -153,6 +166,66 @@ const clockResume = defineCommand({
       );
     } catch (e) {
       withCliError("environment clock resume", a, e);
+    }
+  },
+});
+
+const domainsSet = defineCommand({
+  meta: {
+    name: "set",
+    description:
+      "Purpose: store the allowed navigation domains for this session.\nOptions: pass one or more domain patterns like example.com or *.example.com.\nExamples:\n  pw environment allowed-domains set -s bug-a example.com *.example.com\nNotes: current version guards `pw open` against non-allowed hosts; broader subresource enforcement is not wired yet.",
+  },
+  args: sharedArgs,
+  async run({ args }) {
+    const a = args as CliArgs;
+    try {
+      await assertSessionAutomationControl(session(a), "environment allowed-domains set");
+      print(
+        "environment allowed-domains set",
+        await managedAllowedDomainsSet({
+          sessionName: session(a),
+          domains: positionals(a),
+        }),
+        a,
+      );
+    } catch (e) {
+      withCliError("environment allowed-domains set", a, e);
+    }
+  },
+});
+
+const domainsStatus = defineCommand({
+  meta: { name: "status", description: "Show current allowed navigation domains for the session" },
+  args: sharedArgs,
+  async run({ args }) {
+    const a = args as CliArgs;
+    try {
+      print(
+        "environment allowed-domains status",
+        await managedAllowedDomainsStatus({ sessionName: session(a) }),
+        a,
+      );
+    } catch (e) {
+      withCliError("environment allowed-domains status", a, e);
+    }
+  },
+});
+
+const domainsClear = defineCommand({
+  meta: { name: "clear", description: "Clear session allowed navigation domains" },
+  args: sharedArgs,
+  async run({ args }) {
+    const a = args as CliArgs;
+    try {
+      await assertSessionAutomationControl(session(a), "environment allowed-domains clear");
+      print(
+        "environment allowed-domains clear",
+        await managedAllowedDomainsClear({ sessionName: session(a) }),
+        a,
+      );
+    } catch (e) {
+      withCliError("environment allowed-domains clear", a, e);
     }
   },
 });
@@ -172,6 +245,10 @@ export default defineCommand({
     clock: defineCommand({
       meta: { name: "clock", description: "Clock controls" },
       subCommands: { install: clockInstall, set: clockSet, resume: clockResume },
+    }),
+    "allowed-domains": defineCommand({
+      meta: { name: "allowed-domains", description: "Allowed navigation domains" },
+      subCommands: { set: domainsSet, status: domainsStatus, clear: domainsClear },
     }),
   },
 });

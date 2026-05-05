@@ -1,6 +1,8 @@
 import { defineCommand } from "citty";
 import { sharedArgs } from "#cli/args.js";
 import { managedRunCode } from "#engine/shared.js";
+import { assertActionAllowed } from "#store/action-policy.js";
+import { assertSessionAutomationControl } from "#store/control-state.js";
 import {
   type CliArgs,
   firstPos,
@@ -30,6 +32,8 @@ export default defineCommand({
   async run({ args }) {
     const a = args as CliArgs;
     try {
+      await assertActionAllowed("code", "code");
+      await assertSessionAutomationControl(session(a), "code");
       print(
         "code",
         await managedRunCode({

@@ -4,6 +4,10 @@ export const sessionArg = {
 
 export const outputArg = {
   output: { type: "string", description: "Output format: text|json", default: "text" },
+  "content-boundaries": {
+    type: "boolean",
+    description: "Wrap page-sourced output in boundary markers for LLM safety",
+  },
 } as const;
 
 export const locatorArgs = {
