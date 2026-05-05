@@ -67,6 +67,35 @@ try {
       `trace inspect output did not include actions table: ${inspectPayload.data?.output ?? ""}`,
     );
   }
+
+  const unsupportedFilter = runPwSync([
+    "trace",
+    "inspect",
+    traceArtifactPath,
+    "--section",
+    "actions",
+    "--failed",
+    "--output",
+    "json",
+  ]);
+  if (unsupportedFilter.status === 0) {
+    throw new Error(
+      `trace inspect unsupported filter unexpectedly passed\n${unsupportedFilter.stdout}`,
+    );
+  }
+  const unsupportedFilterPayload = parseJson(unsupportedFilter.stdout, "trace inspect filter");
+  if (
+    unsupportedFilterPayload.ok !== false ||
+    unsupportedFilterPayload.error?.code !== "TRACE_FILTER_UNSUPPORTED"
+  ) {
+    throw new Error(
+      `trace inspect unsupported filter did not fail clearly: ${JSON.stringify(
+        unsupportedFilterPayload,
+        null,
+        2,
+      )}`,
+    );
+  }
 } finally {
   runPwSync(["session", "close", session]);
 }

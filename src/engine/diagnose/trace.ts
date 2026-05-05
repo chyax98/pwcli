@@ -85,30 +85,52 @@ function traceSectionArgs(options: {
   level?: string;
 }) {
   const args: string[] = [options.section];
-  const limitations: string[] = [];
 
   if (options.failed) {
     if (options.section === "requests") {
       args.push("--failed");
     } else {
-      limitations.push("TRACE_FAILED_FILTER_REQUESTS_ONLY");
+      throw new TraceInspectError(
+        "TRACE_FILTER_UNSUPPORTED",
+        "--failed is only supported with --section requests",
+        {
+          section: options.section,
+          filter: "failed",
+        },
+      );
     }
   }
 
   const level = options.level?.trim().toLowerCase();
   if (level) {
     if (options.section !== "console") {
-      limitations.push("TRACE_LEVEL_FILTER_CONSOLE_ONLY");
+      throw new TraceInspectError(
+        "TRACE_FILTER_UNSUPPORTED",
+        "--level is only supported with --section console",
+        {
+          section: options.section,
+          filter: "level",
+          level,
+        },
+      );
     } else if (level === "error") {
       args.push("--errors-only");
     } else if (level === "warning" || level === "warn") {
       args.push("--warnings");
     } else {
-      limitations.push("TRACE_CONSOLE_LEVEL_FILTER_LIMITED");
+      throw new TraceInspectError(
+        "TRACE_FILTER_UNSUPPORTED",
+        "--level only supports error, warning, or warn",
+        {
+          section: options.section,
+          filter: "level",
+          level,
+        },
+      );
     }
   }
 
-  return { args, limitations };
+  return args;
 }
 
 export async function managedTraceInspect(options: {
@@ -145,7 +167,7 @@ export async function managedTraceInspect(options: {
       });
     }
 
-    const { args, limitations } = traceSectionArgs(options);
+    const args = traceSectionArgs(options);
     const sectionResult = runTraceCli(args, tempDir);
     const output = `${sectionResult.stdout ?? ""}${sectionResult.stderr ?? ""}`;
     if (sectionResult.error) {
@@ -181,8 +203,6 @@ export async function managedTraceInspect(options: {
         failed: options.failed && options.section === "requests" ? true : undefined,
         level: options.level ?? null,
         limit: options.limit ?? null,
-        limitations,
-        ...(limitations.length > 0 ? { limitation: limitations.join(",") } : {}),
         ...boundedOutput(output, options.limit),
       },
     };
