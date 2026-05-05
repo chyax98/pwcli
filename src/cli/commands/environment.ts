@@ -174,7 +174,7 @@ const domainsSet = defineCommand({
   meta: {
     name: "set",
     description:
-      "Purpose: store the allowed navigation domains for this session.\nOptions: pass one or more domain patterns like example.com or *.example.com.\nExamples:\n  pw environment allowed-domains set -s bug-a example.com *.example.com\nNotes: current version guards `pw open` against non-allowed hosts; broader subresource enforcement is not wired yet.",
+      "Purpose: store the allowed navigation domains for this session.\nOptions: pass one or more domain patterns like example.com or *.example.com.\nExamples:\n  pw environment allowed-domains set -s bug-a example.com *.example.com\nScope: guards `pw open` navigation against non-allowed hosts.",
   },
   args: sharedArgs,
   async run({ args }) {
