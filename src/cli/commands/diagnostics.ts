@@ -14,7 +14,11 @@ import {
 import { type CliArgs, firstPos, num, print, session, str, withCliError } from "./_helpers.js";
 
 const exportCmd = defineCommand({
-  meta: { name: "export", description: "Export diagnostics records" },
+  meta: {
+    name: "export",
+    description:
+      "Purpose: export captured diagnostics records from a session.\nExamples:\n  pw diagnostics export -s task-a --section network --limit 20\n  pw diagnostics export -s task-a --out ./diagnostics.json\nNotes: use export for raw evidence; use digest or timeline for summarized diagnosis.",
+  },
   args: {
     ...sharedArgs,
     out: { type: "string", description: "Output JSON file", valueHint: "path" },
@@ -102,7 +106,11 @@ const bundle = defineCommand({
   },
 });
 const runs = defineCommand({
-  meta: { name: "runs", description: "List recorded runs" },
+  meta: {
+    name: "runs",
+    description:
+      "Purpose: list recorded command/action runs.\nExamples:\n  pw diagnostics runs -s task-a --limit 20\n  pw diagnostics runs --since 2026-01-01T00:00:00.000Z\nNotes: use run ids with `diagnostics show`, `grep`, or `digest --run`.",
+  },
   args: {
     ...sharedArgs,
     limit: { type: "string", description: "Limit", valueHint: "n" },
@@ -124,7 +132,11 @@ const runs = defineCommand({
   },
 });
 const digest = defineCommand({
-  meta: { name: "digest", description: "Summarize diagnostics" },
+  meta: {
+    name: "digest",
+    description:
+      "Purpose: summarize high-signal diagnostics for a session or recorded run.\nExamples:\n  pw diagnostics digest -s task-a\n  pw diagnostics digest --run <runId> --limit 10\nNotes: use this first when diagnosing a failed workflow.",
+  },
   args: {
     ...sharedArgs,
     run: { type: "string", description: "Run id", valueHint: "id" },
@@ -164,7 +176,11 @@ const digest = defineCommand({
   },
 });
 const show = defineCommand({
-  meta: { name: "show", description: "Show run events" },
+  meta: {
+    name: "show",
+    description:
+      "Purpose: show recorded events for a run.\nExamples:\n  pw diagnostics show --run <runId>\n  pw diagnostics show --run <runId> --command click\nNotes: use this for precise evidence after a digest identifies the relevant run.",
+  },
   args: {
     ...sharedArgs,
     run: { type: "string", description: "Run id", valueHint: "id" },
@@ -196,9 +212,20 @@ const show = defineCommand({
     }
   },
 });
-const grep = defineCommand({ ...show, meta: { name: "grep", description: "Search run events" } });
+const grep = defineCommand({
+  ...show,
+  meta: {
+    name: "grep",
+    description:
+      "Purpose: search recorded run events by command or text.\nExamples:\n  pw diagnostics grep --run <runId> --text TypeError\n  pw diagnostics grep --run <runId> --command click\nNotes: use grep to find a specific signal inside a larger recorded run.",
+  },
+});
 const timeline = defineCommand({
-  meta: { name: "timeline", description: "Build session timeline" },
+  meta: {
+    name: "timeline",
+    description:
+      "Purpose: build a chronological diagnostics timeline for a session.\nExamples:\n  pw diagnostics timeline -s task-a --limit 50\n  pw diagnostics timeline -s task-a --since 2026-01-01T00:00:00.000Z\nNotes: use timeline to explain what changed before a failure.",
+  },
   args: {
     ...sharedArgs,
     limit: { type: "string", description: "Limit", default: "50", valueHint: "n" },

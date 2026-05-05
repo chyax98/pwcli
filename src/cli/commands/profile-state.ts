@@ -10,7 +10,8 @@ import { type CliArgs, firstPos, print, printError, session, withCliError } from
 const save = defineCommand({
   meta: {
     name: "save-state",
-    description: "Save current session storage state into a named local profile",
+    description:
+      "Purpose: save current session storage state into a named local profile.\nExamples:\n  pw profile save-state main-auth -s task-a\nNotes: use this after a verified login or setup flow.",
   },
   args: {
     session: {
@@ -46,7 +47,8 @@ const save = defineCommand({
 const load = defineCommand({
   meta: {
     name: "load-state",
-    description: "Load a named local state profile into the target session",
+    description:
+      "Purpose: load a named local state profile into the target session.\nExamples:\n  pw profile load-state main-auth -s task-a\nNotes: this mutates the session; verify page state after loading.",
   },
   args: {
     session: {
@@ -80,7 +82,11 @@ const load = defineCommand({
 });
 
 const list = defineCommand({
-  meta: { name: "list-state", description: "List named local state profiles" },
+  meta: {
+    name: "list-state",
+    description:
+      "Purpose: list named local state profiles.\nExamples:\n  pw profile list-state\nNotes: use this to choose a stored state profile before loading it.",
+  },
   args: {
     output: { type: "string", description: "Output format: text|json", default: "text" },
   },
@@ -96,7 +102,11 @@ const list = defineCommand({
 });
 
 const remove = defineCommand({
-  meta: { name: "remove-state", description: "Remove a named local state profile" },
+  meta: {
+    name: "remove-state",
+    description:
+      "Purpose: remove a named local state profile.\nExamples:\n  pw profile remove-state main-auth\nNotes: removal only affects the saved profile, not active browser sessions.",
+  },
   args: {
     output: { type: "string", description: "Output format: text|json", default: "text" },
   },

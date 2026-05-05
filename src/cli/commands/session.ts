@@ -132,7 +132,11 @@ function sessionError(command: string, a: CliArgs, error: unknown, fallback: str
 }
 
 const list = defineCommand({
-  meta: { name: "list", description: "List managed sessions" },
+  meta: {
+    name: "list",
+    description:
+      "Purpose: list managed sessions and optionally include page summaries or attachable browser servers.\nExamples:\n  pw session list\n  pw session list --with-page --attachable\nNotes: use this before attaching, closing, or recovering session state.",
+  },
   args: {
     output: sharedArgs.output,
     "with-page": { type: "boolean", description: "Include page summaries" },
@@ -308,7 +312,11 @@ async function resolveAttachableServer(attachableId: string) {
 }
 
 const attach = defineCommand({
-  meta: { name: "attach", description: "Attach a managed session to an existing browser endpoint" },
+  meta: {
+    name: "attach",
+    description:
+      "Purpose: attach a named session to an existing browser endpoint.\nExamples:\n  pw session attach task-a --browser-url http://127.0.0.1:9222\n  pw session attach task-a --attachable-id <id>\nNotes: attach only works with reachable local debugging endpoints or attachable ids.",
+  },
   args: {
     output: sharedArgs.output,
     "ws-endpoint": {
@@ -355,7 +363,11 @@ const attach = defineCommand({
 });
 
 const recreate = defineCommand({
-  meta: { name: "recreate", description: "Recreate a named managed session" },
+  meta: {
+    name: "recreate",
+    description:
+      "Purpose: recreate an existing named session while preserving useful state where possible.\nExamples:\n  pw session recreate task-a --open http://localhost:3000\n  pw session recreate task-a --record-video .pwcli/videos\nNotes: use recreate to reset routing/bootstrap/runtime lifecycle options cleanly.",
+  },
   args: {
     output: sharedArgs.output,
     headed: { type: "boolean", description: "Open headed browser", default: false },
@@ -484,7 +496,11 @@ const recreate = defineCommand({
 });
 
 const status = defineCommand({
-  meta: { name: "status", description: "Show session status" },
+  meta: {
+    name: "status",
+    description:
+      "Purpose: show runtime status for one managed session.\nExamples:\n  pw session status task-a\nNotes: this is a lifecycle status check; use `pw status -s task-a` for page facts.",
+  },
   args: { output: sharedArgs.output },
   async run({ args }) {
     const a = args as CliArgs;
@@ -511,7 +527,11 @@ const status = defineCommand({
   },
 });
 const close = defineCommand({
-  meta: { name: "close", description: "Close one or all sessions" },
+  meta: {
+    name: "close",
+    description:
+      "Purpose: close one managed session or all managed sessions.\nExamples:\n  pw session close task-a\n  pw session close --all\nNotes: closing a session flushes lifecycle artifacts such as HAR and video.",
+  },
   args: { output: sharedArgs.output, all: { type: "boolean", description: "Close all sessions" } },
   async run({ args }) {
     const a = args as CliArgs;

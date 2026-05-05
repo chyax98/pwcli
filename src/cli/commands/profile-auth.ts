@@ -35,7 +35,11 @@ async function readValues(args: CliArgs) {
 }
 
 const save = defineCommand({
-  meta: { name: "save-auth", description: "Save an encrypted named auth profile" },
+  meta: {
+    name: "save-auth",
+    description:
+      "Purpose: save an encrypted named auth profile with login URL and form values.\nExamples:\n  PWCLI_VAULT_KEY=secret pw profile save-auth main --url http://localhost/login --file ./values.json\nNotes: requires `PWCLI_VAULT_KEY`; values must be a JSON object for `fill-form`.",
+  },
   args: {
     output: { type: "string", description: "Output format: text|json", default: "text" },
     url: { type: "string", description: "Login URL", valueHint: "url" },
@@ -72,7 +76,8 @@ const save = defineCommand({
 const login = defineCommand({
   meta: {
     name: "login-auth",
-    description: "Load a saved auth profile, open its URL, run fill-form, and act submit_form",
+    description:
+      "Purpose: load a saved auth profile, open its URL, fill the form, and submit.\nExamples:\n  PWCLI_VAULT_KEY=secret pw profile login-auth main -s task-a\nNotes: this mutates the session and relies on `fill-form` plus `act submit_form`.",
   },
   args: {
     session: {
@@ -128,7 +133,11 @@ const login = defineCommand({
 });
 
 const list = defineCommand({
-  meta: { name: "list-auth", description: "List encrypted named auth profiles" },
+  meta: {
+    name: "list-auth",
+    description:
+      "Purpose: list encrypted named auth profiles.\nExamples:\n  PWCLI_VAULT_KEY=secret pw profile list-auth\nNotes: requires `PWCLI_VAULT_KEY` to read encrypted auth profile metadata.",
+  },
   args: {
     output: { type: "string", description: "Output format: text|json", default: "text" },
   },
@@ -144,7 +153,11 @@ const list = defineCommand({
 });
 
 const remove = defineCommand({
-  meta: { name: "remove-auth", description: "Remove an encrypted named auth profile" },
+  meta: {
+    name: "remove-auth",
+    description:
+      "Purpose: remove an encrypted named auth profile.\nExamples:\n  PWCLI_VAULT_KEY=secret pw profile remove-auth main\nNotes: removal only affects the saved profile, not active browser sessions.",
+  },
   args: {
     output: { type: "string", description: "Output format: text|json", default: "text" },
   },

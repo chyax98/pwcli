@@ -46,6 +46,30 @@ await expectHelp(
   ["Purpose:", "Examples:", "named session", "--open", "--state", "--record-har", "--record-video"],
 );
 
+for (const path of [
+  ["session", "list"],
+  ["session", "attach"],
+  ["session", "recreate"],
+  ["session", "status"],
+  ["session", "close"],
+  ["diagnostics", "export"],
+  ["diagnostics", "runs"],
+  ["diagnostics", "digest"],
+  ["diagnostics", "show"],
+  ["diagnostics", "grep"],
+  ["diagnostics", "timeline"],
+  ["profile", "save-state"],
+  ["profile", "load-state"],
+  ["profile", "list-state"],
+  ["profile", "remove-state"],
+  ["profile", "save-auth"],
+  ["profile", "login-auth"],
+  ["profile", "list-auth"],
+  ["profile", "remove-auth"],
+]) {
+  await expectHelp(path, ["Purpose:", "Examples:", "Notes:"]);
+}
+
 for (const command of [
   "cookies",
   "dashboard",
@@ -140,31 +164,6 @@ await expectHelp(
 await expectHelp(
   ["check-injection"],
   ["Purpose:", "Options:", "Examples:", "--include-hidden", "heuristic", "high-severity"],
-);
-
-await expectHelp(
-  ["profile", "save-state"],
-  ["Save current session storage state", "named local profile", "--session"],
-);
-
-await expectHelp(
-  ["profile", "list-state"],
-  ["List named local state profiles", "Output format: text|json"],
-);
-
-await expectHelp(
-  ["profile", "save-auth"],
-  ["Save an encrypted named auth profile", "--url", "--values", "--file"],
-);
-
-await expectHelp(
-  ["profile", "login-auth"],
-  ["Load a saved auth profile", "submit_form", "session"],
-);
-
-await expectHelp(
-  ["profile", "list-auth"],
-  ["List encrypted named auth profiles", "Output format: text|json"],
 );
 
 await expectHelp(["stream"], ["start", "status", "stop", "preview stream server"]);
