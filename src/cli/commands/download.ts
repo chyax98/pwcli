@@ -1,7 +1,6 @@
 import { defineCommand } from "citty";
 import { sharedArgs } from "#cli/args.js";
 import { managedDownload } from "#engine/act/page.js";
-import { assertActionAllowed } from "#store/action-policy.js";
 import { type CliArgs, firstPos, print, session, str, withCliError } from "./_helpers.js";
 
 export default defineCommand({
@@ -16,7 +15,6 @@ export default defineCommand({
   async run({ args }) {
     const a = args as CliArgs;
     try {
-      await assertActionAllowed("download", "download");
       print(
         "download",
         await managedDownload({

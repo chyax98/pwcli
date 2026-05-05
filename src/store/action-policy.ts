@@ -3,13 +3,16 @@ import { resolve } from "node:path";
 
 export type ActionCategory =
   | "navigate"
+  | "interact"
   | "fill"
   | "code"
   | "download"
   | "upload"
   | "network"
   | "state"
-  | "environment";
+  | "environment"
+  | "storage"
+  | "auth";
 
 type ActionPolicy = {
   default?: "allow" | "deny";
@@ -28,7 +31,6 @@ async function loadPolicy(): Promise<ActionPolicy | null> {
   const text = await readFile(path, "utf8");
   return JSON.parse(text) as ActionPolicy;
 }
-
 export async function assertActionAllowed(category: ActionCategory, command: string) {
   const policy = await loadPolicy();
   if (!policy) return;

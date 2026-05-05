@@ -32,12 +32,13 @@ export default defineCommand({
   async run({ args }) {
     const a = args as CliArgs;
     try {
+      const sessionName = session(a);
       await assertActionAllowed("code", "code");
-      await assertSessionAutomationControl(session(a), "code");
+      await assertSessionAutomationControl(sessionName, "code");
       print(
         "code",
         await managedRunCode({
-          sessionName: session(a),
+          sessionName,
           source: (await sourceFromArgs(firstPos(a), str(a.file))) ?? "",
           retry: num(a.retry, 0),
         }),

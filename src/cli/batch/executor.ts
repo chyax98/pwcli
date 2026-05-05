@@ -35,6 +35,7 @@ import {
   managedPageFrames,
   managedPageList,
 } from "#engine/workspace.js";
+import { assertActionAllowed } from "#store/action-policy.js";
 import { assertSessionAutomationControl } from "#store/control-state.js";
 import { parseBatchSemanticArgs, parseBatchStateTarget } from "../parsers/batch.js";
 import {
@@ -198,6 +199,7 @@ export async function executeBatchStep(tokens: string[], sessionName: string) {
     case "code": {
       const source = args.join(" ").trim();
       if (!source) throw new Error(`batch step '${rawStep}' requires inline code`);
+      await assertActionAllowed("code", "batch code");
       await assertSessionAutomationControl(sessionName, "batch code");
       return { ok: true, command: "code", data: await managedRunCode({ source, sessionName }) };
     }

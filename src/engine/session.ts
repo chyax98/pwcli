@@ -3,6 +3,7 @@ import { rmSync } from "node:fs";
 import { mkdir, readdir, readFile, rm, rmdir, stat, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { dirname, join, resolve } from "node:path";
+import { assertActionAllowed } from "#store/action-policy.js";
 import { writeBootstrapConfig } from "#store/config.js";
 import { assertSessionAutomationControl } from "#store/control-state.js";
 import { buildAllowedDomainState, isUrlAllowed, normalizeAllowedDomains } from "./domain-guard.js";
@@ -842,6 +843,7 @@ export async function managedOpen(
   },
 ) {
   if (options?.sessionName) {
+    await assertActionAllowed("navigate", "open");
     await assertSessionAutomationControl(options.sessionName, "open");
     const allowlist = await managedRunCode({
       sessionName: options.sessionName,

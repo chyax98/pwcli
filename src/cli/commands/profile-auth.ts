@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { defineCommand } from "citty";
 import { managedFillForm } from "#engine/forms.js";
 import { managedAct } from "#engine/intents.js";
-import { managedRunCode } from "#engine/shared.js";
+import { managedOpen } from "#engine/session.js";
 import { assertActionAllowed } from "#store/action-policy.js";
 import {
   listAuthProfiles,
@@ -95,22 +95,16 @@ const login = defineCommand({
     }
     try {
       const { profile } = await loadAuthProfile(name);
-      await assertActionAllowed("navigate", "profile login-auth");
-      await assertSessionAutomationControl(session(a), "profile login-auth");
-      await managedRunCode({
-        sessionName: session(a),
-        source: `async page => {
-          await page.goto(${JSON.stringify(profile.url)}, { waitUntil: "domcontentloaded" });
-          return { url: page.url() };
-        }`,
-      });
+      const sessionName = session(a);
+      await assertActionAllowed("auth", "profile login-auth");
+      await assertSessionAutomationControl(sessionName, "profile login-auth");
+      await managedOpen(profile.url, { sessionName, reset: false });
       await managedFillForm({
-        sessionName: session(a),
+        sessionName,
         values: profile.values,
       });
-      await assertActionAllowed("fill", "profile login-auth");
       const acted = await managedAct({
-        sessionName: session(a),
+        sessionName,
         intent: "submit_form",
       });
       print(

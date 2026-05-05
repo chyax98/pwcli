@@ -1,7 +1,6 @@
 import { defineCommand } from "citty";
 import { sharedArgs } from "#cli/args.js";
 import { managedUpload } from "#engine/act/page.js";
-import { assertActionAllowed } from "#store/action-policy.js";
 import { type CliArgs, positionals, print, session, str, withCliError } from "./_helpers.js";
 
 export default defineCommand({
@@ -14,7 +13,6 @@ export default defineCommand({
   async run({ args }) {
     const a = args as CliArgs;
     try {
-      await assertActionAllowed("upload", "upload");
       const parts = positionals(a);
       const ref = str(a.ref) ?? (a.selector ? undefined : parts.shift());
       print(

@@ -1405,6 +1405,7 @@ export async function managedCookiesSet(options: {
   domain: string;
   path?: string;
 }) {
+  await assertActionAllowed("storage", "cookies set");
   await assertSessionAutomationControl(options.sessionName, "cookies set");
   const result = await managedRunCode({
     sessionName: options.sessionName,
@@ -1678,6 +1679,9 @@ export async function managedStorageMutation(
   }
   if (operation === "set" && options?.value === undefined) {
     throw new Error("storage set requires a value");
+  }
+  if (operation !== "get") {
+    await assertActionAllowed("storage", `storage ${operation}`);
   }
   await assertSessionAutomationControl(options?.sessionName, `storage ${operation}`);
 

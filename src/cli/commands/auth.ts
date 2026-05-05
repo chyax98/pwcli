@@ -9,6 +9,7 @@ import {
 import { sharedArgs } from "#cli/args.js";
 import { managedAuthProbe, managedStateSave } from "#engine/identity.js";
 import { managedRunCode } from "#engine/shared.js";
+import { assertActionAllowed } from "#store/action-policy.js";
 import { assertSessionAutomationControl } from "#store/control-state.js";
 import {
   bool,
@@ -141,13 +142,14 @@ function providerCommand(name: string) {
         if (!provider) throw new Error(`AUTH_PROVIDER_NOT_FOUND:${name}`);
         const rawArgs = parseKeyValueArgs(stringArray(a.arg));
         const resolvedArgs = provider.resolveArgs ? await provider.resolveArgs(rawArgs) : rawArgs;
-        await assertSessionAutomationControl(session(a), `auth ${name}`);
+        const sessionName = session(a);
+        await assertActionAllowed("auth", `auth ${name}`);
+        await assertSessionAutomationControl(sessionName, `auth ${name}`);
         const result = await managedRunCode({
-          sessionName: session(a),
+          sessionName,
           source: buildProviderInvocationSource(loadAuthProviderSource(provider), resolvedArgs),
         });
-        if (str(a["save-state"]))
-          await managedStateSave(str(a["save-state"]), { sessionName: session(a) });
+        if (str(a["save-state"])) await managedStateSave(str(a["save-state"]), { sessionName });
         const providerResult = result.data.result as Record<string, unknown> | undefined;
         print(
           "auth",
