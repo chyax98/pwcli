@@ -541,7 +541,7 @@ Agent 使用内置 auth provider 或可复用 state/auth profile 完成登录复
 - [ ] `profile save-state/load-state` 可完成登录态复用。
 - [ ] `profile save-auth/login-auth/list-auth/remove-auth` 加密 key contract 清楚。
 - [ ] 缺少 `PWCLI_VAULT_KEY` 时失败明确。
-- [ ] README/skill 不误导系统 Chrome profile 登录态复用。
+- [x] README/skill 不误导系统 Chrome profile 登录态复用。
 - [ ] `auth probe` 能输出可行动的 auth state signals。
 
 评分：
@@ -750,7 +750,7 @@ Agent 和维护者能从当前 CLI 版本获得准确 help、skill SOP 和 packa
 - [ ] `skill show --full` 返回 main + references。
 - [ ] `skill install` 安装当前 packaged skill。
 - [ ] skill 不引用不存在命令。
-- [ ] README/AGENTS/CLAUDE/skill 分工清楚。
+- [x] README/AGENTS/CLAUDE/skill 分工清楚。
 - [ ] `package.json` `bin.pw`、`files`、`scripts` 与发布规则一致。
 
 评分：
