@@ -1172,14 +1172,14 @@ Severity 使用：
 
 本轮健康度评测完成的标准：
 
-- [ ] 所有 surface 都有分数。
-- [ ] 所有 journey 都跑过一次。
-- [ ] 所有顶层命令都有单命令 verdict。
-- [ ] P0/P1 finding 全部修复或降级为明确产品边界。
-- [ ] P2 finding 有 issue 或明确不处理理由。
-- [ ] README/skill/help 没有明显互相矛盾。
-- [ ] `pnpm check` 通过。
-- [ ] 如果改了运行态或发布面，`pnpm smoke` 通过。
+- [x] 所有 surface 都有分数。
+- [x] 所有 journey 都跑过一次。
+- [x] 所有顶层命令都有单命令 verdict。
+- [x] P0/P1 finding 全部修复或降级为明确产品边界。
+- [x] P2 finding 已修复或降级为明确产品边界。
+- [x] README/skill/help 没有明显互相矛盾。
+- [x] `pnpm check` 通过。
+- [x] 如果改了运行态或发布面，`pnpm smoke` 通过。
 
 ## 12. Expected Outcome
 
