@@ -159,6 +159,6 @@ pnpm check
 ## 已知限制
 
 - `page dialogs` 是事件投影，不是 authoritative live dialog set。
-- `MODAL_STATE_BLOCKED` 会阻断 run-code-backed 读取和部分动作。
+- `MODAL_STATE_BLOCKED` 会阻断需要页面执行上下文的读取和部分动作。
 - `observe status` 和 `doctor` 默认 compact，`--verbose` 才展开完整细节。
 - `session attach --browser-url/--cdp` 只能接管本机可连接的调试端口。

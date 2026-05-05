@@ -339,11 +339,11 @@ export function modalStateBlockedFailure(
     retryable: false,
     suggestions: [
       "Dismiss or accept the pending browser dialog before continuing",
-      `Use \`pw dialog-accept\` or \`pw dialog-dismiss\` ${sessionFlag(context.sessionName)}`,
+      `Use \`pw dialog accept\` or \`pw dialog dismiss\` ${sessionFlag(context.sessionName)}`,
     ],
     recovery: makeRecovery("dialog", [
-      `pw dialog-accept ${sessionFlag(context.sessionName)}`,
-      `pw dialog-dismiss ${sessionFlag(context.sessionName)}`,
+      `pw dialog accept ${sessionFlag(context.sessionName)}`,
+      `pw dialog dismiss ${sessionFlag(context.sessionName)}`,
     ]),
     details: { command: context.command, session },
   });

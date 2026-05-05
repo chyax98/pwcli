@@ -1416,7 +1416,7 @@ export function sessionRoutingError(message: string) {
     return {
       code: "MODAL_STATE_BLOCKED",
       message:
-        "The current managed session is blocked by a modal dialog, so run-code-backed reads and actions are unavailable.",
+        "The current managed session is blocked by a modal dialog, so page-context-backed reads and actions are unavailable.",
       suggestions: [
         "Run: pw dialog accept --session <name>  or  pw dialog dismiss --session <name>  then retry",
         "Run `pw doctor --session <name>` to confirm the blocked state",

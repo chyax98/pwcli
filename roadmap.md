@@ -1937,13 +1937,13 @@ engine-first + citty CLI 层解决的是 CLI 和 engine 混杂。
 
 ## 16. 当前留下的风险
 
-### 16.1 README 仍有一个边界风险
+### 16.1 README 曾有一个边界风险
 
-当前 README 里仍有“复用本机 Chrome 登录态”的示例。
+README 曾有“复用本机 Chrome 登录态”的示例。
 
 但 `#142` 已经按不承诺系统 Chrome profile 登录态关闭。
 
-这意味着后续应该清理 README wording。
+这意味着 README 文案后来必须清理。
 
 建议把该段改成：
 
@@ -1953,7 +1953,7 @@ engine-first + citty CLI 层解决的是 CLI 和 engine 混杂。
 
 这不影响当前复盘文档。
 
-但它是一个真实后续清理点。
+该清理点已经在后续评测中处理为明确边界：系统 Chrome profile 只是 best-effort 辅助迁移入口，不是稳定登录态复用主路。
 
 ### 16.2 `test:e2e:agent` 还不是默认真实 benchmark
 
