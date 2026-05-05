@@ -149,6 +149,21 @@ describe("session lifecycle", { concurrency: false }, () => {
     assert.equal(found.alive, true);
   });
 
+  it("open does not create a missing session", async () => {
+    const name = makeSessionName();
+    const openResult = await runPw(["open", "about:blank", "--session", name, "--output", "json"]);
+    assert.equal(openResult.code, 1, `open should fail for missing session: ${openResult.stdout}`);
+    const openJson = openResult.json as { ok: boolean; error?: { code: string } };
+    assert.equal(openJson.ok, false);
+    assert.equal(openJson.error?.code, "SESSION_NOT_FOUND");
+
+    const statusResult = await runPw(["session", "status", name, "--output", "json"]);
+    assert.equal(statusResult.code, 1, "open should not create the missing session");
+    const statusJson = statusResult.json as { ok: boolean; error?: { code: string } };
+    assert.equal(statusJson.ok, false);
+    assert.equal(statusJson.error?.code, "SESSION_NOT_FOUND");
+  });
+
   it("close --all cleans sessions", async () => {
     const nameA = makeSessionName();
     const nameB = makeSessionName();

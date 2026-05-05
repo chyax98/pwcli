@@ -15,7 +15,11 @@ export default defineCommand({
     try {
       print(
         "open",
-        await managedOpen(firstPos(a) as string, { sessionName: session(a), reset: false }),
+        await managedOpen(firstPos(a) as string, {
+          sessionName: session(a),
+          reset: false,
+          createIfMissing: false,
+        }),
         a,
       );
     } catch (e) {

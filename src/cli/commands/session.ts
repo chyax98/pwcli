@@ -262,6 +262,7 @@ const create = defineCommand({
         persistent,
         ...(configPath ? { config: configPath } : {}),
         reset: true,
+        enforceActionPolicy: false,
       });
       if (str(a.state)) await managedStateLoad(str(a.state) as string, { sessionName: name });
       const appliedDefaults = await applySessionDefaults({ sessionName: name, traceEnabled });
@@ -270,6 +271,7 @@ const create = defineCommand({
       const result = await managedOpen(str(a.open) ?? "about:blank", {
         sessionName: name,
         reset: false,
+        enforceActionPolicy: false,
       });
       print(
         "session create",
@@ -441,6 +443,7 @@ const recreate = defineCommand({
         ...(persistent ? { persistent: true } : {}),
         ...(runtimeConfig ? { config: runtimeConfig.configPath } : {}),
         reset: true,
+        enforceActionPolicy: false,
         timeoutMs: 30000,
         timeoutCode: "SESSION_RECREATE_STARTUP_TIMEOUT",
       });
@@ -460,7 +463,11 @@ const recreate = defineCommand({
         bootstrapReapplied = true;
       }
       if (targetUrl !== "about:blank")
-        await managedOpen(targetUrl, { sessionName: name, reset: false });
+        await managedOpen(targetUrl, {
+          sessionName: name,
+          reset: false,
+          enforceActionPolicy: false,
+        });
       const page = await getSessionPageSummary(name).catch(() => undefined);
       print(
         "session recreate",

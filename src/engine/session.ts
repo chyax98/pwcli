@@ -547,6 +547,7 @@ export async function runManagedSessionCommand(
     timeoutMs?: number;
     timeoutMessage?: string;
     timeoutCode?: string;
+    createIfMissing?: boolean;
   },
 ) {
   const { clientInfo, sessionName } = await getSessionEntry(options?.sessionName);
@@ -847,9 +848,11 @@ export async function managedOpen(
     timeoutMs?: number;
     timeoutMessage?: string;
     timeoutCode?: string;
+    createIfMissing?: boolean;
+    enforceActionPolicy?: boolean;
   },
 ) {
-  if (options?.sessionName) {
+  if (options?.sessionName && options.enforceActionPolicy !== false) {
     await assertActionAllowed("navigate", "open");
     await assertSessionAutomationControl(options.sessionName, "open");
     const allowlist = await managedRunCode({
@@ -879,7 +882,7 @@ export async function managedOpen(
       persistent: options?.persistent,
       endpoint: options?.endpoint,
       config: options?.config,
-      createIfMissing: true,
+      createIfMissing: options?.createIfMissing ?? true,
       ...(options?.timeoutMs
         ? {
             timeoutMs: options.timeoutMs,

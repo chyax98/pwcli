@@ -103,7 +103,7 @@ const login = defineCommand({
       const sessionName = session(a);
       await assertActionAllowed("auth", "profile login-auth");
       await assertSessionAutomationControl(sessionName, "profile login-auth");
-      await managedOpen(profile.url, { sessionName, reset: false });
+      await managedOpen(profile.url, { sessionName, reset: false, createIfMissing: false });
       await managedFillForm({
         sessionName,
         values: profile.values,

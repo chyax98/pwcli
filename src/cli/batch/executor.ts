@@ -194,7 +194,7 @@ export async function executeBatchStep(tokens: string[], sessionName: string) {
       return {
         ok: true,
         command: "open",
-        data: await managedOpen(args[0], { sessionName, reset: false }),
+        data: await managedOpen(args[0], { sessionName, reset: false, createIfMissing: false }),
       };
     case "code": {
       const source = args.join(" ").trim();
