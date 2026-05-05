@@ -8,3 +8,4 @@ dist
 .claude/tmp/
 .claude/cache/
 .claude/skills/
+skills-lock.json
