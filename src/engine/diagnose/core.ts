@@ -1,3 +1,4 @@
+import { readStreamRecord } from "#store/stream.js";
 import { managedEnsureDiagnosticsHooks } from "../session.js";
 import { managedRunCode, maybeRawOutput, stateAccessPrelude } from "../shared.js";
 import { managedWorkspaceProjection } from "../workspace.js";
@@ -40,6 +41,35 @@ export function asString(value: unknown): string | null {
 
 export function asNumber(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+async function isStreamHealthy(url: string) {
+  try {
+    const response = await fetch(new URL("/_health", url));
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+async function streamStatusForSession(sessionName: string) {
+  const record = await readStreamRecord(sessionName);
+  if (!record) {
+    return {
+      supported: true,
+      active: false,
+    };
+  }
+  return {
+    supported: true,
+    active: true,
+    sessionName: record.sessionName,
+    pid: record.pid,
+    url: record.url,
+    port: record.port,
+    startedAt: record.startedAt,
+    healthy: await isStreamHealthy(record.url),
+  };
 }
 
 export function normalizeSince(since?: string) {
@@ -795,11 +825,6 @@ export async function managedObserveStatus(options?: { sessionName?: string }) {
         trace,
         har,
         bootstrap,
-        stream: {
-          supported: false,
-          active: false,
-          limitation: 'observe stream is not wired yet on the managed session substrate',
-        },
       });
     }`,
   });
@@ -831,7 +856,7 @@ export async function managedObserveStatus(options?: { sessionName?: string }) {
       trace: parsed.trace,
       har: parsed.har,
       bootstrap: parsed.bootstrap,
-      stream: parsed.stream,
+      stream: await streamStatusForSession(projection.session.name),
     },
   };
 }
