@@ -12,6 +12,7 @@ BLANK_URL="${ORIGIN}/blank"
 RUN_ID="$(date +%H%M%S)$((RANDOM % 100))"
 SESSION_NAME="sm${RUN_ID}"
 AUTH_SESSION="${SESSION_NAME}a"
+VIDEO_SESSION="${SESSION_NAME}v"
 STALE_SESSION="stale${RUN_ID}"
 TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/pwcli-smoke.XXXXXX")"
 HEADERS_FILE="${TMP_DIR}/headers.json"
@@ -21,6 +22,7 @@ SERVER_LOG="${TMP_DIR}/fixture-server.log"
 SERVER_PID=""
 SESSION_CLOSED="0"
 AUTH_SESSION_CLOSED="0"
+VIDEO_SESSION_CLOSED="0"
 STALE_SESSION_CLOSED="0"
 
 cleanup() {
@@ -29,6 +31,9 @@ cleanup() {
   fi
   if [[ "$AUTH_SESSION_CLOSED" != "1" ]]; then
     "${CLI[@]}" session close "$AUTH_SESSION" >/dev/null 2>&1 || true
+  fi
+  if [[ "$VIDEO_SESSION_CLOSED" != "1" ]]; then
+    "${CLI[@]}" session close "$VIDEO_SESSION" >/dev/null 2>&1 || true
   fi
   if [[ "$STALE_SESSION_CLOSED" != "1" ]]; then
     "${CLI[@]}" session close "$STALE_SESSION" >/dev/null 2>&1 || true
@@ -1000,17 +1005,22 @@ mouse_move_json="$(run_json mouse-move mouse move 100 100 --session "$SESSION_NA
 assert_json "$mouse_move_json" "mouse move acts and records run evidence" \
   "data.ok === true && data.data.acted === true && data.data.x === 100 && data.data.y === 100 && typeof data.data.run.runId === 'string'"
 
-log "video start and stop"
-video_start_json="${TMP_DIR}/video-start.json"
-if node dist/cli.js video start --session "$SESSION_NAME" --output json >"$video_start_json"; then
-  assert_json "$video_start_json" "video start reports started" \
-    "data.ok === true && data.data.started === true"
-  video_stop_json="$(run_json video-stop video stop --session "$SESSION_NAME")"
-  assert_json "$video_stop_json" "video stop reports stopped" \
-    "data.ok === true && data.data.stopped === true && (typeof data.data.videoPath === 'string' || data.data.noVideo === true)"
-else
-  assert_json "$video_start_json" "video start fails with explicit limitation" \
-    "data.ok === false && String(data.error.code).includes('VIDEO')"
+log "session lifecycle video recording"
+video_dir="${TMP_DIR}/videos"
+video_create_json="$(run_json video-create session create "$VIDEO_SESSION" --record-video "$video_dir" --record-video-size 640x360 --open "$BLANK_URL")"
+assert_json "$video_create_json" "session create reports lifecycle video recording" \
+  "data.ok === true && data.data.recordVideo.dir.endsWith('/videos') && data.data.recordVideo.size.width === 640 && data.data.recordVideo.size.height === 360"
+video_open_json="$(run_json video-open open "$ORIGIN" --session "$VIDEO_SESSION")"
+assert_json "$video_open_json" "video session navigates while recording" \
+  "data.ok === true && data.data.navigated === true"
+video_close_json="$(run_json video-close session close "$VIDEO_SESSION")"
+VIDEO_SESSION_CLOSED="1"
+assert_json "$video_close_json" "video session closes" \
+  "data.ok === true && data.data.closed === true"
+if ! find "$video_dir" -name '*.webm' -type f -size +0c | grep -q .; then
+  log "expected non-empty webm under $video_dir"
+  find "$video_dir" -maxdepth 2 -type f -print >&2 || true
+  exit 1
 fi
 
 log "network include-body"

@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
-import { existsSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, rmSync, statSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { resolve } from "node:path";
 import { after, describe, it } from "node:test";
 import { runPw, uniqueSessionName } from "./_helpers.ts";
 
@@ -18,46 +20,50 @@ describe("video", { concurrency: false }, () => {
     }
   });
 
-  it("video start and stop returns video path", async () => {
+  it("records video through the session lifecycle", async () => {
     const name = makeSessionName();
     sessionsToClean.push(name);
+    const tmpDir = mkdtempSync(resolve(tmpdir(), "pwcli-video-"));
+    const videoDir = resolve(tmpDir, "videos");
 
-    await runPw([
-      "session",
-      "create",
-      name,
-      "--headless",
-      "--open",
-      "about:blank",
-      "--output",
-      "json",
-    ]);
+    try {
+      const createResult = await runPw([
+        "session",
+        "create",
+        name,
+        "--record-video",
+        videoDir,
+        "--record-video-size",
+        "640x360",
+        "--open",
+        "about:blank",
+        "--output",
+        "json",
+      ]);
+      assert.equal(createResult.code, 0, `session create failed: ${createResult.stderr}`);
+      const createJson = createResult.json as {
+        ok: boolean;
+        data: { recordVideo?: { dir?: string; size?: { width?: number; height?: number } } };
+      };
+      assert.equal(createJson.ok, true);
+      assert.equal(createJson.data.recordVideo?.dir, videoDir);
+      assert.equal(createJson.data.recordVideo?.size?.width, 640);
+      assert.equal(createJson.data.recordVideo?.size?.height, 360);
 
-    const startResult = await runPw(["video", "start", "--session", name, "--output", "json"]);
-    assert.equal(startResult.code, 0, `video start failed: ${startResult.stderr}`);
-    const startJson = startResult.json as {
-      ok: boolean;
-      data: { started: boolean };
-    };
-    assert.equal(startJson.ok, true);
-    assert.equal(startJson.data.started, true);
+      await runPw(["open", "https://example.com", "--session", name, "--output", "json"]);
 
-    await runPw(["open", "https://example.com", "--session", name, "--output", "json"]);
+      const closeResult = await runPw(["session", "close", name, "--output", "json"]);
+      assert.equal(closeResult.code, 0, `session close failed: ${closeResult.stderr}`);
 
-    const stopResult = await runPw(["video", "stop", "--session", name, "--output", "json"]);
-    assert.equal(stopResult.code, 0, `video stop failed: ${stopResult.stderr}`);
-    const stopJson = stopResult.json as {
-      ok: boolean;
-      data: { stopped: boolean; videoPath?: string; noVideo?: boolean };
-    };
-    assert.equal(stopJson.ok, true);
-    assert.equal(stopJson.data.stopped, true);
-
-    if (stopJson.data.videoPath) {
-      const fullPath = resolve(repoRoot, stopJson.data.videoPath);
-      assert.ok(existsSync(fullPath), `video file should exist at ${fullPath}`);
-    } else {
-      assert.equal(stopJson.data.noVideo, true, "should indicate no video when path absent");
+      assert.ok(existsSync(videoDir), `video dir should exist at ${videoDir}`);
+      const videos = readdirSync(videoDir).filter((entry) => entry.endsWith(".webm"));
+      assert.ok(videos.length > 0, "at least one webm video should be written");
+      assert.ok(
+        videos.some((entry) => statSync(resolve(videoDir, entry)).size > 0),
+        "at least one webm video should be non-empty",
+      );
+    } finally {
+      rmSync(tmpDir, { recursive: true, force: true });
     }
   });
 });

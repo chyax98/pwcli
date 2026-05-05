@@ -43,7 +43,7 @@ await expectHelp(
 
 await expectHelp(
   ["session", "create"],
-  ["Purpose:", "Examples:", "named session", "--open", "--state", "--record-har"],
+  ["Purpose:", "Examples:", "named session", "--open", "--state", "--record-har", "--record-video"],
 );
 
 await expectHelp(

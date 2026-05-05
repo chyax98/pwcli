@@ -931,59 +931,6 @@ export async function managedMouseDrag(options: {
   };
 }
 
-// =============================================================================
-// managedVideoStart
-// =============================================================================
-
-export async function managedVideoStart(options: { sessionName?: string }) {
-  const result = await runManagedSessionCommand(
-    { _: ["video-start"] },
-    { sessionName: options.sessionName },
-  );
-  return {
-    session: {
-      scope: "managed" as const,
-      name: result.sessionName,
-      default: result.sessionName === "default",
-    },
-    page: parsePageSummary(result.text),
-    data: {
-      started: true,
-      ...maybeRawOutput(result.text),
-    },
-  };
-}
-
-// =============================================================================
-// managedVideoStop
-// =============================================================================
-
-export async function managedVideoStop(options: { sessionName?: string }) {
-  const result = await runManagedSessionCommand(
-    { _: ["video-stop"] },
-    { sessionName: options.sessionName },
-  );
-  // Match [Video](path) — use a greedy match that handles paths with closing parens
-  // by looking for the last ')' before a newline/end-of-string
-  const videoMatch = result.text.match(/- \[Video\]\(([\s\S]+?)\)(?:\s|$)/);
-  const videoPath = videoMatch?.[1]?.trim() || undefined;
-  const noVideo = result.text.includes("No videos were recorded.");
-  return {
-    session: {
-      scope: "managed" as const,
-      name: result.sessionName,
-      default: result.sessionName === "default",
-    },
-    page: parsePageSummary(result.text),
-    data: {
-      stopped: true,
-      ...(videoPath ? { videoPath } : {}),
-      ...(noVideo ? { noVideo: true } : {}),
-      ...maybeRawOutput(result.text),
-    },
-  };
-}
-
 export async function managedResize(options: {
   sessionName?: string;
   width: number;

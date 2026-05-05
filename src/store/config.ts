@@ -13,6 +13,14 @@ export type SessionRecordHarConfig = {
   urlFilter?: string;
 };
 
+export type SessionRecordVideoConfig = {
+  dir: string;
+  size?: {
+    width: number;
+    height: number;
+  };
+};
+
 export type SessionRuntimeConfig = {
   browser?: {
     userDataDir?: string;
@@ -20,6 +28,7 @@ export type SessionRuntimeConfig = {
     launchOptions?: JsonObject;
     contextOptions?: JsonObject & {
       recordHar?: SessionRecordHarConfig;
+      recordVideo?: SessionRecordVideoConfig;
     };
   };
 };
@@ -54,19 +63,23 @@ export async function writeSessionRuntimeConfig(options: {
   sessionName: string;
   baseConfigPath?: string;
   recordHar?: SessionRecordHarConfig;
+  recordVideo?: SessionRecordVideoConfig;
 }) {
-  if (!options.baseConfigPath && !options.recordHar) return undefined;
+  if (!options.baseConfigPath && !options.recordHar && !options.recordVideo) return undefined;
 
   const base = await readSessionRuntimeConfig(options.baseConfigPath);
-  const overrides: SessionRuntimeConfig = options.recordHar
-    ? {
-        browser: {
-          contextOptions: {
-            recordHar: options.recordHar,
+  const contextOptions: JsonObject = {
+    ...(options.recordHar ? { recordHar: options.recordHar } : {}),
+    ...(options.recordVideo ? { recordVideo: options.recordVideo } : {}),
+  };
+  const overrides: SessionRuntimeConfig =
+    options.recordHar || options.recordVideo
+      ? {
+          browser: {
+            contextOptions,
           },
-        },
-      }
-    : {};
+        }
+      : {};
   const config = mergeJsonObjects(
     base as JsonObject,
     overrides as JsonObject,

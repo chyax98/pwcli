@@ -47,6 +47,7 @@ src/auth/    内置 auth provider registry 和实现
 - `session create|attach|recreate` 是唯一 lifecycle 主路。
 - `open` 只在已有 session 内导航。
 - HAR 录制只能通过 `session create|recreate --record-har <file>` 开启。
+- 视频录制只能通过 `session create|recreate --record-video <dir>` 开启。
 - `auth` 只执行内置 provider，不创建 session，不改变 browser shape。
 - `batch` 只接收结构化 `string[][]`，只承诺稳定子集。
 - `locate|get|is|verify` 是 read-only 状态检查，不做 action planner。

@@ -152,6 +152,7 @@ pnpm check
 - `locate|get|is|verify` 是 read-only 状态检查，不做 action planner。
 - trace 默认开启；`.pwcli/runs/` 是轻量动作事件，trace zip 是 Playwright replay 证据。
 - HAR 录制挂在 `session create|recreate --record-har <file>` 生命周期上；session 关闭后写出文件。
+- 视频录制挂在 `session create|recreate --record-video <dir>` 生命周期上；session 关闭后写出文件。
 
 ## 已知限制
 

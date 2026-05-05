@@ -24,6 +24,7 @@ pw skill show --full
 - `session create|attach|recreate` 是唯一 lifecycle 主路。
 - `open` 只在已有 session 内导航。
 - HAR 录制只能在 `session create|recreate --record-har <file>` 时开启。
+- 视频录制只能在 `session create|recreate --record-video <dir>` 时开启。
 - `auth` 只执行内置 provider，不创建 session。
 - `batch` 只编排单 session 的结构化 `string[][]` 稳定子集。
 - 同一 session 的依赖步骤顺序执行，不要并发操作同一 session。
@@ -44,7 +45,7 @@ pw skill show --full
 | 点击和输入 | `click` / `fill` / `type` / `press` | `pw click --help` |
 | 表单控件 | `check` / `uncheck` / `select` | `pw check --help` |
 | 鼠标和布局 | `hover` / `drag` / `scroll` / `resize` / `mouse` | `pw mouse --help` |
-| 文件和产物 | `upload` / `download` / `screenshot` / `pdf` / `video` | `pw screenshot --help` |
+| 文件和产物 | `upload` / `download` / `screenshot` / `pdf` | `pw screenshot --help` |
 | 等待 | `wait` | `pw wait --help` |
 | 浏览器弹窗 | `dialog` | `pw dialog --help` |
 | console / network / errors | `console` / `network` / `sse` / `errors` | `pw network --help` |

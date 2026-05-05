@@ -65,14 +65,6 @@ try {
   assert.ok(mouseEnvelope && !mouseEnvelope.ok);
   assert.equal(mouseEnvelope.error.code, "SESSION_NOT_FOUND");
 
-  const videoStart = await runPw(["video", "start", "--session", "ghost", "--output", "json"], {
-    cwd: workspaceDir,
-  });
-  assert.notEqual(videoStart.code, 0, "video start should fail");
-  const videoEnvelope = videoStart.json as { ok: false; error: { code: string } };
-  assert.ok(videoEnvelope && !videoEnvelope.ok);
-  assert.equal(videoEnvelope.error.code, "SESSION_NOT_FOUND");
-
   const accessibility = await runPw(["accessibility", "--session", "ghost", "--output", "json"], {
     cwd: workspaceDir,
   });

@@ -26,6 +26,7 @@ import {
   resolveHeaded,
   resolveTraceEnabled,
   type SessionRecordHarConfig,
+  type SessionRecordVideoConfig,
   writeSessionRuntimeConfig,
 } from "#store/config.js";
 import { printCommandError } from "../output.js";
@@ -88,6 +89,30 @@ function resolveRecordHarConfig(a: CliArgs): SessionRecordHarConfig | undefined 
     ),
     mode: optionalChoice(str(a["record-har-mode"]), ["full", "minimal"], "--record-har-mode"),
     ...(str(a["record-har-url-filter"]) ? { urlFilter: str(a["record-har-url-filter"]) } : {}),
+  };
+}
+
+function parseVideoSize(value: string | undefined) {
+  if (!value) return undefined;
+  const match = value.match(/^(\d+)x(\d+)$/);
+  if (!match) throw new Error("--record-video-size must use WIDTHxHEIGHT, for example 1280x720");
+  const width = Number(match[1]);
+  const height = Number(match[2]);
+  if (!Number.isSafeInteger(width) || !Number.isSafeInteger(height) || width <= 0 || height <= 0) {
+    throw new Error("--record-video-size must contain positive integer dimensions");
+  }
+  return { width, height };
+}
+
+function resolveRecordVideoConfig(a: CliArgs): SessionRecordVideoConfig | undefined {
+  const dir = str(a["record-video"]);
+  if (!dir && str(a["record-video-size"])) {
+    throw new Error("--record-video-size requires --record-video <dir>");
+  }
+  if (!dir) return undefined;
+  return {
+    dir: resolve(dir),
+    size: parseVideoSize(str(a["record-video-size"])),
   };
 }
 
@@ -187,6 +212,16 @@ const create = defineCommand({
       description: "Glob or pattern of requests to include in the HAR",
       valueHint: "pattern",
     },
+    "record-video": {
+      type: "string",
+      description: "Record session video files into a directory for this lifecycle",
+      valueHint: "dir",
+    },
+    "record-video-size": {
+      type: "string",
+      description: "Video frame size, e.g. 1280x720",
+      valueHint: "WxH",
+    },
   },
   async run({ args }) {
     const a = args as CliArgs;
@@ -204,13 +239,16 @@ const create = defineCommand({
           ? await writeChromeProfileConfig(name, str(a["chrome-profile"]))
           : undefined;
       const recordHar = resolveRecordHarConfig(a);
-      const runtimeConfig = recordHar
-        ? await writeSessionRuntimeConfig({
-            sessionName: name,
-            baseConfigPath: systemChrome?.configPath,
-            recordHar,
-          })
-        : undefined;
+      const recordVideo = resolveRecordVideoConfig(a);
+      const runtimeConfig =
+        recordHar || recordVideo
+          ? await writeSessionRuntimeConfig({
+              sessionName: name,
+              baseConfigPath: systemChrome?.configPath,
+              recordHar,
+              recordVideo,
+            })
+          : undefined;
       const configPath = runtimeConfig?.configPath ?? systemChrome?.configPath;
       const persistent = bool(a.persistent) || Boolean(str(a.profile)) || Boolean(systemChrome);
       await managedOpen("about:blank", {
@@ -247,6 +285,7 @@ const create = defineCommand({
               ? { systemChromeProfile: systemChrome.profile, config: configPath }
               : {}),
             ...(recordHar ? { recordHar: { ...recordHar, config: configPath } } : {}),
+            ...(recordVideo ? { recordVideo: { ...recordVideo, config: configPath } } : {}),
             ...(str(a.state) ? { stateLoaded: str(a.state) } : {}),
           },
         },
@@ -342,6 +381,16 @@ const recreate = defineCommand({
       description: "Glob or pattern of requests to include in the HAR",
       valueHint: "pattern",
     },
+    "record-video": {
+      type: "string",
+      description: "Record session video files into a directory for the recreated lifecycle",
+      valueHint: "dir",
+    },
+    "record-video-size": {
+      type: "string",
+      description: "Video frame size, e.g. 1280x720",
+      valueHint: "WxH",
+    },
   },
   async run({ args }) {
     const a = args as CliArgs;
@@ -359,9 +408,11 @@ const recreate = defineCommand({
       const persistent = Boolean(entry.config.cli?.persistent || profile);
       const targetUrl = str(a.open) ?? currentPage?.url ?? "about:blank";
       const recordHar = resolveRecordHarConfig(a);
-      const runtimeConfig = recordHar
-        ? await writeSessionRuntimeConfig({ sessionName: name, recordHar })
-        : undefined;
+      const recordVideo = resolveRecordVideoConfig(a);
+      const runtimeConfig =
+        recordHar || recordVideo
+          ? await writeSessionRuntimeConfig({ sessionName: name, recordHar, recordVideo })
+          : undefined;
       tempDir = await mkdtemp(join(tmpdir(), "pwcli-recreate-"));
       const statePath = join(tempDir, "state.json");
       let stateSaved = false;
@@ -415,6 +466,9 @@ const recreate = defineCommand({
             ...(persistent ? { persistent: true } : {}),
             ...(recordHar
               ? { recordHar: { ...recordHar, config: runtimeConfig?.configPath } }
+              : {}),
+            ...(recordVideo
+              ? { recordVideo: { ...recordVideo, config: runtimeConfig?.configPath } }
               : {}),
             ...(str(a.open) ? { openedUrl: str(a.open) } : {}),
           },
