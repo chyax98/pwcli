@@ -728,10 +728,10 @@ export async function managedObserveStatus(options?: { sessionName?: string }) {
       const routes = Array.isArray(state.routes) ? state.routes : [];
       const trace = state.trace || { supported: true, active: false };
       const har = state.har || {
-        supported: false,
+        supported: true,
         active: false,
-        errorCode: 'UNSUPPORTED_HAR_CAPTURE',
-        limitation: 'HAR start/stop is not a 1.0 recording path on an already-open managed BrowserContext. Use network/diagnostics/trace for evidence or har replay with a pre-recorded HAR.',
+        recording: 'session-lifecycle',
+        note: 'Use session create/recreate --record-har <file>; Playwright writes the HAR when the session closes.',
       };
       const bootstrap = state.bootstrap || {
         applied: false,

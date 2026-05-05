@@ -375,6 +375,13 @@ async function withSessionStartupLock<T>(
 
 async function stopSessionEntry(entry: ManagedSessionEntry) {
   const session = new Session(entry);
+  if (await session.canConnect().catch(() => false)) {
+    await session
+      .run(createClientInfo(), {
+        _: ["run-code", "async page => { await page.context().close(); return 'context-closed'; }"],
+      })
+      .catch(() => {});
+  }
   await session.stop(true).catch(() => {});
   if (typeof session.deleteSessionConfig === "function") {
     await session.deleteSessionConfig();

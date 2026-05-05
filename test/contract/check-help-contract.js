@@ -42,15 +42,8 @@ await expectHelp(
 );
 
 await expectHelp(
-  ["har", "start"],
-  ["Purpose:", "Options:", "Examples:", "Notes:", "unsupported", "replay"],
-);
-
-await expectHelp(["har", "stop"], ["unsupported", "replay"]);
-
-await expectHelp(
   ["session", "create"],
-  ["Purpose:", "Examples:", "named session", "--open", "--state"],
+  ["Purpose:", "Examples:", "named session", "--open", "--state", "--record-har"],
 );
 
 await expectHelp(

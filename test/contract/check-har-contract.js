@@ -82,24 +82,6 @@ try {
   ]);
   assert.equal(create.code, 0, `session create failed: ${JSON.stringify(create)}`);
 
-  const start = await runPwInWorkspace([
-    "har",
-    "start",
-    "--session",
-    sessionName,
-    "--path",
-    resolve(workspaceDir, "record.har"),
-    "--output",
-    "json",
-  ]);
-  assert.notEqual(start.code, 0, "har start must not pretend to be supported");
-  assert.equal(start.json?.ok, false);
-  assert.equal(start.json?.error?.code, "UNSUPPORTED_HAR_CAPTURE");
-  assert.equal(
-    start.json?.error?.details?.reason,
-    "PLAYWRIGHT_RECORD_HAR_REQUIRES_CONTEXT_CREATION",
-  );
-
   const replay = await runPwInWorkspace([
     "har",
     "replay",

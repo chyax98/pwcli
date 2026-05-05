@@ -1,6 +1,6 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { defineCommand } from "citty";
 import { sharedArgs } from "#cli/args.js";
 import { attachManagedSession, resolveAttachTarget } from "#cli/parsers/session.js";
@@ -25,6 +25,8 @@ import {
   readBootstrapConfig,
   resolveHeaded,
   resolveTraceEnabled,
+  type SessionRecordHarConfig,
+  writeSessionRuntimeConfig,
 } from "#store/config.js";
 import { printCommandError } from "../output.js";
 import {
@@ -56,6 +58,37 @@ async function applySessionDefaults(options: { sessionName: string; traceEnabled
       },
     };
   }
+}
+
+function optionalChoice<T extends string>(
+  value: string | undefined,
+  allowed: readonly T[],
+  flagName: string,
+): T | undefined {
+  if (!value) return undefined;
+  if ((allowed as readonly string[]).includes(value)) return value as T;
+  throw new Error(`${flagName} must be one of: ${allowed.join(", ")}`);
+}
+
+function resolveRecordHarConfig(a: CliArgs): SessionRecordHarConfig | undefined {
+  const path = str(a["record-har"]);
+  if (
+    !path &&
+    (str(a["record-har-content"]) || str(a["record-har-mode"]) || str(a["record-har-url-filter"]))
+  ) {
+    throw new Error("--record-har-* options require --record-har <path>");
+  }
+  if (!path) return undefined;
+  return {
+    path: resolve(path),
+    content: optionalChoice(
+      str(a["record-har-content"]),
+      ["omit", "embed", "attach"],
+      "--record-har-content",
+    ),
+    mode: optionalChoice(str(a["record-har-mode"]), ["full", "minimal"], "--record-har-mode"),
+    ...(str(a["record-har-url-filter"]) ? { urlFilter: str(a["record-har-url-filter"]) } : {}),
+  };
 }
 
 function sessionError(command: string, a: CliArgs, error: unknown, fallback: string) {
@@ -134,6 +167,26 @@ const create = defineCommand({
     headed: { type: "boolean", description: "Open headed browser", default: false },
     trace: { type: "boolean", description: "Enable trace recording", default: true },
     "init-script": { type: "string", description: "Init script file", valueHint: "path" },
+    "record-har": {
+      type: "string",
+      description: "Record network activity to a HAR file for this session lifecycle",
+      valueHint: "path",
+    },
+    "record-har-content": {
+      type: "string",
+      description: "HAR content policy: omit|embed|attach",
+      valueHint: "policy",
+    },
+    "record-har-mode": {
+      type: "string",
+      description: "HAR mode: full|minimal",
+      valueHint: "mode",
+    },
+    "record-har-url-filter": {
+      type: "string",
+      description: "Glob or pattern of requests to include in the HAR",
+      valueHint: "pattern",
+    },
   },
   async run({ args }) {
     const a = args as CliArgs;
@@ -150,13 +203,22 @@ const create = defineCommand({
         bool(a["from-system-chrome"]) || str(a["chrome-profile"])
           ? await writeChromeProfileConfig(name, str(a["chrome-profile"]))
           : undefined;
+      const recordHar = resolveRecordHarConfig(a);
+      const runtimeConfig = recordHar
+        ? await writeSessionRuntimeConfig({
+            sessionName: name,
+            baseConfigPath: systemChrome?.configPath,
+            recordHar,
+          })
+        : undefined;
+      const configPath = runtimeConfig?.configPath ?? systemChrome?.configPath;
       const persistent = bool(a.persistent) || Boolean(str(a.profile)) || Boolean(systemChrome);
       await managedOpen("about:blank", {
         sessionName: name,
         headed,
         profile: str(a.profile),
         persistent,
-        ...(systemChrome ? { config: systemChrome.configPath } : {}),
+        ...(configPath ? { config: configPath } : {}),
         reset: true,
       });
       if (str(a.state)) await managedStateLoad(str(a.state) as string, { sessionName: name });
@@ -182,8 +244,9 @@ const create = defineCommand({
             traceEnabled,
             ...(initScripts.length ? { bootstrapApplied: true } : {}),
             ...(systemChrome
-              ? { systemChromeProfile: systemChrome.profile, config: systemChrome.configPath }
+              ? { systemChromeProfile: systemChrome.profile, config: configPath }
               : {}),
+            ...(recordHar ? { recordHar: { ...recordHar, config: configPath } } : {}),
             ...(str(a.state) ? { stateLoaded: str(a.state) } : {}),
           },
         },
@@ -259,6 +322,26 @@ const recreate = defineCommand({
     headed: { type: "boolean", description: "Open headed browser", default: false },
     open: { type: "string", description: "Open URL", valueHint: "url" },
     trace: { type: "boolean", description: "Enable trace recording", default: true },
+    "record-har": {
+      type: "string",
+      description: "Record network activity to a HAR file for the recreated session lifecycle",
+      valueHint: "path",
+    },
+    "record-har-content": {
+      type: "string",
+      description: "HAR content policy: omit|embed|attach",
+      valueHint: "policy",
+    },
+    "record-har-mode": {
+      type: "string",
+      description: "HAR mode: full|minimal",
+      valueHint: "mode",
+    },
+    "record-har-url-filter": {
+      type: "string",
+      description: "Glob or pattern of requests to include in the HAR",
+      valueHint: "pattern",
+    },
   },
   async run({ args }) {
     const a = args as CliArgs;
@@ -275,6 +358,10 @@ const recreate = defineCommand({
       const profile = entry.config.browser?.userDataDir;
       const persistent = Boolean(entry.config.cli?.persistent || profile);
       const targetUrl = str(a.open) ?? currentPage?.url ?? "about:blank";
+      const recordHar = resolveRecordHarConfig(a);
+      const runtimeConfig = recordHar
+        ? await writeSessionRuntimeConfig({ sessionName: name, recordHar })
+        : undefined;
       tempDir = await mkdtemp(join(tmpdir(), "pwcli-recreate-"));
       const statePath = join(tempDir, "state.json");
       let stateSaved = false;
@@ -289,6 +376,7 @@ const recreate = defineCommand({
         headed,
         ...(profile ? { profile } : {}),
         ...(persistent ? { persistent: true } : {}),
+        ...(runtimeConfig ? { config: runtimeConfig.configPath } : {}),
         reset: true,
         timeoutMs: 30000,
         timeoutCode: "SESSION_RECREATE_STARTUP_TIMEOUT",
@@ -325,6 +413,9 @@ const recreate = defineCommand({
             bootstrapReapplied,
             ...(profile ? { profile } : {}),
             ...(persistent ? { persistent: true } : {}),
+            ...(recordHar
+              ? { recordHar: { ...recordHar, config: runtimeConfig?.configPath } }
+              : {}),
             ...(str(a.open) ? { openedUrl: str(a.open) } : {}),
           },
         },

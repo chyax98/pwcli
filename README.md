@@ -151,6 +151,7 @@ pnpm check
 - `batch` 只接收结构化 `string[][]`，只承诺稳定子集。
 - `locate|get|is|verify` 是 read-only 状态检查，不做 action planner。
 - trace 默认开启；`.pwcli/runs/` 是轻量动作事件，trace zip 是 Playwright replay 证据。
+- HAR 录制挂在 `session create|recreate --record-har <file>` 生命周期上；session 关闭后写出文件。
 
 ## 已知限制
 
@@ -158,4 +159,3 @@ pnpm check
 - `MODAL_STATE_BLOCKED` 会阻断 run-code-backed 读取和部分动作。
 - `observe status` 和 `doctor` 默认 compact，`--verbose` 才展开完整细节。
 - `session attach --browser-url/--cdp` 只能接管本机可连接的调试端口。
-- `har start|stop` 当前只暴露 substrate 边界，没有稳定热录制 contract。

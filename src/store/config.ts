@@ -2,6 +2,81 @@ import { constants } from "node:fs";
 import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 
+// ─── Playwright daemon session config ────────────────────────────────────────
+
+type JsonObject = Record<string, unknown>;
+
+export type SessionRecordHarConfig = {
+  path: string;
+  content?: "omit" | "embed" | "attach";
+  mode?: "full" | "minimal";
+  urlFilter?: string;
+};
+
+export type SessionRuntimeConfig = {
+  browser?: {
+    userDataDir?: string;
+    isolated?: boolean;
+    launchOptions?: JsonObject;
+    contextOptions?: JsonObject & {
+      recordHar?: SessionRecordHarConfig;
+    };
+  };
+};
+
+function isPlainObject(value: unknown): value is JsonObject {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function mergeJsonObjects(base: JsonObject, overrides: JsonObject): JsonObject {
+  const result: JsonObject = { ...base };
+  for (const [key, value] of Object.entries(overrides)) {
+    if (isPlainObject(value) && isPlainObject(result[key])) {
+      result[key] = mergeJsonObjects(result[key], value);
+    } else if (value !== undefined) {
+      result[key] = value;
+    }
+  }
+  return result;
+}
+
+async function readSessionRuntimeConfig(configPath?: string): Promise<SessionRuntimeConfig> {
+  if (!configPath) return {};
+  const text = await readFile(configPath, "utf8");
+  return JSON.parse(text) as SessionRuntimeConfig;
+}
+
+function sessionRuntimeConfigPath(sessionName: string) {
+  return resolve(join(".pwcli", "session-config", `${sessionName}.config.json`));
+}
+
+export async function writeSessionRuntimeConfig(options: {
+  sessionName: string;
+  baseConfigPath?: string;
+  recordHar?: SessionRecordHarConfig;
+}) {
+  if (!options.baseConfigPath && !options.recordHar) return undefined;
+
+  const base = await readSessionRuntimeConfig(options.baseConfigPath);
+  const overrides: SessionRuntimeConfig = options.recordHar
+    ? {
+        browser: {
+          contextOptions: {
+            recordHar: options.recordHar,
+          },
+        },
+      }
+    : {};
+  const config = mergeJsonObjects(
+    base as JsonObject,
+    overrides as JsonObject,
+  ) as SessionRuntimeConfig;
+  const configPath = sessionRuntimeConfigPath(options.sessionName);
+  await mkdir(dirname(configPath), { recursive: true });
+  await writeFile(configPath, JSON.stringify(config, null, 2), "utf8");
+  return { configPath, config };
+}
+
 // ─── Bootstrap config ────────────────────────────────────────────────────────
 
 export type BootstrapConfig = {

@@ -1,31 +1,6 @@
 import { resolve } from "node:path";
 import { managedRunCode, stateAccessPrelude } from "../shared.js";
 
-export class HarCaptureUnsupportedError extends Error {
-  readonly code = "UNSUPPORTED_HAR_CAPTURE";
-  readonly details: Record<string, unknown>;
-
-  constructor(action: "start" | "stop", requestedPath?: string) {
-    super(
-      "HAR recording is not supported on an already-open managed BrowserContext. Use network/diagnostics/trace for 1.0 evidence, or use har replay with a pre-recorded HAR for deterministic network stubbing.",
-    );
-    this.name = "HarCaptureUnsupportedError";
-    this.details = {
-      action,
-      supported: false,
-      reason: "PLAYWRIGHT_RECORD_HAR_REQUIRES_CONTEXT_CREATION",
-      ...(requestedPath ? { requestedPath: resolve(requestedPath) } : {}),
-    };
-  }
-}
-
-export async function managedHar(
-  action: "start" | "stop",
-  options?: { path?: string; sessionName?: string },
-): Promise<never> {
-  throw new HarCaptureUnsupportedError(action, options?.path);
-}
-
 export async function managedHarReplay(options: { filePath: string; sessionName?: string }) {
   const resolvedPath = resolve(options.filePath);
   const result = await managedRunCode({

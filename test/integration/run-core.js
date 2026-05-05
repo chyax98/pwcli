@@ -9,5 +9,9 @@ const coreTests = [
   "test/integration/profile-capability-probe.test.ts",
 ];
 
-const result = spawnSync("tsx", ["--test", ...coreTests], { stdio: "inherit", shell: true });
-process.exit(result.status ?? 1);
+for (const file of coreTests) {
+  const result = spawnSync("tsx", ["--test", file], { stdio: "inherit" });
+  if (result.status !== 0) {
+    process.exit(result.status ?? 1);
+  }
+}
