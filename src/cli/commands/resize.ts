@@ -10,7 +10,11 @@ const presets: Record<string, [number, number]> = {
 };
 
 export default defineCommand({
-  meta: { name: "resize", description: "Resize the browser viewport" },
+  meta: {
+    name: "resize",
+    description:
+      "Purpose: resize the browser viewport for responsive behavior checks.\nExamples:\n  pw resize -s task-a --preset iphone\n  pw resize -s task-a --width 1440 --height 900\nNotes: resize changes the session; verify layout-sensitive facts afterward.",
+  },
   args: {
     ...sharedArgs,
     width: { type: "string", description: "Viewport width", valueHint: "px" },

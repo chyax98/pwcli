@@ -5,7 +5,8 @@ import { type CliArgs, print, session, str, withCliError } from "./_helpers.js";
 const state = defineCommand({
   meta: {
     name: "control-state",
-    description: "Show whether a session is under CLI or human control",
+    description:
+      "Purpose: show whether a session is under CLI or human control.\nExamples:\n  pw control-state -s task-a\nNotes: use this before resuming automation on a session that a human may have taken over.",
   },
   args: {
     session: {
@@ -40,7 +41,11 @@ const state = defineCommand({
 });
 
 const takeover = defineCommand({
-  meta: { name: "takeover", description: "Mark a session as human-controlled" },
+  meta: {
+    name: "takeover",
+    description:
+      "Purpose: mark a session as human-controlled so write operations stop.\nExamples:\n  pw takeover -s task-a --actor tester --reason 'manual inspection'\nNotes: this is not approval; it is a hard control gate until `release-control`.",
+  },
   args: {
     session: {
       type: "string",
@@ -71,7 +76,11 @@ const takeover = defineCommand({
 });
 
 const release = defineCommand({
-  meta: { name: "release-control", description: "Return a session to CLI control" },
+  meta: {
+    name: "release-control",
+    description:
+      "Purpose: return a human-controlled session to CLI automation.\nExamples:\n  pw release-control -s task-a\nNotes: run this only after the human has finished interacting with the browser.",
+  },
   args: {
     session: {
       type: "string",

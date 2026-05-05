@@ -4,7 +4,11 @@ import { managedDiagnosticsExport } from "#engine/diagnose/export.js";
 import { type CliArgs, num, print, session, str, withCliError } from "./_helpers.js";
 
 export default defineCommand({
-  meta: { name: "sse", description: "Inspect captured SSE records" },
+  meta: {
+    name: "sse",
+    description:
+      "Purpose: inspect captured Server-Sent Events records from session diagnostics.\nExamples:\n  pw sse -s task-a --limit 20\n  pw sse -s task-a --url /events --since 2026-01-01T00:00:00.000Z\nNotes: use this with `network` and page facts when debugging streaming UI updates.",
+  },
   args: {
     ...sharedArgs,
     since: { type: "string", description: "Since ISO time", valueHint: "iso" },

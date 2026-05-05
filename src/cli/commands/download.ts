@@ -4,7 +4,11 @@ import { managedDownload } from "#engine/act/page.js";
 import { type CliArgs, firstPos, print, session, str, withCliError } from "./_helpers.js";
 
 export default defineCommand({
-  meta: { name: "download", description: "Click a target and save the download" },
+  meta: {
+    name: "download",
+    description:
+      "Purpose: click a target that triggers a download and save the file.\nExamples:\n  pw download -s task-a --selector '#export' --path ./export.csv\n  pw download -s task-a e12 --dir ./downloads\nNotes: use this only for browser download flows; use `network` for inspecting response metadata.",
+  },
   args: {
     ...sharedArgs,
     ref: { type: "string", description: "Snapshot aria ref", valueHint: "ref" },

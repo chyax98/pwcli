@@ -47,6 +47,19 @@ await expectHelp(
 );
 
 for (const command of [
+  "bootstrap",
+  "control-state",
+  "doctor",
+  "download",
+  "drag",
+  "pdf",
+  "release-control",
+  "resize",
+  "sse",
+  "state",
+  "storage",
+  "takeover",
+  "upload",
   "open",
   "status",
   "read-text",
@@ -146,14 +159,11 @@ await expectHelp(["stream"], ["start", "status", "stop", "preview stream server"
 
 await expectHelp(["view"], ["open", "status", "close", "preview workbench"]);
 
-await expectHelp(
-  ["control-state"],
-  ["Show whether a session is under CLI or human control", "--session"],
-);
+await expectHelp(["control-state"], ["Purpose:", "Examples:", "Notes:", "--session"]);
 
-await expectHelp(["takeover"], ["Mark a session as human-controlled", "--actor", "--reason"]);
+await expectHelp(["takeover"], ["Purpose:", "Examples:", "Notes:", "--actor", "--reason"]);
 
-await expectHelp(["release-control"], ["Return a session to CLI control", "--session"]);
+await expectHelp(["release-control"], ["Purpose:", "Examples:", "Notes:", "--session"]);
 
 await expectHelp(
   ["wait"],

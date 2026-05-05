@@ -6,7 +6,11 @@ import { assertSessionAutomationControl } from "#store/control-state.js";
 import { type CliArgs, print, session, str, stringArray, withCliError } from "./_helpers.js";
 
 export default defineCommand({
-  meta: { name: "bootstrap", description: "Apply BrowserContext bootstrap settings" },
+  meta: {
+    name: "bootstrap",
+    description:
+      "Purpose: apply BrowserContext bootstrap settings to a managed session.\nExamples:\n  pw bootstrap -s task-a --init-script ./init.js\n  pw bootstrap -s task-a --headers-file ./headers.json\nNotes: use this to make a test session deterministic before navigation or action steps.",
+  },
   args: {
     ...sharedArgs,
     action: { type: "enum", options: ["apply"], description: "Action", default: "apply" },

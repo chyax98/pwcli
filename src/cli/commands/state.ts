@@ -13,7 +13,11 @@ import {
 } from "./_helpers.js";
 
 export default defineCommand({
-  meta: { name: "state", description: "Save, load, or diff browser storage state" },
+  meta: {
+    name: "state",
+    description:
+      "Purpose: save, load, or diff browser storage state for a session.\nExamples:\n  pw state save -s task-a ./state.json\n  pw state diff -s task-a --before ./before.json --after ./after.json\nNotes: `load` mutates session state; use it before navigation or verification steps.",
+  },
   args: {
     ...sharedArgs,
     action: { type: "enum", options: ["save", "load", "diff"], description: "Action" },

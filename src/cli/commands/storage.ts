@@ -18,7 +18,11 @@ import {
 } from "./_helpers.js";
 
 export default defineCommand({
-  meta: { name: "storage", description: "Inspect or mutate local/session storage and IndexedDB" },
+  meta: {
+    name: "storage",
+    description:
+      "Purpose: inspect or mutate localStorage, sessionStorage, or export IndexedDB.\nExamples:\n  pw storage -s task-a local\n  pw storage -s task-a local set token demo\n  pw storage -s task-a indexeddb export --include-records\nNotes: set/delete/clear are write operations; prefer read/export for diagnosis.",
+  },
   args: {
     ...sharedArgs,
     database: { type: "string", description: "IndexedDB database", valueHint: "name" },

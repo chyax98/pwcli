@@ -4,7 +4,11 @@ import { managedDrag } from "#engine/act/page.js";
 import { type CliArgs, positionals, print, session, str, withCliError } from "./_helpers.js";
 
 export default defineCommand({
-  meta: { name: "drag", description: "Drag one element to another" },
+  meta: {
+    name: "drag",
+    description:
+      "Purpose: drag one element to another by refs or selectors.\nExamples:\n  pw drag -s task-a e10 e12\n  pw drag -s task-a --from-selector '.item' --to-selector '.dropzone'\nNotes: verify the resulting page state after the drag, because drag success only proves the gesture ran.",
+  },
   args: {
     ...sharedArgs,
     "from-selector": { type: "string", description: "Source selector", valueHint: "css" },

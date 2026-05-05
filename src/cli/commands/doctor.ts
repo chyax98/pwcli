@@ -19,7 +19,11 @@ import { printCommandError } from "../output.js";
 import { bool, type CliArgs, print, session, str } from "./_helpers.js";
 
 export default defineCommand({
-  meta: { name: "doctor", description: "Run local health checks" },
+  meta: {
+    name: "doctor",
+    description:
+      "Purpose: run local environment, browser, profile, endpoint and session health checks.\nExamples:\n  pw doctor\n  pw doctor -s task-a --verbose\nNotes: use this when startup, browser installation, profile, modal, or local endpoint state is uncertain.",
+  },
   args: {
     ...sharedArgs,
     "auth-provider": { type: "string", description: "Resolve auth provider", valueHint: "name" },
