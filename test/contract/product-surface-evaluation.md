@@ -60,6 +60,27 @@
 
 这些方向如果再次出现，应先走产品边界决策，不进入健康度评测。
 
+### 1.4 Agent First CLI 横向准则
+
+`pwcli` 的第一用户是 Agent，不是人类操作员。
+
+因此评测不能只看命令是否能跑通，还要看它是否符合 Agent First CLI 的系统形态：
+
+- Machine-executable: 默认不阻塞，输出可解析，stdout/stderr 边界清楚。
+- Self-correctable: 参数错误、状态错误和 policy deny 必须给出可行动的修正信号。
+- Consistent & learnable: 命令、flag、JSON envelope、错误码能被 Agent 归纳。
+- Recoverable: 失败有稳定 exit code、recovery suggestion、diagnostics 或 artifact。
+- Async-aware: 等待、轮询、重试尽量由 CLI surface 承担，而不是推给 Agent 自己拼。
+- Introspectable: `--help`、skill、contract、package surface 能共同解释当前能力。
+- Persistent identity: session、state、auth profile 和 workspace 状态边界清楚。
+- Workflow-oriented: 证据能落到 artifact、文件或结构化输出，便于进入下一步系统流转。
+- Feedback-ready: 评测发现的 friction 应进入 issue tracker，而不是停留在对话里。
+- Schema-driven where needed: 当命令面继续扩大时，应优先考虑机器可读 schema 或生成式 contract，不能只靠人工同步。
+
+这些准则不是新功能承诺。
+
+它们是评测已有产品面是否健康的横向尺子。
+
 ## 2. 评分模型
 
 每个产品面按 6 个维度评分。
