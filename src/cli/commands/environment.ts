@@ -27,7 +27,11 @@ import {
 } from "./_helpers.js";
 
 const offline = defineCommand({
-  meta: { name: "offline", description: "Set network offline mode" },
+  meta: {
+    name: "offline",
+    description:
+      "Purpose: set network offline mode for a session.\nExamples:\n  pw environment offline -s task-a on\n  pw environment offline -s task-a off\nNotes: verify network-dependent page behavior after changing this state.",
+  },
   args: sharedArgs,
   async run({ args }) {
     const a = args as CliArgs;
@@ -80,7 +84,11 @@ const geoSet = defineCommand({
   },
 });
 const permGrant = defineCommand({
-  meta: { name: "grant", description: "Grant permissions" },
+  meta: {
+    name: "grant",
+    description:
+      "Purpose: grant browser permissions to the session.\nExamples:\n  pw environment permissions grant -s task-a geolocation notifications\nNotes: grant only the permissions required by the scenario.",
+  },
   args: sharedArgs,
   async run({ args }) {
     const a = args as CliArgs;
@@ -100,7 +108,11 @@ const permGrant = defineCommand({
   },
 });
 const permClear = defineCommand({
-  meta: { name: "clear", description: "Clear permissions" },
+  meta: {
+    name: "clear",
+    description:
+      "Purpose: clear granted permissions for the session.\nExamples:\n  pw environment permissions clear -s task-a\nNotes: use this to reset permission-sensitive tests.",
+  },
   args: sharedArgs,
   async run({ args }) {
     const a = args as CliArgs;
@@ -117,7 +129,11 @@ const permClear = defineCommand({
   },
 });
 const clockInstall = defineCommand({
-  meta: { name: "install", description: "Install fake clock" },
+  meta: {
+    name: "install",
+    description:
+      "Purpose: install Playwright clock control in the page.\nExamples:\n  pw environment clock install -s task-a\nNotes: install before setting or advancing deterministic time.",
+  },
   args: sharedArgs,
   async run({ args }) {
     const a = args as CliArgs;
@@ -134,7 +150,11 @@ const clockInstall = defineCommand({
   },
 });
 const clockSet = defineCommand({
-  meta: { name: "set", description: "Set fake clock time" },
+  meta: {
+    name: "set",
+    description:
+      "Purpose: set the controlled clock time.\nExamples:\n  pw environment clock set -s task-a 2026-01-01T00:00:00.000Z\nNotes: call `clock install` first when the page needs deterministic time.",
+  },
   args: sharedArgs,
   async run({ args }) {
     const a = args as CliArgs;
@@ -153,7 +173,11 @@ const clockSet = defineCommand({
   },
 });
 const clockResume = defineCommand({
-  meta: { name: "resume", description: "Resume clock" },
+  meta: {
+    name: "resume",
+    description:
+      "Purpose: resume normal clock behavior after clock control.\nExamples:\n  pw environment clock resume -s task-a\nNotes: use this when deterministic time is no longer needed.",
+  },
   args: sharedArgs,
   async run({ args }) {
     const a = args as CliArgs;
@@ -196,7 +220,11 @@ const domainsSet = defineCommand({
 });
 
 const domainsStatus = defineCommand({
-  meta: { name: "status", description: "Show current allowed navigation domains for the session" },
+  meta: {
+    name: "status",
+    description:
+      "Purpose: show current allowed navigation domains for the session.\nExamples:\n  pw environment allowed-domains status -s task-a\nNotes: this is read-only and reports the `pw open` navigation allowlist.",
+  },
   args: sharedArgs,
   async run({ args }) {
     const a = args as CliArgs;
@@ -213,7 +241,11 @@ const domainsStatus = defineCommand({
 });
 
 const domainsClear = defineCommand({
-  meta: { name: "clear", description: "Clear session allowed navigation domains" },
+  meta: {
+    name: "clear",
+    description:
+      "Purpose: clear session allowed navigation domains.\nExamples:\n  pw environment allowed-domains clear -s task-a\nNotes: clearing removes the `pw open` navigation allowlist for the session.",
+  },
   args: sharedArgs,
   async run({ args }) {
     const a = args as CliArgs;
@@ -243,11 +275,19 @@ export default defineCommand({
       subCommands: { set: geoSet },
     }),
     permissions: defineCommand({
-      meta: { name: "permissions", description: "Permission controls" },
+      meta: {
+        name: "permissions",
+        description:
+          "Purpose: grant or clear browser permissions for a session.\nExamples:\n  pw environment permissions grant -s task-a geolocation\nNotes: permission commands mutate the session.",
+      },
       subCommands: { grant: permGrant, clear: permClear },
     }),
     clock: defineCommand({
-      meta: { name: "clock", description: "Clock controls" },
+      meta: {
+        name: "clock",
+        description:
+          "Purpose: install, set, or resume deterministic page clock control.\nExamples:\n  pw environment clock install -s task-a\n  pw environment clock set -s task-a 2026-01-01T00:00:00.000Z\nNotes: use clock controls for time-dependent flows.",
+      },
       subCommands: { install: clockInstall, set: clockSet, resume: clockResume },
     }),
     "allowed-domains": defineCommand({

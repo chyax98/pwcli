@@ -44,7 +44,11 @@ export function observeDashboardLaunch(
 }
 
 const open = defineCommand({
-  meta: { name: "open", description: "Open Playwright session dashboard" },
+  meta: {
+    name: "open",
+    description:
+      "Purpose: open Playwright's bundled session dashboard.\nExamples:\n  pw dashboard open\n  pw dashboard open --dry-run\nNotes: this is a human observation escape hatch and depends on the installed playwright-core package.",
+  },
   args: {
     output: { type: "string", description: "Output format: text|json", default: "text" },
     "dry-run": { type: "boolean", description: "Validate without launching" },

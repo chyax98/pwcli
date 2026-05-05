@@ -5,7 +5,11 @@ import { managedSnapshot } from "#engine/observe.js";
 import { bool, type CliArgs, firstPos, print, session, withCliError } from "./_helpers.js";
 
 const status = defineCommand({
-  meta: { name: "status", description: "Inspect latest snapshot ref epoch" },
+  meta: {
+    name: "status",
+    description:
+      "Purpose: inspect the latest snapshot ref epoch for a session.\nExamples:\n  pw snapshot status -s task-a\nNotes: use this when an action reports a stale ref or epoch mismatch.",
+  },
   args: sharedArgs,
   async run({ args }) {
     const a = args as CliArgs;

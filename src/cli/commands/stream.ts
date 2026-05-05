@@ -46,7 +46,11 @@ async function isHealthy(url: string) {
 }
 
 export const streamStartCommand = defineCommand({
-  meta: { name: "start", description: "Start a local preview stream server for one session" },
+  meta: {
+    name: "start",
+    description:
+      "Purpose: start a local read-only preview stream for one session.\nExamples:\n  pw stream start -s task-a\n  pw stream start -s task-a --port 4110\nNotes: use this for human observation; CLI remains the automation control path.",
+  },
   args: {
     session: {
       type: "string",
@@ -103,7 +107,11 @@ export const streamStartCommand = defineCommand({
 });
 
 export const streamStatusCommand = defineCommand({
-  meta: { name: "status", description: "Show local preview stream status for a session" },
+  meta: {
+    name: "status",
+    description:
+      "Purpose: show local preview stream status for a session.\nExamples:\n  pw stream status -s task-a\nNotes: status reports the registered stream URL and health.",
+  },
   args: {
     session: {
       type: "string",
@@ -128,7 +136,11 @@ export const streamStatusCommand = defineCommand({
 });
 
 export const streamStopCommand = defineCommand({
-  meta: { name: "stop", description: "Stop local preview stream for a session" },
+  meta: {
+    name: "stop",
+    description:
+      "Purpose: stop the local preview stream for a session.\nExamples:\n  pw stream stop -s task-a\nNotes: stopping preview does not close the browser session.",
+  },
   args: {
     session: {
       type: "string",

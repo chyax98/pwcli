@@ -66,7 +66,11 @@ function providerHelpDescription(provider: AuthProviderSpec) {
 }
 
 const list = defineCommand({
-  meta: { name: "list", description: "List built-in auth providers" },
+  meta: {
+    name: "list",
+    description:
+      "Purpose: list built-in auth providers.\nExamples:\n  pw auth list\nNotes: use `pw auth info <provider>` before running a provider.",
+  },
   args: sharedArgs,
   run({ args }) {
     const a = args as CliArgs;
@@ -74,7 +78,11 @@ const list = defineCommand({
   },
 });
 const info = defineCommand({
-  meta: { name: "info", description: "Show provider args, examples and notes" },
+  meta: {
+    name: "info",
+    description:
+      "Purpose: show provider args, examples and notes.\nExamples:\n  pw auth info dc\n  pw auth info dc --verbose\nNotes: verbose includes provider source for maintainers.",
+  },
   args: { ...sharedArgs, verbose: { type: "boolean", description: "Include provider source" } },
   run({ args }) {
     const a = args as CliArgs;
@@ -100,7 +108,11 @@ const info = defineCommand({
   },
 });
 const probe = defineCommand({
-  meta: { name: "probe", description: "Read-only auth state probe" },
+  meta: {
+    name: "probe",
+    description:
+      "Purpose: run a read-only auth state probe for the current session.\nExamples:\n  pw auth probe -s task-a\n  pw auth probe -s task-a --url http://localhost:7778/dashboard\nNotes: use this after login before assuming auth succeeded.",
+  },
   args: {
     ...sharedArgs,
     url: { type: "string", description: "Protected URL to probe", valueHint: "url" },

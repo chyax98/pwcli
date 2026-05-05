@@ -4,7 +4,11 @@ import { managedCookiesList, managedCookiesSet } from "#engine/identity.js";
 import { type CliArgs, firstPos, print, session, str, withCliError } from "./_helpers.js";
 
 const list = defineCommand({
-  meta: { name: "list", description: "List cookies" },
+  meta: {
+    name: "list",
+    description:
+      "Purpose: list cookies for a managed session.\nExamples:\n  pw cookies list -s task-a\n  pw cookies list -s task-a --domain localhost\nNotes: this is read-only and useful for auth diagnosis.",
+  },
   args: {
     ...sharedArgs,
     domain: { type: "string", description: "Domain filter", valueHint: "domain" },
@@ -23,7 +27,11 @@ const list = defineCommand({
   },
 });
 const set = defineCommand({
-  meta: { name: "set", description: "Set a cookie" },
+  meta: {
+    name: "set",
+    description:
+      "Purpose: set a cookie in a managed session.\nExamples:\n  pw cookies set -s task-a token demo --domain localhost\nNotes: this mutates session cookies; verify page behavior afterward.",
+  },
   args: {
     ...sharedArgs,
     name: { type: "string", description: "Cookie name", valueHint: "name" },

@@ -15,7 +15,11 @@ function xy(a: CliArgs) {
 }
 
 const move = defineCommand({
-  meta: { name: "move", description: "Move mouse" },
+  meta: {
+    name: "move",
+    description:
+      "Purpose: move the mouse to coordinates.\nExamples:\n  pw mouse move -s task-a 120 240\nNotes: prefer semantic locators unless coordinates are required.",
+  },
   args: sharedArgs,
   async run({ args }) {
     const a = args as CliArgs;
@@ -28,7 +32,11 @@ const move = defineCommand({
   },
 });
 const click = defineCommand({
-  meta: { name: "click", description: "Click coordinates" },
+  meta: {
+    name: "click",
+    description:
+      "Purpose: click page coordinates.\nExamples:\n  pw mouse click -s task-a 120 240\nNotes: prefer `pw click` with a locator when possible.",
+  },
   args: {
     ...sharedArgs,
     button: {
@@ -58,7 +66,11 @@ const click = defineCommand({
   },
 });
 const dblclick = defineCommand({
-  meta: { name: "dblclick", description: "Double-click coordinates" },
+  meta: {
+    name: "dblclick",
+    description:
+      "Purpose: double-click page coordinates.\nExamples:\n  pw mouse dblclick -s task-a 120 240\nNotes: verify the resulting page state after the gesture.",
+  },
   args: sharedArgs,
   async run({ args }) {
     const a = args as CliArgs;
@@ -75,7 +87,11 @@ const dblclick = defineCommand({
   },
 });
 const wheel = defineCommand({
-  meta: { name: "wheel", description: "Mouse wheel" },
+  meta: {
+    name: "wheel",
+    description:
+      "Purpose: send mouse wheel deltas.\nExamples:\n  pw mouse wheel -s task-a 0 800\nNotes: verify newly revealed content after scrolling.",
+  },
   args: sharedArgs,
   async run({ args }) {
     const a = args as CliArgs;
@@ -96,7 +112,11 @@ const wheel = defineCommand({
   },
 });
 const drag = defineCommand({
-  meta: { name: "drag", description: "Mouse drag coordinates" },
+  meta: {
+    name: "drag",
+    description:
+      "Purpose: drag by coordinates.\nExamples:\n  pw mouse drag -s task-a 10 10 200 200\nNotes: prefer element drag when stable locators exist.",
+  },
   args: sharedArgs,
   async run({ args }) {
     const a = args as CliArgs;

@@ -4,7 +4,11 @@ import { managedDialog } from "#engine/act/page.js";
 import { type CliArgs, firstPos, print, session, withCliError } from "./_helpers.js";
 
 const accept = defineCommand({
-  meta: { name: "accept", description: "Accept the current dialog" },
+  meta: {
+    name: "accept",
+    description:
+      "Purpose: accept the current native browser dialog.\nExamples:\n  pw dialog accept -s task-a\n  pw dialog accept -s task-a 'typed prompt value'\nNotes: this does not handle HTML modals.",
+  },
   args: sharedArgs,
   async run({ args }) {
     const a = args as CliArgs;
@@ -21,7 +25,11 @@ const accept = defineCommand({
 });
 
 const dismiss = defineCommand({
-  meta: { name: "dismiss", description: "Dismiss the current dialog" },
+  meta: {
+    name: "dismiss",
+    description:
+      "Purpose: dismiss the current native browser dialog.\nExamples:\n  pw dialog dismiss -s task-a\nNotes: this does not handle HTML modals.",
+  },
   args: sharedArgs,
   async run({ args }) {
     const a = args as CliArgs;

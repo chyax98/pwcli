@@ -14,7 +14,11 @@ import {
 } from "./_helpers.js";
 
 const start = defineCommand({
-  meta: { name: "start", description: "Start tracing" },
+  meta: {
+    name: "start",
+    description:
+      "Purpose: start Playwright tracing for a session.\nExamples:\n  pw trace start -s task-a\nNotes: tracing is normally enabled by session defaults; use this for explicit control.",
+  },
   args: sharedArgs,
   async run({ args }) {
     const a = args as CliArgs;
@@ -26,7 +30,11 @@ const start = defineCommand({
   },
 });
 const stop = defineCommand({
-  meta: { name: "stop", description: "Stop tracing" },
+  meta: {
+    name: "stop",
+    description:
+      "Purpose: stop tracing and return the trace artifact path.\nExamples:\n  pw trace stop -s task-a\nNotes: inspect the returned trace zip with `pw trace inspect`.",
+  },
   args: sharedArgs,
   async run({ args }) {
     const a = args as CliArgs;
@@ -38,7 +46,11 @@ const stop = defineCommand({
   },
 });
 const inspect = defineCommand({
-  meta: { name: "inspect", description: "Inspect a trace archive" },
+  meta: {
+    name: "inspect",
+    description:
+      "Purpose: inspect a trace archive section without opening the UI.\nExamples:\n  pw trace inspect ./trace.zip --section actions\n  pw trace inspect ./trace.zip --section requests --failed\nNotes: `--failed` only applies to requests; `--level` only applies to console.",
+  },
   args: {
     ...sharedArgs,
     section: {

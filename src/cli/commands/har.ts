@@ -24,7 +24,11 @@ const replay = defineCommand({
   },
 });
 const replayStop = defineCommand({
-  meta: { name: "replay-stop", description: "Stop HAR replay" },
+  meta: {
+    name: "replay-stop",
+    description:
+      "Purpose: stop HAR replay routing for the session.\nExamples:\n  pw har replay-stop -s task-a\nNotes: if route cleanup is limited, recreate the session to fully reset routing.",
+  },
   args: sharedArgs,
   async run({ args }) {
     const a = args as CliArgs;

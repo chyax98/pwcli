@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import assert from "node:assert/strict";
+import commands from "../../dist/cli/commands/index.js";
 import { runPw } from "./_helpers.js";
 
 const ansiPattern = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, "g");
@@ -19,6 +20,27 @@ async function expectHelp(args, keywords) {
       `${args.join(" ")} --help missing ${keyword}:\n${result.text}`,
     );
   }
+}
+
+async function loadCommand(value) {
+  return typeof value === "function" ? await value() : value;
+}
+
+async function commandPaths(prefix, registry) {
+  const paths = [];
+  for (const [name, value] of Object.entries(registry)) {
+    const command = await loadCommand(value);
+    const path = [...prefix, name];
+    paths.push(path);
+    if (command?.subCommands) {
+      paths.push(...(await commandPaths(path, command.subCommands)));
+    }
+  }
+  return paths;
+}
+
+for (const path of await commandPaths([], commands)) {
+  await expectHelp(path, ["Purpose:", "Examples:"]);
 }
 
 await expectHelp(
@@ -166,9 +188,9 @@ await expectHelp(
   ["Purpose:", "Options:", "Examples:", "--include-hidden", "heuristic", "high-severity"],
 );
 
-await expectHelp(["stream"], ["start", "status", "stop", "preview stream server"]);
+await expectHelp(["stream"], ["Purpose:", "Examples:", "Notes:", "start", "status", "stop"]);
 
-await expectHelp(["view"], ["open", "status", "close", "preview workbench"]);
+await expectHelp(["view"], ["Purpose:", "Examples:", "Notes:", "open", "status", "close"]);
 
 await expectHelp(["control-state"], ["Purpose:", "Examples:", "Notes:", "--session"]);
 

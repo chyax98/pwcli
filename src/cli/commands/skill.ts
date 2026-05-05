@@ -11,14 +11,22 @@ import { printSuccess } from "../output.js";
 import { type CliArgs, firstPos, output, printError } from "./_helpers.js";
 
 const path = defineCommand({
-  meta: { name: "path", description: "Print packaged skill path" },
+  meta: {
+    name: "path",
+    description:
+      "Purpose: print the packaged pwcli skill path.\nExamples:\n  pw skill path\nNotes: use this to inspect the skill bundled with the current CLI version.",
+  },
   args: { output: { type: "string", description: "Output format: text|json", default: "text" } },
   run() {
     printSuccess("skill path", { path: resolvePackagedSkillRoot(), info: getPackagedSkillInfo() });
   },
 });
 const install = defineCommand({
-  meta: { name: "install", description: "Install packaged skill into a skills dir" },
+  meta: {
+    name: "install",
+    description:
+      "Purpose: install the packaged pwcli skill into a skills directory.\nExamples:\n  pw skill install\n  pw skill install ~/.codex/skills\nNotes: installation copies current packaged content; update CLI to update the packaged skill.",
+  },
   args: { output: { type: "string", description: "Output format: text|json", default: "text" } },
   run({ args }) {
     const a = args as CliArgs;
@@ -34,7 +42,11 @@ const install = defineCommand({
 });
 
 const refs = defineCommand({
-  meta: { name: "refs", description: "List packaged skill sections and references" },
+  meta: {
+    name: "refs",
+    description:
+      "Purpose: list packaged skill sections and reference files.\nExamples:\n  pw skill refs\nNotes: use this before `pw skill show <ref>` when selecting a reference section.",
+  },
   args: { output: { type: "string", description: "Output format: text|json", default: "text" } },
   run({ args }) {
     const data = { references: listPackagedSkillReferences() };
@@ -51,7 +63,11 @@ const refs = defineCommand({
 });
 
 const show = defineCommand({
-  meta: { name: "show", description: "Print packaged skill content from the installed version" },
+  meta: {
+    name: "show",
+    description:
+      "Purpose: print packaged skill content from the installed CLI version.\nExamples:\n  pw skill show\n  pw skill show --full\nNotes: use skill content for workflow routing; use CLI help for exact parameters.",
+  },
   args: {
     output: { type: "string", description: "Output format: text|json", default: "text" },
     full: { type: "boolean", description: "Include main skill and all reference files" },

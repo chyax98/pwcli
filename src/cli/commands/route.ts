@@ -99,7 +99,11 @@ const add = defineCommand({
   },
 });
 const remove = defineCommand({
-  meta: { name: "remove", description: "Remove a route" },
+  meta: {
+    name: "remove",
+    description:
+      "Purpose: remove a controlled testing route by pattern.\nExamples:\n  pw route remove -s task-a '**/api/products'\nNotes: use `route list` to confirm current route state.",
+  },
   args: sharedArgs,
   async run({ args }) {
     const a = args as CliArgs;
@@ -116,7 +120,11 @@ const remove = defineCommand({
   },
 });
 const list = defineCommand({
-  meta: { name: "list", description: "List routes" },
+  meta: {
+    name: "list",
+    description:
+      "Purpose: list active controlled testing routes for a session.\nExamples:\n  pw route list -s task-a\nNotes: use this to prove mocks are installed before relying on them.",
+  },
   args: sharedArgs,
   async run({ args }) {
     const a = args as CliArgs;

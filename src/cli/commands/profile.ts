@@ -5,7 +5,11 @@ import authCommands from "./profile-auth.js";
 import stateCommands from "./profile-state.js";
 
 const listChrome = defineCommand({
-  meta: { name: "list-chrome", description: "List local Chrome profiles" },
+  meta: {
+    name: "list-chrome",
+    description:
+      "Purpose: list local Chrome profiles from a user data directory.\nExamples:\n  pw profile list-chrome\n  pw profile list-chrome --user-data-dir ~/Library/Application\\ Support/Google/Chrome\nNotes: use this before `session create --from-system-chrome --chrome-profile <name>`.",
+  },
   args: {
     "user-data-dir": { type: "string", description: "Chrome user data dir", valueHint: "path" },
     output: { type: "string", description: "Output format: text|json", default: "text" },

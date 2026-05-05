@@ -4,7 +4,11 @@ import { managedTabClose, managedTabSelect } from "#engine/workspace.js";
 import { type CliArgs, firstPos, print, session, withCliError } from "./_helpers.js";
 
 const select = defineCommand({
-  meta: { name: "select", description: "Select a tab by pageId" },
+  meta: {
+    name: "select",
+    description:
+      "Purpose: select a browser tab by stable pageId.\nExamples:\n  pw tab select -s task-a <pageId>\nNotes: get pageId from `pw page list`.",
+  },
   args: sharedArgs,
   async run({ args }) {
     const a = args as CliArgs;
@@ -20,7 +24,11 @@ const select = defineCommand({
   },
 });
 const close = defineCommand({
-  meta: { name: "close", description: "Close a tab by pageId" },
+  meta: {
+    name: "close",
+    description:
+      "Purpose: close a browser tab by stable pageId.\nExamples:\n  pw tab close -s task-a <pageId>\nNotes: get pageId from `pw page list`; do not close by index.",
+  },
   args: sharedArgs,
   async run({ args }) {
     const a = args as CliArgs;
