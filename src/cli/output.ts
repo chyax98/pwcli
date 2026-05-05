@@ -564,8 +564,97 @@ function formatBatch(result: CommandResult): string {
   return lines.join("\n");
 }
 
+function formatFindBest(result: CommandResult): string {
+  const intent = asString(result.data.intent) ?? "intent";
+  const action = asString(result.data.action) ?? "click";
+  const count = asNumber(result.data.count) ?? 0;
+  const candidates = asArray(result.data.candidates);
+  const lines = [`find-best intent=${intent} action=${action} count=${count}`];
+  for (const item of candidates) {
+    const candidate = asRecord(item);
+    lines.push(
+      [
+        `score=${asNumber(candidate.score) ?? 0}`,
+        `strategy=${asString(candidate.strategy) ?? "-"}`,
+        candidate.ref ? `ref=${candidate.ref}` : null,
+        candidate.role ? `role=${JSON.stringify(candidate.role)}` : null,
+        candidate.name ? `name=${JSON.stringify(candidate.name)}` : null,
+        candidate.text ? `text=${JSON.stringify(candidate.text)}` : null,
+        candidate.selectorHint ? `selectorHint=${JSON.stringify(candidate.selectorHint)}` : null,
+      ]
+        .filter(Boolean)
+        .join(" "),
+    );
+  }
+  return lines.join("\n");
+}
+
+function formatAnalyzeForm(result: CommandResult): string {
+  const fields = asArray(result.data.fields);
+  const lines = [
+    `analyze-form method=${asString(result.data.method) ?? "get"}${result.data.action ? ` action=${result.data.action}` : ""} fields=${fields.length}`,
+  ];
+  for (const item of fields) {
+    const field = asRecord(item);
+    lines.push(
+      [
+        `${asNumber(field.index) ?? "?"}.`,
+        asString(field.tagName) ?? "input",
+        field.inputType ? `type=${field.inputType}` : null,
+        field.label ? `label=${JSON.stringify(field.label)}` : null,
+        field.name ? `name=${JSON.stringify(field.name)}` : null,
+        field.placeholder ? `placeholder=${JSON.stringify(field.placeholder)}` : null,
+        field.required === true ? "required=true" : null,
+        field.selectorHint ? `selectorHint=${JSON.stringify(field.selectorHint)}` : null,
+      ]
+        .filter(Boolean)
+        .join(" "),
+    );
+  }
+  return lines.join("\n");
+}
+
+function formatFillForm(result: CommandResult): string {
+  const filled = asArray(result.data.filled);
+  const lines = [
+    `fill-form filled=${asNumber(result.data.filledCount) ?? filled.length} fields=${asNumber(result.data.fieldCount) ?? "?"}`,
+  ];
+  for (const item of filled) {
+    const field = asRecord(item);
+    lines.push(
+      [
+        asString(field.key) ?? "field",
+        field.kind ? `kind=${field.kind}` : null,
+        field.selectorHint ? `selectorHint=${JSON.stringify(field.selectorHint)}` : null,
+      ]
+        .filter(Boolean)
+        .join(" "),
+    );
+  }
+  return lines.join("\n");
+}
+
+function formatExtract(result: CommandResult): string {
+  const items = asArray(result.data.items);
+  const count = asNumber(result.data.count) ?? items.length;
+  const multiple = Boolean(result.data.multiple);
+  const selector = asString(result.data.selector);
+  const lines = [
+    `extract count=${count} multiple=${multiple}${selector ? ` selector=${selector}` : ""}`,
+  ];
+  for (const item of items.slice(0, 5)) {
+    lines.push(JSON.stringify(item));
+  }
+  if (items.length > 5) lines.push(`... ${items.length - 5} more item(s)`);
+  return lines.join("\n");
+}
+
 function formatCommandText(command: string, result: CommandResult): string {
   if (command === "batch") return formatBatch(result);
+  if (command === "find-best") return formatFindBest(result);
+  if (command === "analyze-form") return formatAnalyzeForm(result);
+  if (command === "fill-form") return formatFillForm(result);
+  if (command === "extract") return formatExtract(result);
   if (command === "read-text") return formatReadText(result);
   if (command === "locate" || command === "get" || command === "is")
     return formatStateCheck(command, result);
@@ -598,6 +687,7 @@ function formatCommandText(command: string, result: CommandResult): string {
       "check",
       "uncheck",
       "select",
+      "act",
       "pdf",
       "mouse move",
       "mouse click",

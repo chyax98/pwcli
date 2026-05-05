@@ -27,6 +27,7 @@ pw session create bug-a --headed --open 'https://example.com'
 pw observe status -s bug-a
 pw read-text -s bug-a --max-chars 2000
 pw snapshot -i -s bug-a
+pw find-best -s bug-a submit_form
 pw click e6 -s bug-a
 pw wait network-idle -s bug-a
 pw verify text -s bug-a --text 'Saved'
@@ -45,6 +46,8 @@ pw session status bug-a
 ```bash
 pw profile list-chrome
 pw session create dc-main --from-system-chrome --chrome-profile Default --headed --open 'https://example.com'
+pw profile save-state main-auth -s dc-main
+pw profile load-state main-auth -s reuse-a
 ```
 
 运行内置 auth provider：
@@ -52,6 +55,15 @@ pw session create dc-main --from-system-chrome --chrome-profile Default --headed
 ```bash
 pw session create dc-main --headed --open 'about:blank'
 pw auth dc -s dc-main --arg targetUrl='https://developer.example.com/forge'
+```
+
+表单分析、批量填充和结构化抽取：
+
+```bash
+pw analyze-form -s auth-a
+pw fill-form -s auth-a '{"Username":"demo","Password":"demo123"}'
+pw extract -s auth-a '{"fields":[{"key":"title","selector":"h1"}]}'
+pw check-injection -s auth-a --include-hidden
 ```
 
 读取当前安装版本的 skill：

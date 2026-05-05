@@ -31,6 +31,12 @@ export default {
   mouse: () => import("./mouse.js").then((m) => m.default),
   dialog: () => import("./dialog.js").then((m) => m.default),
   open: () => import("./open.js").then((m) => m.default),
+  "find-best": () => import("./find-best.js").then((m) => m.default),
+  act: () => import("./act.js").then((m) => m.default),
+  "analyze-form": () => import("./analyze-form.js").then((m) => m.default),
+  "fill-form": () => import("./fill-form.js").then((m) => m.default),
+  extract: () => import("./extract.js").then((m) => m.default),
+  "check-injection": () => import("./check-injection.js").then((m) => m.default),
 
   locate: () => import("./locate.js").then((m) => m.default),
   get: () => import("./get.js").then((m) => m.default),

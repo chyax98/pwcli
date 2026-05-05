@@ -69,6 +69,46 @@ await expectHelp(
 );
 
 await expectHelp(
+  ["find-best"],
+  ["Purpose:", "Options:", "Examples:", "intent", "submit_form", "accept_cookies"],
+);
+
+await expectHelp(
+  ["act"],
+  ["Purpose:", "Options:", "Examples:", "submit_form", "accept_cookies", "wait/verify"],
+);
+
+await expectHelp(
+  ["analyze-form"],
+  ["Purpose:", "Options:", "Examples:", "field metadata", "#login-form"],
+);
+
+await expectHelp(
+  ["fill-form"],
+  ["Purpose:", "Options:", "Examples:", "JSON object", "--file", "Password"],
+);
+
+await expectHelp(
+  ["extract"],
+  ["Purpose:", "Options:", "Examples:", "selector-based schema", ".card", "fields"],
+);
+
+await expectHelp(
+  ["check-injection"],
+  ["Purpose:", "Options:", "Examples:", "--include-hidden", "heuristic", "high-severity"],
+);
+
+await expectHelp(
+  ["profile", "save-state"],
+  ["Save current session storage state", "named local profile", "--session"],
+);
+
+await expectHelp(
+  ["profile", "list-state"],
+  ["List named local state profiles", "Output format: text|json"],
+);
+
+await expectHelp(
   ["wait"],
   ["Purpose:", "Examples:", "network-idle", "selector", "request", "response"],
 );
