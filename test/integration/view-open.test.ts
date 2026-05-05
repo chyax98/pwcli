@@ -20,6 +20,19 @@ try {
   );
   assert.equal(create.code, 0, `session create failed: ${create.stderr}`);
 
+  const dryRun = await runPw(
+    ["view", "open", "--session", sessionName, "--dry-run", "--output", "json"],
+    {
+      cwd: workspaceDir,
+    },
+  );
+  assert.equal(dryRun.code, 0, `view open dry-run failed: ${dryRun.stderr}`);
+  assert.equal(
+    (dryRun.json as { command: string }).command,
+    "view open",
+    "view alias should not leak stream command label",
+  );
+
   const open = await runPw(["view", "open", "--session", sessionName, "--output", "json"], {
     cwd: workspaceDir,
   });
