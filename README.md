@@ -41,7 +41,7 @@ pw session list --with-page
 pw session status bug-a
 ```
 
-复用本机 Chrome 登录态：
+本机 Chrome profile 辅助迁移入口：
 
 ```bash
 pw profile list-chrome
@@ -51,6 +51,8 @@ pw profile load-state main-auth -s reuse-a
 PWCLI_VAULT_KEY=local-secret pw profile save-auth main-login --url 'http://localhost:7778/login' --file ./values.json
 PWCLI_VAULT_KEY=local-secret pw profile login-auth main-login -s reuse-a
 ```
+
+说明：`--from-system-chrome` 只尝试用本机 Chrome profile 启动辅助迁移流程，不承诺稳定复用系统 Chrome 已登录态。登录态复用主路是先在 pwcli session 中验证登录，再用 `profile save-state/load-state` 或加密 auth profile 复用。
 
 运行内置 auth provider：
 

@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { existsSync } from "node:fs";
+import { writeFile } from "node:fs/promises";
 import { after, describe, it } from "node:test";
 import { runPw, uniqueSessionName } from "./_helpers.ts";
 
@@ -221,6 +223,181 @@ describe("interaction", { concurrency: false }, () => {
     assert.equal(json.ok, true);
     assert.equal(json.data.checked, false);
     assert.equal(json.data.acted, true);
+  });
+
+  it("direct action commands cover keyboard, pointer, viewport, file, drag, and download flows", async () => {
+    const name = makeSessionName();
+    sessionsToClean.push(name);
+    const uploadPath = `/tmp/pwcli-it-upload-${Date.now()}.txt`;
+    const downloadPath = `/tmp/pwcli-it-download-${Date.now()}.txt`;
+    await writeFile(uploadPath, "upload marker", "utf8");
+
+    await runPw([
+      "session",
+      "create",
+      name,
+      "--headless",
+      "--open",
+      "about:blank",
+      "--output",
+      "json",
+    ]);
+
+    await runPw([
+      "code",
+      "--session",
+      name,
+      `async page => {
+        await page.setContent(\`
+          <style>
+            body { height: 2200px; }
+            #hoverTarget:hover + #hoverState { color: rgb(255, 0, 0); }
+            #dragSource, #dropTarget { width: 80px; height: 40px; margin: 8px; border: 1px solid #333; }
+          </style>
+          <input id="i" value="">
+          <button id="hoverTarget">Hover me</button><span id="hoverState">hover state</span>
+          <div id="dragSource" draggable="true">Drag</div>
+          <div id="dropTarget">Drop</div>
+          <input id="file" type="file">
+          <a id="download" download="sample.txt" href="data:text/plain,sample-download">Download</a>
+        \`);
+      }`,
+      "--output",
+      "json",
+    ]);
+
+    const typeResult = await runPw([
+      "type",
+      "--selector",
+      "#i",
+      "abc",
+      "--session",
+      name,
+      "--output",
+      "json",
+    ]);
+    assert.equal(typeResult.code, 0, `type failed: ${typeResult.stderr}`);
+    const typeJson = typeResult.json as { ok: boolean; data: { typed: boolean; value: string } };
+    assert.equal(typeJson.ok, true);
+    assert.equal(typeJson.data.typed, true);
+    assert.equal(typeJson.data.value, "abc");
+
+    const pressResult = await runPw(["press", "Enter", "--session", name, "--output", "json"]);
+    assert.equal(pressResult.code, 0, `press failed: ${pressResult.stderr}`);
+    const pressJson = pressResult.json as { ok: boolean; data: { pressed: boolean; key: string } };
+    assert.equal(pressJson.ok, true);
+    assert.equal(pressJson.data.pressed, true);
+    assert.equal(pressJson.data.key, "Enter");
+
+    const hoverResult = await runPw([
+      "hover",
+      "--selector",
+      "#hoverTarget",
+      "--session",
+      name,
+      "--output",
+      "json",
+    ]);
+    assert.equal(hoverResult.code, 0, `hover failed: ${hoverResult.stderr}`);
+    const hoverJson = hoverResult.json as { ok: boolean; data: { acted: boolean } };
+    assert.equal(hoverJson.ok, true);
+    assert.equal(hoverJson.data.acted, true);
+
+    const scrollResult = await runPw([
+      "scroll",
+      "down",
+      "300",
+      "--session",
+      name,
+      "--output",
+      "json",
+    ]);
+    assert.equal(scrollResult.code, 0, `scroll failed: ${scrollResult.stderr}`);
+    const scrollJson = scrollResult.json as {
+      ok: boolean;
+      data: { scrolled: boolean; direction: string };
+    };
+    assert.equal(scrollJson.ok, true);
+    assert.equal(scrollJson.data.scrolled, true);
+    assert.equal(scrollJson.data.direction, "down");
+
+    const resizeResult = await runPw([
+      "resize",
+      "--width",
+      "800",
+      "--height",
+      "600",
+      "--session",
+      name,
+      "--output",
+      "json",
+    ]);
+    assert.equal(resizeResult.code, 0, `resize failed: ${resizeResult.stderr}`);
+    const resizeJson = resizeResult.json as {
+      ok: boolean;
+      data: { resized: boolean; width: number; height: number };
+    };
+    assert.equal(resizeJson.ok, true);
+    assert.equal(resizeJson.data.resized, true);
+    assert.equal(resizeJson.data.width, 800);
+    assert.equal(resizeJson.data.height, 600);
+
+    const uploadResult = await runPw([
+      "upload",
+      "--selector",
+      "#file",
+      uploadPath,
+      "--session",
+      name,
+      "--output",
+      "json",
+    ]);
+    assert.equal(uploadResult.code, 0, `upload failed: ${uploadResult.stderr}`);
+    const uploadJson = uploadResult.json as {
+      ok: boolean;
+      data: { uploaded: boolean; settle: { fileCount: number; settled: boolean } };
+    };
+    assert.equal(uploadJson.ok, true);
+    assert.equal(uploadJson.data.uploaded, true);
+    assert.equal(uploadJson.data.settle.fileCount, 1);
+    assert.equal(uploadJson.data.settle.settled, true);
+
+    const dragResult = await runPw([
+      "drag",
+      "--from-selector",
+      "#dragSource",
+      "--to-selector",
+      "#dropTarget",
+      "--session",
+      name,
+      "--output",
+      "json",
+    ]);
+    assert.equal(dragResult.code, 0, `drag failed: ${dragResult.stderr}`);
+    const dragJson = dragResult.json as { ok: boolean; data: { dragged: boolean } };
+    assert.equal(dragJson.ok, true);
+    assert.equal(dragJson.data.dragged, true);
+
+    const downloadResult = await runPw([
+      "download",
+      "--selector",
+      "#download",
+      "--path",
+      downloadPath,
+      "--session",
+      name,
+      "--output",
+      "json",
+    ]);
+    assert.equal(downloadResult.code, 0, `download failed: ${downloadResult.stderr}`);
+    const downloadJson = downloadResult.json as {
+      ok: boolean;
+      data: { downloaded: boolean; savedAs: string };
+    };
+    assert.equal(downloadJson.ok, true);
+    assert.equal(downloadJson.data.downloaded, true);
+    assert.equal(downloadJson.data.savedAs, downloadPath);
+    assert.ok(existsSync(downloadPath), "download file should exist");
   });
 
   it("click submits a form button", async () => {

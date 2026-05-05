@@ -75,6 +75,43 @@ describe("page reading", { concurrency: false }, () => {
     assert.equal(json.data.truncated, false);
   });
 
+  it("text alias returns the read-text envelope", async () => {
+    const name = makeSessionName();
+    sessionsToClean.push(name);
+
+    await runPw([
+      "session",
+      "create",
+      name,
+      "--headless",
+      "--open",
+      "about:blank",
+      "--output",
+      "json",
+    ]);
+
+    await runPw([
+      "code",
+      "--session",
+      name,
+      "async page => { await page.setContent(`<main><h1>Alias Marker</h1><p>Visible alias text.</p></main>`); }",
+      "--output",
+      "json",
+    ]);
+
+    const result = await runPw(["text", "--session", name, "--output", "json"]);
+    assert.equal(result.code, 0, `text alias failed: ${result.stderr}`);
+    const json = result.json as {
+      ok: boolean;
+      command: string;
+      data: { text: string; charCount: number };
+    };
+    assert.equal(json.ok, true);
+    assert.equal(json.command, "read-text");
+    assert.ok(json.data.text.includes("Visible alias text."));
+    assert.ok(json.data.charCount > 0);
+  });
+
   it("snapshot returns non-empty structure", async () => {
     const name = makeSessionName();
     sessionsToClean.push(name);
@@ -218,6 +255,87 @@ describe("page reading", { concurrency: false }, () => {
     assert.equal(json.data.currentPage.url, "https://example.com/");
   });
 
+  it("tab select and close use stable pageId", async () => {
+    const name = makeSessionName();
+    sessionsToClean.push(name);
+
+    await runPw([
+      "session",
+      "create",
+      name,
+      "--headless",
+      "--open",
+      "about:blank",
+      "--output",
+      "json",
+    ]);
+
+    await runPw([
+      "code",
+      "--session",
+      name,
+      'async page => { await page.setContent(`<a id="pop" href="about:blank" target="_blank">Open Tab</a>`); }',
+      "--output",
+      "json",
+    ]);
+
+    const clickResult = await runPw([
+      "click",
+      "--selector",
+      "#pop",
+      "--session",
+      name,
+      "--output",
+      "json",
+    ]);
+    assert.equal(clickResult.code, 0, `click failed: ${clickResult.stderr}`);
+    const clickJson = clickResult.json as {
+      ok: boolean;
+      data: { openedPage: { pageId: string } | null };
+    };
+    assert.equal(clickJson.ok, true);
+    const pageId = clickJson.data.openedPage?.pageId;
+    assert.match(pageId ?? "", /^p\d+$/);
+
+    const selectResult = await runPw([
+      "tab",
+      "select",
+      pageId ?? "",
+      "--session",
+      name,
+      "--output",
+      "json",
+    ]);
+    assert.equal(selectResult.code, 0, `tab select failed: ${selectResult.stderr}`);
+    const selectJson = selectResult.json as {
+      ok: boolean;
+      data: { selected: boolean; activePageId: string };
+    };
+    assert.equal(selectJson.ok, true);
+    assert.equal(selectJson.data.selected, true);
+    assert.equal(selectJson.data.activePageId, pageId);
+
+    const closeResult = await runPw([
+      "tab",
+      "close",
+      pageId ?? "",
+      "--session",
+      name,
+      "--output",
+      "json",
+    ]);
+    assert.equal(closeResult.code, 0, `tab close failed: ${closeResult.stderr}`);
+    const closeJson = closeResult.json as {
+      ok: boolean;
+      data: { closed: boolean; closedPageId: string; activePageId: string; pageCount: number };
+    };
+    assert.equal(closeJson.ok, true);
+    assert.equal(closeJson.data.closed, true);
+    assert.equal(closeJson.data.closedPageId, pageId);
+    assert.equal(closeJson.data.activePageId, "p1");
+    assert.equal(closeJson.data.pageCount, 1);
+  });
+
   it("accessibility returns ARIA tree with role field", async () => {
     const name = makeSessionName();
     sessionsToClean.push(name);
@@ -290,5 +408,42 @@ describe("page reading", { concurrency: false }, () => {
     assert.equal(json.data.captured, true);
     assert.equal(json.data.path, screenshotPath);
     assert.ok(existsSync(screenshotPath), "screenshot file should exist");
+  });
+
+  it("pdf generates file", async () => {
+    const name = makeSessionName();
+    sessionsToClean.push(name);
+    const pdfPath = `/tmp/pwcli-it-pdf-${Date.now()}.pdf`;
+
+    await runPw([
+      "session",
+      "create",
+      name,
+      "--headless",
+      "--open",
+      "about:blank",
+      "--output",
+      "json",
+    ]);
+
+    await runPw([
+      "code",
+      "--session",
+      name,
+      "async page => { await page.setContent(`<main><h1>PDF Marker</h1><p>Document evidence.</p></main>`); }",
+      "--output",
+      "json",
+    ]);
+
+    const result = await runPw(["pdf", "--session", name, "--path", pdfPath, "--output", "json"]);
+    assert.equal(result.code, 0, `pdf failed: ${result.stderr}`);
+    const json = result.json as {
+      ok: boolean;
+      data: { path: string; saved: boolean };
+    };
+    assert.equal(json.ok, true);
+    assert.equal(json.data.saved, true);
+    assert.equal(json.data.path, pdfPath);
+    assert.ok(existsSync(pdfPath), "pdf file should exist");
   });
 });
