@@ -728,6 +728,7 @@ export async function managedWait(options: {
 // =============================================================================
 
 export async function managedMouseMove(options: { x: number; y: number; sessionName?: string }) {
+  await assertSessionAutomationControl(options.sessionName, "mouse move");
   const before = await captureDiagnosticsBaseline(options.sessionName);
   const result = await managedRunCode({
     sessionName: options.sessionName,
@@ -768,6 +769,7 @@ export async function managedMouseClick(options: {
   button?: "left" | "right" | "middle";
   sessionName?: string;
 }) {
+  await assertSessionAutomationControl(options.sessionName, "mouse click");
   const before = await captureDiagnosticsBaseline(options.sessionName);
   const buttonOpt = options.button ? `, { button: ${JSON.stringify(options.button)} }` : "";
   const result = await managedRunCode({
@@ -809,6 +811,7 @@ export async function managedMouseDblclick(options: {
   y: number;
   sessionName?: string;
 }) {
+  await assertSessionAutomationControl(options.sessionName, "mouse dblclick");
   const before = await captureDiagnosticsBaseline(options.sessionName);
   const result = await managedRunCode({
     sessionName: options.sessionName,
@@ -849,6 +852,7 @@ export async function managedMouseWheel(options: {
   deltaY: number;
   sessionName?: string;
 }) {
+  await assertSessionAutomationControl(options.sessionName, "mouse wheel");
   const before = await captureDiagnosticsBaseline(options.sessionName);
   const result = await managedRunCode({
     sessionName: options.sessionName,
@@ -890,6 +894,7 @@ export async function managedMouseDrag(options: {
   toY: number;
   sessionName?: string;
 }) {
+  await assertSessionAutomationControl(options.sessionName, "mouse drag");
   const before = await captureDiagnosticsBaseline(options.sessionName);
   const result = await managedRunCode({
     sessionName: options.sessionName,
@@ -938,6 +943,7 @@ export async function managedResize(options: {
   view?: string;
   preset?: string;
 }) {
+  await assertSessionAutomationControl(options.sessionName, "resize");
   const result = await runManagedSessionCommand(
     {
       _: ["resize", String(options.width), String(options.height)],

@@ -241,7 +241,7 @@ pw release-control -s bug-a
 
 规则：
 
-- `takeover` 会阻止常见写操作继续执行，包括导航、元素交互、`code`、auth helper、cookie/storage/state 写入。
+- `takeover` 会阻止常见写操作继续执行，包括导航、元素交互、坐标鼠标、resize、route/mock、bootstrap、`code`、auth helper、cookie/storage/state 写入。
 - 需要继续自动化时，先确认人类已经退出，再执行 `pw release-control -s <session>`。
 - 这仍然不是完整的人类输入注入；它只是明确的控制闸门。
 

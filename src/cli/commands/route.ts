@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { defineCommand } from "citty";
 import { sharedArgs } from "#cli/args.js";
 import { managedRoute } from "#engine/diagnose/route.js";
+import { assertSessionAutomationControl } from "#store/control-state.js";
 import { type CliArgs, firstPos, num, print, session, str, withCliError } from "./_helpers.js";
 
 async function jsonFile(path?: string) {
@@ -65,6 +66,7 @@ const add = defineCommand({
   async run({ args }) {
     const a = args as CliArgs;
     try {
+      await assertSessionAutomationControl(session(a), "route add");
       const patchJson = str(a["patch-json"])
         ? JSON.parse(str(a["patch-json"]) as string)
         : await jsonFile(str(a["patch-json-file"]));
@@ -102,6 +104,7 @@ const remove = defineCommand({
   async run({ args }) {
     const a = args as CliArgs;
     try {
+      await assertSessionAutomationControl(session(a), "route remove");
       print(
         "route remove",
         await managedRoute("remove", { sessionName: session(a), pattern: firstPos(a) }),

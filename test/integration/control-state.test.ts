@@ -98,6 +98,28 @@ try {
   assert.equal(blockedCodePayload.error.code, "SESSION_HUMAN_CONTROLLED");
   assert.equal(blockedCodePayload.error.details?.command, "code");
 
+  async function assertHumanControlled(args: string[], command: string) {
+    const blocked = await runPw([...args, "--session", sessionName, "--output", "json"], {
+      cwd: workspaceDir,
+    });
+    assert.equal(blocked.code, 1, `${command} should be blocked while human-controlled`);
+    const payload = blocked.json as {
+      ok: boolean;
+      error: { code: string; details?: { command?: string } };
+    };
+    assert.equal(payload.ok, false);
+    assert.equal(payload.error.code, "SESSION_HUMAN_CONTROLLED");
+    assert.equal(payload.error.details?.command, command);
+  }
+
+  await assertHumanControlled(["mouse", "move", "1", "1"], "mouse move");
+  await assertHumanControlled(["resize", "--width", "800", "--height", "600"], "resize");
+  await assertHumanControlled(
+    ["route", "add", "**/blocked-route", "--body", "blocked"],
+    "route add",
+  );
+  await assertHumanControlled(["bootstrap"], "bootstrap apply");
+
   const release = await runPw(["release-control", "--session", sessionName, "--output", "json"], {
     cwd: workspaceDir,
   });

@@ -2,6 +2,7 @@ import { defineCommand } from "citty";
 import { sharedArgs } from "#cli/args.js";
 import { managedBootstrapApply } from "#engine/session.js";
 import { removeBootstrapInitScript } from "#store/config.js";
+import { assertSessionAutomationControl } from "#store/control-state.js";
 import { type CliArgs, print, session, str, stringArray, withCliError } from "./_helpers.js";
 
 export default defineCommand({
@@ -22,6 +23,7 @@ export default defineCommand({
     try {
       const sessionName = session(a);
       if (str(a["remove-init-script"])) {
+        await assertSessionAutomationControl(sessionName, "bootstrap remove-init-script");
         print(
           "bootstrap",
           {
@@ -37,6 +39,7 @@ export default defineCommand({
         );
         return;
       }
+      await assertSessionAutomationControl(sessionName, "bootstrap apply");
       print(
         "bootstrap",
         await managedBootstrapApply({
