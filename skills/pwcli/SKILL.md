@@ -168,6 +168,16 @@ PWCLI_VAULT_KEY=local-secret pw profile login-auth main-login -s reuse-a
 PWCLI_VAULT_KEY=local-secret pw profile remove-auth main-login
 ```
 
+明确读写浏览器状态：
+
+```bash
+pw storage local -s auth-a
+pw storage local set token value -s auth-a
+pw cookies list -s auth-a --domain localhost
+pw cookies set -s auth-a token value --domain localhost
+pw cookies delete -s auth-a token --domain localhost
+```
+
 规则：
 
 - `PWCLI_VAULT_KEY` 是必须的，没有就不能保存或读取加密 auth profile。

@@ -1439,6 +1439,56 @@ export async function managedCookiesSet(options: {
   };
 }
 
+export async function managedCookiesDelete(options: {
+  sessionName?: string;
+  name: string;
+  domain: string;
+  path?: string;
+}) {
+  await assertActionAllowed("storage", "cookies delete");
+  await assertSessionAutomationControl(options.sessionName, "cookies delete");
+  const result = await managedRunCode({
+    sessionName: options.sessionName,
+    source: `async page => {
+      const before = await page.context().cookies();
+      const matched = before.filter(item =>
+        item.name === ${JSON.stringify(options.name)} &&
+        (item.domain === ${JSON.stringify(options.domain)} || item.domain.endsWith('.' + ${JSON.stringify(options.domain)}))
+      );
+      await page.context().clearCookies({
+        name: ${JSON.stringify(options.name)},
+        domain: ${JSON.stringify(options.domain)},
+        path: ${JSON.stringify(options.path ?? "/")},
+      });
+      const after = await page.context().cookies();
+      const remaining = after.filter(item =>
+        item.name === ${JSON.stringify(options.name)} &&
+        (item.domain === ${JSON.stringify(options.domain)} || item.domain.endsWith('.' + ${JSON.stringify(options.domain)}))
+      );
+      return JSON.stringify({
+        deleted: matched.length > remaining.length,
+        matchedCount: matched.length,
+        remainingCount: remaining.length,
+      });
+    }`,
+  });
+  const parsed =
+    typeof result.data.result === "object" && result.data.result ? result.data.result : {};
+  return {
+    session: result.session,
+    page: result.page,
+    data: {
+      deleted: Boolean(parsed.deleted),
+      name: options.name,
+      domain: options.domain,
+      path: options.path ?? "/",
+      matchedCount: Number(parsed.matchedCount ?? 0),
+      remainingCount: Number(parsed.remainingCount ?? 0),
+      ...maybeRawOutput(result.rawText ?? ""),
+    },
+  };
+}
+
 export async function managedStorageRead(
   kind: "local" | "session",
   options?: { sessionName?: string },

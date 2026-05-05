@@ -1,6 +1,6 @@
 import { defineCommand } from "citty";
 import { sharedArgs } from "#cli/args.js";
-import { managedCookiesList, managedCookiesSet } from "#engine/identity.js";
+import { managedCookiesDelete, managedCookiesList, managedCookiesSet } from "#engine/identity.js";
 import { type CliArgs, firstPos, print, session, str, withCliError } from "./_helpers.js";
 
 const list = defineCommand({
@@ -60,11 +60,43 @@ const set = defineCommand({
     }
   },
 });
+const del = defineCommand({
+  meta: {
+    name: "delete",
+    description:
+      "Purpose: delete a cookie by name/domain/path in a managed session.\nExamples:\n  pw cookies delete -s task-a token --domain localhost\nNotes: this mutates session cookies; verify page behavior afterward.",
+  },
+  args: {
+    ...sharedArgs,
+    name: { type: "string", description: "Cookie name", valueHint: "name" },
+    domain: { type: "string", description: "Cookie domain", valueHint: "domain" },
+    path: { type: "string", description: "Cookie path", default: "/" },
+  },
+  async run({ args }) {
+    const a = args as CliArgs;
+    try {
+      const domain = str(a.domain);
+      if (!domain) throw new Error("cookies delete requires --domain");
+      print(
+        "cookies delete",
+        await managedCookiesDelete({
+          sessionName: session(a),
+          name: str(a.name) ?? firstPos(a) ?? "",
+          domain,
+          path: str(a.path) ?? "/",
+        }),
+        a,
+      );
+    } catch (e) {
+      withCliError("cookies delete", a, e);
+    }
+  },
+});
 export default defineCommand({
   meta: {
     name: "cookies",
     description:
-      "Purpose: inspect or set browser cookies in a managed session.\nExamples:\n  pw cookies list -s task-a\n  pw cookies set -s task-a token demo --domain localhost\nNotes: `set` mutates session cookies; use `list` for read-only diagnosis.",
+      "Purpose: inspect, set, or delete browser cookies in a managed session.\nExamples:\n  pw cookies list -s task-a\n  pw cookies set -s task-a token demo --domain localhost\n  pw cookies delete -s task-a token --domain localhost\nNotes: `set` and `delete` mutate session cookies; use `list` for read-only diagnosis.",
   },
-  subCommands: { list, set },
+  subCommands: { list, set, delete: del },
 });
