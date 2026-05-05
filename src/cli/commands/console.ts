@@ -4,7 +4,11 @@ import { managedConsole } from "#engine/diagnose/core.js";
 import { bool, type CliArgs, num, print, session, str, withCliError } from "./_helpers.js";
 
 export default defineCommand({
-  meta: { name: "console", description: "Inspect captured console records" },
+  meta: {
+    name: "console",
+    description:
+      "Purpose: inspect captured browser console records.\nExamples:\n  pw console -s task-a --level error --limit 20\n  pw console -s task-a --text TypeError\nNotes: use console records as diagnostic evidence, then verify page behavior separately.",
+  },
   args: {
     ...sharedArgs,
     level: { type: "string", description: "Minimum level", default: "info", valueHint: "level" },

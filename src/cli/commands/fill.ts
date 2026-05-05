@@ -11,7 +11,11 @@ import {
 } from "./_helpers.js";
 
 export default defineCommand({
-  meta: { name: "fill", description: "Fill an input by ref, selector, or semantic locator" },
+  meta: {
+    name: "fill",
+    description:
+      "Purpose: fill a single input by ref, selector, or semantic locator.\nExamples:\n  pw fill -s task-a --label Email agent@example.com\n  pw fill -s task-a --selector '#email' agent@example.com\nNotes: use `fill-form` when a whole form should be filled from JSON.",
+  },
   args: actionArgs,
   async run({ args }) {
     const a = args as CliArgs;

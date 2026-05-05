@@ -4,7 +4,11 @@ import { managedCheck } from "#engine/act/element.js";
 import { actionTarget, type CliArgs, firstPos, print, session, withCliError } from "./_helpers.js";
 
 export default defineCommand({
-  meta: { name: "check", description: "Check a checkbox or radio control" },
+  meta: {
+    name: "check",
+    description:
+      "Purpose: check a checkbox or radio control by ref, selector, or semantic locator.\nExamples:\n  pw check -s task-a --label 'I agree'\n  pw check -s task-a --selector '#terms'\nNotes: use `is checked` afterward when the checked state matters.",
+  },
   args: actionArgs,
   async run({ args }) {
     const a = args as CliArgs;

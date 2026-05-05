@@ -4,7 +4,11 @@ import { managedLocate } from "#engine/observe.js";
 import { bool, type CliArgs, print, session, stateTarget, withCliError } from "./_helpers.js";
 
 export default defineCommand({
-  meta: { name: "locate", description: "Locate state target candidates" },
+  meta: {
+    name: "locate",
+    description:
+      "Purpose: locate target candidates without acting.\nExamples:\n  pw locate -s task-a --text Submit\n  pw locate -s task-a --selector 'button[type=submit]'\nNotes: use this before actions when a selector or text match may be ambiguous.",
+  },
   args: {
     ...actionArgs,
     nth: { ...actionArgs.nth, default: undefined },

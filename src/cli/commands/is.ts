@@ -4,7 +4,11 @@ import { managedIsState } from "#engine/observe.js";
 import { type CliArgs, firstPos, print, session, stateTarget, withCliError } from "./_helpers.js";
 
 export default defineCommand({
-  meta: { name: "is", description: "Check target state" },
+  meta: {
+    name: "is",
+    description:
+      "Purpose: check target state such as visible, enabled or checked.\nExamples:\n  pw is visible -s task-a --text Dashboard\n  pw is checked -s task-a --label Subscribe\nNotes: this is read-only and returns state facts for workflow decisions.",
+  },
   args: {
     ...actionArgs,
     state: {

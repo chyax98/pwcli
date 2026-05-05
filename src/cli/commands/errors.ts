@@ -13,7 +13,11 @@ import {
 } from "./_helpers.js";
 
 export default defineCommand({
-  meta: { name: "errors", description: "Inspect or clear page errors" },
+  meta: {
+    name: "errors",
+    description:
+      "Purpose: inspect or clear captured page errors.\nExamples:\n  pw errors -s task-a --action recent --limit 20\n  pw errors -s task-a --action clear\nNotes: clear before a repro step when you need a clean failure window.",
+  },
   args: {
     ...sharedArgs,
     action: { type: "enum", options: ["recent", "clear"], description: "Action" },

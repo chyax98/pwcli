@@ -4,7 +4,11 @@ import { managedNetwork } from "#engine/diagnose/core.js";
 import { bool, type CliArgs, num, print, session, str, withCliError } from "./_helpers.js";
 
 export default defineCommand({
-  meta: { name: "network", description: "Inspect captured network records" },
+  meta: {
+    name: "network",
+    description:
+      "Purpose: inspect captured network requests, responses and failures.\nExamples:\n  pw network -s task-a --status 500 --limit 20\n  pw network -s task-a --url /api --include-body\nNotes: use this with `console`, `errors`, and `diagnostics digest` when diagnosing bugs.",
+  },
   args: {
     ...sharedArgs,
     "request-id": { type: "string", description: "Request id", valueHint: "id" },

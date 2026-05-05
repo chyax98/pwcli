@@ -4,7 +4,11 @@ import { managedScroll } from "#engine/act/page.js";
 import { type CliArgs, num, positionals, print, session, withCliError } from "./_helpers.js";
 
 export default defineCommand({
-  meta: { name: "scroll", description: "Scroll the current page" },
+  meta: {
+    name: "scroll",
+    description:
+      "Purpose: scroll the current page or a target area.\nExamples:\n  pw scroll -s task-a --down 800\n  pw scroll -s task-a --selector '.list' --down 400\nNotes: verify newly revealed content with `read-text`, `snapshot`, or `locate`.",
+  },
   args: sharedArgs,
   async run({ args }) {
     const a = args as CliArgs;

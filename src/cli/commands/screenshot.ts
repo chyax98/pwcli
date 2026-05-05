@@ -5,7 +5,11 @@ import { managedAnnotatedScreenshot } from "#engine/workspace.js";
 import { bool, type CliArgs, firstPos, print, session, str, withCliError } from "./_helpers.js";
 
 export default defineCommand({
-  meta: { name: "screenshot", description: "Capture a page or element screenshot" },
+  meta: {
+    name: "screenshot",
+    description:
+      "Purpose: capture a page or element screenshot as evidence.\nExamples:\n  pw screenshot -s task-a --path .pwcli/bundles/task/page.png\n  pw screenshot -s task-a --selector '#panel' --path panel.png\nNotes: use screenshots for visual evidence, not as the only success assertion.",
+  },
   args: {
     ...sharedArgs,
     ref: { type: "string", description: "Snapshot aria ref", valueHint: "ref" },

@@ -11,7 +11,11 @@ import {
 } from "./_helpers.js";
 
 export default defineCommand({
-  meta: { name: "type", description: "Type text into page or an element" },
+  meta: {
+    name: "type",
+    description:
+      "Purpose: type text into the focused page or a target element.\nExamples:\n  pw type -s task-a --selector '#search' query\n  pw type -s task-a 'free text'\nNotes: prefer `fill` for replacing input value; use `type` when key events matter.",
+  },
   args: actionArgs,
   async run({ args }) {
     const a = args as CliArgs;

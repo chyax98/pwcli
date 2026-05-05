@@ -4,7 +4,11 @@ import { managedClick } from "#engine/act/element.js";
 import { actionTarget, type CliArgs, firstPos, print, session, withCliError } from "./_helpers.js";
 
 export default defineCommand({
-  meta: { name: "click", description: "Click an element by ref, selector, or semantic locator" },
+  meta: {
+    name: "click",
+    description:
+      "Purpose: click an element by ref, selector, or semantic locator.\nExamples:\n  pw click -s task-a --text Submit\n  pw click -s task-a --ref e12\nNotes: follow clicks with `wait` and a read-only verification command.",
+  },
   args: {
     ...actionArgs,
     button: {

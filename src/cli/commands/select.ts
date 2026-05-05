@@ -11,7 +11,11 @@ import {
 } from "./_helpers.js";
 
 export default defineCommand({
-  meta: { name: "select", description: "Select an option by ref, selector, or semantic locator" },
+  meta: {
+    name: "select",
+    description:
+      "Purpose: select an option in a select control by ref, selector, or semantic locator.\nExamples:\n  pw select -s task-a --label Country US\n  pw select -s task-a --selector '#country' US\nNotes: pass the option value expected by the page.",
+  },
   args: actionArgs,
   async run({ args }) {
     const a = args as CliArgs;

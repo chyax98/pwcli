@@ -18,7 +18,11 @@ const status = defineCommand({
 });
 
 export default defineCommand({
-  meta: { name: "snapshot", description: "Capture an accessibility snapshot" },
+  meta: {
+    name: "snapshot",
+    description:
+      "Purpose: capture an accessibility snapshot and optional interactive refs.\nExamples:\n  pw snapshot -i -s task-a\n  pw snapshot -s task-a --selector main\nNotes: use refs from this command immediately; refs can become stale after navigation or DOM changes.",
+  },
   args: {
     ...sharedArgs,
     interactive: {

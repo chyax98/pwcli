@@ -4,7 +4,11 @@ import { managedAccessibilitySnapshot } from "#engine/observe.js";
 import { bool, type CliArgs, print, session, str, withCliError } from "./_helpers.js";
 
 export default defineCommand({
-  meta: { name: "accessibility", description: "Capture page accessibility tree" },
+  meta: {
+    name: "accessibility",
+    description:
+      "Purpose: capture the page accessibility tree for structural reading.\nExamples:\n  pw accessibility -s task-a\n  pw accessibility -s task-a --interactive-only\nNotes: this is read-only and complements `snapshot` and `read-text`.",
+  },
   args: {
     ...sharedArgs,
     "interactive-only": {

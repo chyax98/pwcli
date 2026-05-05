@@ -46,6 +46,32 @@ await expectHelp(
   ["Purpose:", "Examples:", "named session", "--open", "--state", "--record-har", "--record-video"],
 );
 
+for (const command of [
+  "open",
+  "status",
+  "read-text",
+  "snapshot",
+  "accessibility",
+  "click",
+  "fill",
+  "type",
+  "press",
+  "check",
+  "uncheck",
+  "select",
+  "hover",
+  "scroll",
+  "screenshot",
+  "network",
+  "console",
+  "errors",
+  "locate",
+  "get",
+  "is",
+]) {
+  await expectHelp([command], ["Purpose:", "Examples:", "Notes:"]);
+}
+
 await expectHelp(
   ["route", "add"],
   ["Purpose:", "Examples:", "fulfill", "abort", "matcher", "patch"],

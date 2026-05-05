@@ -4,7 +4,11 @@ import { managedPress } from "#engine/act/element.js";
 import { type CliArgs, positionals, print, session, withCliError } from "./_helpers.js";
 
 export default defineCommand({
-  meta: { name: "press", description: "Press a keyboard key" },
+  meta: {
+    name: "press",
+    description:
+      "Purpose: press a keyboard key in the active page.\nExamples:\n  pw press -s task-a Enter\n  pw press -s task-a Escape\nNotes: use Playwright key names such as Enter, Escape, Tab, ArrowDown.",
+  },
   args: sharedArgs,
   async run({ args }) {
     const a = args as CliArgs;
