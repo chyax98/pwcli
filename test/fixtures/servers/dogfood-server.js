@@ -387,7 +387,7 @@ function renderIncidentDetails() {
       <aside class="panel stack">
         <h3>Hints</h3>
         <p class="note">Use deep navigation, diagnostics digest, route mocking, and environment controls.</p>
-        <p class="note">One modal path intentionally blocks run-code-backed reads.</p>
+        <p class="note">One modal path intentionally blocks page-context-backed reads.</p>
       </aside>
     </section>`,
   );
