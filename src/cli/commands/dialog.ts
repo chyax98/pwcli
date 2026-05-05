@@ -34,6 +34,10 @@ const dismiss = defineCommand({
 });
 
 export default defineCommand({
-  meta: { name: "dialog", description: "Handle browser dialogs" },
+  meta: {
+    name: "dialog",
+    description:
+      "Purpose: accept or dismiss the current browser dialog.\nExamples:\n  pw dialog accept -s task-a\n  pw dialog dismiss -s task-a\nNotes: use this only for native browser dialogs; page HTML modals are handled with normal locators.",
+  },
   subCommands: { accept, dismiss },
 });

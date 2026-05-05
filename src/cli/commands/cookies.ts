@@ -53,6 +53,10 @@ const set = defineCommand({
   },
 });
 export default defineCommand({
-  meta: { name: "cookies", description: "Inspect or set cookies" },
+  meta: {
+    name: "cookies",
+    description:
+      "Purpose: inspect or set browser cookies in a managed session.\nExamples:\n  pw cookies list -s task-a\n  pw cookies set -s task-a token demo --domain localhost\nNotes: `set` mutates session cookies; use `list` for read-only diagnosis.",
+  },
   subCommands: { list, set },
 });

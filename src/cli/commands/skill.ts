@@ -91,6 +91,10 @@ const show = defineCommand({
   },
 });
 export default defineCommand({
-  meta: { name: "skill", description: "Inspect and install packaged pwcli skills" },
+  meta: {
+    name: "skill",
+    description:
+      "Purpose: inspect, show, and install the packaged pwcli skill that matches this CLI version.\nExamples:\n  pw skill path\n  pw skill show --full\n  pw skill install\nNotes: use CLI help for parameter truth and skill content for Agent workflow routing.",
+  },
   subCommands: { path, install, refs, show },
 });

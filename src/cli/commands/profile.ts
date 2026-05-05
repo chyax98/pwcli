@@ -23,6 +23,10 @@ const listChrome = defineCommand({
   },
 });
 export default defineCommand({
-  meta: { name: "profile", description: "Browser profile helpers" },
+  meta: {
+    name: "profile",
+    description:
+      "Purpose: list local Chrome profiles and manage reusable state or encrypted auth profiles.\nExamples:\n  pw profile list-chrome\n  pw profile save-state main -s task-a\nNotes: auth profiles require `PWCLI_VAULT_KEY`; state/auth load commands mutate the target session.",
+  },
   subCommands: { "list-chrome": listChrome, ...stateCommands, ...authCommands },
 });

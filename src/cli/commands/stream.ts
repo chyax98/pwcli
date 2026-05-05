@@ -159,7 +159,11 @@ export const streamStopCommand = defineCommand({
 });
 
 export default defineCommand({
-  meta: { name: "stream", description: "Manage local preview stream servers for active sessions" },
+  meta: {
+    name: "stream",
+    description:
+      "Purpose: manage a local read-only preview stream for an active session.\nExamples:\n  pw stream start -s task-a\n  pw stream status -s task-a\nNotes: stream is for human observation; it does not replace CLI actions, facts, waits, or diagnostics.",
+  },
   subCommands: {
     start: streamStartCommand,
     status: streamStatusCommand,

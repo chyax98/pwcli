@@ -37,6 +37,10 @@ const close = defineCommand({
 });
 
 export default defineCommand({
-  meta: { name: "tab", description: "Select or close browser tabs by stable pageId" },
+  meta: {
+    name: "tab",
+    description:
+      "Purpose: select or close browser tabs by stable pageId.\nExamples:\n  pw page list -s task-a\n  pw tab select -s task-a <pageId>\nNotes: get pageId from `pw page list`; avoid index-based tab assumptions.",
+  },
   subCommands: { select, close },
 });

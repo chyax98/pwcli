@@ -76,6 +76,10 @@ const inspect = defineCommand({
 });
 
 export default defineCommand({
-  meta: { name: "trace", description: "Manage and inspect traces" },
+  meta: {
+    name: "trace",
+    description:
+      "Purpose: start, stop, and inspect Playwright trace artifacts for diagnosis.\nExamples:\n  pw trace stop -s task-a\n  pw trace inspect .pwcli/runs/task/trace.zip --section actions\nNotes: `--failed` only applies to requests; `--level` only applies to console.",
+  },
   subCommands: { start, stop, inspect },
 });

@@ -25,7 +25,11 @@ function sub(name: string, fn: (sessionName: string) => Promise<Parameters<typeo
 }
 
 export default defineCommand({
-  meta: { name: "page", description: "Inspect page and workspace state" },
+  meta: {
+    name: "page",
+    description:
+      "Purpose: inspect page, tab, frame, dialog and page-assessment state.\nExamples:\n  pw page current -s task-a\n  pw page assess -s task-a\nNotes: page commands are read-only projections; `page dialogs` reports observed dialog events, not a guaranteed live set.",
+  },
   subCommands: {
     current: sub("current", (sessionName) => managedPageCurrent({ sessionName })),
     list: sub("list", (sessionName) => managedPageList({ sessionName })),

@@ -47,6 +47,18 @@ await expectHelp(
 );
 
 for (const command of [
+  "cookies",
+  "dashboard",
+  "dialog",
+  "environment",
+  "mouse",
+  "page",
+  "profile",
+  "skill",
+  "stream",
+  "tab",
+  "trace",
+  "view",
   "bootstrap",
   "control-state",
   "doctor",

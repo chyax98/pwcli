@@ -104,6 +104,10 @@ const open = defineCommand({
 });
 
 export default defineCommand({
-  meta: { name: "dashboard", description: "Open Playwright's bundled session dashboard" },
+  meta: {
+    name: "dashboard",
+    description:
+      "Purpose: open Playwright's bundled session dashboard when available.\nExamples:\n  pw dashboard open\n  pw dashboard open --dry-run\nNotes: this is a human observation escape hatch; Agent workflows should prefer CLI facts and diagnostics.",
+  },
   subCommands: { open },
 });

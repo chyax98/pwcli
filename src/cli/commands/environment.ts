@@ -231,7 +231,11 @@ const domainsClear = defineCommand({
 });
 
 export default defineCommand({
-  meta: { name: "environment", description: "Environment and clock controls" },
+  meta: {
+    name: "environment",
+    description:
+      "Purpose: control session environment such as network, geolocation, permissions, clock and allowed navigation domains.\nExamples:\n  pw environment offline -s task-a on\n  pw environment geolocation set -s task-a --lat 31.2 --lng 121.5\nNotes: environment commands mutate the session and should be followed by page facts or diagnostics.",
+  },
   subCommands: {
     offline,
     geolocation: defineCommand({

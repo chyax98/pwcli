@@ -120,6 +120,10 @@ const drag = defineCommand({
 });
 
 export default defineCommand({
-  meta: { name: "mouse", description: "Mouse coordinate actions" },
+  meta: {
+    name: "mouse",
+    description:
+      "Purpose: perform coordinate-based mouse actions in a managed session.\nExamples:\n  pw mouse click -s task-a 120 240\n  pw mouse wheel -s task-a 0 800\nNotes: prefer semantic locators first; coordinate actions are for canvas, maps, drag surfaces, or layout debugging.",
+  },
   subCommands: { move, click, dblclick, wheel, drag },
 });
