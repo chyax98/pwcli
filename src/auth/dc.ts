@@ -36,10 +36,20 @@ type LoginUrlPayload = {
 
 const DEFAULT_PHONE = "19545672859";
 const DEFAULT_SMS_CODE = "000000";
-const FORGE_SUBDOMAIN = "developer";
+const DEVELOPER_SUBDOMAIN = "developer";
+const DEFAULT_DC_APP_PATH = "/forge";
 
 const dcProviderSource = String(
   async (page: DcAuthPage, args: Record<string, string | undefined>) => {
+    const normalizeAppPath = (raw: unknown) => {
+      const value = String(raw || "/forge").trim() || "/forge";
+      return value.startsWith("/")
+        ? value.replace(/\/$/, "") || "/"
+        : `/${value.replace(/\/$/, "")}`;
+    };
+    const dcAppPath = normalizeAppPath(args.appPath);
+    const dcLoginPath = `${dcAppPath}/auth/login`;
+
     const originFromUrl = (raw: unknown) => {
       const match = String(raw || "").match(/^(https?:\/\/[^/]+)(?:\/.*)?$/);
       return match?.[1] || "";
@@ -68,7 +78,7 @@ const dcProviderSource = String(
       }
       return "";
     };
-    const forgeTargetFromUrl = (raw: unknown): string => {
+    const dcTargetFromUrl = (raw: unknown): string => {
       const url = String(raw || "").trim();
       const origin = originFromUrl(url);
       if (!origin) {
@@ -79,14 +89,14 @@ const dcProviderSource = String(
         return "";
       }
       const path = pathFromUrl(url);
-      if (path.startsWith("/forge/auth/login")) {
+      if (path.startsWith(dcLoginPath)) {
         const refer = queryParam(url, "refer");
-        return forgeTargetFromUrl(refer);
+        return dcTargetFromUrl(refer);
       }
       if (path === "/" || path === "") {
-        return `${origin}/forge`;
+        return `${origin}${dcAppPath}`;
       }
-      return path.startsWith("/forge") ? url : "";
+      return path.startsWith(dcAppPath) ? url : "";
     };
     const phone = String(args.phone ?? "19545672859").trim();
     const smsCode = String(args.smsCode ?? "000000").trim();
@@ -101,10 +111,10 @@ const dcProviderSource = String(
       targetUrl = explicitTargetUrl;
       resolvedBy = "targetUrl";
     } else if (baseURL) {
-      targetUrl = `${baseURL}/forge`;
+      targetUrl = `${baseURL}${dcAppPath}`;
       resolvedBy = "baseURL";
     } else {
-      const currentTargetUrl = forgeTargetFromUrl(page.url());
+      const currentTargetUrl = dcTargetFromUrl(page.url());
       targetUrl = currentTargetUrl || String(args.detectedTargetUrl ?? "").trim();
       resolvedBy = currentTargetUrl ? "current-page" : String(args.resolvedBy ?? "").trim();
     }
@@ -113,7 +123,7 @@ const dcProviderSource = String(
       baseURL = originFromUrl(targetUrl);
     }
     if (!targetUrl && baseURL) {
-      targetUrl = `${baseURL}/forge`;
+      targetUrl = `${baseURL}${dcAppPath}`;
     }
 
     if (!phone) {
@@ -121,11 +131,11 @@ const dcProviderSource = String(
     }
     if (!baseURL || !targetUrl) {
       throw new Error(
-        "DC_AUTH_URL_REQUIRED: dc auth could not resolve Forge URL. Pass --arg targetUrl=<url> or run from an existing Forge page.",
+        "DC_AUTH_URL_REQUIRED: dc auth could not resolve DC target URL. Pass --arg targetUrl=<url> or run from an existing DC page.",
       );
     }
 
-    const loginPageUrl = `${baseURL}/forge/auth/login?refer=${encodeURIComponent(targetUrl)}`;
+    const loginPageUrl = `${baseURL}${dcLoginPath}?refer=${encodeURIComponent(targetUrl)}`;
     let interceptedLoginUrlPayload: LoginUrlPayload | null = null;
 
     await page.route("**/api/auth/login/url**", async (route: DcAuthRoute) => {
@@ -143,7 +153,7 @@ const dcProviderSource = String(
       await page.goto(loginPageUrl);
     } catch (error) {
       throw new Error(
-        `DC_AUTH_URL_UNREACHABLE: failed to open ${loginPageUrl}. ${resolvedBy ? `resolvedBy=${resolvedBy}. ` : ""}Pass --arg targetUrl=<forge-url>. cause=${error instanceof Error ? error.message : String(error)}`,
+        `DC_AUTH_URL_UNREACHABLE: failed to open ${loginPageUrl}. ${resolvedBy ? `resolvedBy=${resolvedBy}. ` : ""}Pass --arg targetUrl=<target-url>. cause=${error instanceof Error ? error.message : String(error)}`,
       );
     }
     await page.waitForTimeout(2000);
@@ -151,7 +161,7 @@ const dcProviderSource = String(
     const payload = interceptedLoginUrlPayload as LoginUrlPayload | null;
     if (!payload) {
       throw new Error(
-        `DC_AUTH_LOGIN_URL_NOT_FOUND: dc auth failed to intercept /api/auth/login/url at ${loginPageUrl}. Pass --arg targetUrl=<forge-url>.`,
+        `DC_AUTH_LOGIN_URL_NOT_FOUND: dc auth failed to intercept /api/auth/login/url at ${loginPageUrl}. Pass --arg targetUrl=<target-url>.`,
       );
     }
 
@@ -290,7 +300,7 @@ const dcProviderSource = String(
 
 export const dcAuthProvider: AuthProviderSpec = {
   name: "dc",
-  summary: "TapTap/Forge DC 登录 provider",
+  summary: "TapTap/DC 登录 provider",
   description: "在现有 session 内执行 DC 登录链。provider 参数统一使用 --arg key=value。",
   source: dcProviderSource,
   args: [
@@ -310,17 +320,23 @@ export const dcAuthProvider: AuthProviderSpec = {
     },
     {
       name: "baseURL",
-      description: "Forge/DC 基础域名。通常不需要传，优先从当前页面或 targetUrl 推导。",
+      description: "DC 基础域名。通常不需要传，优先从当前页面或 targetUrl 推导。",
+    },
+    {
+      name: "appPath",
+      defaultValue: DEFAULT_DC_APP_PATH,
+      description: "DC 应用路径后缀，默认 /forge；后续 DCNext 路径变更时可覆盖。",
     },
   ],
   examples: [
     "pw auth dc --session dc2",
-    "pw auth dc --session dc2 --arg targetUrl='<forge-url>'",
+    "pw auth dc --session dc2 --arg targetUrl='<target-url>'",
+    "pw auth dc --session dc2 --arg baseURL='<base-url>' --arg appPath=/forge",
     "pw auth dc --session dc2 --arg phone=19545672859",
   ],
   notes: [
     "`targetUrl` 是业务目标 URL；传入后 provider 会推导 `baseURL`。",
-    "`phone`、`smsCode`、`baseURL` 都是普通 provider 参数。",
+    "`phone`、`smsCode`、`baseURL`、`appPath` 都是普通 provider 参数。",
     "`auth dc` 只在现有 session 内执行登录，不创建 session。",
   ],
   resolveArgs: resolveDcArgs,
@@ -353,12 +369,14 @@ async function resolveDcArgs(
 
   if (explicitBaseURL) {
     resolved.baseURL = normalizeBaseURL(explicitBaseURL);
-    resolved.targetUrl = `${resolved.baseURL}/forge`;
+    resolved.targetUrl = `${resolved.baseURL}${String(providerArgs.appPath || DEFAULT_DC_APP_PATH)}`;
     resolved.resolvedBy = "baseURL";
     return resolved;
   }
 
-  resolved.detectedTargetUrl = buildLocalForgeTargetUrl();
+  resolved.detectedTargetUrl = buildLocalDcTargetUrl(
+    String(providerArgs.appPath || DEFAULT_DC_APP_PATH),
+  );
   resolved.resolvedBy = "local-ip";
   return resolved;
 }
@@ -377,13 +395,13 @@ function normalizeBaseURL(raw: string) {
   return `${normalized.protocol}//${normalized.host}`;
 }
 
-function buildLocalForgeTargetUrl() {
-  return `${buildLocalForgeBaseURL(getLocalIp())}/forge`;
+function buildLocalDcTargetUrl(appPath = DEFAULT_DC_APP_PATH) {
+  return `${buildLocalDcBaseURL(getLocalIp())}${appPath}`;
 }
 
-function buildLocalForgeBaseURL(localIp: string) {
+function buildLocalDcBaseURL(localIp: string) {
   const label = localIp.replace(/\./g, "-");
-  return `https://${FORGE_SUBDOMAIN}-${label}.tap.dev`;
+  return `https://${DEVELOPER_SUBDOMAIN}-${label}.tap.dev`;
 }
 
 function isPrivateIpv4(address: string) {

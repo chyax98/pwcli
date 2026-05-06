@@ -37,8 +37,8 @@ export function listPackagedSkillReferences() {
       kind: "reference",
     },
     {
-      key: "forge-dc-auth",
-      path: resolve(root, "references", "forge-dc-auth.md"),
+      key: "dc-auth",
+      path: resolve(root, "references", "dc-auth.md"),
       kind: "reference",
     },
   ].map((item) => ({ ...item, exists: existsSync(item.path) }));

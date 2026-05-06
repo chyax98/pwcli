@@ -1,4 +1,4 @@
-# Forge / DC Auth
+# DC Auth
 
 本文件只写 `dc` provider 的使用规则。命令参数以当前 CLI 为准：
 
@@ -38,10 +38,21 @@ pw auth probe -s dc-main
 pw status -s dc-main
 ```
 
+指定 baseURL 和应用路径后缀：
+
+```bash
+pw session create dc-main --headed
+pw auth dc -s dc-main --arg baseURL='<base-url>' --arg appPath=/forge
+pw read-text -s dc-main --max-chars 1200
+pw auth probe -s dc-main
+```
+
+`appPath` 默认是 `/forge`。后续 DCNext 如果更换路径，只覆盖 `appPath`，不要在 workflow 里写死新的登录路径。
+
 ## 成功判定
 
 - 页面不在登录页、验证码页或 challenge。
-- 能读到 Forge / DC / 开发者后台 / 业务内容。
+- 能读到 DC / DC2 / DC3 / DCNext / 开发者后台 / 业务内容。
 - `auth probe` 不能是明确 `anonymous`。
 - `auth probe` 为 `uncertain` 时，用页面文本和 cookie/storage 信号补证。
 

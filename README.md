@@ -58,7 +58,7 @@ PWCLI_VAULT_KEY=local-secret pw profile login-auth main-login -s reuse-a
 
 ```bash
 pw session create dc-main --headed --open 'about:blank'
-pw auth dc -s dc-main --arg targetUrl='https://developer.example.com/forge'
+pw auth dc -s dc-main --arg targetUrl='https://developer.example.com/<target-path>'
 ```
 
 表单分析、批量填充和结构化抽取：

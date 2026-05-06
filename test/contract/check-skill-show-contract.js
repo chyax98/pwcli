@@ -27,14 +27,14 @@ if (
   throw new Error(`unexpected skill show payload: ${JSON.stringify(mainPayload, null, 2)}`);
 }
 
-const showRef = runPwSync(["skill", "show", "forge-dc-auth", "--output", "json"]);
+const showRef = runPwSync(["skill", "show", "dc-auth", "--output", "json"]);
 if (showRef.status !== 0) {
-  throw new Error(`skill show forge-dc-auth failed\n${showRef.stdout}\n${showRef.stderr}`);
+  throw new Error(`skill show dc-auth failed\n${showRef.stdout}\n${showRef.stderr}`);
 }
-const refPayload = parseJson(showRef.stdout, "skill show forge-dc-auth");
+const refPayload = parseJson(showRef.stdout, "skill show dc-auth");
 if (
   refPayload.ok !== true ||
-  refPayload.data?.key !== "forge-dc-auth" ||
+  refPayload.data?.key !== "dc-auth" ||
   !String(refPayload.data?.content ?? "").includes("auth dc")
 ) {
   throw new Error(`unexpected skill show ref payload: ${JSON.stringify(refPayload, null, 2)}`);

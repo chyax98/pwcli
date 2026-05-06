@@ -470,7 +470,7 @@ Agent 操作浏览器时失败非常常见。
 
 浏览器自动化绕不开登录。
 
-项目早期尝试了 DC / Forge / developer console 相关登录路径。
+项目早期尝试了 DC / developer console 相关登录路径。
 
 后来 `auth` 被收口成内置 provider。
 

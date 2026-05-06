@@ -75,4 +75,4 @@ pw read-text -s auth-a --max-chars 1200
 pw auth probe -s auth-a
 ```
 
-Forge/DC 见 `forge-dc-auth.md`。
+DC 见 `dc-auth.md`。

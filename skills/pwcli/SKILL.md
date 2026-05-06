@@ -255,9 +255,8 @@ pw release-control -s bug-a
 - 需要继续自动化时，先确认人类已经退出，再执行 `pw release-control -s <session>`。
 - 这仍然不是完整的人类输入注入；它只是明确的控制闸门。
 
-### Forge / DC
-
-看到 Forge / DC / DC2 / 开发者后台 / developer console，优先使用内置 `dc` provider。
+### DC / Developer Console
+看到 DC / DC2 / DC3 / DCNext / 开发者后台 / developer console，优先使用内置 `dc` provider。
 
 ```text
 if 调用方已选定本轮要操作的 URL:
@@ -268,7 +267,7 @@ else:
 
 `auth dc` 不判断 RND、本地、线上，也不理解 bug 语义。URL 是否是本轮操作目标，由上层任务流程决定。
 
-专项规则见 `references/forge-dc-auth.md`。
+专项规则见 `references/dc-auth.md`。
 
 ### 受控测试
 
@@ -301,7 +300,7 @@ pw doctor -s <session>
 |---|---|
 | 任务级串联 | `references/workflows.md` |
 | 错误恢复和交接 | `references/failure-recovery.md` |
-| Forge/DC provider | `references/forge-dc-auth.md` |
+| DC provider | `references/dc-auth.md` |
 
 命令细节不要查 reference，直接查当前 CLI：
 
