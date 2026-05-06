@@ -490,6 +490,11 @@ function formatAction(command: string, result: CommandResult): string {
     lines.push(`Next step: pw tab select ${op.pageId} --session <name>`);
   }
   lines.push(...formatDiagnosticsDelta(result.data.diagnosticsDelta));
+  const snapDiff = result.data.snapshotDiff;
+  if (snapDiff && typeof snapDiff === "object" && "diffText" in snapDiff) {
+    lines.push("");
+    lines.push((snapDiff as { diffText: string }).diffText);
+  }
   return lines.join("\n");
 }
 

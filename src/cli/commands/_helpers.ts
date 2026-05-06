@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { buildSemanticTarget, parseNth, parseStateTarget } from "#cli/parsers/target.js";
 import type { SemanticTarget } from "#engine/act/element.js";
+import { computePostActionDiff } from "#engine/snapshot-diff.js";
 import { printCommandError, printCommandResult } from "../output.js";
 import { printSessionAwareCommandError, requireSessionName } from "../parsers/session.js";
 
@@ -95,4 +96,16 @@ export async function sourceFromArgs(source: string | undefined, file: string | 
 
 export function semanticOnly(args: CliArgs): SemanticTarget | undefined {
   return buildSemanticTarget(args as Parameters<typeof buildSemanticTarget>[0]);
+}
+
+export async function attachSnapDiff(
+  sessionName: string | undefined,
+  result: { data: Record<string, unknown> },
+) {
+  try {
+    const diff = await computePostActionDiff(sessionName);
+    if (diff) result.data.snapshotDiff = diff;
+  } catch {
+    // snap-diff is best-effort; don't fail the action
+  }
 }

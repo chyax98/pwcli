@@ -28,4 +28,12 @@ export const locatorArgs = {
 } as const;
 
 export const sharedArgs = { ...sessionArg, ...outputArg } as const;
-export const actionArgs = { ...sharedArgs, ...locatorArgs } as const;
+export const actionArgs = {
+  ...sharedArgs,
+  ...locatorArgs,
+  "snap-diff": {
+    type: "boolean",
+    description: "Return accessibility tree diff after action",
+    alias: ["diff"],
+  },
+} as const;

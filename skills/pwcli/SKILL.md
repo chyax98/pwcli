@@ -87,6 +87,40 @@ pw verify text -s explore-a --text '<expected-text>'
 
 规则：动作成功不等于任务成功。动作后必须等待和验证。
 
+### 增量快照 diff
+
+执行动作后用 `--snap-diff`（alias `--diff`）返回无障碍树增量变化：
+
+```bash
+pw snapshot -i -s explore-a                    # 建立基线（缓存自动存入 browser-side state）
+pw click e5 -s explore-a --diff                # click 后返回 diff：[+] 新增 [~] 变化 removed
+pw fill e3 "hello" -s explore-a --diff          # fill 后返回 diff
+pw select e8 "US" -s explore-a --diff           # select 后返回 diff
+```
+
+支持 `--diff` 的命令：`click`、`fill`、`type`、`hover`、`select`、`check`、`uncheck`。
+
+diff 输出格式：
+
+```
+fill filled=true
+page /login (Login)
+
+# snap-diff: +1 ~1 -0
+- link "Home" [ref=e0]
+- textbox [ref=e3]:
+  - text: "hello" [~]
+- button "Submit" [ref=e5]
+# removed: e88
+```
+
+规则：
+
+- 必须先执行一次 `snapshot` 建立基线，否则 diff 为空。
+- diff 是 best-effort：失败不影响 action 本身的成功/失败状态。
+- 基线缓存在 browser-side state，session 关闭即丢。
+- 多步流程中每步 `--diff` 的基线是上一步 diff 后的快照，无需手动刷新。
+
 ### Semantic intent
 
 看到明显的提交按钮、cookie 横幅、关闭弹窗、下一页这类高频语义目标时，可以先用：
