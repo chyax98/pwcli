@@ -1,5 +1,5 @@
 import { defineCommand } from "citty";
-import { actionArgs } from "#cli/args.js";
+import { interactiveActionArgs } from "#cli/args.js";
 import { managedUncheck } from "#engine/act/element.js";
 import {
   actionTarget,
@@ -18,7 +18,7 @@ export default defineCommand({
     description:
       "Purpose: uncheck a checkbox control by ref, selector, or semantic locator.\nExamples:\n  pw uncheck -s task-a --label Subscribe\n  pw uncheck -s task-a --selector '#subscribe'\nNotes: use `is checked` afterward when the checked state matters. Use `--diff` to see accessibility tree changes after the action.",
   },
-  args: actionArgs,
+  args: interactiveActionArgs,
   async run({ args }) {
     const a = args as CliArgs;
     try {

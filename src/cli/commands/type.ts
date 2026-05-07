@@ -1,5 +1,5 @@
 import { defineCommand } from "citty";
-import { actionArgs } from "#cli/args.js";
+import { interactiveActionArgs } from "#cli/args.js";
 import { managedType } from "#engine/act/element.js";
 import {
   actionTarget,
@@ -18,7 +18,7 @@ export default defineCommand({
     description:
       "Purpose: type text into the focused page or a target element.\nExamples:\n  pw type -s task-a --selector '#search' query\n  pw type -s task-a 'free text'\nNotes: prefer `fill` for replacing input value; use `type` when key events matter. Use `--diff` to see accessibility tree changes after the action.",
   },
-  args: actionArgs,
+  args: interactiveActionArgs,
   async run({ args }) {
     const a = args as CliArgs;
     try {

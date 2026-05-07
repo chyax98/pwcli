@@ -409,6 +409,7 @@ export async function managedEnvironmentClockResume(options?: ManagedEnvironment
 import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import { homedir, platform } from "node:os";
 import { dirname, join, resolve } from "node:path";
+import { ensureRuntimeDir } from "#store/runtime-dir.js";
 
 export type ChromeProfileInfo = {
   browser: "chrome";
@@ -557,6 +558,7 @@ export async function writeChromeProfileConfig(
     },
   };
 
+  await ensureRuntimeDir();
   await mkdir(dirname(configPath), { recursive: true });
   await writeFile(configPath, JSON.stringify(config, null, 2), "utf8");
   return { configPath, profile };

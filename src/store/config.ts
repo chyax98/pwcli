@@ -1,6 +1,7 @@
 import { constants } from "node:fs";
 import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
+import { ensureRuntimeDir } from "./runtime-dir.js";
 
 // ─── Playwright daemon session config ────────────────────────────────────────
 
@@ -85,6 +86,7 @@ export async function writeSessionRuntimeConfig(options: {
     overrides as JsonObject,
   ) as SessionRuntimeConfig;
   const configPath = sessionRuntimeConfigPath(options.sessionName);
+  await ensureRuntimeDir();
   await mkdir(dirname(configPath), { recursive: true });
   await writeFile(configPath, JSON.stringify(config, null, 2), "utf8");
   return { configPath, config };
@@ -116,6 +118,7 @@ export async function writeBootstrapConfig(
   config: BootstrapConfig,
 ): Promise<void> {
   const configPath = bootstrapConfigPath(sessionName);
+  await ensureRuntimeDir();
   await mkdir(dirname(configPath), { recursive: true });
   await writeFile(configPath, JSON.stringify(config, null, 2), "utf8");
 }

@@ -6,6 +6,7 @@ import { dirname, join, resolve } from "node:path";
 import { assertActionAllowed } from "#store/action-policy.js";
 import { writeBootstrapConfig } from "#store/config.js";
 import { assertSessionAutomationControl } from "#store/control-state.js";
+import { ensureRuntimeDir } from "#store/runtime-dir.js";
 import { buildAllowedDomainState, isUrlAllowed, normalizeAllowedDomains } from "./domain-guard.js";
 import {
   DIAGNOSTICS_STATE_KEY,
@@ -282,6 +283,7 @@ async function acquireSessionLock(options: {
   const token = randomUUID();
   const startedAt = Date.now();
 
+  await ensureRuntimeDir(options.workspaceDir ?? process.cwd());
   await mkdir(root, { recursive: true });
 
   while (true) {

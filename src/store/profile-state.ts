@@ -1,5 +1,6 @@
 import { mkdir, readdir, rm, stat } from "node:fs/promises";
 import { resolve } from "node:path";
+import { ensureRuntimeDir } from "./runtime-dir.js";
 
 function profileStateDir() {
   return resolve(".pwcli", "profiles", "state");
@@ -14,6 +15,7 @@ export function resolveProfileStatePath(name: string) {
 }
 
 export async function ensureProfileStateDir() {
+  await ensureRuntimeDir();
   await mkdir(profileStateDir(), { recursive: true });
 }
 

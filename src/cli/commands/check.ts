@@ -1,5 +1,5 @@
 import { defineCommand } from "citty";
-import { actionArgs } from "#cli/args.js";
+import { interactiveActionArgs } from "#cli/args.js";
 import { managedCheck } from "#engine/act/element.js";
 import {
   actionTarget,
@@ -18,7 +18,7 @@ export default defineCommand({
     description:
       "Purpose: check a checkbox or radio control by ref, selector, or semantic locator.\nExamples:\n  pw check -s task-a --label 'I agree'\n  pw check -s task-a --selector '#terms'\nNotes: use `is checked` afterward when the checked state matters. Use `--diff` to see accessibility tree changes after the action.",
   },
-  args: actionArgs,
+  args: interactiveActionArgs,
   async run({ args }) {
     const a = args as CliArgs;
     try {

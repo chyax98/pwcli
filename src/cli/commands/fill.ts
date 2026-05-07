@@ -1,5 +1,5 @@
 import { defineCommand } from "citty";
-import { actionArgs } from "#cli/args.js";
+import { interactiveActionArgs } from "#cli/args.js";
 import { managedFill } from "#engine/act/element.js";
 import {
   actionTarget,
@@ -18,7 +18,7 @@ export default defineCommand({
     description:
       "Purpose: fill a single input by ref, selector, or semantic locator.\nExamples:\n  pw fill -s task-a --label Email agent@example.com\n  pw fill -s task-a --selector '#email' agent@example.com\n  pw fill -s task-a --ref e3 'value' --diff\nNotes: use `fill-form` when a whole form should be filled from JSON. Use `--diff` to see accessibility tree changes after the action.",
   },
-  args: actionArgs,
+  args: interactiveActionArgs,
   async run({ args }) {
     const a = args as CliArgs;
     try {

@@ -31,6 +31,9 @@ export const sharedArgs = { ...sessionArg, ...outputArg } as const;
 export const actionArgs = {
   ...sharedArgs,
   ...locatorArgs,
+} as const;
+export const interactiveActionArgs = {
+  ...actionArgs,
   "snap-diff": {
     type: "boolean",
     description: "Return accessibility tree diff after action",

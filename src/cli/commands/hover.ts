@@ -1,5 +1,5 @@
 import { defineCommand } from "citty";
-import { actionArgs } from "#cli/args.js";
+import { interactiveActionArgs } from "#cli/args.js";
 import { managedHover } from "#engine/act/element.js";
 import {
   actionTarget,
@@ -18,7 +18,7 @@ export default defineCommand({
     description:
       "Purpose: hover an element by ref, selector, or semantic locator.\nExamples:\n  pw hover -s task-a --text Menu\n  pw hover -s task-a --selector '.menu-trigger'\nNotes: use a read-only command after hover to inspect revealed content. Use `--diff` to see accessibility tree changes after the action.",
   },
-  args: actionArgs,
+  args: interactiveActionArgs,
   async run({ args }) {
     const a = args as CliArgs;
     try {

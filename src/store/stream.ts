@@ -1,5 +1,6 @@
 import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { ensureRuntimeDir } from "./runtime-dir.js";
 
 export type StreamSessionRecord = {
   sessionName: string;
@@ -18,6 +19,7 @@ function streamPath(sessionName: string) {
 }
 
 export async function writeStreamRecord(record: StreamSessionRecord) {
+  await ensureRuntimeDir();
   await mkdir(streamDir(), { recursive: true });
   await writeFile(streamPath(record.sessionName), JSON.stringify(record, null, 2), "utf8");
 }

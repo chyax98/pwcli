@@ -1,7 +1,9 @@
 import { appendFile, mkdir, readdir, readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
+import { ensureRuntimeDir } from "./runtime-dir.js";
 
 export async function ensureRunDir(sessionName?: string) {
+  await ensureRuntimeDir();
   const base = resolve(".pwcli", "runs");
   const runId = `${new Date().toISOString().replace(/[:.]/g, "-")}-${sessionName ?? "no-session"}`;
   const runDir = join(base, runId);

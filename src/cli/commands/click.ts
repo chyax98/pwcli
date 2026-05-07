@@ -1,5 +1,5 @@
 import { defineCommand } from "citty";
-import { actionArgs } from "#cli/args.js";
+import { interactiveActionArgs } from "#cli/args.js";
 import { managedClick } from "#engine/act/element.js";
 import {
   actionTarget,
@@ -19,7 +19,7 @@ export default defineCommand({
       "Purpose: click an element by ref, selector, or semantic locator.\nExamples:\n  pw click -s task-a --text Submit\n  pw click -s task-a --ref e12\n  pw click -s task-a --ref e12 --diff\nNotes: follow clicks with `wait` and a read-only verification command. Use `--diff` to see accessibility tree changes after the action.",
   },
   args: {
-    ...actionArgs,
+    ...interactiveActionArgs,
     button: {
       type: "enum",
       options: ["left", "right", "middle"],

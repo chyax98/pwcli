@@ -1,5 +1,5 @@
 import { defineCommand } from "citty";
-import { actionArgs } from "#cli/args.js";
+import { interactiveActionArgs } from "#cli/args.js";
 import { managedSelect } from "#engine/act/element.js";
 import {
   actionTarget,
@@ -18,7 +18,7 @@ export default defineCommand({
     description:
       "Purpose: select an option in a select control by ref, selector, or semantic locator.\nExamples:\n  pw select -s task-a --label Country US\n  pw select -s task-a --selector '#country' US\n  pw select -s task-a --ref e8 'US' --diff\nNotes: pass the option value expected by the page. Use `--diff` to see accessibility tree changes after the action.",
   },
-  args: actionArgs,
+  args: interactiveActionArgs,
   async run({ args }) {
     const a = args as CliArgs;
     try {

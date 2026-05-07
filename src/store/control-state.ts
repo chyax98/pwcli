@@ -1,5 +1,6 @@
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { ensureRuntimeDir } from "./runtime-dir.js";
 
 export type ControlStateRecord = {
   sessionName: string;
@@ -18,6 +19,7 @@ function controlStatePath(sessionName: string) {
 }
 
 export async function writeControlState(record: ControlStateRecord) {
+  await ensureRuntimeDir();
   await mkdir(controlStateDir(), { recursive: true });
   await writeFile(controlStatePath(record.sessionName), JSON.stringify(record, null, 2), "utf8");
 }
