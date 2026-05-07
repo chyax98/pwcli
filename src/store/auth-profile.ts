@@ -1,6 +1,7 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 import { mkdir, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { ensureRuntimeDir } from "./runtime-dir.js";
 
 type StoredProfile = {
   url: string;
@@ -50,6 +51,7 @@ function decryptJson(text: string): StoredProfile {
 }
 
 export async function saveAuthProfile(name: string, profile: StoredProfile) {
+  await ensureRuntimeDir();
   await mkdir(authProfileDir(), { recursive: true });
   const path = authProfilePath(name);
   await writeFile(path, JSON.stringify(encryptJson(profile), null, 2), "utf8");
@@ -63,6 +65,7 @@ export async function loadAuthProfile(name: string) {
 }
 
 export async function listAuthProfiles() {
+  await ensureRuntimeDir();
   await mkdir(authProfileDir(), { recursive: true });
   const entries = await readdir(authProfileDir(), { withFileTypes: true });
   const profiles = [];

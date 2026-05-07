@@ -1,8 +1,10 @@
 import { defineCommand } from "citty";
-import { actionArgs } from "#cli/args.js";
+import { interactiveActionArgs } from "#cli/args.js";
 import { managedType } from "#engine/act/element.js";
 import {
   actionTarget,
+  attachSnapDiff,
+  bool,
   type CliArgs,
   positionals,
   print,
@@ -14,9 +16,9 @@ export default defineCommand({
   meta: {
     name: "type",
     description:
-      "Purpose: type text into the focused page or a target element.\nExamples:\n  pw type -s task-a --selector '#search' query\n  pw type -s task-a 'free text'\nNotes: prefer `fill` for replacing input value; use `type` when key events matter.",
+      "Purpose: type text into the focused page or a target element.\nExamples:\n  pw type -s task-a --selector '#search' query\n  pw type -s task-a 'free text'\nNotes: prefer `fill` for replacing input value; use `type` when key events matter. Use `--diff` to see accessibility tree changes after the action.",
   },
-  args: actionArgs,
+  args: interactiveActionArgs,
   async run({ args }) {
     const a = args as CliArgs;
     try {
@@ -26,7 +28,9 @@ export default defineCommand({
       );
       const ref = hasFlagTarget || parts.length === 1 ? undefined : parts.shift();
       const value = parts.join(" ");
-      const result = await managedType({ sessionName: session(a), ...actionTarget(a, ref), value });
+      const sessionName = session(a);
+      const result = await managedType({ sessionName, ...actionTarget(a, ref), value });
+      if (bool(a["snap-diff"])) await attachSnapDiff(sessionName, result);
       print("type", result, a);
     } catch (error) {
       withCliError("type", a, error, "type failed");

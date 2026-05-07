@@ -392,6 +392,7 @@ export async function managedAuthProbe(options?: AuthProbeOptions) {
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
+import { ensureRuntimeDir } from "#store/runtime-dir.js";
 
 export type StateDiffOptions = {
   sessionName?: string;
@@ -1319,6 +1320,7 @@ export async function managedStateSave(file?: string, options?: { sessionName?: 
     }`,
   });
   const state = result.data.result;
+  if (!file) await ensureRuntimeDir();
   await mkdir(dirname(path), { recursive: true });
   await writeFile(path, JSON.stringify(state, null, 2), "utf8");
 

@@ -10,8 +10,15 @@ function extractSnapshotRefs(snapshot: string) {
   return [...snapshot.matchAll(/\[ref=((?:f[0-9]+)?e[0-9]+)\]/g)].map((match) => match[1]);
 }
 
-async function recordSnapshotRefEpoch(options: { sessionName?: string; snapshot: string }) {
+async function recordSnapshotRefEpoch(options: {
+  sessionName?: string;
+  snapshot: string;
+  snapDiffCache?: { yaml: string; interactive: boolean; compact: boolean };
+}) {
   const refs = extractSnapshotRefs(options.snapshot);
+  const cacheJson = options.snapDiffCache
+    ? JSON.stringify({ ...options.snapDiffCache, capturedAt: new Date().toISOString() })
+    : "null";
   const result = await managedRunCode({
     sessionName: options.sessionName,
     source: `async page => {
@@ -34,10 +41,27 @@ async function recordSnapshotRefEpoch(options: { sessionName?: string; snapshot:
         refs: ${JSON.stringify(refs)},
       };
       state.lastSnapshotRefEpoch = epoch;
+      state.lastSnapshotCache = ${cacheJson};
       return JSON.stringify(epoch);
     }`,
   });
   return result.data.result;
+}
+
+export async function loadSnapshotCache(
+  sessionName?: string,
+): Promise<{ yaml: string; interactive: boolean; compact: boolean } | null> {
+  const result = await managedRunCode({
+    sessionName,
+    source: `async page => {
+      ${pageIdRuntimePrelude()}
+      return JSON.stringify(state.lastSnapshotCache || null);
+    }`,
+  });
+  const raw = result.data.result;
+  if (raw && typeof raw === "object" && "yaml" in raw)
+    return raw as { yaml: string; interactive: boolean; compact: boolean };
+  return null;
 }
 
 export async function managedSnapshot(options?: {
@@ -68,6 +92,11 @@ export async function managedSnapshot(options?: {
     await recordSnapshotRefEpoch({
       sessionName: options?.sessionName,
       snapshot: projectedSnapshot,
+      snapDiffCache: {
+        yaml: projectedSnapshot,
+        interactive: Boolean(options?.interactive),
+        compact: Boolean(options?.compact),
+      },
     });
   }
   return {

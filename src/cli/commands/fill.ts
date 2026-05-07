@@ -1,8 +1,10 @@
 import { defineCommand } from "citty";
-import { actionArgs } from "#cli/args.js";
+import { interactiveActionArgs } from "#cli/args.js";
 import { managedFill } from "#engine/act/element.js";
 import {
   actionTarget,
+  attachSnapDiff,
+  bool,
   type CliArgs,
   positionals,
   print,
@@ -14,9 +16,9 @@ export default defineCommand({
   meta: {
     name: "fill",
     description:
-      "Purpose: fill a single input by ref, selector, or semantic locator.\nExamples:\n  pw fill -s task-a --label Email agent@example.com\n  pw fill -s task-a --selector '#email' agent@example.com\nNotes: use `fill-form` when a whole form should be filled from JSON.",
+      "Purpose: fill a single input by ref, selector, or semantic locator.\nExamples:\n  pw fill -s task-a --label Email agent@example.com\n  pw fill -s task-a --selector '#email' agent@example.com\n  pw fill -s task-a --ref e3 'value' --diff\nNotes: use `fill-form` when a whole form should be filled from JSON. Use `--diff` to see accessibility tree changes after the action.",
   },
-  args: actionArgs,
+  args: interactiveActionArgs,
   async run({ args }) {
     const a = args as CliArgs;
     try {
@@ -28,6 +30,7 @@ export default defineCommand({
       const value = parts.join(" ");
       const sessionName = session(a);
       const result = await managedFill({ sessionName, ...actionTarget(a, ref), value });
+      if (bool(a["snap-diff"])) await attachSnapDiff(sessionName, result);
       print("fill", result, a);
     } catch (error) {
       withCliError("fill", a, error, "fill failed");

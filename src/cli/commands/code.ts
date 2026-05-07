@@ -18,7 +18,7 @@ export default defineCommand({
   meta: {
     name: "code",
     description:
-      "Purpose: run a short Playwright page-context escape hatch in an existing session.\nOptions: pass inline source as the positional argument or use --file.\nExamples:\n  pw code -s task-a 'return await page.title()'\n  pw code -s task-a --file ./probe.js\nNotes: do not use code as a long workflow runner; prefer first-class commands plus explicit wait/verify steps.",
+      "Purpose: run a short Playwright page-context escape hatch in an existing session.\nOptions: pass inline source as the positional argument or use --file. Use --timeout to extend the guard limit for long operations.\nExamples:\n  pw code -s task-a 'return await page.title()'\n  pw code -s task-a --file ./probe.js --timeout 120000\nNotes: do not use code as a long workflow runner; prefer first-class commands plus explicit wait/verify steps.",
   },
   args: {
     ...sharedArgs,
@@ -28,6 +28,12 @@ export default defineCommand({
       valueHint: "path",
     },
     retry: { type: "string", description: "Retry count", default: "0", valueHint: "n" },
+    timeout: {
+      type: "string",
+      description: "Execution timeout in milliseconds",
+      default: "60000",
+      valueHint: "ms",
+    },
   },
   async run({ args }) {
     const a = args as CliArgs;
@@ -41,6 +47,7 @@ export default defineCommand({
           sessionName,
           source: (await sourceFromArgs(firstPos(a), str(a.file))) ?? "",
           retry: num(a.retry, 0),
+          timeoutMs: num(a.timeout, 60_000),
         }),
         a,
       );
