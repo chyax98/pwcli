@@ -109,7 +109,7 @@ const runs = defineCommand({
   meta: {
     name: "runs",
     description:
-      "Purpose: list recorded command/action runs.\nExamples:\n  pw diagnostics runs -s task-a --limit 20\n  pw diagnostics runs --since 2026-01-01T00:00:00.000Z\nNotes: use run ids with `diagnostics show` or `digest --run`."
+      "Purpose: list recorded command/action runs.\nExamples:\n  pw diagnostics runs -s task-a --limit 20\n  pw diagnostics runs --since 2026-01-01T00:00:00.000Z\nNotes: use run ids with `diagnostics show` or `digest --run`.",
   },
   args: {
     ...sharedArgs,
