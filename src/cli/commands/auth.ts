@@ -191,7 +191,7 @@ function providerCommand(name: string) {
         }
         if (bool(a.cache) && resolvedArgs.baseURL) {
           const cacheArgs: Record<string, string> =
-            name === "dc"
+            name === "dc" || name === "admin-v3"
               ? { baseURL: resolvedArgs.baseURL, phone: resolvedArgs.phone || "" }
               : { baseURL: resolvedArgs.baseURL };
           const cache = await loadAuthCache(name, cacheArgs);
@@ -237,7 +237,7 @@ function providerCommand(name: string) {
             });
             if (stateResult.data.result) {
               const cacheArgs: Record<string, string> =
-                name === "dc"
+                name === "dc" || name === "admin-v3"
                   ? { baseURL: resolvedArgs.baseURL, phone: resolvedArgs.phone || "" }
                   : { baseURL: resolvedArgs.baseURL };
               await saveAuthCache(name, cacheArgs, stateResult.data.result);

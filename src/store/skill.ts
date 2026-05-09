@@ -41,6 +41,11 @@ export function listPackagedSkillReferences() {
       path: resolve(root, "references", "dc-auth.md"),
       kind: "reference",
     },
+    {
+      key: "admin-v3-auth",
+      path: resolve(root, "references", "admin-v3-auth.md"),
+      kind: "reference",
+    },
   ].map((item) => ({ ...item, exists: existsSync(item.path) }));
 }
 
