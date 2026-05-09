@@ -623,7 +623,7 @@ export function buildDiagnosticsAuditConclusion(input: {
     selectedRunEvent && latestRunId
       ? [
           `run: pw diagnostics show --run ${shellArg(latestRunId)} --limit ${limit}`,
-          `run: pw diagnostics grep --run ${shellArg(latestRunId)} --text ${shellArg(grepText)} --limit ${limit}`,
+          `run: pw diagnostics show --run ${shellArg(latestRunId)} --text ${shellArg(grepText)} --limit ${limit}`,
         ]
       : null;
   const sessionFailureNextSteps = [

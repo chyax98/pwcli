@@ -78,7 +78,6 @@ for (const path of [
   ["diagnostics", "runs"],
   ["diagnostics", "digest"],
   ["diagnostics", "show"],
-  ["diagnostics", "grep"],
   ["diagnostics", "timeline"],
   ["profile", "save-state"],
   ["profile", "load-state"],
