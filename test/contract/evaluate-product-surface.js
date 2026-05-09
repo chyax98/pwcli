@@ -18,14 +18,12 @@ const surfaces = {
       ["node", "dist/cli.js", "session", "--help"],
       ["node", "dist/cli.js", "open", "--help"],
       ["node", "dist/cli.js", "status", "--help"],
-      ["node", "dist/cli.js", "observe", "--help"],
     ],
   },
   B: {
     title: "Page Reading and Workspace Facts",
     commands: [
       "read-text",
-      "text",
       "snapshot",
       "accessibility",
       "page",

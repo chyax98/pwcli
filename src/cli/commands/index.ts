@@ -4,9 +4,7 @@ const _lazy = (path: string) => () =>
 export default {
   snapshot: () => import("./snapshot.js").then((m) => m.default),
   "read-text": () => import("./read-text.js").then((m) => m.default),
-  text: () => import("./read-text.js").then((m) => m.default),
   status: () => import("./status.js").then((m) => m.default),
-  observe: () => import("./status.js").then((m) => m.default),
   screenshot: () => import("./screenshot.js").then((m) => m.default),
   pdf: () => import("./pdf.js").then((m) => m.default),
   accessibility: () => import("./accessibility.js").then((m) => m.default),

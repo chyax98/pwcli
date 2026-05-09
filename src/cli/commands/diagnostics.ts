@@ -109,7 +109,7 @@ const runs = defineCommand({
   meta: {
     name: "runs",
     description:
-      "Purpose: list recorded command/action runs.\nExamples:\n  pw diagnostics runs -s task-a --limit 20\n  pw diagnostics runs --since 2026-01-01T00:00:00.000Z\nNotes: use run ids with `diagnostics show`, `grep`, or `digest --run`.",
+      "Purpose: list recorded command/action runs.\nExamples:\n  pw diagnostics runs -s task-a --limit 20\n  pw diagnostics runs --since 2026-01-01T00:00:00.000Z\nNotes: use run ids with `diagnostics show` or `digest --run`."
   },
   args: {
     ...sharedArgs,
@@ -212,14 +212,6 @@ const show = defineCommand({
     }
   },
 });
-const grep = defineCommand({
-  ...show,
-  meta: {
-    name: "grep",
-    description:
-      "Purpose: search recorded run events by command or text.\nExamples:\n  pw diagnostics grep --run <runId> --text TypeError\n  pw diagnostics grep --run <runId> --command click\nNotes: use grep to find a specific signal inside a larger recorded run.",
-  },
-});
 const timeline = defineCommand({
   meta: {
     name: "timeline",
@@ -258,5 +250,5 @@ const timeline = defineCommand({
 
 export default defineCommand({
   meta: { name: "diagnostics", description: "Diagnostics export, runs, digest and bundle" },
-  subCommands: { export: exportCmd, bundle, runs, digest, show, grep, timeline },
+  subCommands: { export: exportCmd, bundle, runs, digest, show, timeline },
 });

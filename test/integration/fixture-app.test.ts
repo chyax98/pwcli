@@ -99,7 +99,6 @@ describe("SUPPORTED_BATCH_TOP_LEVEL", () => {
       "hover",
       "is",
       "locate",
-      "observe",
       "open",
       "page",
       "press",
