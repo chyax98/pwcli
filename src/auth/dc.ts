@@ -12,6 +12,7 @@ type DcAuthRoute = {
 type DcAuthPage = {
   url(): string;
   route(pattern: string, handler: (route: DcAuthRoute) => Promise<void>): Promise<void>;
+  unroute(pattern: string): Promise<void>;
   goto(url: string): Promise<unknown>;
   waitForTimeout(ms: number): Promise<void>;
   waitForLoadState(state: string): Promise<unknown>;
@@ -37,12 +38,12 @@ type LoginUrlPayload = {
 const DEFAULT_PHONE = "19545672859";
 const DEFAULT_SMS_CODE = "000000";
 const DEVELOPER_SUBDOMAIN = "developer";
-const DEFAULT_DC_APP_PATH = "/forge";
+const DEFAULT_DC_APP_PATH = "/v3";
 
 const dcProviderSource = String(
   async (page: DcAuthPage, args: Record<string, string | undefined>) => {
     const normalizeAppPath = (raw: unknown) => {
-      const value = String(raw || "/forge").trim() || "/forge";
+      const value = String(raw || "/v3").trim() || "/v3";
       return value.startsWith("/")
         ? value.replace(/\/$/, "") || "/"
         : `/${value.replace(/\/$/, "")}`;
@@ -54,77 +55,14 @@ const dcProviderSource = String(
       const match = String(raw || "").match(/^(https?:\/\/[^/]+)(?:\/.*)?$/);
       return match?.[1] || "";
     };
-    const pathFromUrl = (raw: unknown) => {
-      const origin = originFromUrl(raw);
-      return origin ? String(raw || "").slice(origin.length) || "/" : "";
-    };
-    const queryParam = (raw: unknown, name: string) => {
-      const decode = (value: string) => {
-        try {
-          return decodeURIComponent(value || "");
-        } catch {
-          return value || "";
-        }
-      };
-      const query =
-        String(raw || "")
-          .split("?")[1]
-          ?.split("#")[0] || "";
-      for (const part of query.split("&")) {
-        const [key, ...valueParts] = part.split("=");
-        if (decode(key) === name) {
-          return decode(valueParts.join("="));
-        }
-      }
-      return "";
-    };
-    const dcTargetFromUrl = (raw: unknown): string => {
-      const url = String(raw || "").trim();
-      const origin = originFromUrl(url);
-      if (!origin) {
-        return "";
-      }
-      const host = origin.replace(/^https?:\/\//, "");
-      if (!host.startsWith("developer")) {
-        return "";
-      }
-      const path = pathFromUrl(url);
-      if (path.startsWith(dcLoginPath)) {
-        const refer = queryParam(url, "refer");
-        return dcTargetFromUrl(refer);
-      }
-      if (path === "/" || path === "") {
-        return `${origin}${dcAppPath}`;
-      }
-      return path.startsWith(dcAppPath) ? url : "";
-    };
+
     const phone = String(args.phone ?? "19545672859").trim();
     const smsCode = String(args.smsCode ?? "000000").trim();
-    const explicitTargetUrl = String(args.targetUrl ?? "").trim();
-    let resolvedBy = "";
-    let baseURL = String(args.baseURL ?? "")
+    const baseURL = String(args.baseURL ?? "")
       .trim()
       .replace(/\/$/, "");
-
-    let targetUrl = "";
-    if (explicitTargetUrl) {
-      targetUrl = explicitTargetUrl;
-      resolvedBy = "targetUrl";
-    } else if (baseURL) {
-      targetUrl = `${baseURL}${dcAppPath}`;
-      resolvedBy = "baseURL";
-    } else {
-      const currentTargetUrl = dcTargetFromUrl(page.url());
-      targetUrl = currentTargetUrl || String(args.detectedTargetUrl ?? "").trim();
-      resolvedBy = currentTargetUrl ? "current-page" : String(args.resolvedBy ?? "").trim();
-    }
-
-    if (!baseURL && targetUrl) {
-      baseURL = originFromUrl(targetUrl);
-    }
-    if (!targetUrl && baseURL) {
-      targetUrl = `${baseURL}${dcAppPath}`;
-    }
+    const targetUrl = String(args.targetUrl ?? "").trim();
+    const resolvedBy = String(args.resolvedBy ?? "arg").trim();
 
     if (!phone) {
       throw new Error("dc auth requires phone");
@@ -136,6 +74,7 @@ const dcProviderSource = String(
     }
 
     const loginPageUrl = `${baseURL}${dcLoginPath}?refer=${encodeURIComponent(targetUrl)}`;
+
     let interceptedLoginUrlPayload: LoginUrlPayload | null = null;
 
     await page.route("**/api/auth/login/url**", async (route: DcAuthRoute) => {
@@ -171,104 +110,146 @@ const dcProviderSource = String(
       throw new Error("dc auth response did not include a business login URL");
     }
 
-    await page.goto(loginEntryUrl);
+    await page.unroute("**/api/auth/login/url**");
+    await page.goto(loginEntryUrl).catch(() => {});
 
-    const authResult = await page.evaluate(
-      async ({
-        phone: p,
-        smsCode: s,
-        loginEntryUrl: entry,
-      }: {
-        phone: string;
-        smsCode: string;
-        loginEntryUrl: string;
-      }) => {
-        const authorizeUrl = new URL(entry);
-        const callbackUrl = authorizeUrl.searchParams.get("redirect_uri");
-        const clientId = authorizeUrl.searchParams.get("client_id");
-        const state = authorizeUrl.searchParams.get("state");
-        const scope = authorizeUrl.searchParams.get("scope") || "public_profile";
-        const uid = crypto.randomUUID();
-        const baseXua = `V=1&PN=Accounts&LANG=zh_CN&VN_CODE=10&LOC=CN&PLT=PC&DS=Android&UID=${uid}&OS=MacOS&OSV=10.15.7&DT=PC`;
+    // authorize 可能检测到已登录态并自动跳转到 callback
+    await page.waitForTimeout(3000);
+    const currentUrl = page.url();
+    if (!currentUrl.includes("/login") && !currentUrl.includes("authorize")) {
+      return {
+        ok: true,
+        resolvedTargetUrl: targetUrl,
+        resolvedBy,
+        baseURL,
+        pageState: await page.evaluate(() => ({
+          url: window.location.href,
+          title: document.title,
+          readyState: document.readyState,
+          heading: document.querySelector("h1")?.textContent ?? "",
+        })),
+      };
+    }
 
-        const phoneResp = await fetch(`/api/phone/login?X-UA=${encodeURIComponent(baseXua)}`, {
-          method: "POST",
-          headers: {
-            Accept: "application/json, text/plain, */*",
-            "Content-Type": "application/x-www-form-urlencoded",
-            "X-Requested-With": "XMLHttpRequest",
-            "X-UA": baseXua,
-          },
-          body: new URLSearchParams({
-            phone_code: s,
-            phone_number: `+86${p}`,
-            session_id: "",
-            session_type: "",
-          }).toString(),
-        });
-        const phoneBody = await phoneResp.json().catch(() => undefined);
-        if (!phoneResp.ok) {
-          throw new Error(
-            `DC_AUTH_PHONE_LOGIN_FAILED:status=${phoneResp.status}:errorCode=${phoneBody?.error || "unknown"}`,
-          );
-        }
+    // 等页面稳定后再执行 evaluate
+    await page.waitForTimeout(3000);
 
-        const getVid = () => {
-          const match = (globalThis.document?.cookie ?? "").match(
-            /(?:^|;\s*)ACCOUNTS_USER_ID=([^;]+)/,
-          );
-          return match?.[1] || "0";
-        };
+    let authResult: { redirectUri?: string } | undefined;
+    try {
+      authResult = await page.evaluate(
+        async ({
+          phone: p,
+          smsCode: s,
+          loginEntryUrl: entry,
+        }: {
+          phone: string;
+          smsCode: string;
+          loginEntryUrl: string;
+        }) => {
+          const authorizeUrl = new URL(entry);
+          const callbackUrl = authorizeUrl.searchParams.get("redirect_uri");
+          const clientId = authorizeUrl.searchParams.get("client_id");
+          const state = authorizeUrl.searchParams.get("state");
+          const scope = authorizeUrl.searchParams.get("scope") || "public_profile";
+          const uid = crypto.randomUUID();
+          const baseXua = `V=1&PN=Accounts&LANG=zh_CN&VN_CODE=10&LOC=CN&PLT=PC&DS=Android&UID=${uid}&OS=MacOS&OSV=10.15.7&DT=PC`;
 
-        const buildAuthRequest = (vid: string) => {
-          const xua = `${baseXua.replace("&DT=PC", "")}&VID=${vid}&DT=PC`;
-          const parameters = new URLSearchParams({
-            client_id: clientId || "",
-            redirect_uri: callbackUrl || "",
-            response_type: "code",
-            state: state || "",
-            scope,
-            session_id: "",
-            session_type: "",
-          }).toString();
-          return {
-            xua,
-            url: `/api/oauth2/auth/v2?parameters=${encodeURIComponent(parameters)}&X-UA=${encodeURIComponent(xua)}`,
+          const phoneResp = await fetch(`/api/phone/login?X-UA=${encodeURIComponent(baseXua)}`, {
+            method: "POST",
+            headers: {
+              Accept: "application/json, text/plain, */*",
+              "Content-Type": "application/x-www-form-urlencoded",
+              "X-Requested-With": "XMLHttpRequest",
+              "X-UA": baseXua,
+            },
+            body: new URLSearchParams({
+              phone_code: s,
+              phone_number: `+86${p}`,
+              session_id: "",
+              session_type: "",
+            }).toString(),
+          });
+          const phoneBody = await phoneResp.json().catch(() => undefined);
+          if (!phoneResp.ok) {
+            throw new Error(
+              `DC_AUTH_PHONE_LOGIN_FAILED:status=${phoneResp.status}:errorCode=${phoneBody?.error || "unknown"}`,
+            );
+          }
+
+          const getVid = () => {
+            const match = (globalThis.document?.cookie ?? "").match(
+              /(?:^|;\s*)ACCOUNTS_USER_ID=([^;]+)/,
+            );
+            return match?.[1] || "0";
           };
-        };
 
-        let authInfo = buildAuthRequest(getVid());
-        let authResp = await fetch(authInfo.url, {
-          headers: {
-            Accept: "application/json, text/plain, */*",
-            "X-Requested-With": "XMLHttpRequest",
-            "X-UA": authInfo.xua,
-          },
-        });
-        let authBody = await authResp.json().catch(() => undefined);
+          const buildAuthRequest = (vid: string) => {
+            const xua = `${baseXua.replace("&DT=PC", "")}&VID=${vid}&DT=PC`;
+            const parameters = new URLSearchParams({
+              client_id: clientId || "",
+              redirect_uri: callbackUrl || "",
+              response_type: "code",
+              state: state || "",
+              scope,
+              session_id: "",
+              session_type: "",
+            }).toString();
+            return {
+              xua,
+              url: `/api/oauth2/auth/v2?parameters=${encodeURIComponent(parameters)}&X-UA=${encodeURIComponent(xua)}`,
+            };
+          };
 
-        if (authBody?.data?.error === "invalid_xua") {
-          authInfo = buildAuthRequest(getVid());
-          authResp = await fetch(authInfo.url, {
+          let authInfo = buildAuthRequest(getVid());
+          let authResp = await fetch(authInfo.url, {
             headers: {
               Accept: "application/json, text/plain, */*",
               "X-Requested-With": "XMLHttpRequest",
               "X-UA": authInfo.xua,
             },
           });
-          authBody = await authResp.json().catch(() => undefined);
-        }
+          let authBody = await authResp.json().catch(() => undefined);
 
+          if (authBody?.data?.error === "invalid_xua") {
+            authInfo = buildAuthRequest(getVid());
+            authResp = await fetch(authInfo.url, {
+              headers: {
+                Accept: "application/json, text/plain, */*",
+                "X-Requested-With": "XMLHttpRequest",
+                "X-UA": authInfo.xua,
+              },
+            });
+            authBody = await authResp.json().catch(() => undefined);
+          }
+
+          return {
+            redirectUri: authBody?.data?.redirect_uri || "",
+          };
+        },
+        {
+          phone,
+          smsCode,
+          loginEntryUrl,
+        },
+      );
+    } catch (evaluateError) {
+      const fallbackUrl = page.url();
+      if (!fallbackUrl.includes("/login") && !fallbackUrl.includes("authorize")) {
         return {
-          redirectUri: authBody?.data?.redirect_uri || "",
+          ok: true,
+          resolvedTargetUrl: targetUrl,
+          resolvedBy,
+          baseURL,
+          pageState: await page.evaluate(() => ({
+            url: window.location.href,
+            title: document.title,
+            readyState: document.readyState,
+            heading: document.querySelector("h1")?.textContent ?? "",
+          })),
         };
-      },
-      {
-        phone,
-        smsCode,
-        loginEntryUrl,
-      },
-    );
+      }
+      throw evaluateError;
+    }
 
     if (!authResult?.redirectUri) {
       throw new Error("dc auth did not receive redirectUri");
@@ -325,17 +306,17 @@ export const dcAuthProvider: AuthProviderSpec = {
     {
       name: "appPath",
       defaultValue: DEFAULT_DC_APP_PATH,
-      description: "DC 应用路径后缀，默认 /forge；后续 DCNext 路径变更时可覆盖。",
+      description: "DC 应用路径后缀，默认 /v3；后续 DCNext 路径变更时可覆盖。",
     },
   ],
   examples: [
     "pw auth dc --session dc2",
     "pw auth dc --session dc2 --arg targetUrl='<target-url>'",
-    "pw auth dc --session dc2 --arg baseURL='<base-url>' --arg appPath=/forge",
+    "pw auth dc --session dc2 --arg baseURL='<base-url>' --arg appPath=/v3",
     "pw auth dc --session dc2 --arg phone=19545672859",
   ],
   notes: [
-    "`targetUrl` 是业务目标 URL；传入后 provider 会推导 `baseURL`。",
+    "`targetUrl` 是业务目标 URL；传入后 provider 会推导 `baseURL` 。",
     "`phone`、`smsCode`、`baseURL`、`appPath` 都是普通 provider 参数。",
     "`auth dc` 只在现有 session 内执行登录，不创建 session。",
   ],
@@ -374,9 +355,9 @@ async function resolveDcArgs(
     return resolved;
   }
 
-  resolved.detectedTargetUrl = buildLocalDcTargetUrl(
-    String(providerArgs.appPath || DEFAULT_DC_APP_PATH),
-  );
+  const localBaseURL = buildLocalDcBaseURL(getLocalIp());
+  resolved.baseURL = localBaseURL;
+  resolved.targetUrl = `${localBaseURL}${String(providerArgs.appPath || DEFAULT_DC_APP_PATH)}`;
   resolved.resolvedBy = "local-ip";
   return resolved;
 }
