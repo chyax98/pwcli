@@ -47,8 +47,16 @@ pw read-text -s dc-main --max-chars 1200
 pw auth probe -s dc-main
 ```
 
-`appPath` 默认是 `/forge`。后续 DCNext 如果更换路径，只覆盖 `appPath`，不要在 workflow 里写死新的登录路径。
+`appPath` 默认是 `/v3`。后续 DCNext 如果更换路径，只覆盖 `appPath`，不要在 workflow 里写死新的登录路径。
 
+
+强制重新登录（跳过自动缓存）：
+
+```bash
+pw auth dc --no-cache -s <session> --arg targetUrl='<url>'
+```
+
+provider 会自动按 `baseURL + phone` 缓存登录态到 `~/.pwcli/auth-cache/`。换手机号或域名时 cache key 不同，自动隔离。
 ## 成功判定
 
 - 页面不在登录页、验证码页或 challenge。

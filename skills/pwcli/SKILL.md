@@ -217,6 +217,8 @@ pw cookies delete -s auth-a token --domain localhost
 - `PWCLI_VAULT_KEY` 是必须的，没有就不能保存或读取加密 auth profile。
 - 当前版本不会替你创建 session；先 `session create`，再 `profile login-auth`。
 - `login-auth` 内部会打开配置里的 URL，执行 `fill-form`，再执行 `act submit_form`。
+- `auth` 执行 provider 成功后，会自动缓存 storage state 到全局 `~/.pwcli/auth-cache/`。下次同 provider + 同参数（如 dc 的 baseURL + phone）会自动尝试恢复，恢复失败再执行 provider。
+- 需要强制重新登录时加 `--no-cache`。
 
 ### 表单分析和批量填充
 
@@ -300,6 +302,8 @@ else:
 ```
 
 `auth dc` 不判断 RND、本地、线上，也不理解 bug 语义。URL 是否是本轮操作目标，由上层任务流程决定。
+
+provider 会自动按 `baseURL + phone` 缓存登录态；换账号或环境时需要重新执行，或用 `--no-cache` 强制刷新。
 
 专项规则见 `references/dc-auth.md`。
 

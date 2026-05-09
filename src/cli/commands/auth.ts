@@ -7,9 +7,10 @@ import {
   parseKeyValueArgs,
 } from "#auth/registry.js";
 import { sharedArgs } from "#cli/args.js";
-import { managedAuthProbe, managedStateSave } from "#engine/identity.js";
+import { managedAuthProbe, managedStateLoad, managedStateSave } from "#engine/identity.js";
 import { managedRunCode } from "#engine/shared.js";
 import { assertActionAllowed } from "#store/action-policy.js";
+import { loadAuthCache, saveAuthCache } from "#store/auth-cache.js";
 import { assertSessionAutomationControl } from "#store/control-state.js";
 import {
   bool,
@@ -146,6 +147,11 @@ function providerCommand(name: string) {
         description: "Provider arg key=value. Repeat for targetUrl, phone, smsCode, baseURL, etc.",
         valueHint: "key=value",
       },
+      cache: {
+        type: "boolean",
+        default: true,
+        description: "Use auth cache (default true). Pass --no-cache to disable.",
+      },
     },
     async run({ args }) {
       const a = args as CliArgs;
@@ -157,10 +163,90 @@ function providerCommand(name: string) {
         const sessionName = session(a);
         await assertActionAllowed("auth", `auth ${name}`);
         await assertSessionAutomationControl(sessionName, `auth ${name}`);
+
+        const probeUrl = resolvedArgs.targetUrl || resolvedArgs.baseURL;
+        if (probeUrl) {
+          const probeResult = await managedRunCode({
+            sessionName,
+            source: `async page => {
+              await page.goto(${JSON.stringify(probeUrl)});
+              await page.waitForLoadState("networkidle").catch(() => {});
+              await page.waitForTimeout(2000);
+              const url = page.url();
+              const title = await page.title().catch(() => "");
+              return { url, title, isLoginPage: url.includes("/login") || title.includes("登录") || title.toLowerCase().includes("login") };
+            }`,
+          });
+          const probe = probeResult.data.result as Record<string, unknown> | undefined;
+          if (probe && !probe.isLoginPage) {
+            print(
+              "auth",
+              {
+                data: { provider: name, skipped: "already-authenticated", ...probe },
+              },
+              a,
+            );
+            return;
+          }
+        }
+        if (bool(a.cache) && resolvedArgs.baseURL) {
+          const cacheArgs: Record<string, string> =
+            name === "dc"
+              ? { baseURL: resolvedArgs.baseURL, phone: resolvedArgs.phone || "" }
+              : { baseURL: resolvedArgs.baseURL };
+          const cache = await loadAuthCache(name, cacheArgs);
+          if (cache.found) {
+            await managedStateLoad(cache.path, { sessionName });
+            if (probeUrl) {
+              // 先导航到目标页让自动跳转完成，再检查是否已登录
+              const navResult = await managedRunCode({
+                sessionName,
+                source: `async page => {
+                  await page.goto(${JSON.stringify(probeUrl)});
+                  await page.waitForLoadState("networkidle").catch(() => {});
+                  const url = page.url();
+                  const title = await page.title().catch(() => "");
+                  return { url, title, isLoginPage: url.includes("/login") || title.includes("登录") || title.toLowerCase().includes("login") };
+                }`,
+              });
+              const result = navResult.data.result as Record<string, unknown> | undefined;
+              if (result && !result.isLoginPage) {
+                print(
+                  "auth",
+                  {
+                    data: { provider: name, fromCache: true, ...result },
+                  },
+                  a,
+                );
+                return;
+              }
+            }
+          }
+        }
+
         const result = await managedRunCode({
           sessionName,
           source: buildProviderInvocationSource(loadAuthProviderSource(provider), resolvedArgs),
         });
+
+        if (bool(a.cache) && resolvedArgs.baseURL) {
+          try {
+            const stateResult = await managedRunCode({
+              sessionName,
+              source: `async page => { return await page.context().storageState(); }`,
+            });
+            if (stateResult.data.result) {
+              const cacheArgs: Record<string, string> =
+                name === "dc"
+                  ? { baseURL: resolvedArgs.baseURL, phone: resolvedArgs.phone || "" }
+                  : { baseURL: resolvedArgs.baseURL };
+              await saveAuthCache(name, cacheArgs, stateResult.data.result);
+            }
+          } catch {
+            // cache save failure is non-fatal
+          }
+        }
+
         if (str(a["save-state"])) await managedStateSave(str(a["save-state"]), { sessionName });
         const providerResult = result.data.result as Record<string, unknown> | undefined;
         print(
