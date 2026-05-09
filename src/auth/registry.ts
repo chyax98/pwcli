@@ -63,7 +63,6 @@ const fixtureAuthProviderSource = String(
 const AUTH_PROVIDERS: AuthProviderSpec[] = [
   dcAuthProvider,
   adminV3AuthProvider,
-  dcAuthProvider,
   {
     name: "fixture-auth",
     summary: "内部测试 provider，仅用于 auth contract 回归验证",
