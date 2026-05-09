@@ -452,7 +452,7 @@ assert_json "$show_json" "show filtered by command" \
 show_alias_json="$(run_json show-alias diagnostics show --run "$bug_run_id" --command click --limit 1 --fields at=ts,cmd=command,status=diagnosticsDelta.lastNetwork.status)"
 assert_json "$show_alias_json" "show can alias projected fields" \
   "data.ok === true && data.data.events.length === 1 && data.data.events[0].cmd === 'click' && data.data.events[0].command === undefined"
-grep_json="$(run_json grep diagnostics grep --run "$bug_run_id" --text CHECKOUT_TIMEOUT --limit 10)"
+grep_json="$(run_json grep diagnostics show --run "$bug_run_id" --text CHECKOUT_TIMEOUT --limit 10)"
 assert_json "$grep_json" "grep finds bug payload" \
   "data.ok === true && data.data.count >= 1"
 export_text_json="$(run_json export-text diagnostics export --session "$SESSION_NAME" --out "${TMP_DIR}/diag-checkout.json" --section network --text fail500 --fields at=timestamp,method,url,body=requestBodySnippet)"

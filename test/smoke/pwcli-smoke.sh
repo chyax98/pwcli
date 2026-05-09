@@ -932,9 +932,9 @@ show_run_alias_json="$(run_json diagnostics-show-fields-alias diagnostics show -
 assert_json "$show_run_alias_json" "diagnostics show can alias projected fields" \
   "data.ok === true && data.data.events.length === 1 && data.data.events[0].cmd === 'click' && data.data.events[0].command === undefined && typeof data.data.events[0].network === 'number'"
 
-log "diagnostics grep filtered"
-grep_run_json="$(run_json diagnostics-grep-run diagnostics grep --run "$RUN_ID" --text fixture-route-hit-run-1 --command click --limit 5)"
-assert_json "$grep_run_json" "diagnostics grep filters by command and text" \
+log "diagnostics show filtered"
+grep_run_json="$(run_json diagnostics-grep-run diagnostics show --run "$RUN_ID" --text fixture-route-hit-run-1 --command click --limit 5)"
+assert_json "$grep_run_json" "diagnostics show filters by command and text" \
   "data.ok === true && data.data.runId === '${RUN_ID}' && data.data.count >= 1 && data.data.events.every(item => item.command === 'click')"
 
 log "diagnostics export filtered"
