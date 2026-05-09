@@ -18,7 +18,7 @@ describe("page reading", { concurrency: false }, () => {
     }
   });
 
-  it("observe status returns current page url", async () => {
+  it("status returns current page url", async () => {
     const name = makeSessionName();
     sessionsToClean.push(name);
 
@@ -33,8 +33,8 @@ describe("page reading", { concurrency: false }, () => {
       "json",
     ]);
 
-    const result = await runPw(["observe", "status", "--session", name, "--output", "json"]);
-    assert.equal(result.code, 0, `observe failed: ${result.stderr}`);
+    const result = await runPw(["status", "--session", name, "--output", "json"]);
+    assert.equal(result.code, 0, `status failed: ${result.stderr}`);
     const json = result.json as {
       ok: boolean;
       page: { url: string; title: string };
@@ -99,8 +99,8 @@ describe("page reading", { concurrency: false }, () => {
       "json",
     ]);
 
-    const result = await runPw(["text", "--session", name, "--output", "json"]);
-    assert.equal(result.code, 0, `text alias failed: ${result.stderr}`);
+    const result = await runPw(["read-text", "--session", name, "--output", "json"]);
+    assert.equal(result.code, 0, `read-text failed: ${result.stderr}`);
     const json = result.json as {
       ok: boolean;
       command: string;

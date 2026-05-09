@@ -244,8 +244,7 @@ export async function executeBatchStep(tokens: string[], sessionName: string) {
         data: await managedScreenshot({ sessionName, ref, selector, path, fullPage }),
       };
     }
-    case "read-text":
-    case "text": {
+    case "read-text": {
       let selector: string | undefined;
       let includeOverlay = true;
       let maxChars: number | undefined;
@@ -284,10 +283,7 @@ export async function executeBatchStep(tokens: string[], sessionName: string) {
           data: await managedPageDialogs({ sessionName }),
         };
       throw new Error(`unsupported page batch step '${rawStep}'`);
-    case "observe":
     case "status":
-      if (command === "observe" && args[0] !== "status")
-        throw new Error(`unsupported observe batch step '${rawStep}'`);
       return { ok: true, command: "status", data: await managedObserveStatus({ sessionName }) };
     case "errors":
       if (args[0] !== "recent" && args[0] !== "clear")

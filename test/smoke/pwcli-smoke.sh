@@ -539,7 +539,7 @@ assert_json "$observe_json" "observe status workspace is healthy" \
 
 log "batch surfaces"
 batch_out="${TMP_DIR}/batch.json"
-if ! printf '[["observe","status"],["page","dialogs"]]' | "${CLI[@]}" batch --session "$SESSION_NAME" --stdin-json --output json >"$batch_out"; then
+if ! printf '[["status"],["page","dialogs"]]' | "${CLI[@]}" batch --session "$SESSION_NAME" --stdin-json --output json >"$batch_out"; then
   log "command failed: ${CLI[*]} batch --session ${SESSION_NAME} --stdin-json"
   cat "$batch_out" >&2 || true
   exit 1
@@ -582,7 +582,7 @@ assert_json "$batch_continue_json" "batch continue-on-error preserves success en
   "data.ok === true && data.data.summary.stepCount === 2 && data.data.summary.successCount === 1 && data.data.summary.failedCount === 1 && data.data.results.length === 2 && data.data.results[0].ok === false && data.data.results[0].error.message.includes('batch continue smoke failure') && data.data.results[1].ok === true"
 
 batch_verbose_out="${TMP_DIR}/batch-verbose.json"
-if ! printf '[["observe","status"],["page","dialogs"]]' | "${CLI[@]}" batch --session "$SESSION_NAME" --stdin-json --include-results --output json >"$batch_verbose_out"; then
+if ! printf '[["status"],["page","dialogs"]]' | "${CLI[@]}" batch --session "$SESSION_NAME" --stdin-json --include-results --output json >"$batch_verbose_out"; then
   log "command failed: ${CLI[*]} --output json batch --session ${SESSION_NAME} --stdin-json --include-results"
   cat "$batch_verbose_out" >&2 || true
   exit 1
@@ -592,7 +592,7 @@ assert_json "$batch_verbose_json" "batch include-results keeps full step outputs
   "data.ok === true && Array.isArray(data.data.results) && data.data.results.length === 2 && data.data.results.every(item => item.ok === true)"
 
 batch_summary_only_out="${TMP_DIR}/batch-summary-only.json"
-if ! printf '[["observe","status"],["page","dialogs"]]' | "${CLI[@]}" batch --session "$SESSION_NAME" --stdin-json --summary-only --output json >"$batch_summary_only_out"; then
+if ! printf '[["status"],["page","dialogs"]]' | "${CLI[@]}" batch --session "$SESSION_NAME" --stdin-json --summary-only --output json >"$batch_summary_only_out"; then
   log "command failed: ${CLI[*]} --output json batch --session ${SESSION_NAME} --stdin-json --summary-only"
   cat "$batch_summary_only_out" >&2 || true
   exit 1
@@ -602,7 +602,7 @@ assert_json "$batch_summary_only_json" "batch summary-only omits full step outpu
   "data.ok === true && data.data.completed === true && data.data.summary.stepCount === 2 && data.data.results === undefined"
 
 batch_text_out="${TMP_DIR}/batch-text.txt"
-printf '[["observe","status"],["page","dialogs"]]' | "${TEXT_CLI[@]}" batch --session "$SESSION_NAME" --stdin-json >"$batch_text_out"
+printf '[["status"],["page","dialogs"]]' | "${TEXT_CLI[@]}" batch --session "$SESSION_NAME" --stdin-json >"$batch_text_out"
 if ! grep -q 'batch completed=true steps=2 success=2 failed=0' "$batch_text_out"; then
   log "batch text summary missing"
   cat "$batch_text_out" >&2
@@ -636,7 +636,7 @@ if ! grep -q 'batch does not support session lifecycle' "$batch_text_fail_out"; 
 fi
 
 batch_text_verbose_out="${TMP_DIR}/batch-text-verbose.txt"
-printf '[["observe","status"],["page","dialogs"]]' | "${TEXT_CLI[@]}" batch --session "$SESSION_NAME" --stdin-json --include-results >"$batch_text_verbose_out"
+printf '[["status"],["page","dialogs"]]' | "${TEXT_CLI[@]}" batch --session "$SESSION_NAME" --stdin-json --include-results >"$batch_text_verbose_out"
 if ! grep -q 'steps:' "$batch_text_verbose_out"; then
   log "batch include-results text should show compact steps"
   cat "$batch_text_verbose_out" >&2

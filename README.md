@@ -24,7 +24,7 @@ node dist/cli.js --help
 
 ```bash
 pw session create bug-a --headed --open 'https://example.com'
-pw observe status -s bug-a
+pw status -s bug-a
 pw read-text -s bug-a --max-chars 2000
 pw snapshot -i -s bug-a
 pw find-best -s bug-a submit_form

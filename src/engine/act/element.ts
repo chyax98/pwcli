@@ -209,7 +209,7 @@ export function reSnapshotRecovery(sessionName: string | undefined): ActionFailu
 export function inspectRecovery(sessionName: string | undefined): ActionFailureRecovery {
   return makeRecovery("inspect", [
     `pw snapshot -i ${sessionFlag(sessionName)}`,
-    `pw observe status ${sessionFlag(sessionName)}`,
+    `pw status ${sessionFlag(sessionName)}`,
   ]);
 }
 
@@ -217,7 +217,7 @@ export function inspectWithStatusFirstRecovery(
   sessionName: string | undefined,
 ): ActionFailureRecovery {
   return makeRecovery("inspect", [
-    `pw observe status ${sessionFlag(sessionName)}`,
+    `pw status ${sessionFlag(sessionName)}`,
     `pw snapshot -i ${sessionFlag(sessionName)}`,
   ]);
 }
@@ -301,7 +301,7 @@ export function actionTimeoutOrNotActionableFailure(
     retryable: true,
     suggestions: [
       "Wait for the target with a selector before retrying the action",
-      `Check page readiness with \`pw observe status ${sessionFlag(context.sessionName)}\``,
+      `Check page readiness with \`pw status ${sessionFlag(context.sessionName)}\``,
       "Clear any dialog, modal, or overlay that may block the target",
     ],
     recovery: inspectWithStatusFirstRecovery(context.sessionName),

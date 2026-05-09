@@ -1472,7 +1472,7 @@ export function sessionRoutingError(message: string) {
       ],
       recovery: {
         kind: "retry" as const,
-        commands: ["pw session status <name>", "pw observe status --session <name>"],
+        commands: ["pw session status <name>", "pw status --session <name>"],
       },
       details: { session: name, timeoutMs: Number(timeoutMs) },
     };

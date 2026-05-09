@@ -38,8 +38,8 @@ pw skill show --full
 |---|---|---|
 | 会话生命周期 | `session` | `pw session --help` |
 | 导航 | `open` | `pw open --help` |
-| 页面概览 | `status` / `observe` / `page` / `tab` | `pw status --help` |
-| 文本和结构读取 | `read-text` / `text` / `snapshot` / `accessibility` | `pw read-text --help` |
+| 页面概览 | `status` / `page` / `tab` | `pw status --help` |
+| 文本和结构读取 | `read-text` / `snapshot` / `accessibility` | `pw read-text --help` |
 | 定位和状态检查 | `locate` / `get` / `is` / `verify` | `pw locate --help` |
 | semantic intent | `find-best` / `act` | `pw find-best --help` |
 | 点击和输入 | `click` / `fill` / `type` / `press` | `pw click --help` |

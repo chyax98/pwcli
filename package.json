@@ -20,7 +20,7 @@
     "dev": "tsx src/cli.ts",
     "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
     "build": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsc -p tsconfig.json",
-    "prepare": "npm run build",
+    "prepare": "node -e \"try{require('child_process').execSync('git config core.hooksPath .githooks',{stdio:'ignore'})}catch{}\" && npm run build",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "biome check --diagnostic-level=error .",
     "lint:fix": "biome check --write .",

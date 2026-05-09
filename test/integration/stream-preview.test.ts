@@ -43,10 +43,10 @@ try {
   assert.equal(statusPayload.ok, true);
   assert.equal(statusPayload.data.healthy, true);
 
-  const observe = await runPw(["observe", "status", "--session", sessionName, "--output", "json"], {
+  const observe = await runPw(["status", "--session", sessionName, "--output", "json"], {
     cwd: workspaceDir,
   });
-  assert.equal(observe.code, 0, `observe status failed: ${observe.stderr}`);
+  assert.equal(observe.code, 0, `status failed: ${observe.stderr}`);
   const observePayload = observe.json as {
     ok: boolean;
     data: { stream?: { supported?: boolean; active?: boolean; healthy?: boolean; url?: string } };

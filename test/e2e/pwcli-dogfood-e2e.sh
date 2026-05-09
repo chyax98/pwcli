@@ -123,7 +123,7 @@ printf 'upload-check\n' >"$UPLOAD_FILE"
 mkdir -p "$DOWNLOAD_DIR"
 cat >"$BATCH_FILE" <<'JSON'
 [
-  ["observe", "status"],
+  ["status"],
   ["page", "dialogs"],
   ["route", "list"]
 ]

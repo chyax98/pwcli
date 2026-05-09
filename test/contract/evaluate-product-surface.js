@@ -18,21 +18,11 @@ const surfaces = {
       ["node", "dist/cli.js", "session", "--help"],
       ["node", "dist/cli.js", "open", "--help"],
       ["node", "dist/cli.js", "status", "--help"],
-      ["node", "dist/cli.js", "observe", "--help"],
     ],
   },
   B: {
     title: "Page Reading and Workspace Facts",
-    commands: [
-      "read-text",
-      "text",
-      "snapshot",
-      "accessibility",
-      "page",
-      "tab",
-      "screenshot",
-      "pdf",
-    ],
+    commands: ["read-text", "snapshot", "accessibility", "page", "tab", "screenshot", "pdf"],
     checks: [
       ["tsx", "--test", "test/integration/page-reading.test.ts"],
       ["tsx", "--test", "test/integration/accessibility.test.ts"],
