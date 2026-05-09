@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { adminV3AuthProvider } from "./admin-v3.js";
 import { dcAuthProvider } from "./dc.js";
 
 type FixtureAuthPage = {
@@ -60,6 +61,8 @@ const fixtureAuthProviderSource = String(
 );
 
 const AUTH_PROVIDERS: AuthProviderSpec[] = [
+  dcAuthProvider,
+  adminV3AuthProvider,
   dcAuthProvider,
   {
     name: "fixture-auth",

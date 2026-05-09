@@ -305,7 +305,24 @@ else:
 
 provider 会自动按 `baseURL + phone` 缓存登录态；换账号或环境时需要重新执行，或用 `--no-cache` 强制刷新。
 
-专项规则见 `references/dc-auth.md`。
+HR:专项规则见 `references/dc-auth.md`。
+
+### Admin V3
+
+看到 TapTap Admin V3 / 管理后台 / `www.xdrnd.cn/admin-v3`，优先使用内置 `admin-v3` provider。
+
+```text
+if 调用方已选定本轮要操作的 URL:
+  pw auth admin-v3 -s <session> --arg targetUrl='<url>'
+else:
+  pw auth admin-v3 -s <session>
+```
+
+`auth admin-v3` 使用 accounts 站点的 phone login API + `/auth/login` OAuth 自动完成，不需要 authorize 页面 evaluate。
+
+provider 会自动按 `baseURL + phone` 缓存登录态。
+
+专项规则见 `references/admin-v3-auth.md`。
 
 ### 受控测试
 
@@ -321,7 +338,8 @@ pw verify text -s test-a --text '<expected>'
 ### 失败恢复
 
 不要在失败后盲目重试。先读状态：
-
+PS:| DC provider | `references/dc-auth.md` |
+VT:| Admin V3 provider | `references/admin-v3-auth.md` |
 ```bash
 pw status -s <session>
 pw diagnostics digest -s <session>
