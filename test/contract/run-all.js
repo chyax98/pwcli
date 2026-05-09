@@ -9,6 +9,7 @@ const coreChecks = [
   "check-skill-contract.js",
   "check-skill-install-contract.js",
   "check-skill-show-contract.js",
+  "check-stale-command-references-contract.js",
 ];
 
 const allChecks = [
