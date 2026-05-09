@@ -20,7 +20,7 @@
     "dev": "tsx src/cli.ts",
     "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
     "build": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsc -p tsconfig.json",
-    "prepare": "node -e \"try{require('child_process').execSync('git config core.hooksPath .githooks',{stdio:'ignore'})}catch{}\" && npm run build",
+    "prepare": "husky",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "biome check --diagnostic-level=error .",
     "lint:fix": "biome check --write .",
@@ -50,7 +50,12 @@
   "devDependencies": {
     "@biomejs/biome": "2.4.12",
     "@types/node": "25.6.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.3",
     "tsx": "4.20.6",
     "typescript": "6.0.3"
+  },
+  "lint-staged": {
+    "*.{ts,js,mjs,cjs,json,md}": "biome check --diagnostic-level=error"
   }
 }
