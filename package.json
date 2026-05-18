@@ -1,6 +1,6 @@
 {
 	"name": "@chyax/pwcli",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"private": false,
 	"description": "Agent-first Playwright CLI — browser facts, actions, diagnostics and recovery for AI agents",
 	"type": "module",
