@@ -1,23 +1,30 @@
 import assert from "node:assert/strict";
 import { rm } from "node:fs/promises";
 import { createServer } from "node:http";
-import { createWorkspace, removeWorkspace, runPw, uniqueSessionName } from "./_helpers.ts";
+import {
+	createWorkspace,
+	removeWorkspace,
+	runPw,
+	uniqueSessionName,
+} from "./_helpers.ts";
 
 const workspaceDir = await createWorkspace("pwcli-storage-indexeddb-");
 const sessionName = uniqueSessionName("idb");
 
 const server = createServer((_request, response) => {
-  response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
-  response.end(`<!doctype html><title>pwcli indexeddb fixture</title><main>indexeddb</main>`);
+	response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+	response.end(
+		`<!doctype html><title>pwcli indexeddb fixture</title><main>indexeddb</main>`,
+	);
 });
 
 await new Promise<void>((resolve) => {
-  server.listen(0, "127.0.0.1", () => resolve());
+	server.listen(0, "127.0.0.1", () => resolve());
 });
 
 const address = server.address();
 if (!address || typeof address === "string") {
-  throw new Error("failed to bind fixture server");
+	throw new Error("failed to bind fixture server");
 }
 const startUrl = `http://127.0.0.1:${address.port}/`;
 
@@ -50,89 +57,122 @@ const seedScript = `async page => {
 }`;
 
 try {
-  const createResult = await runPw(
-    ["session", "create", sessionName, "--headless", "--open", startUrl, "--output", "json"],
-    { cwd: workspaceDir },
-  );
-  assert.equal(createResult.code, 0, `session create failed: ${JSON.stringify(createResult)}`);
+	const createResult = await runPw(
+		[
+			"session",
+			"create",
+			sessionName,
+			"--headless",
+			"--open",
+			startUrl,
+			"--output",
+			"json",
+		],
+		{ cwd: workspaceDir },
+	);
+	assert.equal(
+		createResult.code,
+		0,
+		`session create failed: ${JSON.stringify(createResult)}`,
+	);
 
-  const seedResult = await runPw(
-    ["code", seedScript, "--session", sessionName, "--output", "json"],
-    {
-      cwd: workspaceDir,
-    },
-  );
-  assert.equal(seedResult.code, 0, `seed code failed: ${JSON.stringify(seedResult)}`);
+	const seedResult = await runPw(
+		["code", seedScript, "--session", sessionName, "--output", "json"],
+		{
+			cwd: workspaceDir,
+		},
+	);
+	assert.equal(
+		seedResult.code,
+		0,
+		`seed code failed: ${JSON.stringify(seedResult)}`,
+	);
 
-  const exportResult = await runPw(
-    [
-      "storage",
-      "indexeddb",
-      "export",
-      "--session",
-      sessionName,
-      "--database",
-      "app-db",
-      "--store",
-      "sessions",
-      "--limit",
-      "1",
-      "--include-records",
-      "--output",
-      "json",
-    ],
-    { cwd: workspaceDir },
-  );
-  assert.equal(exportResult.code, 0, `indexeddb export failed: ${JSON.stringify(exportResult)}`);
+	const exportResult = await runPw(
+		[
+			"storage",
+			"indexeddb",
+			"export",
+			"--session",
+			sessionName,
+			"--database",
+			"app-db",
+			"--store",
+			"sessions",
+			"--limit",
+			"1",
+			"--include-records",
+			"--output",
+			"json",
+		],
+		{ cwd: workspaceDir },
+	);
+	assert.equal(
+		exportResult.code,
+		0,
+		`indexeddb export failed: ${JSON.stringify(exportResult)}`,
+	);
 
-  const envelope = exportResult.json as {
-    ok: boolean;
-    data: {
-      origin: string;
-      databaseCount: number;
-      databases: Array<{
-        name: string;
-        version: number;
-        stores: Array<{
-          name: string;
-          indexNames: string[];
-          countEstimate: number;
-          sampledRecords?: Array<{ preview: Record<string, unknown> }>;
-        }>;
-      }>;
-    };
-  };
+	const envelope = exportResult.json as {
+		ok: boolean;
+		data: {
+			origin: string;
+			databaseCount: number;
+			databases: Array<{
+				name: string;
+				version: number;
+				stores: Array<{
+					name: string;
+					indexNames: string[];
+					countEstimate: number;
+					sampledRecords?: Array<{ preview: Record<string, unknown> }>;
+				}>;
+			}>;
+		};
+	};
 
-  assert.equal(envelope.ok, true);
-  assert.equal(envelope.data.origin, startUrl.slice(0, -1));
-  assert.equal(envelope.data.databaseCount, 1);
-  assert.equal(envelope.data.databases.length, 1);
-  assert.equal(envelope.data.databases[0]?.name, "app-db");
-  assert.equal(envelope.data.databases[0]?.version, 3);
-  assert.equal(envelope.data.databases[0]?.stores.length, 1);
-  assert.equal(envelope.data.databases[0]?.stores[0]?.name, "sessions");
-  assert.deepEqual(envelope.data.databases[0]?.stores[0]?.indexNames, ["userId"]);
-  assert.equal(envelope.data.databases[0]?.stores[0]?.countEstimate, 2);
-  assert.equal(envelope.data.databases[0]?.stores[0]?.sampledRecords?.length, 1);
-  assert.equal(
-    envelope.data.databases[0]?.stores[0]?.sampledRecords?.[0]?.preview.id,
-    "backup-session",
-  );
+	assert.equal(envelope.ok, true);
+	assert.equal(envelope.data.origin, startUrl.slice(0, -1));
+	assert.equal(envelope.data.databaseCount, 1);
+	assert.equal(envelope.data.databases.length, 1);
+	assert.equal(envelope.data.databases[0]?.name, "app-db");
+	assert.equal(envelope.data.databases[0]?.version, 3);
+	assert.equal(envelope.data.databases[0]?.stores.length, 1);
+	assert.equal(envelope.data.databases[0]?.stores[0]?.name, "sessions");
+	assert.deepEqual(envelope.data.databases[0]?.stores[0]?.indexNames, [
+		"userId",
+	]);
+	assert.equal(envelope.data.databases[0]?.stores[0]?.countEstimate, 2);
+	assert.equal(
+		envelope.data.databases[0]?.stores[0]?.sampledRecords?.length,
+		1,
+	);
+	assert.equal(
+		envelope.data.databases[0]?.stores[0]?.sampledRecords?.[0]?.preview.id,
+		"backup-session",
+	);
 
-  const closeResult = await runPw(["session", "close", sessionName, "--output", "json"], {
-    cwd: workspaceDir,
-  });
-  assert.equal(closeResult.code, 0, `session close failed: ${JSON.stringify(closeResult)}`);
+	const closeResult = await runPw(
+		["session", "close", sessionName, "--output", "json"],
+		{
+			cwd: workspaceDir,
+		},
+	);
+	assert.equal(
+		closeResult.code,
+		0,
+		`session close failed: ${JSON.stringify(closeResult)}`,
+	);
 } finally {
-  server.closeAllConnections();
-  await new Promise<void>((resolve, reject) => {
-    server.close((error) => {
-      if (error) {
-        reject(error);
-        return;
-      }
-      resolve();
-    });
-  });
-  await removeWorkspace(workspaceDir);
+	server.closeAllConnections();
+	await new Promise<void>((resolve, reject) => {
+		server.close((error) => {
+			if (error) {
+				reject(error);
+				return;
+			}
+			resolve();
+		});
+	});
+	await removeWorkspace(workspaceDir);
 }

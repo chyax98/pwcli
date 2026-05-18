@@ -1,19 +1,20 @@
 {
-  "files": {
-    "includes": [
-      "**",
-      "!!**/dist",
-      "!!**/node_modules",
-      "!!**/.pwcli",
-      "!!**/test/fixtures/code/dogfood-bootstrap.js"
-    ]
-  },
-  "formatter": {
-    "indentStyle": "space",
-    "indentWidth": 2,
-    "lineWidth": 100
-  },
-  "linter": {
-    "enabled": true
-  }
+	"root": false,
+	"files": {
+		"includes": [
+			"**",
+			"!!**/dist",
+			"!!**/node_modules",
+			"!!**/.pwcli",
+			"!!**/test/fixtures/code/dogfood-bootstrap.js"
+		]
+	},
+	"formatter": {
+		"indentStyle": "space",
+		"indentWidth": 2,
+		"lineWidth": 100
+	},
+	"linter": {
+		"enabled": true
+	}
 }

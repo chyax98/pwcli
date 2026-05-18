@@ -1,42 +1,60 @@
 import { defineCommand } from "citty";
 import { sharedArgs } from "#cli/args.js";
 import { managedResize } from "#engine/act/page.js";
-import { type CliArgs, num, positionals, print, session, str, withCliError } from "./_helpers.js";
+import {
+	type CliArgs,
+	num,
+	positionals,
+	print,
+	session,
+	str,
+	withCliError,
+} from "./_helpers.js";
 
 const presets: Record<string, [number, number]> = {
-  iphone: [390, 844],
-  ipad: [820, 1180],
-  desktop: [1440, 900],
+	iphone: [390, 844],
+	ipad: [820, 1180],
+	desktop: [1440, 900],
 };
 
 export default defineCommand({
-  meta: {
-    name: "resize",
-    description:
-      "Purpose: resize the browser viewport for responsive behavior checks.\nExamples:\n  pw resize -s task-a --preset iphone\n  pw resize -s task-a --width 1440 --height 900\nNotes: resize changes the session; verify layout-sensitive facts afterward.",
-  },
-  args: {
-    ...sharedArgs,
-    width: { type: "string", description: "Viewport width", valueHint: "px" },
-    height: { type: "string", description: "Viewport height", valueHint: "px" },
-    preset: { type: "string", description: "Viewport preset", valueHint: "name" },
-    view: { type: "string", description: "Viewport label", valueHint: "name" },
-  },
-  async run({ args }) {
-    const a = args as CliArgs;
-    try {
-      const parts = positionals(a);
-      const preset = str(a.preset);
-      const size = preset ? presets[preset] : undefined;
-      const width = num(a.width ?? parts[0], size?.[0] ?? 1280) as number;
-      const height = num(a.height ?? parts[1], size?.[1] ?? 720) as number;
-      print(
-        "resize",
-        await managedResize({ sessionName: session(a), width, height, preset, view: str(a.view) }),
-        a,
-      );
-    } catch (error) {
-      withCliError("resize", a, error, "resize failed");
-    }
-  },
+	meta: {
+		name: "resize",
+		description:
+			"Purpose: resize the browser viewport for responsive behavior checks.\nExamples:\n  pw resize -s task-a --preset iphone\n  pw resize -s task-a --width 1440 --height 900\nNotes: resize changes the session; verify layout-sensitive facts afterward.",
+	},
+	args: {
+		...sharedArgs,
+		width: { type: "string", description: "Viewport width", valueHint: "px" },
+		height: { type: "string", description: "Viewport height", valueHint: "px" },
+		preset: {
+			type: "string",
+			description: "Viewport preset",
+			valueHint: "name",
+		},
+		view: { type: "string", description: "Viewport label", valueHint: "name" },
+	},
+	async run({ args }) {
+		const a = args as CliArgs;
+		try {
+			const parts = positionals(a);
+			const preset = str(a.preset);
+			const size = preset ? presets[preset] : undefined;
+			const width = num(a.width ?? parts[0], size?.[0] ?? 1280) as number;
+			const height = num(a.height ?? parts[1], size?.[1] ?? 720) as number;
+			print(
+				"resize",
+				await managedResize({
+					sessionName: session(a),
+					width,
+					height,
+					preset,
+					view: str(a.view),
+				}),
+				a,
+			);
+		} catch (error) {
+			withCliError("resize", a, error, "resize failed");
+		}
+	},
 });

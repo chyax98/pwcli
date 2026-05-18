@@ -1,33 +1,33 @@
 type AllowedDomainState = {
-  allowedDomains: string[];
-  updatedAt: string;
+	allowedDomains: string[];
+	updatedAt: string;
 };
 
 function normalizePattern(value: string) {
-  return value.trim().toLowerCase();
+	return value.trim().toLowerCase();
 }
 
 export function normalizeAllowedDomains(domains: string[]) {
-  return Array.from(new Set(domains.map(normalizePattern).filter(Boolean)));
+	return Array.from(new Set(domains.map(normalizePattern).filter(Boolean)));
 }
 
 export function isUrlAllowed(url: string, domains: string[]) {
-  try {
-    const host = new URL(url).hostname.toLowerCase();
-    return domains.some((pattern) => {
-      if (pattern.startsWith("*.")) {
-        const suffix = pattern.slice(2);
-        return host === suffix || host.endsWith(`.${suffix}`);
-      }
-      return host === pattern;
-    });
-  } catch {
-    return false;
-  }
+	try {
+		const host = new URL(url).hostname.toLowerCase();
+		return domains.some((pattern) => {
+			if (pattern.startsWith("*.")) {
+				const suffix = pattern.slice(2);
+				return host === suffix || host.endsWith(`.${suffix}`);
+			}
+			return host === pattern;
+		});
+	} catch {
+		return false;
+	}
 }
 
 export function domainGuardPrelude(domains: string[]) {
-  return `
+	return `
     const allowedDomains = ${JSON.stringify(domains)};
     const normalizeHost = value => {
       try {
@@ -87,8 +87,8 @@ export function domainGuardPrelude(domains: string[]) {
 }
 
 export function buildAllowedDomainState(domains: string[]): AllowedDomainState {
-  return {
-    allowedDomains: domains,
-    updatedAt: new Date().toISOString(),
-  };
+	return {
+		allowedDomains: domains,
+		updatedAt: new Date().toISOString(),
+	};
 }

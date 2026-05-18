@@ -1,23 +1,23 @@
 {
-  "compilerOptions": {
-    "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "rootDir": "src",
-    "outDir": "dist",
-    "types": ["node"],
-    "strict": true,
-    "skipLibCheck": true,
-    "resolveJsonModule": true,
-    "verbatimModuleSyntax": true,
-    "forceConsistentCasingInFileNames": true,
-    "sourceMap": true,
-    "paths": {
-      "#engine/*": ["./src/engine/*"],
-      "#cli/*": ["./src/cli/*"],
-      "#store/*": ["./src/store/*"],
-      "#auth/*": ["./src/auth/*"]
-    }
-  },
-  "include": ["src/**/*.ts"]
+	"compilerOptions": {
+		"target": "ES2022",
+		"module": "NodeNext",
+		"moduleResolution": "NodeNext",
+		"rootDir": "src",
+		"outDir": "dist",
+		"types": ["node"],
+		"strict": true,
+		"skipLibCheck": true,
+		"resolveJsonModule": true,
+		"verbatimModuleSyntax": true,
+		"forceConsistentCasingInFileNames": true,
+		"sourceMap": true,
+		"paths": {
+			"#engine/*": ["./src/engine/*"],
+			"#cli/*": ["./src/cli/*"],
+			"#store/*": ["./src/store/*"],
+			"#auth/*": ["./src/auth/*"]
+		}
+	},
+	"include": ["src/**/*.ts"]
 }

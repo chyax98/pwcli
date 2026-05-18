@@ -1,27 +1,36 @@
 import { recordActionRun } from "./act/element.js";
-import { parsePageSummary, parseSnapshotYaml, runManagedSessionCommand } from "./session.js";
+import {
+	parsePageSummary,
+	parseSnapshotYaml,
+	runManagedSessionCommand,
+} from "./session.js";
 import { managedRunCode, maybeRawOutput } from "./shared.js";
 import { pageIdRuntimePrelude } from "./workspace.js";
 
 export { managedAccessibilitySnapshot } from "./workspace.js";
 
 function extractSnapshotRefs(snapshot: string) {
-  // Match both main frame refs (e1, e2) and iframe refs (f1e1, f2e3)
-  return [...snapshot.matchAll(/\[ref=((?:f[0-9]+)?e[0-9]+)\]/g)].map((match) => match[1]);
+	// Match both main frame refs (e1, e2) and iframe refs (f1e1, f2e3)
+	return [...snapshot.matchAll(/\[ref=((?:f[0-9]+)?e[0-9]+)\]/g)].map(
+		(match) => match[1],
+	);
 }
 
 async function recordSnapshotRefEpoch(options: {
-  sessionName?: string;
-  snapshot: string;
-  snapDiffCache?: { yaml: string; interactive: boolean; compact: boolean };
+	sessionName?: string;
+	snapshot: string;
+	snapDiffCache?: { yaml: string; interactive: boolean; compact: boolean };
 }) {
-  const refs = extractSnapshotRefs(options.snapshot);
-  const cacheJson = options.snapDiffCache
-    ? JSON.stringify({ ...options.snapDiffCache, capturedAt: new Date().toISOString() })
-    : "null";
-  const result = await managedRunCode({
-    sessionName: options.sessionName,
-    source: `async page => {
+	const refs = extractSnapshotRefs(options.snapshot);
+	const cacheJson = options.snapDiffCache
+		? JSON.stringify({
+				...options.snapDiffCache,
+				capturedAt: new Date().toISOString(),
+			})
+		: "null";
+	const result = await managedRunCode({
+		sessionName: options.sessionName,
+		source: `async page => {
       ${pageIdRuntimePrelude()}
 
       state.nextSnapshotSeq = Number.isInteger(state.nextSnapshotSeq) ? state.nextSnapshotSeq : 1;
@@ -44,256 +53,274 @@ async function recordSnapshotRefEpoch(options: {
       state.lastSnapshotCache = ${cacheJson};
       return JSON.stringify(epoch);
     }`,
-  });
-  return result.data.result;
+	});
+	return result.data.result;
 }
 
 export async function loadSnapshotCache(
-  sessionName?: string,
+	sessionName?: string,
 ): Promise<{ yaml: string; interactive: boolean; compact: boolean } | null> {
-  const result = await managedRunCode({
-    sessionName,
-    source: `async page => {
+	const result = await managedRunCode({
+		sessionName,
+		source: `async page => {
       ${pageIdRuntimePrelude()}
       return JSON.stringify(state.lastSnapshotCache || null);
     }`,
-  });
-  const raw = result.data.result;
-  if (raw && typeof raw === "object" && "yaml" in raw)
-    return raw as { yaml: string; interactive: boolean; compact: boolean };
-  return null;
+	});
+	const raw = result.data.result;
+	if (raw && typeof raw === "object" && "yaml" in raw)
+		return raw as { yaml: string; interactive: boolean; compact: boolean };
+	return null;
 }
 
 export async function managedSnapshot(options?: {
-  depth?: number;
-  sessionName?: string;
-  interactive?: boolean;
-  compact?: boolean;
-  skipEpoch?: boolean;
+	depth?: number;
+	sessionName?: string;
+	interactive?: boolean;
+	compact?: boolean;
+	skipEpoch?: boolean;
+	boxes?: boolean;
 }) {
-  const args = ["snapshot"];
-  if (options?.depth) {
-    args.push(`--depth=${options.depth}`);
-  }
-  const result = await runManagedSessionCommand(
-    {
-      _: args,
-    },
-    {
-      sessionName: options?.sessionName,
-    },
-  );
-  const snapshot = parseSnapshotYaml(result.text);
-  const projectedSnapshot = projectSnapshot(snapshot, {
-    interactive: Boolean(options?.interactive),
-    compact: Boolean(options?.compact),
-  });
-  if (!options?.skipEpoch) {
-    await recordSnapshotRefEpoch({
-      sessionName: options?.sessionName,
-      snapshot: projectedSnapshot,
-      snapDiffCache: {
-        yaml: projectedSnapshot,
-        interactive: Boolean(options?.interactive),
-        compact: Boolean(options?.compact),
-      },
-    });
-  }
-  return {
-    session: {
-      scope: "managed",
-      name: result.sessionName,
-      default: result.sessionName === "default",
-    },
-    page: parsePageSummary(result.text),
-    data: {
-      mode: options?.interactive ? "interactive" : options?.compact ? "compact" : "ai",
-      snapshot: projectedSnapshot,
-      ...(options?.interactive || options?.compact
-        ? {
-            totalCharCount: snapshot.length,
-            charCount: projectedSnapshot.length,
-            truncated: projectedSnapshot.length !== snapshot.length,
-          }
-        : {}),
-      ...maybeRawOutput(result.text),
-    },
-  };
+	const result = await runManagedSessionCommand(
+		{
+			_: ["snapshot"],
+			...(options?.depth ? { depth: String(options.depth) } : {}),
+			...(options?.boxes ? { boxes: true } : {}),
+		},
+		{
+			sessionName: options?.sessionName,
+		},
+	);
+	const snapshot = parseSnapshotYaml(result.text);
+	const projectedSnapshot = projectSnapshot(snapshot, {
+		interactive: Boolean(options?.interactive),
+		compact: Boolean(options?.compact),
+	});
+	if (!options?.skipEpoch) {
+		await recordSnapshotRefEpoch({
+			sessionName: options?.sessionName,
+			snapshot: projectedSnapshot,
+			snapDiffCache: {
+				yaml: projectedSnapshot,
+				interactive: Boolean(options?.interactive),
+				compact: Boolean(options?.compact),
+			},
+		});
+	}
+	return {
+		session: {
+			scope: "managed",
+			name: result.sessionName,
+			default: result.sessionName === "default",
+		},
+		page: parsePageSummary(result.text),
+		data: {
+			mode: options?.interactive
+				? "interactive"
+				: options?.compact
+					? "compact"
+					: "ai",
+			boxes: Boolean(options?.boxes),
+			snapshot: projectedSnapshot,
+			...(options?.interactive || options?.compact
+				? {
+						totalCharCount: snapshot.length,
+						charCount: projectedSnapshot.length,
+						truncated: projectedSnapshot.length !== snapshot.length,
+					}
+				: {}),
+			...maybeRawOutput(result.text),
+		},
+	};
 }
 
 function projectSnapshot(
-  snapshot: string,
-  options: {
-    interactive: boolean;
-    compact: boolean;
-  },
+	snapshot: string,
+	options: {
+		interactive: boolean;
+		compact: boolean;
+	},
 ) {
-  const lines = options.interactive ? interactiveSnapshotLines(snapshot) : snapshot.split("\n");
-  const projected = options.compact ? compactSnapshotLines(lines) : lines;
-  return projected.join("\n").trim();
+	const lines = options.interactive
+		? interactiveSnapshotLines(snapshot)
+		: snapshot.split("\n");
+	const projected = options.compact ? compactSnapshotLines(lines) : lines;
+	return projected.join("\n").trim();
 }
 
 function interactiveSnapshotLines(snapshot: string) {
-  const interactivePattern =
-    /\b(button|link|textbox|combobox|checkbox|radio|menuitem|tab|switch|slider|spinbutton|searchbox|option)\b|aria-ref=|ref=/i;
-  return snapshot.split("\n").filter((line) => interactivePattern.test(line));
+	const interactivePattern =
+		/\b(button|link|textbox|combobox|checkbox|radio|menuitem|tab|switch|slider|spinbutton|searchbox|option)\b|aria-ref=|ref=/i;
+	return snapshot.split("\n").filter((line) => interactivePattern.test(line));
 }
 
 function compactSnapshotLines(lines: string[]) {
-  const MAX_LINES = 200;
+	const MAX_LINES = 200;
 
-  // 2. Remove empty lines: consecutive empty lines merge to single empty line
-  let result = mergeConsecutiveEmptyLines(lines);
+	// 2. Remove empty lines: consecutive empty lines merge to single empty line
+	let result = mergeConsecutiveEmptyLines(lines);
 
-  // 3. Depth limit: nodes with indent > 12 levels (24 spaces) collapse
-  result = applyDepthLimit(result);
+	// 3. Depth limit: nodes with indent > 12 levels (24 spaces) collapse
+	result = applyDepthLimit(result);
 
-  // 4. Fold repeats: 3+ consecutive identical role+name patterns
-  result = foldRepeats(result);
+	// 4. Fold repeats: 3+ consecutive identical role+name patterns
+	result = foldRepeats(result);
 
-  // 1. Line limit: cap at 200 lines
-  if (result.length > MAX_LINES) {
-    const omitted = result.length - MAX_LINES;
-    result = result.slice(0, MAX_LINES);
-    result.push(`# ... (${omitted} more lines)`);
-  }
+	// 1. Line limit: cap at 200 lines
+	if (result.length > MAX_LINES) {
+		const omitted = result.length - MAX_LINES;
+		result = result.slice(0, MAX_LINES);
+		result.push(`# ... (${omitted} more lines)`);
+	}
 
-  return result;
+	return result;
 }
 
 function mergeConsecutiveEmptyLines(lines: string[]): string[] {
-  const result: string[] = [];
-  let lastWasEmpty = false;
-  for (const line of lines) {
-    const isEmpty = line.trim() === "";
-    if (isEmpty) {
-      if (!lastWasEmpty) {
-        result.push("");
-        lastWasEmpty = true;
-      }
-    } else {
-      result.push(line);
-      lastWasEmpty = false;
-    }
-  }
-  return result;
+	const result: string[] = [];
+	let lastWasEmpty = false;
+	for (const line of lines) {
+		const isEmpty = line.trim() === "";
+		if (isEmpty) {
+			if (!lastWasEmpty) {
+				result.push("");
+				lastWasEmpty = true;
+			}
+		} else {
+			result.push(line);
+			lastWasEmpty = false;
+		}
+	}
+	return result;
 }
 
 function applyDepthLimit(lines: string[]): string[] {
-  const result: string[] = [];
-  let skipUntilIndent: number | null = null;
-  for (const line of lines) {
-    const isEmpty = line.trim() === "";
-    const indent = line.match(/^(\s*)/)?.[1].length ?? 0;
-    if (skipUntilIndent !== null && !isEmpty && indent > skipUntilIndent) {
-      continue;
-    }
-    if (skipUntilIndent !== null && !isEmpty && indent <= skipUntilIndent) {
-      skipUntilIndent = null;
-    }
-    if (!isEmpty && indent > 24) {
-      result.push("  # ... (deep subtree)");
-      skipUntilIndent = indent;
-    } else {
-      result.push(line);
-    }
-  }
-  return result;
+	const result: string[] = [];
+	let skipUntilIndent: number | null = null;
+	for (const line of lines) {
+		const isEmpty = line.trim() === "";
+		const indent = line.match(/^(\s*)/)?.[1].length ?? 0;
+		if (skipUntilIndent !== null && !isEmpty && indent > skipUntilIndent) {
+			continue;
+		}
+		if (skipUntilIndent !== null && !isEmpty && indent <= skipUntilIndent) {
+			skipUntilIndent = null;
+		}
+		if (!isEmpty && indent > 24) {
+			result.push("  # ... (deep subtree)");
+			skipUntilIndent = indent;
+		} else {
+			result.push(line);
+		}
+	}
+	return result;
 }
 
 function foldRepeats(lines: string[]): string[] {
-  const result: string[] = [];
-  let i = 0;
-  while (i < lines.length) {
-    const line = lines[i];
-    const match = line.match(/^(\s*)-\s+([a-zA-Z][a-zA-Z0-9_-]*)(?:\s+"([^"]*)")?/);
-    if (!match) {
-      result.push(line);
-      i++;
-      continue;
-    }
-    const indent = match[1];
-    const role = match[2];
-    const name = match[3] ?? "";
-    let count = 1;
-    let j = i + 1;
-    while (j < lines.length) {
-      const nextMatch = lines[j].match(/^(\s*)-\s+([a-zA-Z][a-zA-Z0-9_-]*)(?:\s+"([^"]*)")?/);
-      if (!nextMatch) break;
-      if (nextMatch[1] !== indent || nextMatch[2] !== role || (nextMatch[3] ?? "") !== name) break;
-      count++;
-      j++;
-    }
-    if (count >= 3) {
-      result.push(lines[i]);
-      result.push(lines[i + 1]);
-      result.push(`${indent}# × ${count - 2} more`);
-      i = j;
-    } else {
-      result.push(line);
-      i++;
-    }
-  }
-  return result;
+	const result: string[] = [];
+	let i = 0;
+	while (i < lines.length) {
+		const line = lines[i];
+		const match = line.match(
+			/^(\s*)-\s+([a-zA-Z][a-zA-Z0-9_-]*)(?:\s+"([^"]*)")?/,
+		);
+		if (!match) {
+			result.push(line);
+			i++;
+			continue;
+		}
+		const indent = match[1];
+		const role = match[2];
+		const name = match[3] ?? "";
+		let count = 1;
+		let j = i + 1;
+		while (j < lines.length) {
+			const nextMatch = lines[j].match(
+				/^(\s*)-\s+([a-zA-Z][a-zA-Z0-9_-]*)(?:\s+"([^"]*)")?/,
+			);
+			if (!nextMatch) break;
+			if (
+				nextMatch[1] !== indent ||
+				nextMatch[2] !== role ||
+				(nextMatch[3] ?? "") !== name
+			)
+				break;
+			count++;
+			j++;
+		}
+		if (count >= 3) {
+			result.push(lines[i]);
+			result.push(lines[i + 1]);
+			result.push(`${indent}# × ${count - 2} more`);
+			i = j;
+		} else {
+			result.push(line);
+			i++;
+		}
+	}
+	return result;
 }
 
 export type StateTarget =
-  | { selector: string; nth?: number }
-  | { text: string; nth?: number }
-  | { role: string; name?: string; nth?: number }
-  | { label: string; nth?: number }
-  | { placeholder: string; nth?: number }
-  | { testid: string; nth?: number };
+	| { selector: string; nth?: number }
+	| { text: string; nth?: number }
+	| { role: string; name?: string; description?: string; nth?: number }
+	| { label: string; nth?: number }
+	| { placeholder: string; nth?: number }
+	| { testid: string; nth?: number };
 
 export type VerifyAssertion =
-  | "text"
-  | "text-absent"
-  | "url"
-  | "visible"
-  | "hidden"
-  | "enabled"
-  | "disabled"
-  | "checked"
-  | "unchecked"
-  | "count";
+	| "text"
+	| "text-absent"
+	| "url"
+	| "visible"
+	| "hidden"
+	| "enabled"
+	| "disabled"
+	| "checked"
+	| "unchecked"
+	| "count";
 
 export type VerifyOptions = {
-  sessionName?: string;
-  assertion: VerifyAssertion;
-  target?: StateTarget;
-  url?: {
-    contains?: string;
-    equals?: string;
-    matches?: string;
-  };
-  count?: {
-    equals?: number;
-    min?: number;
-    max?: number;
-  };
+	sessionName?: string;
+	assertion: VerifyAssertion;
+	target?: StateTarget;
+	url?: {
+		contains?: string;
+		equals?: string;
+		matches?: string;
+	};
+	count?: {
+		equals?: number;
+		min?: number;
+		max?: number;
+	};
 };
 
 type StateCandidate = {
-  index: number;
-  text: string;
-  tagName: string;
-  visible: boolean;
-  href?: string;
-  role?: string;
-  name?: string;
-  ancestor?: string;
-  region?: string;
-  selectorHint?: string;
+	index: number;
+	text: string;
+	tagName: string;
+	visible: boolean;
+	href?: string;
+	role?: string;
+	name?: string;
+	ancestor?: string;
+	region?: string;
+	selectorHint?: string;
 };
 
 function targetExpression(target: StateTarget) {
-  const nth = "nth" in target && target.nth ? Math.max(1, Math.floor(Number(target.nth))) : 1;
-  return `${targetBaseExpression(target)}.nth(${nth - 1})`;
+	const nth =
+		"nth" in target && target.nth
+			? Math.max(1, Math.floor(Number(target.nth)))
+			: 1;
+	return `${targetBaseExpression(target)}.nth(${nth - 1})`;
 }
 
 function firstVisibleExpression(target: StateTarget) {
-  const base = targetBaseExpression(target);
-  return `(await (async () => {
+	const base = targetBaseExpression(target);
+	return `(await (async () => {
     const loc = ${base};
     const n = await loc.count();
     for (let i = 0; i < n; i++) {
@@ -305,80 +332,89 @@ function firstVisibleExpression(target: StateTarget) {
 }
 
 function targetBaseExpression(target: StateTarget) {
-  if ("selector" in target) {
-    return `page.locator(${JSON.stringify(target.selector)})`;
-  }
-  if ("text" in target) {
-    return `page.getByText(${JSON.stringify(target.text)}, { exact: false })`;
-  }
-  if ("role" in target) {
-    return `page.getByRole(${JSON.stringify(target.role)}, ${
-      target.name ? `{ name: ${JSON.stringify(target.name)}, exact: false }` : "undefined"
-    })`;
-  }
-  if ("label" in target) {
-    return `page.getByLabel(${JSON.stringify(target.label)}, { exact: false })`;
-  }
-  if ("placeholder" in target) {
-    return `page.getByPlaceholder(${JSON.stringify(target.placeholder)}, { exact: false })`;
-  }
-  return `page.getByTestId(${JSON.stringify(target.testid)})`;
+	if ("selector" in target) {
+		return `page.locator(${JSON.stringify(target.selector)})`;
+	}
+	if ("text" in target) {
+		return `page.getByText(${JSON.stringify(target.text)}, { exact: false })`;
+	}
+	if ("role" in target) {
+		return `page.getByRole(${JSON.stringify(target.role)}, ${JSON.stringify({
+			...(target.name ? { name: target.name } : {}),
+			...(target.description ? { description: target.description } : {}),
+			exact: false,
+		})})`;
+	}
+	if ("label" in target) {
+		return `page.getByLabel(${JSON.stringify(target.label)}, { exact: false })`;
+	}
+	if ("placeholder" in target) {
+		return `page.getByPlaceholder(${JSON.stringify(target.placeholder)}, { exact: false })`;
+	}
+	return `page.getByTestId(${JSON.stringify(target.testid)})`;
 }
 
 function parsedObject(value: unknown): Record<string, unknown> {
-  return value && typeof value === "object" && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
+	return value && typeof value === "object" && !Array.isArray(value)
+		? (value as Record<string, unknown>)
+		: {};
 }
 
 function parsedCandidates(value: unknown): StateCandidate[] {
-  return Array.isArray(value)
-    ? value.map((item, index) => {
-        const record = parsedObject(item);
-        return {
-          index: typeof record.index === "number" ? record.index : index + 1,
-          text: typeof record.text === "string" ? record.text : "",
-          tagName: typeof record.tagName === "string" ? record.tagName : "",
-          visible: Boolean(record.visible),
-          href: typeof record.href === "string" ? record.href : undefined,
-          role: typeof record.role === "string" ? record.role : undefined,
-          name: typeof record.name === "string" ? record.name : undefined,
-          ancestor: typeof record.ancestor === "string" ? record.ancestor : undefined,
-          region: typeof record.region === "string" ? record.region : undefined,
-          selectorHint: typeof record.selectorHint === "string" ? record.selectorHint : undefined,
-        };
-      })
-    : [];
+	return Array.isArray(value)
+		? value.map((item, index) => {
+				const record = parsedObject(item);
+				return {
+					index: typeof record.index === "number" ? record.index : index + 1,
+					text: typeof record.text === "string" ? record.text : "",
+					tagName: typeof record.tagName === "string" ? record.tagName : "",
+					visible: Boolean(record.visible),
+					href: typeof record.href === "string" ? record.href : undefined,
+					role: typeof record.role === "string" ? record.role : undefined,
+					name: typeof record.name === "string" ? record.name : undefined,
+					ancestor:
+						typeof record.ancestor === "string" ? record.ancestor : undefined,
+					region: typeof record.region === "string" ? record.region : undefined,
+					selectorHint:
+						typeof record.selectorHint === "string"
+							? record.selectorHint
+							: undefined,
+				};
+			})
+		: [];
 }
 
 function findRefInSnapshot(
-  snapshot: string,
-  predicate: (info: { ref: string; role?: string; text?: string }) => boolean,
+	snapshot: string,
+	predicate: (info: { ref: string; role?: string; text?: string }) => boolean,
 ): string | undefined {
-  for (const line of snapshot.split("\n")) {
-    const refMatch = line.match(/\[ref=([^\]]+)\]/);
-    if (!refMatch) continue;
-    const trimmed = line.trim();
-    const roleMatch = trimmed.match(/^-\s+(\w+)/);
-    const textMatch = trimmed.match(/["']([^"']+)["']/);
-    if (roleMatch && predicate({ ref: refMatch[1], role: roleMatch[1], text: textMatch?.[1] })) {
-      return refMatch[1];
-    }
-    if (predicate({ ref: refMatch[1] })) {
-      return refMatch[1];
-    }
-  }
-  return undefined;
+	for (const line of snapshot.split("\n")) {
+		const refMatch = line.match(/\[ref=([^\]]+)\]/);
+		if (!refMatch) continue;
+		const trimmed = line.trim();
+		const roleMatch = trimmed.match(/^-\s+(\w+)/);
+		const textMatch = trimmed.match(/["']([^"']+)["']/);
+		if (
+			roleMatch &&
+			predicate({ ref: refMatch[1], role: roleMatch[1], text: textMatch?.[1] })
+		) {
+			return refMatch[1];
+		}
+		if (predicate({ ref: refMatch[1] })) {
+			return refMatch[1];
+		}
+	}
+	return undefined;
 }
 
 export async function managedLocate(options: {
-  sessionName?: string;
-  target: StateTarget;
-  returnRef?: boolean;
+	sessionName?: string;
+	target: StateTarget;
+	returnRef?: boolean;
 }) {
-  const result = await managedRunCode({
-    sessionName: options.sessionName,
-    source: `async page => {
+	const result = await managedRunCode({
+		sessionName: options.sessionName,
+		source: `async page => {
       const locator = ${targetBaseExpression(options.target)};
       const target = ${JSON.stringify(options.target)};
       const nth = typeof target.nth === 'number' ? Math.max(1, Math.floor(target.nth)) : null;
@@ -495,59 +531,62 @@ export async function managedLocate(options: {
       }, nth);
       return JSON.stringify({ count, candidates });
     }`,
-  });
-  const parsed = parsedObject(result.data.result);
-  const count = Number(parsed.count ?? 0);
-  const candidates = parsedCandidates(parsed.candidates);
-  const data: Record<string, unknown> = {
-    target: options.target,
-    count,
-    candidates,
-  };
+	});
+	const parsed = parsedObject(result.data.result);
+	const count = Number(parsed.count ?? 0);
+	const candidates = parsedCandidates(parsed.candidates);
+	const data: Record<string, unknown> = {
+		target: options.target,
+		count,
+		candidates,
+	};
 
-  if (options.returnRef && count > 0 && candidates.length > 0) {
-    const snapshotResult = await managedSnapshot({
-      sessionName: options.sessionName,
-      interactive: true,
-      skipEpoch: true,
-    });
-    const snapshotText =
-      typeof snapshotResult.data.snapshot === "string" ? snapshotResult.data.snapshot : "";
-    const first = candidates[0];
-    const ref = findRefInSnapshot(snapshotText, (info) => {
-      if (first.name && info.text === first.name) return true;
-      if (first.text && info.text === first.text) return true;
-      if (first.role && info.role === first.role) {
-        if (!info.text || !first.text) return true;
-        if (info.text.includes(first.text.slice(0, 60))) return true;
-      }
-      return false;
-    });
-    if (ref) {
-      data.ref = ref;
-    }
-  }
+	if (options.returnRef && count > 0 && candidates.length > 0) {
+		const snapshotResult = await managedSnapshot({
+			sessionName: options.sessionName,
+			interactive: true,
+			skipEpoch: true,
+		});
+		const snapshotText =
+			typeof snapshotResult.data.snapshot === "string"
+				? snapshotResult.data.snapshot
+				: "";
+		const first = candidates[0];
+		const ref = findRefInSnapshot(snapshotText, (info) => {
+			if (first.name && info.text === first.name) return true;
+			if (first.text && info.text === first.text) return true;
+			if (first.role && info.role === first.role) {
+				if (!info.text || !first.text) return true;
+				if (info.text.includes(first.text.slice(0, 60))) return true;
+			}
+			return false;
+		});
+		if (ref) {
+			data.ref = ref;
+		}
+	}
 
-  return {
-    session: result.session,
-    page: result.page,
-    data,
-  };
+	return {
+		session: result.session,
+		page: result.page,
+		data,
+	};
 }
 
 export async function managedGetFact(options: {
-  sessionName?: string;
-  target: StateTarget;
-  fact: "text" | "value" | "count";
-  returnRef?: boolean;
+	sessionName?: string;
+	target: StateTarget;
+	fact: "text" | "value" | "count";
+	returnRef?: boolean;
 }) {
-  const hasExplicitNth = "nth" in options.target && typeof options.target.nth === "number";
-  const locatorExpr = hasExplicitNth
-    ? targetExpression(options.target)
-    : firstVisibleExpression(options.target);
-  const result = await managedRunCode({
-    sessionName: options.sessionName,
-    source: `async page => {
+	const hasExplicitNth =
+		"nth" in options.target && typeof options.target.nth === "number";
+	const locatorExpr = hasExplicitNth
+		? targetExpression(options.target)
+		: firstVisibleExpression(options.target);
+	const result = await managedRunCode({
+		sessionName: options.sessionName,
+		source: `async page => {
       const target = ${JSON.stringify(options.target)};
       const locator = ${locatorExpr};
       const baseLocator = ${targetBaseExpression(options.target)};
@@ -566,55 +605,58 @@ export async function managedGetFact(options: {
       }
       return JSON.stringify({ value: await locator.inputValue(), count });
     }`,
-  });
-  const parsed = parsedObject(result.data.result);
-  const count = Number(parsed.count ?? 0);
-  const data: Record<string, unknown> = {
-    target: options.target,
-    fact: options.fact,
-    value: parsed.value,
-    count,
-  };
+	});
+	const parsed = parsedObject(result.data.result);
+	const count = Number(parsed.count ?? 0);
+	const data: Record<string, unknown> = {
+		target: options.target,
+		fact: options.fact,
+		value: parsed.value,
+		count,
+	};
 
-  if (options.returnRef && options.fact !== "count" && count > 0) {
-    const snapshotResult = await managedSnapshot({
-      sessionName: options.sessionName,
-      interactive: true,
-      skipEpoch: true,
-    });
-    const snapshotText =
-      typeof snapshotResult.data.snapshot === "string" ? snapshotResult.data.snapshot : "";
-    const value = typeof parsed.value === "string" ? parsed.value : "";
-    const ref = findRefInSnapshot(snapshotText, (info) => {
-      if (value && info.text === value) return true;
-      if (value && info.text?.includes(value.slice(0, 60))) return true;
-      return false;
-    });
-    if (ref) {
-      data.ref = ref;
-    }
-  }
+	if (options.returnRef && options.fact !== "count" && count > 0) {
+		const snapshotResult = await managedSnapshot({
+			sessionName: options.sessionName,
+			interactive: true,
+			skipEpoch: true,
+		});
+		const snapshotText =
+			typeof snapshotResult.data.snapshot === "string"
+				? snapshotResult.data.snapshot
+				: "";
+		const value = typeof parsed.value === "string" ? parsed.value : "";
+		const ref = findRefInSnapshot(snapshotText, (info) => {
+			if (value && info.text === value) return true;
+			if (value && info.text?.includes(value.slice(0, 60))) return true;
+			return false;
+		});
+		if (ref) {
+			data.ref = ref;
+		}
+	}
 
-  return {
-    session: result.session,
-    page: result.page,
-    data,
-  };
+	return {
+		session: result.session,
+		page: result.page,
+		data,
+	};
 }
 
 export async function managedIsState(options: {
-  sessionName?: string;
-  target: StateTarget;
-  state: "visible" | "enabled" | "checked";
+	sessionName?: string;
+	target: StateTarget;
+	state: "visible" | "enabled" | "checked";
 }) {
-  const hasExplicitNth = "nth" in options.target && typeof options.target.nth === "number";
-  const preferVisible = !hasExplicitNth && options.state !== "visible";
-  const locatorExpr = preferVisible
-    ? firstVisibleExpression(options.target)
-    : targetExpression(options.target);
-  const result = await managedRunCode({
-    sessionName: options.sessionName,
-    source: `async page => {
+	const hasExplicitNth =
+		"nth" in options.target && typeof options.target.nth === "number";
+	const preferVisible = !hasExplicitNth && options.state !== "visible";
+	const locatorExpr = preferVisible
+		? firstVisibleExpression(options.target)
+		: targetExpression(options.target);
+	const result = await managedRunCode({
+		sessionName: options.sessionName,
+		source: `async page => {
       const locator = ${locatorExpr};
       const baseLocator = ${targetBaseExpression(options.target)};
       const count = await baseLocator.count();
@@ -629,89 +671,89 @@ export async function managedIsState(options: {
           : await locator.isChecked();
       return JSON.stringify({ value, count });
     }`,
-  });
-  const parsed = parsedObject(result.data.result);
-  return {
-    session: result.session,
-    page: result.page,
-    data: {
-      target: options.target,
-      state: options.state,
-      value: Boolean(parsed.value),
-      count: Number(parsed.count ?? 0),
-    },
-  };
+	});
+	const parsed = parsedObject(result.data.result);
+	return {
+		session: result.session,
+		page: result.page,
+		data: {
+			target: options.target,
+			state: options.state,
+			value: Boolean(parsed.value),
+			count: Number(parsed.count ?? 0),
+		},
+	};
 }
 
 function verifySuggestions(assertion: VerifyAssertion): string[] {
-  if (assertion === "url") {
-    return [
-      "Run `pw page current --session <name>` to inspect the active URL",
-      "Run `pw wait --networkidle --session <name>` before retrying the assertion",
-    ];
-  }
-  if (assertion === "text" || assertion === "text-absent") {
-    return [
-      "Run `pw read-text --session <name> --max-chars 4000` to inspect visible text",
-      "Run `pw locate --session <name> --text '<text>'` to inspect text candidates",
-      "Run `pw diagnostics bundle --session <name> --out .pwcli/bundles/verify-failure --limit 20` if the missing text follows an action",
-    ];
-  }
-  return [
-    "Run `pw locate --session <name> --selector '<selector>'` to inspect candidates",
-    "Run `pw snapshot -i --session <name>` when you need fresh refs",
-    "Run `pw diagnostics bundle --session <name> --out .pwcli/bundles/verify-failure --limit 20` if the failed assertion follows an action",
-  ];
+	if (assertion === "url") {
+		return [
+			"Run `pw page current --session <name>` to inspect the active URL",
+			"Run `pw wait --networkidle --session <name>` before retrying the assertion",
+		];
+	}
+	if (assertion === "text" || assertion === "text-absent") {
+		return [
+			"Run `pw read-text --session <name> --max-chars 4000` to inspect visible text",
+			"Run `pw locate --session <name> --text '<text>'` to inspect text candidates",
+			"Run `pw diagnostics bundle --session <name> --out .pwcli/bundles/verify-failure --limit 20` if the missing text follows an action",
+		];
+	}
+	return [
+		"Run `pw locate --session <name> --selector '<selector>'` to inspect candidates",
+		"Run `pw snapshot -i --session <name>` when you need fresh refs",
+		"Run `pw diagnostics bundle --session <name> --out .pwcli/bundles/verify-failure --limit 20` if the failed assertion follows an action",
+	];
 }
 
 function parseVerifyPayload(value: unknown): {
-  passed: boolean;
-  actual?: unknown;
-  expected?: unknown;
-  count?: number;
+	passed: boolean;
+	actual?: unknown;
+	expected?: unknown;
+	count?: number;
 } {
-  const parsed = parsedObject(value);
-  return {
-    passed: Boolean(parsed.passed),
-    actual: parsed.actual,
-    expected: parsed.expected,
-    count: typeof parsed.count === "number" ? parsed.count : undefined,
-  };
+	const parsed = parsedObject(value);
+	return {
+		passed: Boolean(parsed.passed),
+		actual: parsed.actual,
+		expected: parsed.expected,
+		count: typeof parsed.count === "number" ? parsed.count : undefined,
+	};
 }
 
 async function recordVerifyFailure(
-  options: VerifyOptions,
-  page: Record<string, unknown> | undefined,
-  data: Record<string, unknown>,
+	options: VerifyOptions,
+	page: Record<string, unknown> | undefined,
+	data: Record<string, unknown>,
 ) {
-  if (data.passed !== false) {
-    return;
-  }
-  const assertion = options.assertion;
-  const message = `verify ${assertion} failed`;
-  await recordActionRun("verify", options.sessionName, page, {
-    status: "failed",
-    failed: true,
-    assertion,
-    target: options.target ?? null,
-    url: options.url ?? null,
-    count: options.count ?? null,
-    failure: {
-      code: "VERIFY_FAILED",
-      message,
-      retryable: true,
-      suggestions: Array.isArray(data.suggestions) ? data.suggestions : [],
-      details: data,
-    },
-  });
+	if (data.passed !== false) {
+		return;
+	}
+	const assertion = options.assertion;
+	const message = `verify ${assertion} failed`;
+	await recordActionRun("verify", options.sessionName, page, {
+		status: "failed",
+		failed: true,
+		assertion,
+		target: options.target ?? null,
+		url: options.url ?? null,
+		count: options.count ?? null,
+		failure: {
+			code: "VERIFY_FAILED",
+			message,
+			retryable: true,
+			suggestions: Array.isArray(data.suggestions) ? data.suggestions : [],
+			details: data,
+		},
+	});
 }
 
 export async function managedVerify(options: VerifyOptions) {
-  const suggestions = verifySuggestions(options.assertion);
-  if (options.assertion === "url") {
-    const result = await managedRunCode({
-      sessionName: options.sessionName,
-      source: `async page => {
+	const suggestions = verifySuggestions(options.assertion);
+	if (options.assertion === "url") {
+		const result = await managedRunCode({
+			sessionName: options.sessionName,
+			source: `async page => {
         const actual = page.url();
         const expectation = ${JSON.stringify(options.url ?? {})};
         let passed = false;
@@ -728,31 +770,31 @@ export async function managedVerify(options: VerifyOptions) {
         }
         return JSON.stringify({ passed, actual, expected });
       }`,
-    });
-    const parsed = parseVerifyPayload(result.data.result);
-    const data = {
-      assertion: options.assertion,
-      passed: parsed.passed,
-      expected: parsed.expected,
-      actual: parsed.actual,
-      retryable: !parsed.passed,
-      suggestions: parsed.passed ? [] : suggestions,
-    };
-    await recordVerifyFailure(options, result.page, data);
-    return {
-      session: result.session,
-      page: result.page,
-      data,
-    };
-  }
+		});
+		const parsed = parseVerifyPayload(result.data.result);
+		const data = {
+			assertion: options.assertion,
+			passed: parsed.passed,
+			expected: parsed.expected,
+			actual: parsed.actual,
+			retryable: !parsed.passed,
+			suggestions: parsed.passed ? [] : suggestions,
+		};
+		await recordVerifyFailure(options, result.page, data);
+		return {
+			session: result.session,
+			page: result.page,
+			data,
+		};
+	}
 
-  if (!options.target) {
-    throw new Error("verify assertion requires a target");
-  }
+	if (!options.target) {
+		throw new Error("verify assertion requires a target");
+	}
 
-  const result = await managedRunCode({
-    sessionName: options.sessionName,
-    source: `async page => {
+	const result = await managedRunCode({
+		sessionName: options.sessionName,
+		source: `async page => {
       const assertion = ${JSON.stringify(options.assertion)};
       const target = ${JSON.stringify(options.target)};
       const countExpectation = ${JSON.stringify(options.count ?? {})};
@@ -788,24 +830,24 @@ export async function managedVerify(options: VerifyOptions) {
           : value;
       return JSON.stringify({ passed, actual: value, expected: assertion, count });
     }`,
-  });
-  const parsed = parseVerifyPayload(result.data.result);
-  const data = {
-    assertion: options.assertion,
-    passed: parsed.passed,
-    target: options.target,
-    expected: parsed.expected,
-    actual: parsed.actual,
-    ...(typeof parsed.count === "number" ? { count: parsed.count } : {}),
-    retryable: !parsed.passed,
-    suggestions: parsed.passed ? [] : suggestions,
-  };
-  await recordVerifyFailure(options, result.page, data);
-  return {
-    session: result.session,
-    page: result.page,
-    data,
-  };
+	});
+	const parsed = parseVerifyPayload(result.data.result);
+	const data = {
+		assertion: options.assertion,
+		passed: parsed.passed,
+		target: options.target,
+		expected: parsed.expected,
+		actual: parsed.actual,
+		...(typeof parsed.count === "number" ? { count: parsed.count } : {}),
+		retryable: !parsed.passed,
+		suggestions: parsed.passed ? [] : suggestions,
+	};
+	await recordVerifyFailure(options, result.page, data);
+	return {
+		session: result.session,
+		page: result.page,
+		data,
+	};
 }
 
 export const managedGet = managedGetFact;

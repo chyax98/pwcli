@@ -1,39 +1,40 @@
 import { managedRunCode } from "#engine/shared.js";
 
 type InjectionFinding = {
-  pattern: string;
-  severity: "medium" | "high";
-  visible: boolean;
-  text: string;
+	pattern: string;
+	severity: "medium" | "high";
+	visible: boolean;
+	text: string;
 };
 
 const PATTERNS = [
-  {
-    pattern: "system_prompt",
-    severity: "high" as const,
-    source:
-      "(?:you\\s+are|act\\s+as|pretend\\s+to\\s+be|new\\s+instructions?:|ignore\\s+previous\\s+instructions?)",
-  },
-  {
-    pattern: "tool_exfiltration",
-    severity: "high" as const,
-    source:
-      "(?:copy\\s+the\\s+secret|print\\s+the\\s+token|reveal\\s+credentials|send\\s+your\\s+api\\s+key)",
-  },
-  {
-    pattern: "workflow_override",
-    severity: "medium" as const,
-    source: "(?:do\\s+not\\s+use\\s+the\\s+browser|skip\\s+verification|ignore\\s+the\\s+user)",
-  },
+	{
+		pattern: "system_prompt",
+		severity: "high" as const,
+		source:
+			"(?:you\\s+are|act\\s+as|pretend\\s+to\\s+be|new\\s+instructions?:|ignore\\s+previous\\s+instructions?)",
+	},
+	{
+		pattern: "tool_exfiltration",
+		severity: "high" as const,
+		source:
+			"(?:copy\\s+the\\s+secret|print\\s+the\\s+token|reveal\\s+credentials|send\\s+your\\s+api\\s+key)",
+	},
+	{
+		pattern: "workflow_override",
+		severity: "medium" as const,
+		source:
+			"(?:do\\s+not\\s+use\\s+the\\s+browser|skip\\s+verification|ignore\\s+the\\s+user)",
+	},
 ];
 
 export async function managedCheckInjection(options: {
-  sessionName?: string;
-  includeHidden?: boolean;
+	sessionName?: string;
+	includeHidden?: boolean;
 }) {
-  const result = await managedRunCode({
-    sessionName: options.sessionName,
-    source: `async page => {
+	const result = await managedRunCode({
+		sessionName: options.sessionName,
+		source: `async page => {
       const patterns = ${JSON.stringify(PATTERNS)};
       return await page.evaluate((config) => {
         const isVisible = (node) => {
@@ -77,17 +78,17 @@ export async function managedCheckInjection(options: {
         patterns: ${JSON.stringify(PATTERNS)},
       });
     }`,
-  });
+	});
 
-  const data = result.data.result as {
-    count: number;
-    findings: InjectionFinding[];
-    risky: boolean;
-  };
+	const data = result.data.result as {
+		count: number;
+		findings: InjectionFinding[];
+		risky: boolean;
+	};
 
-  return {
-    session: result.session,
-    page: result.page,
-    data,
-  };
+	return {
+		session: result.session,
+		page: result.page,
+		data,
+	};
 }

@@ -1,70 +1,80 @@
 import { managedRunCode, stateAccessPrelude } from "../shared.js";
 
 export async function managedRoute(
-  action: "add" | "remove" | "list",
-  options: {
-    pattern?: string;
-    abort?: boolean;
-    body?: string;
-    status?: number;
-    contentType?: string;
-    headers?: Record<string, string>;
-    mergeHeaders?: Record<string, string>;
-    matchBody?: string;
-    matchQuery?: Record<string, string>;
-    matchHeaders?: Record<string, string>;
-    matchJson?: unknown;
-    injectHeaders?: Record<string, string>;
-    patchJson?: unknown;
-    patchText?: Record<string, string>;
-    patchStatus?: number;
-    method?: string;
-    sessionName?: string;
-  },
+	action: "add" | "remove" | "list",
+	options: {
+		pattern?: string;
+		abort?: boolean;
+		body?: string;
+		status?: number;
+		contentType?: string;
+		headers?: Record<string, string>;
+		mergeHeaders?: Record<string, string>;
+		matchBody?: string;
+		matchQuery?: Record<string, string>;
+		matchHeaders?: Record<string, string>;
+		matchJson?: unknown;
+		injectHeaders?: Record<string, string>;
+		patchJson?: unknown;
+		patchText?: Record<string, string>;
+		patchStatus?: number;
+		method?: string;
+		sessionName?: string;
+	},
 ) {
-  if (action === "add" && !options.pattern) {
-    throw new Error("route add requires a pattern");
-  }
-  const hasFulfill =
-    options.body !== undefined ||
-    options.status !== undefined ||
-    options.contentType !== undefined ||
-    options.headers !== undefined;
-  const hasPatch =
-    options.patchJson !== undefined ||
-    options.patchText !== undefined ||
-    options.patchStatus !== undefined;
-  if (action === "add" && options.injectHeaders && (options.abort || hasFulfill)) {
-    throw new Error("route add inject mode cannot be combined with abort or fulfill options");
-  }
-  if (action === "add" && hasPatch && (options.abort || hasFulfill || options.injectHeaders)) {
-    throw new Error(
-      "route add response patch mode cannot be combined with abort, fulfill, or inject options",
-    );
-  }
+	if (action === "add" && !options.pattern) {
+		throw new Error("route add requires a pattern");
+	}
+	const hasFulfill =
+		options.body !== undefined ||
+		options.status !== undefined ||
+		options.contentType !== undefined ||
+		options.headers !== undefined;
+	const hasPatch =
+		options.patchJson !== undefined ||
+		options.patchText !== undefined ||
+		options.patchStatus !== undefined;
+	if (
+		action === "add" &&
+		options.injectHeaders &&
+		(options.abort || hasFulfill)
+	) {
+		throw new Error(
+			"route add inject mode cannot be combined with abort or fulfill options",
+		);
+	}
+	if (
+		action === "add" &&
+		hasPatch &&
+		(options.abort || hasFulfill || options.injectHeaders)
+	) {
+		throw new Error(
+			"route add response patch mode cannot be combined with abort, fulfill, or inject options",
+		);
+	}
 
-  const config = {
-    abort: Boolean(options.abort),
-    body: options.body,
-    status: options.status,
-    contentType: options.contentType,
-    headers: options.headers,
-    mergeHeaders: options.mergeHeaders,
-    matchBody: options.matchBody,
-    matchQuery: options.matchQuery,
-    matchHeaders: options.matchHeaders,
-    matchJson: options.matchJson,
-    injectHeaders: options.injectHeaders,
-    patchJson: options.patchJson,
-    patchText: options.patchText,
-    patchStatus: options.patchStatus,
-    method: options.method?.toUpperCase(),
-  };
-  const result = await managedRunCode({
-    sessionName: options.sessionName,
-    source:
-      action === "list"
-        ? `async page => {
+	const config = {
+		abort: Boolean(options.abort),
+		body: options.body,
+		status: options.status,
+		contentType: options.contentType,
+		headers: options.headers,
+		mergeHeaders: options.mergeHeaders,
+		matchBody: options.matchBody,
+		matchQuery: options.matchQuery,
+		matchHeaders: options.matchHeaders,
+		matchJson: options.matchJson,
+		injectHeaders: options.injectHeaders,
+		patchJson: options.patchJson,
+		patchText: options.patchText,
+		patchStatus: options.patchStatus,
+		method: options.method?.toUpperCase(),
+	};
+	const result = await managedRunCode({
+		sessionName: options.sessionName,
+		source:
+			action === "list"
+				? `async page => {
       ${stateAccessPrelude()}
       state.routes = Array.isArray(state.routes) ? state.routes : [];
       return JSON.stringify({
@@ -73,8 +83,8 @@ export async function managedRoute(
         routes: state.routes,
       });
     }`
-        : action === "add"
-          ? `async page => {
+				: action === "add"
+					? `async page => {
       ${stateAccessPrelude()}
       state.routes = Array.isArray(state.routes) ? state.routes : [];
       const pattern = ${JSON.stringify(options.pattern)};
@@ -296,7 +306,7 @@ export async function managedRoute(
         routeCount: state.routes.length,
       });
     }`
-          : `async page => {
+					: `async page => {
       ${stateAccessPrelude()}
       const pattern = ${JSON.stringify(options.pattern ?? null)};
       const existing = Array.isArray(state.routes) ? state.routes : [];
@@ -318,22 +328,28 @@ export async function managedRoute(
         routes: state.routes,
       });
     }`,
-  });
-  const parsed =
-    typeof result.data.result === "object" && result.data.result ? result.data.result : {};
+	});
+	const parsed =
+		typeof result.data.result === "object" && result.data.result
+			? result.data.result
+			: {};
 
-  return {
-    session: result.session,
-    page: result.page,
-    data: {
-      action,
-      ...(action === "add" ? { added: true } : {}),
-      ...(action === "remove" ? { removed: true } : {}),
-      ...(parsed.route ? { route: parsed.route } : {}),
-      ...(parsed.removedPattern !== undefined ? { pattern: parsed.removedPattern } : {}),
-      ...(parsed.removedCount !== undefined ? { removedCount: parsed.removedCount } : {}),
-      routeCount: Number(parsed.routeCount ?? 0),
-      ...(Array.isArray(parsed.routes) ? { routes: parsed.routes } : {}),
-    },
-  };
+	return {
+		session: result.session,
+		page: result.page,
+		data: {
+			action,
+			...(action === "add" ? { added: true } : {}),
+			...(action === "remove" ? { removed: true } : {}),
+			...(parsed.route ? { route: parsed.route } : {}),
+			...(parsed.removedPattern !== undefined
+				? { pattern: parsed.removedPattern }
+				: {}),
+			...(parsed.removedCount !== undefined
+				? { removedCount: parsed.removedCount }
+				: {}),
+			routeCount: Number(parsed.routeCount ?? 0),
+			...(Array.isArray(parsed.routes) ? { routes: parsed.routes } : {}),
+		},
+	};
 }

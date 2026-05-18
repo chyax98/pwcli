@@ -266,8 +266,8 @@ NODE
 
 log "dashboard dry run"
 dashboard_json="$(run_json dashboard-dry-run dashboard open --dry-run)"
-assert_json "$dashboard_json" "dashboard entrypoint is available" \
-  "data.ok === true && data.data.available === true && data.data.launched === false && data.data.entrypoint.includes('playwright-core')"
+assert_json "$dashboard_json" "dashboard delegates to official show" \
+  "data.ok === true && data.data.available === true && data.data.launched === false && data.data.delegatedCommand === 'playwright-cli show' && data.data.argv.some(item => String(item).includes('cli-client/cli.js')) && data.data.argv.includes('show')"
 node --input-type=module <<'NODE'
 import { spawn } from 'node:child_process';
 import { observeDashboardLaunch } from './dist/cli/commands/dashboard.js';
@@ -305,6 +305,9 @@ log "snapshot"
 snapshot_json="$(run_json snapshot snapshot --session "$SESSION_NAME")"
 assert_json "$snapshot_json" "snapshot contains fixture title" \
   "data.ok === true && typeof data.data.snapshot === 'string' && data.data.snapshot.includes('pwcli deterministic fixture')"
+snapshot_boxes_json="$(run_json snapshot-boxes snapshot --boxes --session "$SESSION_NAME")"
+assert_json "$snapshot_boxes_json" "snapshot boxes include viewport geometry" \
+  "data.ok === true && data.data.boxes === true && typeof data.data.snapshot === 'string' && data.data.snapshot.includes('[box=') && data.data.snapshot.includes('[ref=')"
 snapshot_compact_json="$(run_json snapshot-compact snapshot --compact --session "$SESSION_NAME")"
 assert_json "$snapshot_compact_json" "compact snapshot is smaller" \
   "data.ok === true && data.data.mode === 'compact' && data.data.charCount <= data.data.totalCharCount && typeof data.data.snapshot === 'string'"
@@ -532,9 +535,9 @@ assert_json "$auth_session_close_json" "auth reuse session closed" \
   "data.ok === true && data.command === 'session close'"
 AUTH_SESSION_CLOSED="1"
 
-log "observe status"
-observe_json="$(run_json observe-status observe status --session "$SESSION_NAME")"
-assert_json "$observe_json" "observe status workspace is healthy" \
+log "status"
+status_json="$(run_json status status --session "$SESSION_NAME")"
+assert_json "$status_json" "status workspace is healthy" \
   "data.ok === true && data.data.summary.pageCount >= 1 && data.data.bootstrap.applied === false"
 
 log "batch surfaces"
@@ -568,7 +571,7 @@ batch_continue_out="${TMP_DIR}/batch-continue.json"
 batch_continue_steps="$(node --input-type=module <<'NODE'
 console.log(JSON.stringify([
   ["code", "async page => { throw new Error('batch continue smoke failure'); }"],
-  ["observe", "status"]
+  ["status"]
 ]));
 NODE
 )"

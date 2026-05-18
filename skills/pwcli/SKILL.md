@@ -23,7 +23,7 @@ pw skill show --full
 - 所有浏览器命令显式带 `-s <session>`。
 - `session create|attach|recreate` 是唯一 lifecycle 主路。
 - `open` 只在已有 session 内导航。
-- HAR 录制只能在 `session create|recreate --record-har <file>` 时开启。
+- HAR 默认随 `session create|recreate` 全量开启；需要缩小或共享证据时用 `pw har filter` / `pw har clean` 派生文件，确实不需要时用 `--no-record-har`。
 - 视频录制只能在 `session create|recreate --record-video <dir>` 时开启。
 - `auth` 只执行内置 provider，不创建 session。
 - `batch` 只编排单 session 的结构化 `string[][]` 稳定子集。
@@ -45,7 +45,7 @@ pw skill show --full
 | 点击和输入 | `click` / `fill` / `type` / `press` | `pw click --help` |
 | 表单控件 | `check` / `uncheck` / `select` | `pw check --help` |
 | 鼠标和布局 | `hover` / `drag` / `scroll` / `resize` / `mouse` | `pw mouse --help` |
-| 文件和产物 | `upload` / `download` / `screenshot` / `pdf` | `pw screenshot --help` |
+| 文件和产物 | `upload` / `drop` / `download` / `screenshot` / `pdf` | `pw drop --help` |
 | 等待 | `wait` | `pw wait --help` |
 | 浏览器弹窗 | `dialog` | `pw dialog --help` |
 | console / network / errors | `console` / `network` / `sse` / `errors` | `pw network --help` |
@@ -62,7 +62,7 @@ pw skill show --full
 | 批量串行 | `batch` | `pw batch --help` |
 | 逃生口 | `code` | `pw code --help` |
 | skill 安装和导出 | `skill` | `pw skill --help` |
-| 人类观察面 | `dashboard` | `pw dashboard --help` |
+| 人类观察面 | `view` / `stream` / `dashboard` | `pw view --help` |
 
 ## 标准工作流
 

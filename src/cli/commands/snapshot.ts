@@ -2,56 +2,77 @@ import { defineCommand } from "citty";
 import { sharedArgs } from "#cli/args.js";
 import { managedSnapshotStatus } from "#engine/act/element.js";
 import { managedSnapshot } from "#engine/observe.js";
-import { bool, type CliArgs, firstPos, print, session, withCliError } from "./_helpers.js";
+import {
+	bool,
+	type CliArgs,
+	firstPos,
+	print,
+	session,
+	withCliError,
+} from "./_helpers.js";
 
 const status = defineCommand({
-  meta: {
-    name: "status",
-    description:
-      "Purpose: inspect the latest snapshot ref epoch for a session.\nExamples:\n  pw snapshot status -s task-a\nNotes: use this when an action reports a stale ref or epoch mismatch.",
-  },
-  args: sharedArgs,
-  async run({ args }) {
-    const a = args as CliArgs;
-    try {
-      print("snapshot status", await managedSnapshotStatus({ sessionName: session(a) }), a);
-    } catch (error) {
-      withCliError("snapshot status", a, error);
-    }
-  },
+	meta: {
+		name: "status",
+		description:
+			"Purpose: inspect the latest snapshot ref epoch for a session.\nExamples:\n  pw snapshot status -s task-a\nNotes: use this when an action reports a stale ref or epoch mismatch.",
+	},
+	args: sharedArgs,
+	async run({ args }) {
+		const a = args as CliArgs;
+		try {
+			print(
+				"snapshot status",
+				await managedSnapshotStatus({ sessionName: session(a) }),
+				a,
+			);
+		} catch (error) {
+			withCliError("snapshot status", a, error);
+		}
+	},
 });
 
 export default defineCommand({
-  meta: {
-    name: "snapshot",
-    description:
-      "Purpose: capture an accessibility snapshot and optional interactive refs.\nExamples:\n  pw snapshot -i -s task-a\n  pw snapshot -s task-a --selector main\nNotes: use refs from this command immediately; refs can become stale after navigation or DOM changes.",
-  },
-  args: {
-    ...sharedArgs,
-    interactive: {
-      type: "boolean",
-      alias: "i",
-      description: "Return only likely interactive lines",
-    },
-    compact: { type: "boolean", alias: "c", description: "Compact structural output" },
-  },
-  subCommands: { status },
-  async run({ args }) {
-    const a = args as CliArgs;
-    if (firstPos(a) === "status") return;
-    try {
-      print(
-        "snapshot",
-        await managedSnapshot({
-          sessionName: session(a),
-          interactive: bool(a.interactive),
-          compact: bool(a.compact),
-        }),
-        a,
-      );
-    } catch (error) {
-      withCliError("snapshot", a, error, "snapshot failed");
-    }
-  },
+	meta: {
+		name: "snapshot",
+		description:
+			"Purpose: capture an accessibility snapshot and optional interactive refs.\nExamples:\n  pw snapshot -i -s task-a\n  pw snapshot -s task-a --selector main\nNotes: use refs from this command immediately; refs can become stale after navigation or DOM changes.",
+	},
+	args: {
+		...sharedArgs,
+		interactive: {
+			type: "boolean",
+			alias: "i",
+			description: "Return only likely interactive lines",
+		},
+		compact: {
+			type: "boolean",
+			alias: "c",
+			description: "Compact structural output",
+		},
+		boxes: {
+			type: "boolean",
+			description:
+				"Include viewport-relative element bounding boxes in the snapshot",
+		},
+	},
+	subCommands: { status },
+	async run({ args }) {
+		const a = args as CliArgs;
+		if (firstPos(a) === "status") return;
+		try {
+			print(
+				"snapshot",
+				await managedSnapshot({
+					sessionName: session(a),
+					interactive: bool(a.interactive),
+					compact: bool(a.compact),
+					boxes: bool(a.boxes),
+				}),
+				a,
+			);
+		} catch (error) {
+			withCliError("snapshot", a, error, "snapshot failed");
+		}
+	},
 });

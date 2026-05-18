@@ -29,78 +29,80 @@ const ROOT = repoRoot;
 // ── 1. Parse CLI top-level commands ────────────────────────────────────────
 
 function parseCLICommands() {
-  let helpOutput;
-  try {
-    helpOutput = execSync("node dist/cli.js --help", {
-      cwd: ROOT,
-      encoding: "utf8",
-      stdio: ["pipe", "pipe", "pipe"],
-    });
-  } catch (err) {
-    // Help should normally exit 0; keep stderr fallback for CLI library drift.
-    helpOutput = err.stdout || "";
-    if (!helpOutput.includes("COMMANDS") && !helpOutput.includes("Commands:")) {
-      console.error("ERROR: Could not run `node dist/cli.js --help`. Run `pnpm build` first.");
-      console.error(err.message);
-      process.exit(2);
-    }
-  }
+	let helpOutput;
+	try {
+		helpOutput = execSync("node dist/cli.js --help", {
+			cwd: ROOT,
+			encoding: "utf8",
+			stdio: ["pipe", "pipe", "pipe"],
+		});
+	} catch (err) {
+		// Help should normally exit 0; keep stderr fallback for CLI library drift.
+		helpOutput = err.stdout || "";
+		if (!helpOutput.includes("COMMANDS") && !helpOutput.includes("Commands:")) {
+			console.error(
+				"ERROR: Could not run `node dist/cli.js --help`. Run `pnpm build` first.",
+			);
+			console.error(err.message);
+			process.exit(2);
+		}
+	}
 
-  helpOutput = stripAnsi(helpOutput);
-  const commands = new Set();
+	helpOutput = stripAnsi(helpOutput);
+	const commands = new Set();
 
-  const usageMatch = helpOutput.match(/\bUSAGE\s+pw\s+([^\n]+)/);
-  if (usageMatch) {
-    for (const item of usageMatch[1].trim().split("|")) {
-      const cmd = item.trim().match(/^([a-z][-a-z]+)/)?.[1];
-      if (cmd) commands.add(cmd);
-    }
-    if (commands.size > 0) return commands;
-  }
+	const usageMatch = helpOutput.match(/\bUSAGE\s+pw\s+([^\n]+)/);
+	if (usageMatch) {
+		for (const item of usageMatch[1].trim().split("|")) {
+			const cmd = item.trim().match(/^([a-z][-a-z]+)/)?.[1];
+			if (cmd) commands.add(cmd);
+		}
+		if (commands.size > 0) return commands;
+	}
 
-  let inCommands = false;
+	let inCommands = false;
 
-  for (const line of helpOutput.split("\n")) {
-    if (/^COMMANDS\b/.test(line.trim()) || /^Commands:/.test(line)) {
-      inCommands = true;
-      continue;
-    }
-    if (inCommands) {
-      // A command line starts with 2+ spaces then the command word
-      const m = line.match(/^\s{2,}([a-z][-a-z]+)/);
-      if (m) {
-        commands.add(m[1]);
-      } else if (line.trim() === "" || /^\s*$/.test(line)) {
-        // blank line inside commands block — keep scanning
-      } else if (/^[A-Z]/.test(line.trim())) {
-        // new top-level section heading — stop
-        break;
-      }
-    }
-  }
+	for (const line of helpOutput.split("\n")) {
+		if (/^COMMANDS\b/.test(line.trim()) || /^Commands:/.test(line)) {
+			inCommands = true;
+			continue;
+		}
+		if (inCommands) {
+			// A command line starts with 2+ spaces then the command word
+			const m = line.match(/^\s{2,}([a-z][-a-z]+)/);
+			if (m) {
+				commands.add(m[1]);
+			} else if (line.trim() === "" || /^\s*$/.test(line)) {
+				// blank line inside commands block — keep scanning
+			} else if (/^[A-Z]/.test(line.trim())) {
+				// new top-level section heading — stop
+				break;
+			}
+		}
+	}
 
-  return commands;
+	return commands;
 }
 
 function stripAnsi(value) {
-  const escapeChar = String.fromCharCode(27);
-  return value.replace(new RegExp(`${escapeChar}\\[[0-9;]*m`, "g"), "");
+	const escapeChar = String.fromCharCode(27);
+	return value.replace(new RegExp(`${escapeChar}\\[[0-9;]*m`, "g"), "");
 }
 
 // ── 2. Collect skill markdown files ────────────────────────────────────────
 
 function collectMarkdownFiles(dir) {
-  const results = [];
-  for (const entry of readdirSync(dir)) {
-    const full = join(dir, entry);
-    const st = statSync(full);
-    if (st.isDirectory()) {
-      results.push(...collectMarkdownFiles(full));
-    } else if (entry.endsWith(".md")) {
-      results.push(full);
-    }
-  }
-  return results;
+	const results = [];
+	for (const entry of readdirSync(dir)) {
+		const full = join(dir, entry);
+		const st = statSync(full);
+		if (st.isDirectory()) {
+			results.push(...collectMarkdownFiles(full));
+		} else if (entry.endsWith(".md")) {
+			results.push(full);
+		}
+	}
+	return results;
 }
 
 // ── 3. Extract `pw <command>` references from a markdown file ───────────────
@@ -116,60 +118,60 @@ function collectMarkdownFiles(dir) {
 // (meta commands, flags, or descriptive words that should be excluded from both
 // stale detection and the uncovered report).
 const KNOWN_NOT_COMMANDS = new Set([
-  "help", // meta command, not a skill topic
-  "version", // flag alias, not a standalone command
+	"help", // meta command, not a skill topic
+	"version", // flag alias, not a standalone command
 ]);
 
 function extractCommandRefs(filePath, cliCommands) {
-  const src = readFileSync(filePath, "utf8");
-  const lines = src.split("\n");
+	const src = readFileSync(filePath, "utf8");
+	const lines = src.split("\n");
 
-  /** @type {Array<{cmd: string, line: number, executable: boolean}>} */
-  const refs = [];
+	/** @type {Array<{cmd: string, line: number, executable: boolean}>} */
+	const refs = [];
 
-  let inFencedBlock = false;
+	let inFencedBlock = false;
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const lineNo = i + 1;
+	for (let i = 0; i < lines.length; i++) {
+		const line = lines[i];
+		const lineNo = i + 1;
 
-    // Track fenced code block boundaries
-    if (/^```/.test(line)) {
-      inFencedBlock = !inFencedBlock;
-      continue;
-    }
+		// Track fenced code block boundaries
+		if (/^```/.test(line)) {
+			inFencedBlock = !inFencedBlock;
+			continue;
+		}
 
-    if (inFencedBlock) {
-      // Inside a fenced block: match lines that start with `pw <word>`
-      const m = line.match(/^pw\s+([a-z][-a-z]+)/);
-      if (m) {
-        refs.push({ cmd: m[1], line: lineNo, executable: true });
-      }
-    } else {
-      // Outside fenced blocks: match backtick-wrapped `pw <word>` or `pw <word> ...`
-      const backtickRe = /`pw\s+([a-z][-a-z]+)[^`]*`/g;
-      let m = backtickRe.exec(line);
-      while (m !== null) {
-        refs.push({ cmd: m[1], line: lineNo, executable: true });
-        m = backtickRe.exec(line);
-      }
+		if (inFencedBlock) {
+			// Inside a fenced block: match lines that start with `pw <word>`
+			const m = line.match(/^pw\s+([a-z][-a-z]+)/);
+			if (m) {
+				refs.push({ cmd: m[1], line: lineNo, executable: true });
+			}
+		} else {
+			// Outside fenced blocks: match backtick-wrapped `pw <word>` or `pw <word> ...`
+			const backtickRe = /`pw\s+([a-z][-a-z]+)[^`]*`/g;
+			let m = backtickRe.exec(line);
+			while (m !== null) {
+				refs.push({ cmd: m[1], line: lineNo, executable: true });
+				m = backtickRe.exec(line);
+			}
 
-      // Coverage-only: route tables list commands as backtick-wrapped names
-      // (`click` / `fill`) without spelling every one as `pw click`.
-      // Count current top-level command tokens as covered, but do not use them
-      // for stale-reference failures.
-      const tokenRe = /`([a-z][-a-z]+)`/g;
-      m = tokenRe.exec(line);
-      while (m !== null) {
-        if (cliCommands.has(m[1])) {
-          refs.push({ cmd: m[1], line: lineNo, executable: false });
-        }
-        m = tokenRe.exec(line);
-      }
-    }
-  }
+			// Coverage-only: route tables list commands as backtick-wrapped names
+			// (`click` / `fill`) without spelling every one as `pw click`.
+			// Count current top-level command tokens as covered, but do not use them
+			// for stale-reference failures.
+			const tokenRe = /`([a-z][-a-z]+)`/g;
+			m = tokenRe.exec(line);
+			while (m !== null) {
+				if (cliCommands.has(m[1])) {
+					refs.push({ cmd: m[1], line: lineNo, executable: false });
+				}
+				m = tokenRe.exec(line);
+			}
+		}
+	}
 
-  return refs;
+	return refs;
 }
 
 // ── 4. Main ─────────────────────────────────────────────────────────────────
@@ -179,7 +181,9 @@ const skillsDir = join(ROOT, "skills", "pwcli");
 console.log("Checking skill contract against dist/cli.js...");
 
 const cliCommands = parseCLICommands();
-console.log(`CLI commands (${cliCommands.size}): ${[...cliCommands].sort().join(", ")}`);
+console.log(
+	`CLI commands (${cliCommands.size}): ${[...cliCommands].sort().join(", ")}`,
+);
 console.log();
 
 const mdFiles = collectMarkdownFiles(skillsDir);
@@ -191,22 +195,22 @@ const staleRefs = new Map();
 const coveredCmds = new Set();
 
 for (const filePath of mdFiles) {
-  const refs = extractCommandRefs(filePath, cliCommands);
-  const relPath = relative(ROOT, filePath);
+	const refs = extractCommandRefs(filePath, cliCommands);
+	const relPath = relative(ROOT, filePath);
 
-  for (const { cmd, line, executable } of refs) {
-    if (KNOWN_NOT_COMMANDS.has(cmd)) continue;
+	for (const { cmd, line, executable } of refs) {
+		if (KNOWN_NOT_COMMANDS.has(cmd)) continue;
 
-    if (cliCommands.has(cmd)) {
-      coveredCmds.add(cmd);
-    } else if (executable) {
-      // Not in CLI — stale reference
-      if (!staleRefs.has(cmd)) {
-        staleRefs.set(cmd, []);
-      }
-      staleRefs.get(cmd).push({ file: relPath, line });
-    }
-  }
+		if (cliCommands.has(cmd)) {
+			coveredCmds.add(cmd);
+		} else if (executable) {
+			// Not in CLI — stale reference
+			if (!staleRefs.has(cmd)) {
+				staleRefs.set(cmd, []);
+			}
+			staleRefs.get(cmd).push({ file: relPath, line });
+		}
+	}
 }
 
 // ── 5. Report ────────────────────────────────────────────────────────────────
@@ -214,28 +218,30 @@ for (const filePath of mdFiles) {
 let hasErrors = false;
 
 if (staleRefs.size === 0) {
-  console.log("✅ No stale skill references found.");
+	console.log("✅ No stale skill references found.");
 } else {
-  hasErrors = true;
-  console.log("❌ Stale references in skill (commands no longer in CLI):");
-  for (const [cmd, locations] of [...staleRefs.entries()].sort()) {
-    for (const { file, line } of locations) {
-      console.log(`   - ${cmd}  (found in ${file}:${line})`);
-    }
-  }
+	hasErrors = true;
+	console.log("❌ Stale references in skill (commands no longer in CLI):");
+	for (const [cmd, locations] of [...staleRefs.entries()].sort()) {
+		for (const { file, line } of locations) {
+			console.log(`   - ${cmd}  (found in ${file}:${line})`);
+		}
+	}
 }
 
 console.log();
 
 const uncovered = [...cliCommands]
-  .filter((c) => !coveredCmds.has(c) && !KNOWN_NOT_COMMANDS.has(c))
-  .sort();
+	.filter((c) => !coveredCmds.has(c) && !KNOWN_NOT_COMMANDS.has(c))
+	.sort();
 if (uncovered.length > 0) {
-  console.log(`ℹ️  Uncovered commands (not mentioned in skill): ${uncovered.join(", ")}`);
+	console.log(
+		`ℹ️  Uncovered commands (not mentioned in skill): ${uncovered.join(", ")}`,
+	);
 }
 
 if (hasErrors) {
-  console.log();
-  console.log("Exit code: 1");
-  process.exit(1);
+	console.log();
+	console.log("Exit code: 1");
+	process.exit(1);
 }

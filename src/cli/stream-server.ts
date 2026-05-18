@@ -6,39 +6,39 @@ import { writeStreamRecord } from "#store/stream.js";
 const [, , sessionName, portArg] = process.argv;
 
 if (!sessionName) {
-  throw new Error("sessionName is required");
+	throw new Error("sessionName is required");
 }
 
 const port = Number(portArg || "0");
 
 const server = createServer(async (req, res) => {
-  try {
-    if (req.url?.startsWith("/status.json")) {
-      const status = await managedPreviewStatus({ sessionName });
-      res.writeHead(200, { "content-type": "application/json; charset=utf-8" });
-      res.end(JSON.stringify(status.data));
-      return;
-    }
+	try {
+		if (req.url?.startsWith("/status.json")) {
+			const status = await managedPreviewStatus({ sessionName });
+			res.writeHead(200, { "content-type": "application/json; charset=utf-8" });
+			res.end(JSON.stringify(status.data));
+			return;
+		}
 
-    if (req.url?.startsWith("/frame.jpg")) {
-      const frame = await managedPreviewFrame({ sessionName });
-      const bytes = Buffer.from(frame.data.jpegBase64, "base64");
-      res.writeHead(200, {
-        "content-type": frame.data.mimeType,
-        "cache-control": "no-store",
-      });
-      res.end(bytes);
-      return;
-    }
+		if (req.url?.startsWith("/frame.jpg")) {
+			const frame = await managedPreviewFrame({ sessionName });
+			const bytes = Buffer.from(frame.data.jpegBase64, "base64");
+			res.writeHead(200, {
+				"content-type": frame.data.mimeType,
+				"cache-control": "no-store",
+			});
+			res.end(bytes);
+			return;
+		}
 
-    if (req.url?.startsWith("/_health")) {
-      res.writeHead(200, { "content-type": "application/json; charset=utf-8" });
-      res.end(JSON.stringify({ ok: true, sessionName }));
-      return;
-    }
+		if (req.url?.startsWith("/_health")) {
+			res.writeHead(200, { "content-type": "application/json; charset=utf-8" });
+			res.end(JSON.stringify({ ok: true, sessionName }));
+			return;
+		}
 
-    res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
-    res.end(`<!doctype html>
+		res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+		res.end(`<!doctype html>
 <html>
   <head>
     <meta charset="utf-8">
@@ -72,30 +72,30 @@ const server = createServer(async (req, res) => {
     </script>
   </body>
 </html>`);
-  } catch (error) {
-    res.writeHead(500, { "content-type": "application/json; charset=utf-8" });
-    res.end(
-      JSON.stringify({
-        ok: false,
-        message: error instanceof Error ? error.message : String(error),
-      }),
-    );
-  }
+	} catch (error) {
+		res.writeHead(500, { "content-type": "application/json; charset=utf-8" });
+		res.end(
+			JSON.stringify({
+				ok: false,
+				message: error instanceof Error ? error.message : String(error),
+			}),
+		);
+	}
 });
 
 await new Promise<void>((resolve) => {
-  server.listen(port, "127.0.0.1", resolve);
+	server.listen(port, "127.0.0.1", resolve);
 });
 
 const address = server.address();
 if (!address || typeof address === "string") {
-  throw new Error("failed to bind preview server");
+	throw new Error("failed to bind preview server");
 }
 
 await writeStreamRecord({
-  sessionName,
-  pid: process.pid,
-  url: `http://127.0.0.1:${address.port}/`,
-  port: address.port,
-  startedAt: new Date().toISOString(),
+	sessionName,
+	pid: process.pid,
+	url: `http://127.0.0.1:${address.port}/`,
+	port: address.port,
+	startedAt: new Date().toISOString(),
 });

@@ -4,27 +4,27 @@ const PORT = 7778;
 const SESSION_COOKIE = "session=demo-session; HttpOnly; Path=/";
 
 function redirect(res, location, statusCode = 302) {
-  res.writeHead(statusCode, { Location: location });
-  res.end();
+	res.writeHead(statusCode, { Location: location });
+	res.end();
 }
 
 function html(res, content, statusCode = 200) {
-  res.writeHead(statusCode, { "Content-Type": "text/html; charset=utf-8" });
-  res.end(content);
+	res.writeHead(statusCode, { "Content-Type": "text/html; charset=utf-8" });
+	res.end(content);
 }
 
 function json(res, data, statusCode = 200) {
-  res.writeHead(statusCode, { "Content-Type": "application/json" });
-  res.end(JSON.stringify(data));
+	res.writeHead(statusCode, { "Content-Type": "application/json" });
+	res.end(JSON.stringify(data));
 }
 
 function hasSession(req) {
-  const cookie = req.headers.cookie || "";
-  return cookie.includes("session=demo-session");
+	const cookie = req.headers.cookie || "";
+	return cookie.includes("session=demo-session");
 }
 
 function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+	return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 const loginPage = `<!DOCTYPE html>
@@ -91,74 +91,77 @@ const iframeContent = `<!DOCTYPE html>
 </html>`;
 
 const server = createServer(async (req, res) => {
-  const url = new URL(req.url, `http://localhost:${PORT}`);
+	const url = new URL(req.url, `http://localhost:${PORT}`);
 
-  if (url.pathname === "/" && req.method === "GET") {
-    return redirect(res, "/login");
-  }
+	if (url.pathname === "/" && req.method === "GET") {
+		return redirect(res, "/login");
+	}
 
-  if (url.pathname === "/login" && req.method === "GET") {
-    return html(res, loginPage);
-  }
+	if (url.pathname === "/login" && req.method === "GET") {
+		return html(res, loginPage);
+	}
 
-  if (url.pathname === "/login" && req.method === "POST") {
-    let body = "";
-    for await (const chunk of req) body += chunk;
-    const params = new URLSearchParams(body);
-    if (params.get("username") === "demo" && params.get("password") === "demo123") {
-      res.writeHead(302, {
-        Location: "/dashboard",
-        "Set-Cookie": SESSION_COOKIE,
-      });
-      return res.end();
-    }
-    return html(res, `<p>Invalid credentials</p>${loginPage}`, 401);
-  }
+	if (url.pathname === "/login" && req.method === "POST") {
+		let body = "";
+		for await (const chunk of req) body += chunk;
+		const params = new URLSearchParams(body);
+		if (
+			params.get("username") === "demo" &&
+			params.get("password") === "demo123"
+		) {
+			res.writeHead(302, {
+				Location: "/dashboard",
+				"Set-Cookie": SESSION_COOKIE,
+			});
+			return res.end();
+		}
+		return html(res, `<p>Invalid credentials</p>${loginPage}`, 401);
+	}
 
-  if (url.pathname === "/dashboard" && req.method === "GET") {
-    if (!hasSession(req)) {
-      return redirect(res, "/login");
-    }
-    return html(res, dashboardPage);
-  }
+	if (url.pathname === "/dashboard" && req.method === "GET") {
+		if (!hasSession(req)) {
+			return redirect(res, "/login");
+		}
+		return html(res, dashboardPage);
+	}
 
-  if (url.pathname === "/tab2" && req.method === "GET") {
-    return html(res, tab2Page);
-  }
+	if (url.pathname === "/tab2" && req.method === "GET") {
+		return html(res, tab2Page);
+	}
 
-  if (url.pathname === "/iframe-content" && req.method === "GET") {
-    return html(res, iframeContent);
-  }
+	if (url.pathname === "/iframe-content" && req.method === "GET") {
+		return html(res, iframeContent);
+	}
 
-  if (url.pathname === "/api/user" && req.method === "GET") {
-    return json(res, { id: 1, name: "Demo User", role: "admin" });
-  }
+	if (url.pathname === "/api/user" && req.method === "GET") {
+		return json(res, { id: 1, name: "Demo User", role: "admin" });
+	}
 
-  if (url.pathname === "/api/slow" && req.method === "GET") {
-    await sleep(2000);
-    return json(res, { status: "ok", delayed: true });
-  }
+	if (url.pathname === "/api/slow" && req.method === "GET") {
+		await sleep(2000);
+		return json(res, { status: "ok", delayed: true });
+	}
 
-  res.writeHead(404, { "Content-Type": "text/plain" });
-  res.end("Not Found");
+	res.writeHead(404, { "Content-Type": "text/plain" });
+	res.end("Not Found");
 });
 
 export function startFixtureServer(port = PORT) {
-  return new Promise((resolve) => {
-    server.listen(port, () => {
-      console.log(`Fixture server listening on http://localhost:${port}`);
-      resolve(server);
-    });
-  });
+	return new Promise((resolve) => {
+		server.listen(port, () => {
+			console.log(`Fixture server listening on http://localhost:${port}`);
+			resolve(server);
+		});
+	});
 }
 
 export function stopFixtureServer() {
-  return new Promise((resolve) => {
-    server.close(resolve);
-  });
+	return new Promise((resolve) => {
+		server.close(resolve);
+	});
 }
 
 // Allow running directly: node test/fixtures/servers/realistic-app.mjs
 if (import.meta.url === `file://${process.argv[1]}`) {
-  startFixtureServer();
+	startFixtureServer();
 }

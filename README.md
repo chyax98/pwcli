@@ -4,6 +4,33 @@
 
 它不是 Playwright 教程，也不是测试框架外壳。它的目标是把浏览器任务变成 Agent 能稳定消费的命令链：创建 session、观察页面、执行动作、等待状态、收集诊断、恢复失败。
 
+## 与官方 playwright-cli 的关系
+
+`pwcli` 和 `microsoft/playwright-cli` 同样建立在 `playwright-core` 之上；当前 `pwcli` 还直接复用了 Playwright 官方 `lib/tools/cli-client/*` 的 session、registry 和 socket substrate。
+
+因此，`pwcli` 的定位不是另起炉灶替代官方 CLI，而是：
+
+> 官方 Playwright agent CLI substrate + 面向本项目 Agent 工作流的增强层。
+
+官方 `playwright-cli` 更新更快，适合承载基础浏览器 primitive，例如 click/fill/snapshot/drop/video/highlight/generate-locator/dashboard show 等。`pwcli` 的价值主要体现在增强层：
+
+- 结构化 JSON envelope 和更稳定的命令输出。
+- ref epoch、防 stale ref、snapshot diff。
+- diagnostics digest/bundle、console/network/error 信号汇总。
+- action evidence、失败截图和恢复建议。
+- batch、auth provider、profile/state 复用。
+- `takeover/release-control` 人机控制边界。
+- `find-best/act`、`analyze-form/fill-form`、`check-injection` 等 Agent shortcut。
+
+维护原则：跟 Playwright 版本能力走，按 Agent 工作流价值取舍；上游 substrate 是复用手段，不是产品边界。上游已有且稳定的 primitive 优先对齐或薄包装；但能减少重跑、增强复现证据、降低诊断成本的能力，即使需要直接接 Playwright API，也应评估进入 `pwcli` 增强层。
+
+当前 Playwright 1.60 适配点：
+- `pw snapshot --boxes` 透传官方 snapshot bounding boxes，并保留 ref epoch。
+- `pw drop` 基于 `locator.drop()` 投放文件或 MIME data。
+- `--role ... --description ...` 透传 `getByRole({ description })`。
+- diagnostics 捕获 context-level `weberror`，并保留 location/stack。
+- `pw dashboard open` 委托官方 `playwright-cli show`，并注入 pwcli registry 环境。
+
 ## 安装
 
 当前正式版本通过 GitHub tag 安装：
@@ -153,7 +180,7 @@ pnpm check
 - `batch` 只接收结构化 `string[][]`，只承诺稳定子集。
 - `locate|get|is|verify` 是 read-only 状态检查，不做 action planner。
 - trace 默认开启；`.pwcli/runs/` 是轻量动作事件，trace zip 是 Playwright replay 证据。
-- HAR 录制挂在 `session create|recreate --record-har <file>` 生命周期上；session 关闭后写出文件。
+- HAR 默认随 `session create|recreate` 开启全量录制（`full + embed`），写入 `.pwcli/har/<session>/session-*.har`；需要共享或缩小证据时用 `pw har filter` / `pw har clean` 派生文件；确实不需要时显式 `--no-record-har`。
 - 视频录制挂在 `session create|recreate --record-video <dir>` 生命周期上；session 关闭后写出文件。
 
 ## 已知限制

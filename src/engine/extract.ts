@@ -1,23 +1,23 @@
 import { managedRunCode } from "#engine/shared.js";
 
 export type ExtractFieldSpec = {
-  key: string;
-  selector: string;
-  type?: "text" | "html" | "attr";
-  attr?: string;
+	key: string;
+	selector: string;
+	type?: "text" | "html" | "attr";
+	attr?: string;
 };
 
 export async function managedExtract(options: {
-  sessionName?: string;
-  selector?: string;
-  schema: {
-    multiple?: boolean;
-    fields: ExtractFieldSpec[];
-  };
+	sessionName?: string;
+	selector?: string;
+	schema: {
+		multiple?: boolean;
+		fields: ExtractFieldSpec[];
+	};
 }) {
-  const result = await managedRunCode({
-    sessionName: options.sessionName,
-    source: `async page => {
+	const result = await managedRunCode({
+		sessionName: options.sessionName,
+		source: `async page => {
       return await page.evaluate((config) => {
         const rootNodes = config.selector
           ? Array.from(document.querySelectorAll(config.selector))
@@ -46,15 +46,15 @@ export async function managedExtract(options: {
           items: config.schema.multiple === true ? items : items.slice(0, 1),
         };
       }, ${JSON.stringify({
-        selector: options.selector ?? null,
-        schema: options.schema,
-      })});
+				selector: options.selector ?? null,
+				schema: options.schema,
+			})});
     }`,
-  });
+	});
 
-  return {
-    session: result.session,
-    page: result.page,
-    data: result.data.result as Record<string, unknown>,
-  };
+	return {
+		session: result.session,
+		page: result.page,
+		data: result.data.result as Record<string, unknown>,
+	};
 }

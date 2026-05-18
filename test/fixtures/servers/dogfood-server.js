@@ -5,74 +5,77 @@ const port = Number(process.env.PWCLI_DOGFOOD_PORT ?? process.argv[2] ?? 43279);
 const origin = `http://${host}:${port}`;
 
 function now() {
-  return new Date().toISOString();
+	return new Date().toISOString();
 }
 
 function parseCookies(header = "") {
-  return Object.fromEntries(
-    header
-      .split(";")
-      .map((part) => part.trim())
-      .filter(Boolean)
-      .map((part) => {
-        const index = part.indexOf("=");
-        if (index < 0) {
-          return [part, ""];
-        }
-        return [part.slice(0, index), decodeURIComponent(part.slice(index + 1))];
-      }),
-  );
+	return Object.fromEntries(
+		header
+			.split(";")
+			.map((part) => part.trim())
+			.filter(Boolean)
+			.map((part) => {
+				const index = part.indexOf("=");
+				if (index < 0) {
+					return [part, ""];
+				}
+				return [
+					part.slice(0, index),
+					decodeURIComponent(part.slice(index + 1)),
+				];
+			}),
+	);
 }
 
 function readBody(request) {
-  return new Promise((resolve, reject) => {
-    let body = "";
-    request.setEncoding("utf8");
-    request.on("data", (chunk) => {
-      body += chunk;
-    });
-    request.on("end", () => resolve(body));
-    request.on("error", reject);
-  });
+	return new Promise((resolve, reject) => {
+		let body = "";
+		request.setEncoding("utf8");
+		request.on("data", (chunk) => {
+			body += chunk;
+		});
+		request.on("end", () => resolve(body));
+		request.on("error", reject);
+	});
 }
 
 function writeHtml(response, statusCode, html, headers = {}) {
-  response.writeHead(statusCode, {
-    "cache-control": "no-store",
-    "content-type": "text/html; charset=utf-8",
-    ...headers,
-  });
-  response.end(html);
+	response.writeHead(statusCode, {
+		"cache-control": "no-store",
+		"content-type": "text/html; charset=utf-8",
+		...headers,
+	});
+	response.end(html);
 }
 
 function writeJson(response, statusCode, payload, headers = {}) {
-  response.writeHead(statusCode, {
-    "cache-control": "no-store",
-    "content-type": "application/json; charset=utf-8",
-    ...headers,
-  });
-  response.end(JSON.stringify(payload, null, 2));
+	response.writeHead(statusCode, {
+		"cache-control": "no-store",
+		"content-type": "application/json; charset=utf-8",
+		...headers,
+	});
+	response.end(JSON.stringify(payload, null, 2));
 }
 
 function writeText(response, statusCode, body, headers = {}) {
-  response.writeHead(statusCode, {
-    "cache-control": "no-store",
-    "content-type": "text/plain; charset=utf-8",
-    ...headers,
-  });
-  response.end(body);
+	response.writeHead(statusCode, {
+		"cache-control": "no-store",
+		"content-type": "text/plain; charset=utf-8",
+		...headers,
+	});
+	response.end(body);
 }
 
 function redirect(response, location) {
-  response.writeHead(302, {
-    location,
-    "cache-control": "no-store",
-  });
-  response.end();
+	response.writeHead(302, {
+		location,
+		"cache-control": "no-store",
+	});
+	response.end();
 }
 
 function pageShell(title, body, script = "") {
-  return `<!doctype html>
+	return `<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -241,9 +244,9 @@ function pageShell(title, body, script = "") {
 }
 
 function renderLogin() {
-  return pageShell(
-    "pwcli dogfood login",
-    `<main class="shell">
+	return pageShell(
+		"pwcli dogfood login",
+		`<main class="shell">
       <div class="topbar">
         <div>
           <h1>pwcli dogfood login</h1>
@@ -268,7 +271,7 @@ function renderLogin() {
         </div>
       </section>
     </main>`,
-    `
+		`
       const loginStatus = document.querySelector("#login-status");
       const loginButton = document.querySelector("#login-submit");
       loginButton?.addEventListener("click", async () => {
@@ -286,36 +289,36 @@ function renderLogin() {
         location.href = "/app/projects?from=login";
       });
     `,
-  );
+	);
 }
 
 function withAppLayout(title, crumbs, body, script = "") {
-  return pageShell(
-    title,
-    `<main class="shell">
+	return pageShell(
+		title,
+		`<main class="shell">
       <div class="topbar">
         <div>
           <div class="crumbs">${crumbs
-            .map((crumb) => `<a href="${crumb.href}">${crumb.label}</a>`)
-            .join("<span>/</span>")}</div>
+						.map((crumb) => `<a href="${crumb.href}">${crumb.label}</a>`)
+						.join("<span>/</span>")}</div>
           <h1>${title}</h1>
         </div>
         <span id="auth-badge" class="badge danger">anonymous</span>
       </div>
       ${body}
     </main>`,
-    script,
-  );
+		script,
+	);
 }
 
 function renderProjects() {
-  return withAppLayout(
-    "Projects",
-    [
-      { href: "/app", label: "App" },
-      { href: "/app/projects", label: "Projects" },
-    ],
-    `<section class="panel stack">
+	return withAppLayout(
+		"Projects",
+		[
+			{ href: "/app", label: "App" },
+			{ href: "/app/projects", label: "Projects" },
+		],
+		`<section class="panel stack">
       <label>Search
         <input id="project-search" type="text" value="alpha" />
       </label>
@@ -324,34 +327,34 @@ function renderProjects() {
         <a id="project-beta" class="item" href="/app/projects/beta">beta / unused fixture row</a>
       </div>
     </section>`,
-  );
+	);
 }
 
 function renderProjectOverview() {
-  return withAppLayout(
-    "Project Alpha",
-    [
-      { href: "/app", label: "App" },
-      { href: "/app/projects", label: "Projects" },
-      { href: "/app/projects/alpha", label: "Alpha" },
-    ],
-    `<section class="panel stack">
+	return withAppLayout(
+		"Project Alpha",
+		[
+			{ href: "/app", label: "App" },
+			{ href: "/app/projects", label: "Projects" },
+			{ href: "/app/projects/alpha", label: "Alpha" },
+		],
+		`<section class="panel stack">
       <p class="note">This page is intentionally simple. The real exercise starts under incidents.</p>
       <a id="alpha-incidents" class="item" href="/app/projects/alpha/incidents">Open incidents</a>
     </section>`,
-  );
+	);
 }
 
 function renderIncidents() {
-  return withAppLayout(
-    "Incidents",
-    [
-      { href: "/app", label: "App" },
-      { href: "/app/projects", label: "Projects" },
-      { href: "/app/projects/alpha", label: "Alpha" },
-      { href: "/app/projects/alpha/incidents", label: "Incidents" },
-    ],
-    `<section class="panel stack">
+	return withAppLayout(
+		"Incidents",
+		[
+			{ href: "/app", label: "App" },
+			{ href: "/app/projects", label: "Projects" },
+			{ href: "/app/projects/alpha", label: "Alpha" },
+			{ href: "/app/projects/alpha/incidents", label: "Incidents" },
+		],
+		`<section class="panel stack">
       <div class="item">
         <div class="row" style="justify-content: space-between">
           <strong>checkout-timeout</strong>
@@ -360,23 +363,23 @@ function renderIncidents() {
         <p class="note">Intermittent checkout failures under geolocation and flaky backend conditions.</p>
       </div>
     </section>`,
-  );
+	);
 }
 
 function renderIncidentDetails() {
-  return withAppLayout(
-    "checkout-timeout",
-    [
-      { href: "/app", label: "App" },
-      { href: "/app/projects", label: "Projects" },
-      { href: "/app/projects/alpha", label: "Alpha" },
-      { href: "/app/projects/alpha/incidents", label: "Incidents" },
-      {
-        href: "/app/projects/alpha/incidents/checkout-timeout",
-        label: "checkout-timeout",
-      },
-    ],
-    `<section class="grid two">
+	return withAppLayout(
+		"checkout-timeout",
+		[
+			{ href: "/app", label: "App" },
+			{ href: "/app/projects", label: "Projects" },
+			{ href: "/app/projects/alpha", label: "Alpha" },
+			{ href: "/app/projects/alpha/incidents", label: "Incidents" },
+			{
+				href: "/app/projects/alpha/incidents/checkout-timeout",
+				label: "checkout-timeout",
+			},
+		],
+		`<section class="grid two">
       <section class="panel stack">
         <h2>Incident Summary</h2>
         <p class="note">Users see a checkout timeout after several deep navigation steps. Reproduction is more likely on flaky network, missing geolocation permission, or when the backend returns malformed responses.</p>
@@ -390,37 +393,37 @@ function renderIncidentDetails() {
         <p class="note">One modal path intentionally blocks page-context-backed reads.</p>
       </aside>
     </section>`,
-  );
+	);
 }
 
 function renderEmbeddedNotes() {
-  return pageShell(
-    "pwcli dogfood notes frame",
-    `<main class="shell">
+	return pageShell(
+		"pwcli dogfood notes frame",
+		`<main class="shell">
       <h2>Embedded diagnostics notes</h2>
       <p id="embedded-note">frame ready with nested context</p>
     </main>`,
-  );
+	);
 }
 
 function renderReproduce() {
-  return withAppLayout(
-    "checkout-timeout reproduce",
-    [
-      { href: "/app", label: "App" },
-      { href: "/app/projects", label: "Projects" },
-      { href: "/app/projects/alpha", label: "Alpha" },
-      { href: "/app/projects/alpha/incidents", label: "Incidents" },
-      {
-        href: "/app/projects/alpha/incidents/checkout-timeout",
-        label: "checkout-timeout",
-      },
-      {
-        href: "/app/projects/alpha/incidents/checkout-timeout/reproduce",
-        label: "reproduce",
-      },
-    ],
-    `<div class="grid two">
+	return withAppLayout(
+		"checkout-timeout reproduce",
+		[
+			{ href: "/app", label: "App" },
+			{ href: "/app/projects", label: "Projects" },
+			{ href: "/app/projects/alpha", label: "Alpha" },
+			{ href: "/app/projects/alpha/incidents", label: "Incidents" },
+			{
+				href: "/app/projects/alpha/incidents/checkout-timeout",
+				label: "checkout-timeout",
+			},
+			{
+				href: "/app/projects/alpha/incidents/checkout-timeout/reproduce",
+				label: "reproduce",
+			},
+		],
+		`<div class="grid two">
       <section class="panel stack">
         <h2>Reproduce workspace</h2>
         <div class="row">
@@ -468,7 +471,7 @@ function renderReproduce() {
         <iframe id="notes-frame" src="/app/projects/alpha/incidents/checkout-timeout/reproduce/notes" title="embedded notes"></iframe>
       </aside>
     </div>`,
-    `
+		`
       const authStateNode = document.querySelector("#auth-state");
       const storageStateNode = document.querySelector("#storage-state");
       const routeStateNode = document.querySelector("#route-state");
@@ -617,194 +620,207 @@ function renderReproduce() {
         }
       });
     `,
-  );
+	);
 }
 
 async function handleApi(request, response, pathname, url, cookies) {
-  if (pathname === "/api/auth/login" && request.method === "POST") {
-    const body = await readBody(request);
-    const payload = body ? JSON.parse(body) : {};
-    writeJson(
-      response,
-      200,
-      {
-        ok: true,
-        email: payload.email ?? "unknown",
-      },
-      {
-        "set-cookie": ["pwcli_auth=1; Path=/", "pwcli_role=qa; Path=/"],
-      },
-    );
-    return true;
-  }
+	if (pathname === "/api/auth/login" && request.method === "POST") {
+		const body = await readBody(request);
+		const payload = body ? JSON.parse(body) : {};
+		writeJson(
+			response,
+			200,
+			{
+				ok: true,
+				email: payload.email ?? "unknown",
+			},
+			{
+				"set-cookie": ["pwcli_auth=1; Path=/", "pwcli_role=qa; Path=/"],
+			},
+		);
+		return true;
+	}
 
-  if (!cookies.pwcli_auth && pathname.startsWith("/api/incidents")) {
-    writeJson(response, 401, {
-      ok: false,
-      errorCode: "AUTH_REQUIRED",
-      message: "Missing pwcli_auth cookie",
-    });
-    return true;
-  }
+	if (!cookies.pwcli_auth && pathname.startsWith("/api/incidents")) {
+		writeJson(response, 401, {
+			ok: false,
+			errorCode: "AUTH_REQUIRED",
+			message: "Missing pwcli_auth cookie",
+		});
+		return true;
+	}
 
-  if (pathname === "/api/incidents/alpha/checkout-timeout/summary") {
-    writeJson(response, 200, {
-      ok: true,
-      title: "checkout-timeout",
-      severity: "high",
-      hint: "reproduce under flaky network or bad backend response",
-    });
-    return true;
-  }
+	if (pathname === "/api/incidents/alpha/checkout-timeout/summary") {
+		writeJson(response, 200, {
+			ok: true,
+			title: "checkout-timeout",
+			severity: "high",
+			hint: "reproduce under flaky network or bad backend response",
+		});
+		return true;
+	}
 
-  if (pathname === "/api/incidents/alpha/checkout-timeout/start" && request.method === "POST") {
-    await readBody(request);
-    writeJson(response, 500, {
-      ok: false,
-      errorCode: "CHECKOUT_TIMEOUT",
-      message: "checkout request timed out after gateway retry",
-    });
-    return true;
-  }
+	if (
+		pathname === "/api/incidents/alpha/checkout-timeout/start" &&
+		request.method === "POST"
+	) {
+		await readBody(request);
+		writeJson(response, 500, {
+			ok: false,
+			errorCode: "CHECKOUT_TIMEOUT",
+			message: "checkout request timed out after gateway retry",
+		});
+		return true;
+	}
 
-  if (pathname === "/api/incidents/alpha/checkout-timeout/mock-target") {
-    const injectedMode = String(request.headers["x-pwcli-route-inject"] ?? "");
-    if (injectedMode) {
-      writeText(response, 206, `server-route-injected:${injectedMode}`, {
-        "x-pwcli-route": "server-injected",
-      });
-      return true;
-    }
-    writeText(response, 207, `server-route-fallback:${url.searchParams.get("mode") ?? "server"}`, {
-      "x-pwcli-route": "server-fallback",
-    });
-    return true;
-  }
+	if (pathname === "/api/incidents/alpha/checkout-timeout/mock-target") {
+		const injectedMode = String(request.headers["x-pwcli-route-inject"] ?? "");
+		if (injectedMode) {
+			writeText(response, 206, `server-route-injected:${injectedMode}`, {
+				"x-pwcli-route": "server-injected",
+			});
+			return true;
+		}
+		writeText(
+			response,
+			207,
+			`server-route-fallback:${url.searchParams.get("mode") ?? "server"}`,
+			{
+				"x-pwcli-route": "server-fallback",
+			},
+		);
+		return true;
+	}
 
-  if (pathname === "/api/offline/ping") {
-    writeText(response, 200, `pong:${url.searchParams.get("token") ?? "none"}`);
-    return true;
-  }
+	if (pathname === "/api/offline/ping") {
+		writeText(response, 200, `pong:${url.searchParams.get("token") ?? "none"}`);
+		return true;
+	}
 
-  if (pathname === "/api/bootstrap/echo") {
-    const headerEcho = String(request.headers["x-pwcli-header"] ?? "");
-    writeJson(
-      response,
-      200,
-      {
-        ok: true,
-        headerEcho,
-        token: url.searchParams.get("token") ?? "none",
-      },
-      {
-        "x-pwcli-header": headerEcho,
-      },
-    );
-    return true;
-  }
+	if (pathname === "/api/bootstrap/echo") {
+		const headerEcho = String(request.headers["x-pwcli-header"] ?? "");
+		writeJson(
+			response,
+			200,
+			{
+				ok: true,
+				headerEcho,
+				token: url.searchParams.get("token") ?? "none",
+			},
+			{
+				"x-pwcli-header": headerEcho,
+			},
+		);
+		return true;
+	}
 
-  if (pathname === "/api/download/report.txt") {
-    response.writeHead(200, {
-      "cache-control": "no-store",
-      "content-type": "text/plain; charset=utf-8",
-      "content-disposition": 'attachment; filename="dogfood-report.txt"',
-    });
-    response.end(`dogfood-report:${url.searchParams.get("token") ?? "none"}\n${now()}\n`);
-    return true;
-  }
+	if (pathname === "/api/download/report.txt") {
+		response.writeHead(200, {
+			"cache-control": "no-store",
+			"content-type": "text/plain; charset=utf-8",
+			"content-disposition": 'attachment; filename="dogfood-report.txt"',
+		});
+		response.end(
+			`dogfood-report:${url.searchParams.get("token") ?? "none"}\n${now()}\n`,
+		);
+		return true;
+	}
 
-  return false;
+	return false;
 }
 
 const server = createServer(async (request, response) => {
-  const url = new URL(request.url ?? "/", origin);
-  const pathname = url.pathname;
-  const cookies = parseCookies(request.headers.cookie);
+	const url = new URL(request.url ?? "/", origin);
+	const pathname = url.pathname;
+	const cookies = parseCookies(request.headers.cookie);
 
-  if (pathname.startsWith("/api/")) {
-    const handled = await handleApi(request, response, pathname, url, cookies);
-    if (!handled) {
-      writeJson(response, 404, {
-        ok: false,
-        errorCode: "NOT_FOUND",
-        pathname,
-      });
-    }
-    return;
-  }
+	if (pathname.startsWith("/api/")) {
+		const handled = await handleApi(request, response, pathname, url, cookies);
+		if (!handled) {
+			writeJson(response, 404, {
+				ok: false,
+				errorCode: "NOT_FOUND",
+				pathname,
+			});
+		}
+		return;
+	}
 
-  if (pathname === "/" || pathname === "/login") {
-    writeHtml(response, 200, renderLogin());
-    return;
-  }
+	if (pathname === "/" || pathname === "/login") {
+		writeHtml(response, 200, renderLogin());
+		return;
+	}
 
-  if (pathname === "/favicon.ico") {
-    response.writeHead(204, {
-      "cache-control": "no-store",
-    });
-    response.end();
-    return;
-  }
+	if (pathname === "/favicon.ico") {
+		response.writeHead(204, {
+			"cache-control": "no-store",
+		});
+		response.end();
+		return;
+	}
 
-  if (!cookies.pwcli_auth && pathname.startsWith("/app")) {
-    redirect(response, "/login");
-    return;
-  }
+	if (!cookies.pwcli_auth && pathname.startsWith("/app")) {
+		redirect(response, "/login");
+		return;
+	}
 
-  if (pathname === "/app" || pathname === "/app/projects") {
-    writeHtml(response, 200, renderProjects());
-    return;
-  }
+	if (pathname === "/app" || pathname === "/app/projects") {
+		writeHtml(response, 200, renderProjects());
+		return;
+	}
 
-  if (pathname === "/app/projects/alpha") {
-    writeHtml(response, 200, renderProjectOverview());
-    return;
-  }
+	if (pathname === "/app/projects/alpha") {
+		writeHtml(response, 200, renderProjectOverview());
+		return;
+	}
 
-  if (pathname === "/app/projects/alpha/incidents") {
-    writeHtml(response, 200, renderIncidents());
-    return;
-  }
+	if (pathname === "/app/projects/alpha/incidents") {
+		writeHtml(response, 200, renderIncidents());
+		return;
+	}
 
-  if (pathname === "/app/projects/alpha/incidents/checkout-timeout") {
-    writeHtml(response, 200, renderIncidentDetails());
-    return;
-  }
+	if (pathname === "/app/projects/alpha/incidents/checkout-timeout") {
+		writeHtml(response, 200, renderIncidentDetails());
+		return;
+	}
 
-  if (pathname === "/app/projects/alpha/incidents/checkout-timeout/reproduce") {
-    writeHtml(response, 200, renderReproduce());
-    return;
-  }
+	if (pathname === "/app/projects/alpha/incidents/checkout-timeout/reproduce") {
+		writeHtml(response, 200, renderReproduce());
+		return;
+	}
 
-  if (pathname === "/app/projects/alpha/incidents/checkout-timeout/reproduce/notes") {
-    writeHtml(response, 200, renderEmbeddedNotes());
-    return;
-  }
+	if (
+		pathname ===
+		"/app/projects/alpha/incidents/checkout-timeout/reproduce/notes"
+	) {
+		writeHtml(response, 200, renderEmbeddedNotes());
+		return;
+	}
 
-  writeText(response, 404, `not-found:${pathname}`);
+	writeText(response, 404, `not-found:${pathname}`);
 });
 
 server.listen(port, host, () => {
-  process.stdout.write(
-    `${JSON.stringify(
-      {
-        host,
-        port,
-        origin,
-        loginUrl: `${origin}/login`,
-        reproduceUrl: `${origin}/app/projects/alpha/incidents/checkout-timeout/reproduce`,
-        pid: process.pid,
-      },
-      null,
-      2,
-    )}\n`,
-  );
+	process.stdout.write(
+		`${JSON.stringify(
+			{
+				host,
+				port,
+				origin,
+				loginUrl: `${origin}/login`,
+				reproduceUrl: `${origin}/app/projects/alpha/incidents/checkout-timeout/reproduce`,
+				pid: process.pid,
+			},
+			null,
+			2,
+		)}\n`,
+	);
 });
 
 const shutdown = () => {
-  server.close(() => {
-    process.exit(0);
-  });
+	server.close(() => {
+		process.exit(0);
+	});
 };
 
 process.on("SIGINT", shutdown);
