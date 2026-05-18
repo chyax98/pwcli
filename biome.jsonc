@@ -3,9 +3,9 @@
 	"files": {
 		"includes": [
 			"**",
-			"!!**/dist",
-			"!!**/node_modules",
-			"!!**/.pwcli",
+			"!!**/dist/**",
+			"!!**/node_modules/**",
+			"!!**/.pwcli/**",
 			"!!**/test/fixtures/code/dogfood-bootstrap.js"
 		]
 	},
