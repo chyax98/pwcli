@@ -77,6 +77,34 @@ pw snapshot -i -s explore-a
 
 目标：知道当前 URL、标题、主要文本、关键可交互元素和下一步定位方式。
 
+### 连接已有浏览器 / Electron
+
+已有目标时优先按 endpoint 类型 attach：
+
+```bash
+# Chromium CDP port（Electron/Chrome remote debugging）
+pw session attach electron-a --cdp 9333
+pw session attach electron-a --browser-url http://127.0.0.1:9333
+pw session attach electron-a http://127.0.0.1:9333
+
+# Chromium CDP WebSocket（/json/version 里的 webSocketDebuggerUrl）
+pw session attach electron-a --cdp 'ws://127.0.0.1:9333/devtools/browser/<id>'
+pw session attach electron-a 'ws://127.0.0.1:9333/devtools/browser/<id>'
+
+# Playwright browser server websocket
+pw session attach remote-a --ws-endpoint 'ws://127.0.0.1:3000/<playwright-id>'
+
+# Playwright bound browser registry
+pw session list --attachable
+pw session attach remote-a --attachable-id '<id>'
+
+pw status -s electron-a
+pw snapshot -i -s electron-a
+pw console -s electron-a --level error --limit 20
+```
+
+规则：`http://...` 和 `/devtools/` websocket 自动按 Chromium CDP 连接；非 `/devtools/` websocket 按 Playwright endpoint 连接。桌面端优先走 CDP，不走浏览器 extension。
+
 ### 执行动作
 
 ```bash

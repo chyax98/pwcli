@@ -434,14 +434,18 @@ async function resolveAttachableServer(attachableId: string) {
 		throw new Error(
 			`attachable server '${attachableId}' not found or not connectable`,
 		);
-	return { endpoint: server.endpoint, resolvedVia: "attachable-id" as const };
+	return {
+		endpoint: server.endpoint,
+		resolvedVia: "attachable-id" as const,
+		connectVia: "endpoint" as const,
+	};
 }
 
 const attach = defineCommand({
 	meta: {
 		name: "attach",
 		description:
-			"Purpose: attach a named session to an existing browser endpoint.\nExamples:\n  pw session attach task-a --browser-url http://127.0.0.1:9222\n  pw session attach task-a --attachable-id <id>\nNotes: attach only works with reachable local debugging endpoints or attachable ids.",
+			"Purpose: attach a named session to an existing browser endpoint.\nExamples:\n  pw session attach task-a --cdp 9222\n  pw session attach task-a http://127.0.0.1:9222\n  pw session attach task-a --ws-endpoint ws://127.0.0.1:3000/playwright\n  pw session attach task-a --attachable-id <id>\nNotes: --cdp/--browser-url/http positional endpoints use Chromium CDP; --ws-endpoint uses a Playwright browser server endpoint.",
 	},
 	args: {
 		output: sharedArgs.output,
@@ -452,10 +456,14 @@ const attach = defineCommand({
 		},
 		"browser-url": {
 			type: "string",
-			description: "CDP browser URL",
+			description: "CDP browser HTTP URL",
 			valueHint: "url",
 		},
-		cdp: { type: "string", description: "CDP port", valueHint: "port" },
+		cdp: {
+			type: "string",
+			description: "CDP port, browser URL, or websocket URL",
+			valueHint: "port-or-url",
+		},
 		"attachable-id": {
 			type: "string",
 			description: "Attachable server id",
@@ -488,7 +496,13 @@ const attach = defineCommand({
 				sessionName: name,
 				endpoint: target.endpoint,
 				resolvedVia: target.resolvedVia,
-				...("browserURL" in target ? { browserURL: target.browserURL } : {}),
+				connectVia: target.connectVia,
+				...("browserURL" in target && target.browserURL
+					? { browserURL: target.browserURL }
+					: {}),
+				...("cdpEndpoint" in target && target.cdpEndpoint
+					? { cdpEndpoint: target.cdpEndpoint }
+					: {}),
 			});
 			const appliedDefaults = await applySessionDefaults({
 				sessionName: name,
