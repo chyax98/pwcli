@@ -97,12 +97,15 @@ pw extract -s auth-a '{"fields":[{"key":"title","selector":"h1"}]}'
 pw check-injection -s auth-a --include-hidden
 ```
 
-读取当前安装版本的 skill：
+读取当前安装版本的 skill 和命令发现：
 
 ```bash
 pw skill refs
 pw skill show
 pw skill show --full
+pw commands list
+pw commands search electron
+pw commands help snapshot
 ```
 
 本地预览当前 session：
@@ -127,6 +130,7 @@ pw release-control -s bug-a
 | 维护仓库的 Code Agent | `AGENTS.md` / `CLAUDE.md` | 代码、测试、文档、发版规则 |
 | Claude Code | `.claude/rules/` | 本地细分护栏 |
 | 当前版本 skill 导出 | `pw skill show` / `pw skill show --full` | 从 CLI 读取当前安装版本 skill |
+| 命令发现 | `pw commands list` / `pw commands search <topic>` | Agent-facing 路由元数据 |
 | 命令参数核对 | `pw --help` / `pw <command> --help` | 当前版本命令细节 |
 
 ## 仓库结构
