@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { after, before, describe, it } from "node:test";
-import { runPw, uniqueSessionName } from "./_helpers.ts";
+import { repoRoot, runPw, uniqueSessionName } from "./_helpers.ts";
 
 const makeSessionName = () => uniqueSessionName("it");
 
@@ -64,6 +66,18 @@ describe("session lifecycle", { concurrency: false }, () => {
 		assert.ok((statusJson as { data: { socketPath: string } }).data.socketPath);
 		assert.ok((statusJson as { data: { version: string } }).data.version);
 
+		const pidPath = join(
+			repoRoot,
+			".pwcli",
+			"playwright-daemon",
+			`${sessionName}.pid`,
+		);
+		assert.equal(
+			existsSync(pidPath),
+			true,
+			"pid file should exist after create",
+		);
+
 		const closeResult = await runPw([
 			"session",
 			"close",
@@ -78,6 +92,7 @@ describe("session lifecycle", { concurrency: false }, () => {
 			(closeJson as { data: { closed: boolean } }).data.closed,
 			true,
 		);
+		assert.equal(existsSync(pidPath), false, "close should remove pid file");
 		sessionsToClean.pop();
 	});
 
