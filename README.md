@@ -188,4 +188,4 @@ pnpm check
 - `page dialogs` 是事件投影，不是 authoritative live dialog set。
 - `MODAL_STATE_BLOCKED` 会阻断需要页面执行上下文的读取和部分动作。
 - `observe status` 和 `doctor` 默认 compact，`--verbose` 才展开完整细节。
-- `session attach --browser-url/--cdp` 只能接管本机可连接的调试端口。
+- `session attach --browser-url/--cdp` 接管本机可连接的 Chromium CDP 调试端口，`--cdp` 也接受 CDP websocket；positional `http://...` 和 `/devtools/` websocket 会自动按 CDP 连接；`--ws-endpoint` 接 Playwright browser server endpoint。

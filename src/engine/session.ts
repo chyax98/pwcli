@@ -129,6 +129,7 @@ type EnsureManagedSessionOptions = {
 	profile?: string;
 	persistent?: boolean;
 	endpoint?: string;
+	cdp?: string;
 	createIfMissing?: boolean;
 	config?: string;
 };
@@ -691,6 +692,7 @@ async function ensureManagedSessionUnlocked(
 									...(options?.profile ? { profile: options.profile } : {}),
 									...(options?.persistent ? { persistent: true } : {}),
 									...(options?.endpoint ? { endpoint: options.endpoint } : {}),
+									...(options?.cdp ? { cdp: options.cdp } : {}),
 									...(options?.config ? { config: options.config } : {}),
 								}),
 							),

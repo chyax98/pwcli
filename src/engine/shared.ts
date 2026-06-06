@@ -31,6 +31,36 @@ export function normalizeRef(ref: string) {
 	return ref.startsWith("@") ? ref.slice(1) : ref;
 }
 
+function looksLikeRunCodeFunction(source: string) {
+	const trimmed = source.trim();
+	return (
+		/^async\s+function\b/.test(trimmed) ||
+		/^function\b/.test(trimmed) ||
+		/^async\s*\([^)]*\)\s*=>/.test(trimmed) ||
+		/^\([^)]*\)\s*=>/.test(trimmed) ||
+		/^async\s+[A-Za-z_$][\w$]*\s*=>/.test(trimmed) ||
+		/^[A-Za-z_$][\w$]*\s*=>/.test(trimmed)
+	);
+}
+
+function canParseRunCodeExpression(source: string) {
+	try {
+		new Function(`return (async (page) => (${source}));`);
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+export function normalizeRunCodeSource(source: string) {
+	const trimmed = source.trim();
+	if (!trimmed || looksLikeRunCodeFunction(trimmed)) return source;
+	if (canParseRunCodeExpression(trimmed)) {
+		return `async (page) => (${trimmed})`;
+	}
+	return `async (page) => {\n${source}\n}`;
+}
+
 export function isModalStateBlockedMessage(message: string) {
 	return (
 		message === "MODAL_STATE_BLOCKED" ||
@@ -61,7 +91,7 @@ export async function managedRunCode(options: {
 		source = await readFile(filename, "utf8");
 	}
 	if (source) {
-		args.push(source);
+		args.push(normalizeRunCodeSource(source));
 	}
 	const attempts = Math.max(1, Math.floor(Number(options.retry ?? 0)) + 1);
 	let result: Awaited<ReturnType<typeof runManagedSessionCommand>> | undefined;
