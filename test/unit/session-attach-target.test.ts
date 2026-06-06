@@ -28,6 +28,20 @@ test("resolveAttachTarget maps --cdp http URL to raw CDP endpoint", async () => 
 	});
 });
 
+test("resolveAttachTarget maps --cdp host:port to raw CDP endpoint", async () => {
+	const target = await resolveAttachTarget(undefined, {
+		cdp: "localhost:9333",
+	});
+
+	assert.deepEqual(target, {
+		endpoint: "http://127.0.0.1:9333",
+		resolvedVia: "cdp",
+		connectVia: "cdp",
+		browserURL: undefined,
+		cdpEndpoint: "http://127.0.0.1:9333",
+	});
+});
+
 test("resolveAttachTarget maps --cdp websocket URL to raw CDP endpoint", async () => {
 	const target = await resolveAttachTarget(undefined, {
 		cdp: "ws://localhost:9333/devtools/browser/abc",

@@ -303,8 +303,9 @@ function normalizeURL(value: string) {
 function normalizeCdpEndpoint(value: string) {
 	const trimmed = value.trim();
 	if (/^\d+$/.test(trimmed)) return `http://127.0.0.1:${trimmed}`;
-	if (/^[a-zA-Z][a-zA-Z\d+.-]*:/.test(trimmed)) return normalizeURL(trimmed);
-	if (/^[^/\s]+:\d+$/.test(trimmed)) return normalizeURL(`http://${trimmed}`);
+	if (/^[^/:\s]+:\d+$/.test(trimmed)) return normalizeURL(`http://${trimmed}`);
+	if (/^[a-zA-Z][a-zA-Z\d+.-]*:\/\//.test(trimmed))
+		return normalizeURL(trimmed);
 	return normalizeURL(trimmed);
 }
 

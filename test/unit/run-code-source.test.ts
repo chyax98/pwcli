@@ -8,6 +8,10 @@ test("normalizeRunCodeSource preserves function expressions", () => {
 		"async (page) => await page.title()",
 	);
 	assert.equal(
+		normalizeRunCodeSource("async (page) => await page.title();"),
+		"async (page) => await page.title()",
+	);
+	assert.equal(
 		normalizeRunCodeSource("page => page.url()"),
 		"page => page.url()",
 	);
@@ -25,5 +29,9 @@ test("normalizeRunCodeSource wraps expressions with implicit return", () => {
 		normalizeRunCodeSource("await page.title()"),
 		"async (page) => (await page.title())",
 	);
-	assert.equal(normalizeRunCodeSource("1 + 1"), "async (page) => (1 + 1)");
+	assert.equal(
+		normalizeRunCodeSource("await page.title();"),
+		"async (page) => (await page.title())",
+	);
+	assert.equal(normalizeRunCodeSource("1 + 1;"), "async (page) => (1 + 1)");
 });

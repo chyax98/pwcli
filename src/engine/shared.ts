@@ -52,13 +52,17 @@ function canParseRunCodeExpression(source: string) {
 	}
 }
 
+function stripTrailingSemicolons(source: string) {
+	return source.trim().replace(/;+$/, "").trimEnd();
+}
+
 export function normalizeRunCodeSource(source: string) {
-	const trimmed = source.trim();
-	if (!trimmed || looksLikeRunCodeFunction(trimmed)) return source;
-	if (canParseRunCodeExpression(trimmed)) {
-		return `async (page) => (${trimmed})`;
+	const stripped = stripTrailingSemicolons(source);
+	if (!stripped || looksLikeRunCodeFunction(stripped)) return stripped;
+	if (canParseRunCodeExpression(stripped)) {
+		return `async (page) => (${stripped})`;
 	}
-	return `async (page) => {\n${source}\n}`;
+	return `async (page) => {\n${stripped}\n}`;
 }
 
 export function isModalStateBlockedMessage(message: string) {
