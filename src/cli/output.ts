@@ -30,7 +30,7 @@ type OutputMode = "text" | "json";
 let cachedOutputMode: OutputMode | undefined;
 let boundaryNonce: string | undefined;
 
-function outputMode(explicit?: unknown): OutputMode {
+export function outputMode(explicit?: unknown): OutputMode {
 	if (explicit === "json" || explicit === "text") return explicit;
 	if (cachedOutputMode !== undefined) return cachedOutputMode;
 	const envMode = process.env.PWCLI_OUTPUT?.trim().toLowerCase();

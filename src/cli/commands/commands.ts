@@ -5,7 +5,8 @@ import {
 	commandLayers,
 	commandMetadata,
 } from "#cli/command-metadata.js";
-import { type CliArgs, output, positionals, str } from "./_helpers.js";
+import { outputMode } from "#cli/output.js";
+import { type CliArgs, positionals, str } from "./_helpers.js";
 
 function matchesTopic(command: CommandMetadata, query: string) {
 	const needle = query.trim().toLowerCase();
@@ -41,13 +42,29 @@ function textTable(commands: CommandMetadata[]) {
 		.join("\n");
 }
 
+function explicitOutputFromArgv() {
+	const outputIndex = process.argv.indexOf("--output");
+	if (outputIndex >= 0) return process.argv[outputIndex + 1];
+	const outputPrefix = "--output=";
+	return process.argv
+		.find((arg) => arg.startsWith(outputPrefix))
+		?.slice(outputPrefix.length);
+}
+
+function commandOutputMode(args: CliArgs) {
+	const explicitFromArgv = explicitOutputFromArgv();
+	return outputMode(
+		explicitFromArgv ?? (args.output === "json" ? "json" : undefined),
+	);
+}
+
 function printResult(
 	args: CliArgs,
 	command: string,
 	data: Record<string, unknown>,
 	text: string,
 ) {
-	if (output(args) === "json") {
+	if (commandOutputMode(args) === "json") {
 		process.stdout.write(
 			`${JSON.stringify({ ok: true, command, data }, null, 2)}\n`,
 		);
@@ -56,16 +73,21 @@ function printResult(
 	process.stdout.write(text.endsWith("\n") ? text : `${text}\n`);
 }
 
-function printJsonError(
+function printError(
 	command: string,
+	args: CliArgs,
 	code: string,
 	message: string,
 	suggestions: string[],
 	details: Record<string, unknown> = {},
 ) {
-	process.stdout.write(
-		`${JSON.stringify({ ok: false, command, error: { code, message, retryable: false, suggestions, details } }, null, 2)}\n`,
-	);
+	if (commandOutputMode(args) === "json") {
+		process.stdout.write(
+			`${JSON.stringify({ ok: false, command, error: { code, message, retryable: false, suggestions, details } }, null, 2)}\n`,
+		);
+		return;
+	}
+	process.stderr.write(`${message}\n${suggestions[0]}\n`);
 }
 
 const list = defineCommand({
@@ -93,13 +115,16 @@ const list = defineCommand({
 			process.exitCode = 1;
 			const message = `Unknown layer: ${layer}`;
 			const suggestions = [`Use one of: ${commandLayers.join(", ")}`];
-			if (output(cliArgs) === "json") {
-				printJsonError("commands list", "UNKNOWN_LAYER", message, suggestions, {
+			printError(
+				"commands list",
+				cliArgs,
+				"UNKNOWN_LAYER",
+				message,
+				suggestions,
+				{
 					allowedLayers: commandLayers,
-				});
-				return;
-			}
-			process.stderr.write(`${message}\n${suggestions[0]}\n`);
+				},
+			);
 			return;
 		}
 		const layerFilter = layer as CommandLayer | undefined;
@@ -162,16 +187,13 @@ const help = defineCommand({
 			process.exitCode = 1;
 			const message = `Unknown command: ${name ?? ""}`;
 			const suggestions = ["Run `pw commands list`"];
-			if (output(cliArgs) === "json") {
-				printJsonError(
-					"commands help",
-					"COMMAND_NOT_FOUND",
-					message,
-					suggestions,
-				);
-				return;
-			}
-			process.stderr.write(`${message}\n${suggestions[0]}\n`);
+			printError(
+				"commands help",
+				cliArgs,
+				"COMMAND_NOT_FOUND",
+				message,
+				suggestions,
+			);
 			return;
 		}
 		const text = [
