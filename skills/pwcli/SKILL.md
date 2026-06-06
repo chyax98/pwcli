@@ -13,6 +13,9 @@ description: "Use pwcli for browser automation, page exploration, diagnostics, s
 pw --help
 pw <command> --help
 pw <group> <subcommand> --help
+pw commands list
+pw commands search '<topic>'
+pw commands help <command>
 pw skill show
 pw skill show --full
 ```
@@ -61,6 +64,7 @@ pw skill show --full
 | 环境控制 | `environment` / `bootstrap` | `pw environment --help` |
 | 批量串行 | `batch` | `pw batch --help` |
 | 逃生口 | `code` | `pw code --help` |
+| command discovery | `commands` | `pw commands --help` |
 | skill 安装和导出 | `skill` | `pw skill --help` |
 | 人类观察面 | `view` / `stream` / `dashboard` | `pw view --help` |
 

@@ -73,6 +73,7 @@ export default {
 	batch: () => import("./batch.js").then((m) => m.default),
 	code: () => import("./code.js").then((m) => m.default),
 	skill: () => import("./skill.js").then((m) => m.default),
+	commands: () => import("./commands.js").then((m) => m.default),
 	dashboard: () => import("./dashboard.js").then((m) => m.default),
 	view: () => import("./view.js").then((m) => m.default),
 } as const;
