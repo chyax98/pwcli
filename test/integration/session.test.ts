@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { after, before, describe, it } from "node:test";
-import { runPw, uniqueSessionName } from "./_helpers.ts";
+import { repoRoot, runPw, uniqueSessionName } from "./_helpers.ts";
 
 const makeSessionName = () => uniqueSessionName("it");
 
@@ -64,6 +66,18 @@ describe("session lifecycle", { concurrency: false }, () => {
 		assert.ok((statusJson as { data: { socketPath: string } }).data.socketPath);
 		assert.ok((statusJson as { data: { version: string } }).data.version);
 
+		const pidPath = join(
+			repoRoot,
+			".pwcli",
+			"playwright-daemon",
+			`${sessionName}.pid`,
+		);
+		assert.equal(
+			existsSync(pidPath),
+			true,
+			"pid file should exist after create",
+		);
+
 		const closeResult = await runPw([
 			"session",
 			"close",
@@ -78,6 +92,7 @@ describe("session lifecycle", { concurrency: false }, () => {
 			(closeJson as { data: { closed: boolean } }).data.closed,
 			true,
 		);
+		assert.equal(existsSync(pidPath), false, "close should remove pid file");
 		sessionsToClean.pop();
 	});
 
@@ -232,6 +247,44 @@ describe("session lifecycle", { concurrency: false }, () => {
 		};
 		assert.equal(statusJson.ok, false);
 		assert.equal(statusJson.error?.code, "SESSION_NOT_FOUND");
+	});
+
+	it("close --all removes pid files for closed sessions", async () => {
+		const nameA = makeSessionName();
+		const nameB = makeSessionName();
+		sessionsToClean.push(nameA, nameB);
+
+		for (const name of [nameA, nameB]) {
+			const create = await runPw([
+				"session",
+				"create",
+				name,
+				"--headless",
+				"--open",
+				"about:blank",
+				"--output",
+				"json",
+			]);
+			assert.equal(create.code, 0, `create ${name} failed: ${create.stderr}`);
+		}
+
+		const pidA = join(repoRoot, ".pwcli", "playwright-daemon", `${nameA}.pid`);
+		const pidB = join(repoRoot, ".pwcli", "playwright-daemon", `${nameB}.pid`);
+		assert.equal(existsSync(pidA), true, "pid A exists");
+		assert.equal(existsSync(pidB), true, "pid B exists");
+
+		const closeAll = await runPw([
+			"session",
+			"close",
+			"--all",
+			"--output",
+			"json",
+		]);
+		assert.equal(closeAll.code, 0, `close all failed: ${closeAll.stderr}`);
+		assert.equal(existsSync(pidA), false, "pid A removed");
+		assert.equal(existsSync(pidB), false, "pid B removed");
+		sessionsToClean.pop();
+		sessionsToClean.pop();
 	});
 
 	it("close --all cleans sessions", async () => {

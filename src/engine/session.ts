@@ -262,6 +262,10 @@ function isProcessAlive(pid: unknown) {
 
 // ── Daemon PID tracking for orphan prevention ──
 
+function workspaceDaemonDir(workspaceDir?: string) {
+	return resolve(workspaceDir ?? process.cwd(), ".pwcli", "playwright-daemon");
+}
+
 function daemonPidPath(daemonDir: string, sessionName: string) {
 	return join(daemonDir, `${sessionName}.pid`);
 }
@@ -497,9 +501,17 @@ async function withSessionStartupLock<T>(
 	return await fn();
 }
 
-async function stopSessionEntry(entry: ManagedSessionEntry) {
+async function stopSessionEntry(
+	entry: ManagedSessionEntry,
+	workspaceDir?: string,
+) {
 	const session = new Session(entry);
 	const name = entry.config.name ?? "";
+	const pidDirs = [
+		entry.daemonDir,
+		dirname(entry.daemonDir),
+		workspaceDaemonDir(workspaceDir),
+	].filter((dir, index, dirs) => dirs.indexOf(dir) === index);
 
 	// 1. Try graceful page context close
 	if (await session.canConnect().catch(() => false)) {
@@ -518,8 +530,10 @@ async function stopSessionEntry(entry: ManagedSessionEntry) {
 
 	// 3. Force-kill daemon process if still alive (fallback for stuck/dead daemon)
 	if (name) {
-		const pid =
-			daemonPids.get(name) ?? (await readDaemonPidFile(entry.daemonDir, name));
+		let pid = daemonPids.get(name) ?? null;
+		for (const dir of pidDirs) {
+			pid ??= await readDaemonPidFile(dir, name);
+		}
 		if (pid && isProcessAlive(pid)) {
 			try {
 				process.kill(pid, "SIGTERM");
@@ -536,7 +550,7 @@ async function stopSessionEntry(entry: ManagedSessionEntry) {
 			}
 		}
 		daemonPids.delete(name);
-		await deleteDaemonPidFile(entry.daemonDir, name);
+		await Promise.all(pidDirs.map((dir) => deleteDaemonPidFile(dir, name)));
 	}
 
 	// 4. Kill any orphaned workers that survived the daemon kill
@@ -667,7 +681,7 @@ async function ensureManagedSessionUnlocked(
 	);
 
 	if (entry && options?.reset) {
-		await stopSessionEntry(entry);
+		await stopSessionEntry(entry, clientInfo.workspaceDir);
 	}
 
 	if (!entry && !options?.createIfMissing && !options?.reset) {
@@ -699,11 +713,7 @@ async function ensureManagedSessionUnlocked(
 					)) as { pid?: number } | undefined;
 					// Persist daemon PID for force-kill fallback on abnormal exit
 					if (daemonInfo?.pid) {
-						const daemonDir = resolve(
-							clientInfo.workspaceDir ?? process.cwd(),
-							".pwcli",
-							"playwright-daemon",
-						);
+						const daemonDir = workspaceDaemonDir(clientInfo.workspaceDir);
 						daemonPids.set(sessionName, daemonInfo.pid);
 						await writeDaemonPidFile(
 							daemonDir,
@@ -878,6 +888,10 @@ export async function stopManagedSession(sessionName?: string) {
 		entry,
 	} = await getSessionEntry(sessionName);
 	if (!entry) {
+		await deleteDaemonPidFile(
+			workspaceDaemonDir(clientInfo.workspaceDir),
+			resolvedSessionName,
+		);
 		return false;
 	}
 	await withSessionStartupLock(
@@ -889,7 +903,7 @@ export async function stopManagedSession(sessionName?: string) {
 				clientInfo.workspaceDir,
 				resolvedSessionName,
 				async () => {
-					await stopSessionEntry(entry);
+					await stopSessionEntry(entry, clientInfo.workspaceDir);
 				},
 			);
 		},
@@ -901,17 +915,25 @@ export async function stopManagedSession(sessionName?: string) {
 
 export async function stopAllManagedSessions() {
 	const registry = await loadRegistry();
-	const allEntries: ManagedSessionEntry[] = [];
-	for (const entries of registry.entryMap().values()) {
-		allEntries.push(...entries);
+	const allEntries: Array<{
+		entry: ManagedSessionEntry;
+		workspaceDir?: string;
+	}> = [];
+	for (const [workspaceDir, entries] of registry.entryMap()) {
+		allEntries.push(
+			...entries.map((entry: ManagedSessionEntry) => ({
+				entry,
+				workspaceDir,
+			})),
+		);
 	}
 
 	const results = [];
-	for (const entry of allEntries) {
+	for (const { entry, workspaceDir } of allEntries) {
 		const session = new Session(entry);
 		const alive = await session.canConnect().catch(() => false);
 		try {
-			await stopSessionEntry(entry);
+			await stopSessionEntry(entry, entry.config.workspaceDir ?? workspaceDir);
 			results.push({ name: entry.config.name, alive, closed: true });
 		} catch {
 			results.push({ name: entry.config.name, alive, closed: false });
@@ -920,7 +942,7 @@ export async function stopAllManagedSessions() {
 
 	// Clean up workspace directories: remove known artifacts (.err, stale-*)
 	// then remove the directory only if it becomes empty
-	const daemonDirs = new Set(allEntries.map((e) => e.daemonDir));
+	const daemonDirs = new Set(allEntries.map(({ entry }) => entry.daemonDir));
 	for (const dir of daemonDirs) {
 		const files = await readdir(dir).catch(() => [] as string[]);
 		const leftovers = files.filter(
